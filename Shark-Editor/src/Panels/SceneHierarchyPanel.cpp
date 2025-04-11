@@ -344,8 +344,9 @@ namespace Shark {
 		m_Components.push_back(COMPONENT_DATA_ARGS("Prismatic Joint 2D", PrismaticJointComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Pulley Joint 2D", PulleyJointComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Rigidbody", RigidBodyComponent));
-		m_Components.push_back(COMPONENT_DATA_ARGS("Sphere Collider", SphereColliderComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Box Collider", BoxColliderComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Sphere Collider", SphereColliderComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Capsule Collider", CapsuleColliderComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Script", ScriptComponent));
 		#undef COMPONENT_DATA_ARGS
 
@@ -1508,7 +1509,15 @@ namespace Shark {
 
 			UI::EndControlsGrid();
 		});
-		
+
+		DrawComponetMultiSelect<BoxColliderComponent>(entities, "Box Collider", [this](BoxColliderComponent& firstComponent, const std::vector<Entity>& entities)
+		{
+			UI::BeginControlsGrid();
+			utils::MultiselectControl(entities, &BoxColliderComponent::HalfSize, "Half Size");
+			utils::MultiselectControl(entities, &BoxColliderComponent::Offset, "Offset");
+			UI::EndControlsGrid();
+		});
+
 		DrawComponetMultiSelect<SphereColliderComponent>(entities, "Sphere Collider", [this](SphereColliderComponent& firstComponent, const std::vector<Entity>& entities)
 		{
 			UI::BeginControlsGrid();
@@ -1516,12 +1525,13 @@ namespace Shark {
 			utils::MultiselectControl(entities, &SphereColliderComponent::Offset, "Offset");
 			UI::EndControlsGrid();
 		});
-		
-		DrawComponetMultiSelect<BoxColliderComponent>(entities, "Box Collider", [this](BoxColliderComponent& firstComponent, const std::vector<Entity>& entities)
+
+		DrawComponetMultiSelect<CapsuleColliderComponent>(entities, "Capsule Collider", [this](CapsuleColliderComponent& firstComponent, const std::vector<Entity>& entities)
 		{
 			UI::BeginControlsGrid();
-			utils::MultiselectControl(entities, &BoxColliderComponent::HalfSize, "Half Size");
-			utils::MultiselectControl(entities, &BoxColliderComponent::Offset, "Offset");
+			utils::MultiselectControl(entities, &CapsuleColliderComponent::Radius, "Radius");
+			utils::MultiselectControl(entities, &CapsuleColliderComponent::HalfHeight, "Half Height");
+			utils::MultiselectControl(entities, &CapsuleColliderComponent::Offset, "Offset");
 			UI::EndControlsGrid();
 		});
 

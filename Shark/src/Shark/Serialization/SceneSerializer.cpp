@@ -424,7 +424,15 @@ namespace Shark {
 			SK_SERIALIZE_PROPERTY(out, "LockedAxes", component->LockedAxes);
 			SK_END_GROUP(out);
 		}
-		
+
+		if (auto component = entity.TryGetComponent<BoxColliderComponent>())
+		{
+			SK_BEGIN_GROUP(out, "BoxColliderComponent");
+			SK_SERIALIZE_PROPERTY(out, "HalfSize", component->HalfSize);
+			SK_SERIALIZE_PROPERTY(out, "Offset", component->Offset);
+			SK_END_GROUP(out);
+		}
+
 		if (auto component = entity.TryGetComponent<SphereColliderComponent>())
 		{
 			SK_BEGIN_GROUP(out, "SphereColliderComponent");
@@ -433,10 +441,12 @@ namespace Shark {
 			SK_END_GROUP(out);
 		}
 		
-		if (auto component = entity.TryGetComponent<BoxColliderComponent>())
+
+		if (auto component = entity.TryGetComponent<CapsuleColliderComponent>())
 		{
-			SK_BEGIN_GROUP(out, "BoxColliderComponent");
-			SK_SERIALIZE_PROPERTY(out, "HalfSize", component->HalfSize);
+			SK_BEGIN_GROUP(out, "CapsuleColliderComponent");
+			SK_SERIALIZE_PROPERTY(out, "Radius", component->Radius);
+			SK_SERIALIZE_PROPERTY(out, "HalfHeight", component->HalfHeight);
 			SK_SERIALIZE_PROPERTY(out, "Offset", component->Offset);
 			SK_END_GROUP(out);
 		}
@@ -726,17 +736,25 @@ namespace Shark {
 			SK_DESERIALIZE_PROPERTY(componentNode, "LockedAxes", component.LockedAxes);
 		}
 
+		if (auto componentNode = entityNode["BoxColliderComponent"])
+		{
+			auto& component = entity.AddOrReplaceComponent<BoxColliderComponent>();
+			SK_DESERIALIZE_PROPERTY(componentNode, "HalfSize", component.HalfSize, { 0.5f, 0.5f, 0.5f });
+			SK_DESERIALIZE_PROPERTY(componentNode, "Offset", component.Offset, { 0.0f, 0.0f, 0.0f });
+		}
+
 		if (auto componentNode = entityNode["SphereColliderComponent"])
 		{
 			auto& component = entity.AddOrReplaceComponent<SphereColliderComponent>();
 			SK_DESERIALIZE_PROPERTY(componentNode, "Radius", component.Radius, 0.5f);
 			SK_DESERIALIZE_PROPERTY(componentNode, "Offset", component.Offset, { 0.0f, 0.0f, 0.0f });
 		}
-		
-		if (auto componentNode = entityNode["BoxColliderComponent"])
+
+		if (auto componentNode = entityNode["CapsuleColliderComponent"])
 		{
-			auto& component = entity.AddOrReplaceComponent<BoxColliderComponent>();
-			SK_DESERIALIZE_PROPERTY(componentNode, "HalfSize", component.HalfSize, { 0.5f, 0.5f, 0.5f });
+			auto& component = entity.AddOrReplaceComponent<CapsuleColliderComponent>();
+			SK_DESERIALIZE_PROPERTY(componentNode, "Radius", component.Radius, 0.5f);
+			SK_DESERIALIZE_PROPERTY(componentNode, "HalfHeight", component.HalfHeight, 0.5f);
 			SK_DESERIALIZE_PROPERTY(componentNode, "Offset", component.Offset, { 0.0f, 0.0f, 0.0f });
 		}
 

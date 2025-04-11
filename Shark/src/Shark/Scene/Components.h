@@ -360,18 +360,29 @@ namespace Shark {
 		Axis LockedAxes = Axis::None;
 	};
 
+	struct BoxColliderComponent
+	{
+		glm::vec3 HalfSize = { 0.5f, 0.5f, 0.5f };
+		glm::vec3 Offset = { 0.0f, 0.0f, 0.0f };
+
+		// #TODO(moro): Physics Material
+	};
+
 	struct SphereColliderComponent
 	{
 		float Radius = 0.5f;
 		glm::vec3 Offset = { 0.0f, 0.0f, 0.0f };
 
-		// TODO(moro): Physics Material
+		// #TODO(moro): Physics Material
 	};
 
-	struct BoxColliderComponent
+	struct CapsuleColliderComponent
 	{
-		glm::vec3 HalfSize = { 0.5f, 0.5f, 0.5f };
+		float Radius = 0.5f;
+		float HalfHeight = 0.5f;
 		glm::vec3 Offset = { 0.0f, 0.0f, 0.0f };
+
+		// #TODO(moro): Physics Material
 	};
 
 	struct ScriptComponent
@@ -400,7 +411,7 @@ namespace Shark {
 			                             /* Light      */ PointLightComponent, DirectionalLightComponent, SkyComponent,
 			                             /* Camera     */ CameraComponent,
 			                             /* Physics 2D */ RigidBody2DComponent, BoxCollider2DComponent, CircleCollider2DComponent, DistanceJointComponent, HingeJointComponent, PrismaticJointComponent, PulleyJointComponent,
-			                             /* Physics 3D */ RigidBodyComponent, BoxColliderComponent, SphereColliderComponent,
+			                             /* Physics 3D */ RigidBodyComponent, BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent,
 			                             /* Script     */ ScriptComponent>;
 
 	// Every entity is required to have all of those components

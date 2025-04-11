@@ -12,6 +12,8 @@
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include <glm/gtx/optimum_pow.hpp>
 
 
 namespace Shark {
@@ -39,6 +41,31 @@ namespace Shark {
 
 		static JPH::Ref<JPH::Shape> CreateShape(Entity entity, const TransformComponent& worldTransform)
 		{
+			if (entity.HasComponent<BoxColliderComponent>())
+			{
+				auto& rigidbody = entity.GetComponent<RigidBodyComponent>();
+				auto& collider = entity.GetComponent<BoxColliderComponent>();
+
+				glm::vec3 halfSize = collider.HalfSize * worldTransform.Scale;
+				glm::vec3 fullSize = halfSize * 2.0f;
+				float volume = fullSize.x * fullSize.y * fullSize.z;
+
+				auto settings = new JPH::BoxShapeSettings(JoltUtils::ToJPH(collider.HalfSize * worldTransform.Scale));
+				settings->mDensity = rigidbody.Mass / volume;
+
+				JPH::RotatedTranslatedShapeSettings offsetSettings(JoltUtils::ToJPH(collider.Offset), JPH::Quat::sIdentity(), settings);
+
+				auto result = offsetSettings.Create();
+				if (result.HasError())
+				{
+					const JPH::String& errorMessage = result.GetError();
+					SK_CORE_ERROR_TAG("Physics", "Failed to create Shape: {}", errorMessage);
+					return nullptr;
+				}
+
+				return result.Get();
+			}
+
 			if (entity.HasComponent<SphereColliderComponent>())
 			{
 				auto& rigidbody = entity.GetComponent<RigidBodyComponent>();
@@ -64,19 +91,21 @@ namespace Shark {
 				return result.Get();
 			}
 
-			if (entity.HasComponent<BoxColliderComponent>())
+			if (entity.HasComponent<CapsuleColliderComponent>())
 			{
 				auto& rigidbody = entity.GetComponent<RigidBodyComponent>();
-				auto& collider = entity.GetComponent<BoxColliderComponent>();
+				auto& collider = entity.GetComponent<CapsuleColliderComponent>();
 
-				glm::vec3 halfSize = collider.HalfSize * worldTransform.Scale;
-				glm::vec3 fullSize = halfSize * 2.0f;
-				float volume = fullSize.x * fullSize.y * fullSize.z;
+				float largest = glm::max(worldTransform.Scale.x, glm::max(worldTransform.Scale.y, worldTransform.Scale.z));
+				float scaledRadius = collider.Radius * largest;
+				float scaledHalfHeight = collider.HalfHeight * largest;
 
-				auto settings = new JPH::BoxShapeSettings(JoltUtils::ToJPH(collider.HalfSize * worldTransform.Scale));
+				float volume = Math::PI * glm::pow2(scaledRadius) * ((4.0f / 3.0f) * scaledRadius + scaledHalfHeight * 2.0f);
+
+				auto settings = new JPH::CapsuleShapeSettings(scaledHalfHeight, scaledRadius);
 				settings->mDensity = rigidbody.Mass / volume;
 
-				JPH::RotatedTranslatedShapeSettings offsetSettings(JoltUtils::ToJPH(collider.Offset), JPH::Quat::sIdentity(), settings);
+				auto offsetSettings = JPH::RotatedTranslatedShapeSettings(JoltUtils::ToJPH(collider.Offset), JPH::Quat::sIdentity(), settings);
 
 				auto result = offsetSettings.Create();
 				if (result.HasError())
@@ -182,7 +211,7 @@ namespace Shark {
 
 	void PhysicsScene::CreateBody(Entity entity)
 	{
-		if (!entity.HasAny<SphereColliderComponent, BoxColliderComponent>())
+		if (!entity.HasAny<BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent>())
 		{
 			SK_CORE_ERROR_TAG("Physics", "Creating a Body without a Collider is not allowed!");
 			return;

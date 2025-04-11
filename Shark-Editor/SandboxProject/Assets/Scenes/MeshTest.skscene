@@ -2,6 +2,19 @@ Scene:
   Name: MeshTest
   ActiveCamera: 9526599818921722233
   Entities:
+    - Entity: 262937173966418478
+      TagComponent:
+        Name: 3D Physics Test
+      TransformComponent:
+        Translation: [0, 0, 0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          - 5472875477308204326
+          - 8212112938974420410
+          - 3869254921732704256
     - Entity: 270824792768259062
       TagComponent:
         Name: Sky
@@ -15,8 +28,8 @@ Scene:
           []
       SkyComponent:
         SceneEnvironment: 9087211806961695879
-        Intensity: 0.485000014
-        Lod: 3.64400005
+        Intensity: 0.675000012
+        Lod: 1.38
     - Entity: 315396680492467839
       TagComponent:
         Name: Floor
@@ -111,10 +124,10 @@ Scene:
         Name: Sphere
       TransformComponent:
         Translation: [53.5707245, 20.7855148, -52.9787025]
-        Rotation: [0, 0, 0]
+        Rotation: [0, -0, 0]
         Scale: [2.98000002, 2.98000002, 2.98000002]
       RelationshipComponent:
-        Parent: 0
+        Parent: 262937173966418478
         Children:
           []
       StaticMeshComponent:
@@ -154,6 +167,39 @@ Scene:
         MaterialTable:
           0: 15318099279608298917
         Visible: true
+    - Entity: 5472875477308204326
+      TagComponent:
+        Name: Capsule
+      TransformComponent:
+        Translation: [47.2348862, 8.17160702, -52.9787025]
+        Rotation: [0, -0, 0]
+        Scale: [2.98000002, 2.98000002, 2.98000002]
+      RelationshipComponent:
+        Parent: 262937173966418478
+        Children:
+          []
+      StaticMeshComponent:
+        StaticMesh: 175369120754598790
+        MaterialTable:
+          0: 5711592405232914583
+        Visible: true
+      RigidBodyComponent:
+        Type: Dynamic
+        Mass: 1
+        LinearDrag: 0.0500000007
+        AngularDrag: 0.0500000007
+        DisableGravity: false
+        IsSensor: false
+        InitialLinearVelocity: [0, 0, 0]
+        InitialAngularVelocity: [0, 0, 0]
+        MaxLinearVelocity: 500
+        MaxAngularVelocity: 50
+        CollisionDetection: Discrete
+        LockedAxes: 0
+      CapsuleColliderComponent:
+        Radius: 0.5
+        HalfHeight: 0.5
+        Offset: [0, 0, 0]
     - Entity: 5500513560476447937
       TagComponent:
         Name: Camera
@@ -269,10 +315,10 @@ Scene:
         Name: Sphere
       TransformComponent:
         Translation: [52.3332024, -16.3317223, -54.1842575]
-        Rotation: [0, 0, 0]
+        Rotation: [0, -0, 0]
         Scale: [39.5714226, 39.5714226, 39.5714226]
       RelationshipComponent:
-        Parent: 0
+        Parent: 262937173966418478
         Children:
           []
       StaticMeshComponent:
@@ -418,7 +464,7 @@ Scene:
           []
       DirectionalLightComponent:
         Radiance: [1, 1, 1, 1]
-        Intensity: 0.540000021
+        Intensity: 0.680000007
     - Entity: 9936726430211519703
       TagComponent:
         Name: 3dace5162d02441ea3b63cc9dd78a76c.obj.cleaner

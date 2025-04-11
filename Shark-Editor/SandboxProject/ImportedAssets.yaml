@@ -611,6 +611,9 @@ ImportedAssets:
   - Handle: 4372713327045032286
     Type: Mesh
     FilePath: Meshes/CerberusPacked.skmesh
+  - Handle: 175369120754598790
+    Type: Mesh
+    FilePath: Meshes/Defaults/Capsule.skmesh
   - Handle: 9815586959680881104
     Type: Mesh
     FilePath: Meshes/Defaults/Cone.skmesh
