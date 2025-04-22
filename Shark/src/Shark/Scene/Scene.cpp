@@ -280,12 +280,25 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		OnPhysics2DPlay(false);
+
+		m_PhysicsScene = PhysicsSystem::CreateScene(this);
+
+		{
+			auto entities = GetAllEntitysWith<RigidBodyComponent>();
+			for (auto ent : entities)
+			{
+				Entity entity{ ent, this };
+				m_PhysicsScene->CreateBody(entity);
+			}
+		}
+
 	}
 
 	void Scene::OnSimulationStop()
 	{
 		SK_PROFILE_FUNCTION();
 
+		m_PhysicsScene = nullptr;
 		OnPhysics2DStop();
 	}
 
@@ -386,6 +399,8 @@ namespace Shark {
 			transform.Translation.xy = Physics2DUtils::FromBody(rb2d.RuntimeBody);
 			transform.Rotation.z = rb2d.RuntimeBody->GetAngle();
 		}
+
+		m_PhysicsScene->Update(ts);
 	}
 
 	void Scene::OnRenderRuntime(Ref<SceneRenderer> renderer)
