@@ -440,7 +440,6 @@ namespace Shark {
 			SK_SERIALIZE_PROPERTY(out, "Offset", component->Offset);
 			SK_END_GROUP(out);
 		}
-		
 
 		if (auto component = entity.TryGetComponent<CapsuleColliderComponent>())
 		{
@@ -448,6 +447,15 @@ namespace Shark {
 			SK_SERIALIZE_PROPERTY(out, "Radius", component->Radius);
 			SK_SERIALIZE_PROPERTY(out, "HalfHeight", component->HalfHeight);
 			SK_SERIALIZE_PROPERTY(out, "Offset", component->Offset);
+			SK_END_GROUP(out);
+		}
+
+		if (auto component = entity.TryGetComponent<MeshColliderComponent>())
+		{
+			SK_BEGIN_GROUP(out, "MeshColliderComponent");
+			SK_SERIALIZE_PROPERTY(out, "Mesh", component->Mesh);
+			SK_SERIALIZE_PROPERTY(out, "ReflectMeshHierarchy", component->ReflectMeshHierarchy);
+			SK_SERIALIZE_PROPERTY(out, "SubmeshIndex", component->SubmeshIndex);
 			SK_END_GROUP(out);
 		}
 
@@ -756,6 +764,14 @@ namespace Shark {
 			SK_DESERIALIZE_PROPERTY(componentNode, "Radius", component.Radius, 0.5f);
 			SK_DESERIALIZE_PROPERTY(componentNode, "HalfHeight", component.HalfHeight, 0.5f);
 			SK_DESERIALIZE_PROPERTY(componentNode, "Offset", component.Offset, { 0.0f, 0.0f, 0.0f });
+		}
+
+		if (auto componentNode = entityNode["MeshColliderComponent"])
+		{
+			auto& component = entity.AddOrReplaceComponent<MeshColliderComponent>();
+			SK_DESERIALIZE_PROPERTY(componentNode, "Mesh", component.Mesh, AssetHandle::Invalid);
+			SK_DESERIALIZE_PROPERTY(componentNode, "ReflectMeshHierarchy", component.ReflectMeshHierarchy, false);
+			SK_DESERIALIZE_PROPERTY(componentNode, "SubmeshIndex", component.SubmeshIndex, 0);
 		}
 
 		if (auto componentNode = entityNode["ScriptComponent"])

@@ -1,8 +1,13 @@
 #include "skpch.h"
 #include "PhysicsScene.h"
 
+#include "Shark/Asset/AssetManager.h"
+#include "Shark/Render/Mesh.h"
+#include "Shark/Render/MeshSource.h"
+
 #include "Shark/Physics/3D/PhysicsSystem.h"
 #include "Shark/Physics/3D/Utilities.h"
+#include "Shark/Physics/3D/CookingFactory.h"
 #include "Shark/Debug/Profiler.h"
 
 #include <Jolt/Jolt.h>
@@ -13,7 +18,11 @@
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include "Jolt/Physics/Collision/Shape/StaticCompoundShape.h"
+#include "Jolt/Physics/Collision/Shape/ScaledShape.h"
+#include "Jolt/Physics/Collision/Shape/ConvexHullShape.h"
 #include <glm/gtx/optimum_pow.hpp>
+#include "BinaryStream.h"
 
 
 namespace Shark {
@@ -38,6 +47,51 @@ namespace Shark {
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	namespace utils {
+
+		static JPH::Shape* CreateConvexShape(const MeshCollider& colliderData, uint32_t submeshIndex, float totalBodyMass)
+		{
+			auto submeshCollider = std::ranges::find(colliderData.Submeshes, submeshIndex, &SubmeshCollider::SubmeshIndex);
+			if (submeshCollider == colliderData.Submeshes.end())
+				return nullptr;
+
+			JoltBinaryStreamReader stream(submeshCollider->ShapeState.GetBuffer());
+			auto result = JPH::Shape::sRestoreFromBinaryState(stream);
+
+			if (result.HasError())
+			{
+				const JPH::String& errorMessage = result.GetError();
+				SK_CORE_ERROR_TAG("Physics", "Failed to create Shape: {}", errorMessage);
+				return nullptr;
+			}
+
+			auto convexShape = JoltUtils::CastRef<JPH::ConvexHullShape>(result.Get());
+			convexShape->SetDensity(totalBodyMass / convexShape->GetVolume());
+
+			return convexShape;
+		}
+
+		static void TraverseMeshNodes(JPH::StaticCompoundShapeSettings& settings, const MeshCollider& colliderData, float totalBodyMass, Ref<MeshSource> meshSource, const MeshNode& meshNode)
+		{
+			glm::vec3 translation, rotation, scale;
+			Math::DecomposeTransform(meshNode.Transform, translation, rotation, scale);
+
+			for (uint32_t submeshIndex : meshNode.Submeshes)
+			{
+				auto convexShape = CreateConvexShape(colliderData, submeshIndex, totalBodyMass);
+				if (!convexShape)
+					continue;
+
+				JPH::RefConst scaledSettings = new JPH::ScaledShapeSettings(convexShape, JoltUtils::ToJPH(scale));
+				settings.AddShape(JoltUtils::ToJPH(translation), JPH::Quat::sEulerAngles(JoltUtils::ToJPH(rotation)), scaledSettings);
+			}
+
+			for (uint32_t child : meshNode.Children)
+			{
+				const MeshNode& childNode = meshSource->GetNodes()[child];
+				TraverseMeshNodes(settings, colliderData, totalBodyMass, meshSource, childNode);
+			}
+
+		}
 
 		static JPH::Ref<JPH::Shape> CreateShape(Entity entity, const TransformComponent& worldTransform)
 		{
@@ -118,6 +172,72 @@ namespace Shark {
 				return result.Get();
 			}
 
+			if (entity.HasComponent<MeshColliderComponent>())
+			{
+				auto& rigidbody = entity.GetComponent<RigidBodyComponent>();
+				auto& collider = entity.GetComponent<MeshColliderComponent>();
+
+				AssetHandle meshHandle = collider.Mesh;
+				if (!meshHandle && entity.HasAny<StaticMeshComponent, SubmeshComponent>())
+				{
+					if (auto* component = entity.TryGetComponent<StaticMeshComponent>())
+						meshHandle = component->StaticMesh;
+					else if (auto* component = entity.TryGetComponent<SubmeshComponent>())
+						meshHandle = component->Mesh;
+				}
+
+				if (!meshHandle)
+				{
+					SK_CORE_ERROR_TAG("Physics", "Failed to create Mesh Collider! Missing Mesh");
+					return nullptr;
+				}
+
+				auto& cache = PhysicsSystem::GetColliderCache();
+				if (!cache.HasCollider(meshHandle))
+				{
+					PhysicsSystem::CookMesh(meshHandle);
+				}
+
+				auto& colliderData = cache.GetColliderData(meshHandle);
+					
+				Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(meshHandle);
+				Ref<MeshSource> meshSource = AssetManager::GetAsset<MeshSource>(mesh->GetMeshSource());
+
+				if (collider.ReflectMeshHierarchy)
+				{
+					auto settings = JPH::StaticCompoundShapeSettings();
+
+					const MeshNode& rootNode = meshSource->GetRootNode();
+					TraverseMeshNodes(settings, colliderData, rigidbody.Mass, meshSource, rootNode);
+
+					auto result = settings.Create();
+					if (result.HasError())
+					{
+						const JPH::String& errorMessage = result.GetError();
+						SK_CORE_ERROR_TAG("Physics", "Failed to create Shape: {}", errorMessage);
+						return nullptr;
+					}
+
+					return result.Get();
+				}
+
+				if (auto convexShape = utils::CreateConvexShape(colliderData, collider.SubmeshIndex, rigidbody.Mass))
+				{
+					auto scaledSettings = JPH::ScaledShapeSettings(convexShape, JoltUtils::ToJPH(worldTransform.Scale));
+					auto scaledResult = scaledSettings.Create();
+
+					if (scaledResult.HasError())
+					{
+						const JPH::String& errorMessage = scaledResult.GetError();
+						SK_CORE_ERROR_TAG("Physics", "Failed to create Shape: {}", errorMessage);
+						return nullptr;
+					}
+
+					return scaledResult.Get();
+				}
+
+			}
+
 			SK_CORE_VERIFY(false, "Unkown Collider");
 			return nullptr;
 		}
@@ -128,6 +248,9 @@ namespace Shark {
 			auto& rigidbody = entity.GetComponent<RigidBodyComponent>();
 
 			auto shape = CreateShape(entity, transform);
+			if (!shape)
+				return {};
+
 			auto settings = JPH::BodyCreationSettings(shape,
 													  JoltUtils::ToJPH(transform.Translation),
 													  JoltUtils::ToJPH(transform.GetRotationQuat()),
@@ -211,14 +334,14 @@ namespace Shark {
 
 	void PhysicsScene::CreateBody(Entity entity)
 	{
-		if (!entity.HasAny<BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent>())
-		{
-			SK_CORE_ERROR_TAG("Physics", "Creating a Body without a Collider is not allowed!");
-			return;
-		}
-
 		JPH::BodyInterface& bodyInterface = m_System.GetBodyInterface();
 		JPH::BodyID bodyID = utils::CreateRigidBody(bodyInterface, m_Scene, entity);
+
+		if (bodyID.IsInvalid())
+		{
+			SK_CORE_WARN_TAG("Physics", "Faled to create rigid body for entity {} '{}'", entity.GetName(), entity.GetUUID());
+			return;
+		}
 
 		bodyInterface.AddBody(bodyID, JPH::EActivation::Activate);
 		m_RigidBodyIDs[entity.GetUUID()] = bodyID;

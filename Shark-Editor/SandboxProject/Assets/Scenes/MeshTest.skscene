@@ -15,6 +15,7 @@ Scene:
           - 5472875477308204326
           - 8212112938974420410
           - 3869254921732704256
+          - 6705845029260174239
     - Entity: 270824792768259062
       TagComponent:
         Name: Sky
@@ -262,6 +263,72 @@ Scene:
         MaterialTable:
           0: 15318099279608298917
         Visible: true
+    - Entity: 6705845029260174239
+      TagComponent:
+        Name: Capsule
+      TransformComponent:
+        Translation: [57.4468422, 8.17160702, -55.4561958]
+        Rotation: [0, -0, 0]
+        Scale: [2.98000002, 2.98000002, 2.98000002]
+      RelationshipComponent:
+        Parent: 262937173966418478
+        Children:
+          []
+      StaticMeshComponent:
+        StaticMesh: 175369120754598790
+        MaterialTable:
+          0: 5711592405232914583
+        Visible: true
+      RigidBodyComponent:
+        Type: Dynamic
+        Mass: 1
+        LinearDrag: 0.0500000007
+        AngularDrag: 0.0500000007
+        DisableGravity: false
+        IsSensor: false
+        InitialLinearVelocity: [0, 0, 0]
+        InitialAngularVelocity: [0, 0, 0]
+        MaxLinearVelocity: 500
+        MaxAngularVelocity: 50
+        CollisionDetection: Discrete
+        LockedAxes: 0
+      MeshColliderComponent:
+        Mesh: 0
+        ReflectMeshHierarchy: false
+        SubmeshIndex: 0
+    - Entity: 6791583175597789783
+      TagComponent:
+        Name: nanosuit_textured
+      TransformComponent:
+        Translation: [50.8918304, 2.73194528, -38.365284]
+        Rotation: [0, 3.14159274, 0]
+        Scale: [0.75, 0.75, 0.75]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      StaticMeshComponent:
+        StaticMesh: 13340687370080108148
+        MaterialTable:
+          {}
+        Visible: true
+      RigidBodyComponent:
+        Type: Dynamic
+        Mass: 1
+        LinearDrag: 0.0500000007
+        AngularDrag: 0.0500000007
+        DisableGravity: false
+        IsSensor: false
+        InitialLinearVelocity: [0, 14.8500004, 0]
+        InitialAngularVelocity: [6.28318548, 0, 0]
+        MaxLinearVelocity: 500
+        MaxAngularVelocity: 50
+        CollisionDetection: Discrete
+        LockedAxes: 0
+      MeshColliderComponent:
+        Mesh: 0
+        ReflectMeshHierarchy: true
+        SubmeshIndex: 0
     - Entity: 7735032720787521506
       TagComponent:
         Name: Floor
@@ -407,6 +474,23 @@ Scene:
         MaterialTable:
           0: 15318099279608298917
         Visible: true
+      RigidBodyComponent:
+        Type: Static
+        Mass: 1
+        LinearDrag: 0.0500000007
+        AngularDrag: 0.0500000007
+        DisableGravity: false
+        IsSensor: false
+        InitialLinearVelocity: [0, 0, 0]
+        InitialAngularVelocity: [0, 0, 0]
+        MaxLinearVelocity: 500
+        MaxAngularVelocity: 50
+        CollisionDetection: Discrete
+        LockedAxes: 0
+      MeshColliderComponent:
+        Mesh: 0
+        ReflectMeshHierarchy: false
+        SubmeshIndex: 0
     - Entity: 9759562540233492610
       TagComponent:
         Name: FloorContainer

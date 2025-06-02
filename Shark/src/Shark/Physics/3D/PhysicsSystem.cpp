@@ -31,6 +31,9 @@ namespace Shark {
 	{
 		JPH::TempAllocatorImpl* m_TempAllocator;
 		JPH::JobSystemThreadPool* m_JobSystem;
+
+		MeshColliderCache m_MeshColliderCache;
+		CookingFactory m_CookingFactory;
 	};
 	static SystemData* s_SystemData = nullptr;
 
@@ -64,6 +67,21 @@ namespace Shark {
 	Ref<PhysicsScene> PhysicsSystem::CreateScene(Ref<Scene> scene)
 	{
 		return Ref<PhysicsScene>::Create(scene);
+	}
+
+	void PhysicsSystem::CookMesh(AssetHandle meshHandle, bool forceCook)
+	{
+		s_SystemData->m_CookingFactory.CookMesh(meshHandle, forceCook);
+	}
+
+	CookingFactory& PhysicsSystem::GetCookingFactory()
+	{
+		return s_SystemData->m_CookingFactory;
+	}
+
+	MeshColliderCache& PhysicsSystem::GetColliderCache()
+	{
+		return s_SystemData->m_MeshColliderCache;
 	}
 
 	JPH::TempAllocator* PhysicsSystem::GetAllocator()

@@ -136,8 +136,17 @@ namespace Shark {
 		ScopedBuffer(const ScopedBuffer&) = delete;
 		ScopedBuffer& operator=(const ScopedBuffer&) = delete;
 
-		ScopedBuffer(ScopedBuffer&&) = default;
-		ScopedBuffer& operator=(ScopedBuffer&&) = default;
+		ScopedBuffer(ScopedBuffer&& other) : m_Buffer(std::exchange(other.m_Buffer, {})) {}
+		ScopedBuffer& operator=(ScopedBuffer&& other)
+		{
+			if (this == std::addressof(other))
+				return *this;
+
+			Release();
+			m_Buffer = other.m_Buffer;
+			other.m_Buffer = {};
+			return *this;
+		}
 
 		ScopedBuffer(Buffer buffer)
 			: m_Buffer(buffer) {}

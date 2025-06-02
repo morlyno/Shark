@@ -9,6 +9,8 @@
 #include "Shark/Scripting/ScriptTypes.h"
 #include "Shark/Scripting/ScriptEngine.h"
 
+#include "Shark/Physics/3D/PhysicsSystem.h"
+
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/Controls.h"
 #include "Shark/UI/Widgets.h"
@@ -347,6 +349,7 @@ namespace Shark {
 		m_Components.push_back(COMPONENT_DATA_ARGS("Box Collider", BoxColliderComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Sphere Collider", SphereColliderComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Capsule Collider", CapsuleColliderComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Mesh Collider", MeshColliderComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Script", ScriptComponent));
 		#undef COMPONENT_DATA_ARGS
 
@@ -1476,7 +1479,7 @@ namespace Shark {
 					ImGui::Text("Z");
 					ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, utils::IsInconsistentProperty<RigidBodyComponent>(entities, [ZAxis](auto& component) { return component.LockedAxes & ZAxis; }));
 					if (UI::Checkbox("##Z", &z))
-						lockedAxes = SetFlag(lockedAxes, ZAxis, x);
+						lockedAxes = SetFlag(lockedAxes, ZAxis, z);
 					ImGui::PopItemFlag();
 
 					if (lockedAxes != (firstComponent.LockedAxes & axesMask))
@@ -1533,6 +1536,25 @@ namespace Shark {
 			utils::MultiselectControl(entities, &CapsuleColliderComponent::HalfHeight, "Half Height");
 			utils::MultiselectControl(entities, &CapsuleColliderComponent::Offset, "Offset");
 			UI::EndControlsGrid();
+		});
+
+		DrawComponetMultiSelect<MeshColliderComponent>(entities, "Mesh Collider", [this](MeshColliderComponent& firstComponent, const std::vector<Entity>& entities)
+		{
+			UI::BeginControlsGrid();
+			utils::Multiselect(entities, &MeshColliderComponent::Mesh, [](auto& firstComponent) { return UI::ControlAsset("Mesh", AssetType::Mesh, firstComponent.Mesh); });
+			utils::MultiselectControl(entities, &MeshColliderComponent::ReflectMeshHierarchy, "Reflect Mesh Hierarchy");
+			
+			if (!firstComponent.ReflectMeshHierarchy)
+			{
+				utils::MultiselectControl(entities, &MeshColliderComponent::SubmeshIndex, "Submesh");
+			}
+
+			UI::EndControlsGrid();
+
+			if (ImGui::Button("Cook Mesh"))
+			{
+				PhysicsSystem::CookMesh(firstComponent.Mesh, true);
+			}
 		});
 
 		DrawComponetMultiSelect<ScriptComponent>(entities, "Script", [this](ScriptComponent& firstComponent, const std::vector<Entity>& entities)

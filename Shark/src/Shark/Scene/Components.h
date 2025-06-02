@@ -385,6 +385,16 @@ namespace Shark {
 		// #TODO(moro): Physics Material
 	};
 
+	struct MeshColliderComponent
+	{
+		AssetHandle Mesh;
+		uint32_t SubmeshIndex = 0;
+
+		bool ReflectMeshHierarchy = false;
+
+		// #TODO(moro): Physics Material
+	};
+
 	struct ScriptComponent
 	{
 		uint64_t ScriptID = 0;
@@ -411,7 +421,7 @@ namespace Shark {
 			                             /* Light      */ PointLightComponent, DirectionalLightComponent, SkyComponent,
 			                             /* Camera     */ CameraComponent,
 			                             /* Physics 2D */ RigidBody2DComponent, BoxCollider2DComponent, CircleCollider2DComponent, DistanceJointComponent, HingeJointComponent, PrismaticJointComponent, PulleyJointComponent,
-			                             /* Physics 3D */ RigidBodyComponent, BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent,
+			                             /* Physics 3D */ RigidBodyComponent, BoxColliderComponent, SphereColliderComponent, CapsuleColliderComponent, MeshColliderComponent,
 			                             /* Script     */ ScriptComponent>;
 
 	// Every entity is required to have all of those components

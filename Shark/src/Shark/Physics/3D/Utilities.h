@@ -3,6 +3,7 @@
 #include "Shark/Physics/PhysicsTypes.h"
 
 #include <Jolt/Jolt.h>
+#include "Jolt/Core/Reference.h"
 #include <Jolt/Physics/Body/MotionType.h>
 #include <Jolt/Physics/Body/MotionQuality.h>
 #include <Jolt/Physics/Body/AllowedDOFs.h>
@@ -22,5 +23,10 @@ namespace Shark::JoltUtils {
 	JPH::EMotionQuality GetMotionQuality(CollisionDetectionType collisionDetection);
 	JPH::EAllowedDOFs ConvertLockedAxesToAllowedDOFs(Axis lockedAxes);
 
+	template<typename TTo, typename TFrom>
+	JPH::Ref<TTo> CastRef(JPH::Ref<TFrom> ref)
+	{
+		return JPH::Ref<TTo>((TTo*)ref.GetPtr());
+	}
 
 }

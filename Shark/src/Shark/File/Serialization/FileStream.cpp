@@ -14,9 +14,9 @@ namespace Shark {
 		m_Stream.close();
 	}
 
-	bool FileStreamReader::ReadData(char* destination, uint64_t size)
+	bool FileStreamReader::ReadData(void* destination, uint64_t size)
 	{
-		m_Stream.read(destination, size);
+		m_Stream.read((char*)destination, size);
 		return true;
 	}
 
@@ -31,9 +31,9 @@ namespace Shark {
 		m_Stream.close();
 	}
 
-	bool FileStreamWriter::WriteData(const char* data, uint64_t size)
+	bool FileStreamWriter::WriteData(const void* data, uint64_t size)
 	{
-		m_Stream.write(data, size);
+		m_Stream.write((const char*)data, size);
 		return true;
 	}
 

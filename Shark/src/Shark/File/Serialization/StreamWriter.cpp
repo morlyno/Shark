@@ -3,10 +3,10 @@
 
 namespace Shark {
 
-	void StreamWriter::WriteBuffer(Buffer buffer)
+	void StreamWriter::WriteBuffer(const Buffer buffer)
 	{
-		WriteData((char*)&buffer.Size, sizeof(uint64_t));
-		WriteData((char*)buffer.Data, buffer.Size);
+		WriteData(&buffer.Size, sizeof(uint64_t));
+		WriteData(buffer.Data, buffer.Size);
 	}
 
 	void StreamWriter::WriteZero(uint64_t size)
@@ -19,8 +19,8 @@ namespace Shark {
 	void StreamWriter::WriteString(const std::string& string)
 	{
 		uint64_t size = string.size();
-		WriteData((char*)size, sizeof(uint64_t));
-		WriteData((char*)string.data(), size * sizeof(char));
+		WriteData(&size, sizeof(uint64_t));
+		WriteData(string.data(), size * sizeof(char));
 	}
 
 }
