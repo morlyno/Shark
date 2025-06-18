@@ -425,22 +425,6 @@ Scene:
         MaterialTable:
           0: 4652108910098793267
         Visible: true
-    - Entity: 9475213688449325944
-      TagComponent:
-        Name: Floor
-      TransformComponent:
-        Translation: [50, 0, -50]
-        Rotation: [0, -0, 0]
-        Scale: [50, 1, 50]
-      RelationshipComponent:
-        Parent: 9759562540233492610
-        Children:
-          []
-      StaticMeshComponent:
-        StaticMesh: 405962683886001289
-        MaterialTable:
-          0: 15318099279608298917
-        Visible: true
     - Entity: 9526599818921722233
       TagComponent:
         Name: PhysicsTestCamera1
@@ -511,7 +495,6 @@ Scene:
           - 11481620493070943937
           - 10788334564415020820
           - 9758330948252553706
-          - 9475213688449325944
           - 7838411414048624682
           - 7735032720787521506
           - 6364546965988370289

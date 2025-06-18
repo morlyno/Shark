@@ -48,7 +48,7 @@ namespace Shark {
 
 	namespace utils {
 
-		static JPH::Shape* CreateConvexShape(const MeshCollider& colliderData, uint32_t submeshIndex, float totalBodyMass)
+		static JPH::Ref<JPH::Shape> CreateConvexShape(const MeshCollider& colliderData, uint32_t submeshIndex, float totalBodyMass)
 		{
 			auto submeshCollider = std::ranges::find(colliderData.Submeshes, submeshIndex, &SubmeshCollider::SubmeshIndex);
 			if (submeshCollider == colliderData.Submeshes.end())
@@ -67,7 +67,7 @@ namespace Shark {
 			auto convexShape = JoltUtils::CastRef<JPH::ConvexHullShape>(result.Get());
 			convexShape->SetDensity(totalBodyMass / convexShape->GetVolume());
 
-			return convexShape;
+			return result.Get();
 		}
 
 		static void TraverseMeshNodes(JPH::StaticCompoundShapeSettings& settings, const MeshCollider& colliderData, float totalBodyMass, Ref<MeshSource> meshSource, const MeshNode& meshNode)
