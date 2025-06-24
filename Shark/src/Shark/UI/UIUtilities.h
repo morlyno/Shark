@@ -66,25 +66,6 @@ namespace Shark::UI {
 
 	ScopedColor(ImGuiCol, ImColor, bool)->ScopedColor<true>;
 
-	class ScopedColorConditional
-	{
-	public:
-		SK_DEPRECATED("Use UI::ScopedColor instead")
-		ScopedColorConditional(ImGuiCol color, const ImColor& val, bool push)
-			: m_Pushed(push)
-		{
-			if (push)
-				ImGui::PushStyleColor(color, val.Value);
-		}
-		~ScopedColorConditional()
-		{
-			if (m_Pushed)
-				ImGui::PopStyleColor();
-		}
-	private:
-		bool m_Pushed = false;
-	};
-
 	class ScopedStyleStack
 	{
 	public:

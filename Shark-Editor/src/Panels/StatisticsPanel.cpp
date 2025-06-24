@@ -83,7 +83,7 @@ namespace Shark {
 
 			for (const auto& entry : entries)
 			{
-				UI::ScopedColorConditional color(ImGuiCol_Text, ImVec4(0.2f, 0.3f, 0.9f, 1.0f), entry.IsFile);
+				UI::ScopedColor color(ImGuiCol_Text, ImVec4(0.2f, 0.3f, 0.9f, 1.0f), entry.IsFile);
 				ImGui::Text("%s %s", entry.Descriptor.c_str(), entry.Size.c_str());
 			}
 

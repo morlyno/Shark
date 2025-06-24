@@ -376,7 +376,7 @@ namespace Shark {
 
 					const auto& name = GetMaterialName(material);
 					UI::ScopedDisabled disabled(!material);
-					UI::ScopedColorConditional textBrighter(ImGuiCol_Text, UI::Colors::Theme::TextBrighter, !readonly);
+					UI::ScopedColor textBrighter(ImGuiCol_Text, UI::Colors::Theme::TextBrighter, !readonly);
 					if (ImGui::Selectable(name.c_str(), material == m_MaterialEditor->GetMaterial()))
 					{
 						m_MaterialEditor->SetMaterial(material);

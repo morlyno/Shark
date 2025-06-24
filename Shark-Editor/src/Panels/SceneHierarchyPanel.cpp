@@ -701,8 +701,8 @@ namespace Shark {
 
 		bool opened = false;
 		{
-			UI::ScopedColorConditional meshTextColor(ImGuiCol_Text, UI::Colors::Theme::NiceBlue, entity.HasComponent<MeshFilterComponent>() || entity.HasComponent<PrefabComponent>());
-			//UI::ScopedColorConditional prefabTextColor(ImGuiCol_Text, UI::Colors::Theme::Green, entity.HasComponent<PrefabComponent>());
+			UI::ScopedColor meshTextColor(ImGuiCol_Text, UI::Colors::Theme::NiceBlue, entity.HasComponent<MeshFilterComponent>() || entity.HasComponent<PrefabComponent>());
+			//UI::ScopedColor prefabTextColor(ImGuiCol_Text, UI::Colors::Theme::Green, entity.HasComponent<PrefabComponent>());
 			UI::ScopedStyle itemSpacing(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 			ImGui::SetNextItemSelectionUserData(index++);
 

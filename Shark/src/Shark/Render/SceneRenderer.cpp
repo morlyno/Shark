@@ -8,6 +8,7 @@
 #include "Shark/Math/Math.h"
 
 #include "Shark/Debug/Profiler.h"
+#include <glm/gtx/optimum_pow.hpp>
 
 namespace Shark {
 
@@ -310,7 +311,7 @@ namespace Shark {
 		Renderer::EndRenderPass(m_CommandBuffer, m_JumpFloodInitPass);
 
 		int steps = m_JumpFloodSteps;
-		int step = glm::pow<int>(steps - 1, 2);
+		int step = glm::pow2(steps - 1);
 		int index = 0;
 		Buffer vertexOverrides;
 		Ref<FrameBuffer> passFB = m_JumpFloodPass[0]->GetTargetFramebuffer();

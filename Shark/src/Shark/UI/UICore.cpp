@@ -92,7 +92,7 @@ namespace Shark::UI {
 
 	ImGuiID GenerateUniqueID()
 	{
-		return Hash::GenerateFNV(s_GenerateIDIndex++);
+		return (ImGuiID)Hash::GenerateFNV(s_GenerateIDIndex++);
 	}
 
 	void PushID()

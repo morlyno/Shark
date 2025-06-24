@@ -1098,8 +1098,8 @@ namespace Shark {
 
 		{
 			UI::ScopedColor selected(ImGuiCol_Header, UI::Colors::Theme::Selection);
-			UI::ScopedColorConditional hovered(ImGuiCol_HeaderHovered, UI::Colors::WithMultipliedValue(UI::Colors::Theme::Selection, 1.2f), current);
-			UI::ScopedColorConditional active(ImGuiCol_HeaderActive, UI::Colors::WithMultipliedValue(UI::Colors::Theme::Selection, 0.9f), current);
+			UI::ScopedColor hovered(ImGuiCol_HeaderHovered, UI::Colors::WithMultipliedValue(UI::Colors::Theme::Selection, 1.2f), current);
+			UI::ScopedColor active(ImGuiCol_HeaderActive, UI::Colors::WithMultipliedValue(UI::Colors::Theme::Selection, 0.9f), current);
 
 			if (current)
 			{
