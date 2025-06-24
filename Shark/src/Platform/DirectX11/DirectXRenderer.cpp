@@ -142,7 +142,7 @@ namespace Shark {
 			{
 				for (uint32_t index = 0; auto renderTarget : framebuffer->m_FrameBuffers)
 				{
-					const auto& value = framebuffer->m_ColorClearValues[index];
+					const auto& value = framebuffer->m_ColorClearValues[index++];
 					cmd->ClearRenderTargetView(renderTarget, glm::value_ptr(value));
 				}
 			}
