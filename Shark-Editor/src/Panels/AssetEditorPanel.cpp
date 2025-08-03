@@ -5,8 +5,7 @@
 
 namespace Shark {
 
-	AssetEditorManagerPanel::AssetEditorManagerPanel(const std::string& panelName)
-		: Panel(panelName)
+	AssetEditorManagerPanel::AssetEditorManagerPanel()
 	{
 		m_DockspaceID = ImGui::GetIDWithSeed("AssetEditorPanelDockspace", nullptr, (uint32_t)(uint64_t)this);
 	}
@@ -32,7 +31,7 @@ namespace Shark {
 			return;
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
-		const bool opened = ImGui::Begin(m_PanelName.c_str(), &shown);
+		const bool opened = ImGui::Begin(m_PanelName, &shown);
 		ImGui::PopStyleVar();
 
 		if (opened)

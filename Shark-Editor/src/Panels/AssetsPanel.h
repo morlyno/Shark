@@ -9,10 +9,14 @@ namespace Shark {
 	class AssetsPanel : public Panel
 	{
 	public:
-		AssetsPanel(const std::string& panelName);
+		AssetsPanel();
 		virtual ~AssetsPanel();
 
 		virtual void OnImGuiRender(bool& shown) override;
+
+		static const char* GetStaticID() { return "AssetsPanel"; }
+		virtual const char* GetPanelID() const override { return GetStaticID(); }
+
 	private:
 		bool IsAssetTypeEnabled(AssetType assetType);
 	private:

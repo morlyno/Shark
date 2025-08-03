@@ -7,11 +7,13 @@ namespace Shark {
 	class StatisticsPanel : public Panel
 	{
 	public:
-		StatisticsPanel(const std::string& panelName);
+		StatisticsPanel();
 
 		virtual void OnImGuiRender(bool& shown) override;
 		virtual void SetContext(Ref<Scene> context) override { m_Scene = context; }
 
+		static const char* GetStaticID() { return "StatisticsPanel"; }
+		virtual const char* GetPanelID() const override { return GetStaticID(); }
 	private:
 		void UI_Memory();
 		void UI_Profiler();

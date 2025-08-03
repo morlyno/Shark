@@ -172,7 +172,8 @@ namespace Shark {
 		prefabScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 
 		m_SceneRenderer = Ref<SceneRenderer>::Create(prefabScene);
-		m_HierarchyPanel = Ref<SceneHierarchyPanel>::Create("Prefab Editor", prefabScene, false);
+		m_HierarchyPanel = Ref<SceneHierarchyPanel>::Create(prefabScene, false);
+		m_HierarchyPanel->SetName("Prefab Editor");
 		m_HierarchyPanel->RegisterEntityCreatedCallback([this](Entity entity)
 		{
 			entity.AddComponent<PrefabComponent>(m_Prefab->Handle, entity.GetUUID());

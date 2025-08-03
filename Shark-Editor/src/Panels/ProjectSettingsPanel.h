@@ -17,12 +17,14 @@ namespace Shark {
 		};
 
 	public:
-		ProjectSettingsPanel(const std::string& panelName, Ref<ProjectConfig> projectConfig);
+		ProjectSettingsPanel(Ref<ProjectConfig> projectConfig);
 		~ProjectSettingsPanel();
 
 		virtual void OnImGuiRender(bool& shown) override;
 		virtual void OnProjectChanged(Ref<ProjectConfig> projectConfig) override;
 
+		static const char* GetStaticID() { return "ProjectSettingsPanel"; }
+		virtual const char* GetPanelID() const override { return GetStaticID(); }
 	private:
 		void DrawGeneralSettings();
 		void DrawScriptingSettings();

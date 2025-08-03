@@ -9,8 +9,7 @@
 
 namespace Shark {
 
-	StatisticsPanel::StatisticsPanel(const std::string& panelName)
-		: Panel(panelName)
+	StatisticsPanel::StatisticsPanel()
 	{
 	}
 

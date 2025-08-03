@@ -190,7 +190,7 @@ namespace Shark {
 	class ContentBrowserPanel : public Panel
 	{
 	public:
-		ContentBrowserPanel(const std::string& panelName);
+		ContentBrowserPanel();
 		~ContentBrowserPanel();
 
 		virtual void OnImGuiRender(bool& shown) override;
@@ -206,6 +206,8 @@ namespace Shark {
 
 		void RegisterAssetActicatedCallback(AssetType assetType, const AssetActivatedCallbackFn& func);
 
+		static const char* GetStaticID() { return "ContentBrowserPanel"; }
+		virtual const char* GetPanelID() const override { return GetStaticID(); }
 	private:
 		void Reload();
 		void CacheDirectories();

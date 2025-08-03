@@ -7,8 +7,7 @@
 
 namespace Shark {
 
-	ShadersPanel::ShadersPanel(const std::string& panelName)
-		: Panel(panelName)
+	ShadersPanel::ShadersPanel()
 	{
 		memset(m_SearchBuffer, 0, sizeof(m_SearchBuffer));
 	}

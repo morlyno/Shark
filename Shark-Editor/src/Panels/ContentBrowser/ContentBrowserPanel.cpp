@@ -24,8 +24,7 @@ namespace Shark {
 		AssetType::Environment
 	};
 
-	ContentBrowserPanel::ContentBrowserPanel(const std::string& panelName)
-		: Panel(panelName)
+	ContentBrowserPanel::ContentBrowserPanel()
 	{
 		m_IconExtensionMap[".skscene"] = EditorResources::SceneIcon;
 		m_IconExtensionMap[".sktex"] = EditorResources::TextureIcon;
@@ -60,7 +59,7 @@ namespace Shark {
 		HandleSelectionRequests();
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0, 0 });
-		const bool open = ImGui::Begin(m_PanelName.c_str(), &shown, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+		const bool open = ImGui::Begin(m_PanelName, &shown, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 		ImGui::PopStyleVar();
 
 		if (open)

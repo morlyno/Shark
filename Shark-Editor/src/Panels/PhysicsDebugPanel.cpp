@@ -18,8 +18,7 @@ static auto format_as(b2Vec2 v2) { return glm::vec2(v2.x, v2.y); }
 
 namespace Shark {
 
-	PhysicsDebugPanel::PhysicsDebugPanel(const std::string& panelName)
-		: Panel(panelName)
+	PhysicsDebugPanel::PhysicsDebugPanel()
 	{
 	}
 
@@ -30,7 +29,7 @@ namespace Shark {
 		if (!shown)
 			return;
 
-		if (!ImGui::Begin(m_PanelName.c_str(), &shown))
+		if (!ImGui::Begin(m_PanelName, &shown))
 		{
 			ImGui::End();
 			return;

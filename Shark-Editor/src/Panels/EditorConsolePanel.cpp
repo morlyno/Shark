@@ -50,8 +50,7 @@ namespace Shark {
 
 	}
 
-	EditorConsolePanel::EditorConsolePanel(const std::string& panelName)
-		: Panel(panelName)
+	EditorConsolePanel::EditorConsolePanel()
 	{
 		m_Messages.reserve(m_MaxMessages);
 		Log::SetConsoleSinkCallback([this](auto&& msg) { PushMessage(std::move(msg)); });
@@ -68,7 +67,7 @@ namespace Shark {
 		if (!shown)
 			return;
 
-		if (ImGui::Begin(m_PanelName.c_str(), &shown, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
+		if (ImGui::Begin(m_PanelName, &shown, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
 		{
 			Log::GetConsoleSink()->flush();
 

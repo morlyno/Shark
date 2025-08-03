@@ -9,10 +9,13 @@ namespace Shark {
 	class SceneRendererPanel : public Panel
 	{
 	public:
-		SceneRendererPanel(const std::string& panelName);
+		SceneRendererPanel();
 		virtual void OnImGuiRender(bool& shown) override;
 
 		void SetRenderer(Ref<SceneRenderer> renderer);
+
+		static const char* GetStaticID() { return "SceneRendererPanel"; }
+		virtual const char* GetPanelID() const override { return GetStaticID(); }
 	private:
 		Ref<SceneRenderer> m_Renderer;
 

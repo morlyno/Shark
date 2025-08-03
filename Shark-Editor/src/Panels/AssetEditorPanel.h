@@ -39,12 +39,15 @@ namespace Shark {
 		};
 
 	public:
-		AssetEditorManagerPanel(const std::string& panelName);
+		AssetEditorManagerPanel();
 		virtual ~AssetEditorManagerPanel();
 
 		virtual void OnUpdate(TimeStep ts) override;
 		virtual void OnImGuiRender(bool& shown) override;
 		virtual void OnEvent(Event& event) override;
+
+		static const char* GetStaticID() { return "AssetEditorManagetPanel"; }
+		virtual const char* GetPanelID() const override { return GetStaticID(); }
 
 		ImGuiID GetDockspaceID() const { return m_DockspaceID; }
 

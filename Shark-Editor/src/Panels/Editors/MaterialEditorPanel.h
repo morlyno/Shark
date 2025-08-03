@@ -38,12 +38,14 @@ namespace Shark {
 	class MaterialPanel : public Panel
 	{
 	public:
-		MaterialPanel(const std::string& panelName);
+		MaterialPanel();
 		~MaterialPanel();
 
 		virtual void OnImGuiRender(bool& shown) override;
 		virtual void SetContext(Ref<Scene> context) override { m_Context = context; }
 
+		static const char* GetStaticID() { return "MaterialPanel"; }
+		virtual const char* GetPanelID() const { return GetStaticID(); }
 	private:
 		std::string GetMaterialName(AssetHandle handle) const;
 

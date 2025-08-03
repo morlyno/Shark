@@ -329,8 +329,8 @@ namespace Shark {
 		}
 	}
 
-	SceneHierarchyPanel::SceneHierarchyPanel(const std::string& panelName, Ref<Scene> scene, bool isWindow)
-		: Panel(panelName), m_Context(scene), m_IsWindow(isWindow)
+	SceneHierarchyPanel::SceneHierarchyPanel(Ref<Scene> scene, bool isWindow)
+		: m_Context(scene), m_IsWindow(isWindow)
 	{
 		#define COMPONENT_DATA_ARGS(name, compT) { name, [](Entity entity) { entity.AddComponent<compT>(); }, [](Entity entity) { return entity.HasComponent<compT>(); } }
 		m_Components.push_back(COMPONENT_DATA_ARGS("Transform", TransformComponent));
@@ -363,7 +363,7 @@ namespace Shark {
 		if (m_IsWindow)
 		{
 			UI::ScopedStyle padding(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-			ImGui::Begin(m_PanelName.c_str(), &shown);
+			ImGui::Begin(m_PanelName, &shown);
 		}
 
 		auto entities = utils::GetSelectedEntities(m_Context);

@@ -9,8 +9,7 @@
 
 namespace Shark {
 
-	ProjectSettingsPanel::ProjectSettingsPanel(const std::string& panelName, Ref<ProjectConfig> projectConfig)
-		: Panel(panelName)
+	ProjectSettingsPanel::ProjectSettingsPanel(Ref<ProjectConfig> projectConfig)
 	{
 		OnProjectChanged(projectConfig);
 	}
@@ -31,7 +30,7 @@ namespace Shark {
 		if (m_ConfigDirty)
 			windowFlags |= ImGuiWindowFlags_UnsavedDocument;
 
-		if (ImGui::Begin(m_PanelName.c_str(), &showPanel, windowFlags))
+		if (ImGui::Begin(m_PanelName, &showPanel, windowFlags))
 		{
 			m_Focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
 

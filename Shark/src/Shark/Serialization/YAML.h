@@ -214,6 +214,21 @@ struct convert<_Type>                                                \
 	Node LoadFile(const std::filesystem::path& filename);
 	Node LoadFile(const char* filename);
 
+	template<typename TValue>
+	bool DeserializeProperty(YAML::Node& node, std::string_view name, TValue& outValue)
+	{
+		try
+		{
+			outValue = node[name].as<std::decay_t<TValue>>();
+		}
+		catch (const YAML::BadConversion& exception)
+		{
+			SK_CORE_ERROR_TAG("Serialization", "Failed to deserialize property '{}'!\n\tError: {}", name, exception.what());
+			return false;
+		}
+		return true;
+	}
+
 }
 
 #include "Shark/Serialization/SerializationMacros.h"

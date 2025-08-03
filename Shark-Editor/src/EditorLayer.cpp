@@ -40,22 +40,6 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "Shark/Debug/enttDebug.h"
 
-#define SCENE_HIERARCHY_PANEL_ID "SceneHierarchyPanel"
-#define CONTENT_BROWSER_PANEL_ID "ContentBrowserPanel"
-#define PHYSICS_DEBUG_PANEL_ID "PhysicsDebugPanel"
-#define ASSET_EDITOR_MANAGER_ID "AssetsEditorManagerPanel"
-#define EDITOR_CONSOLE_PANEL_ID "EditorConsolePanel"
-#define SCRIPT_ENGINE_PANEL_ID "ScriptEnginePanel"
-#define ASSETS_PANEL_ID "AssetsPanel"
-#define SETTINGS_PANEL_ID "SettingsPanel"
-#define PROJECT_SETTINGS_PANEL_ID "ProjectSettingsPanel"
-#define SHADERS_PANEL_ID "ShadersPanel"
-#define SCENE_RENDERER_PANEL_ID "SceneRendererPanel"
-#define STATISTICS_PANEL_ID "StatisticsPanel"
-#define ECS_DEBUG_PANEL_ID "ECSDebugPanel"
-#define ICONS_SELECTOR_PANEL_ID "IconsSelectorPanel"
-#define MATERIAL_PANEL_ID "MaterialPanel"
-
 namespace Shark {
 
 	static bool s_ShowDemoWindow = false;
@@ -112,47 +96,48 @@ namespace Shark {
 		EditorSettings::Initialize();
 
 		m_PanelManager = Scope<PanelManager>::Create();
+		m_PanelManager->LoadSettings();
 
-		Ref<SceneHierarchyPanel> sceneHirachy = m_PanelManager->AddPanel<SceneHierarchyPanel>(PanelCategory::View, SCENE_HIERARCHY_PANEL_ID, "Scene Hierarchy", true);
+		Ref<SceneHierarchyPanel> sceneHirachy = m_PanelManager->AddPanel<SceneHierarchyPanel>(PanelCategory::View, "Scene Hierarchy", true);
 		sceneHirachy->RegisterSnapToEditorCameraCallback([this](Entity entity) { entity.Transform().SetTransform(glm::inverse(m_EditorCamera.GetView())); });
 
-		Ref<ContentBrowserPanel> contentBrowser = m_PanelManager->AddPanel<ContentBrowserPanel>(PanelCategory::View, CONTENT_BROWSER_PANEL_ID, "Content Browser", true);
+		Ref<ContentBrowserPanel> contentBrowser = m_PanelManager->AddPanel<ContentBrowserPanel>(PanelCategory::View, "Content Browser", true);
 		contentBrowser->RegisterAssetActicatedCallback(AssetType::Material, [this](const AssetMetaData& metadata)
 		{
-			m_PanelManager->ShowPanel(ASSET_EDITOR_MANAGER_ID, true);
-			auto assetEditorManager = m_PanelManager->Get<AssetEditorManagerPanel>(ASSET_EDITOR_MANAGER_ID);
+			m_PanelManager->ShowPanel<AssetEditorManagerPanel>();
+			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>();
 			assetEditorManager->AddEditor<MaterialEditorPanel>(metadata);
 		});
 
 		contentBrowser->RegisterAssetActicatedCallback(AssetType::Texture, [this](const AssetMetaData& metadata)
 		{
-			m_PanelManager->ShowPanel(ASSET_EDITOR_MANAGER_ID, true);
-			auto assetEditorManager = m_PanelManager->Get<AssetEditorManagerPanel>(ASSET_EDITOR_MANAGER_ID);
+			m_PanelManager->ShowPanel<AssetEditorManagerPanel>();
+			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>();
 			assetEditorManager->AddEditor<TextureEditorPanel>(metadata);
 		});
 
 		contentBrowser->RegisterAssetActicatedCallback(AssetType::Prefab, [this](const AssetMetaData& metadata)
 		{
-			m_PanelManager->ShowPanel(ASSET_EDITOR_MANAGER_ID, true);
-			auto assetEditorManager = m_PanelManager->Get<AssetEditorManagerPanel>(ASSET_EDITOR_MANAGER_ID);
+			m_PanelManager->ShowPanel<AssetEditorManagerPanel>();
+			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>();
 			assetEditorManager->AddEditor<PrefabEditorPanel>(metadata);
 		});
 
-		m_PanelManager->AddPanel<AssetEditorManagerPanel>(PanelCategory::Edit, ASSET_EDITOR_MANAGER_ID, "Assets Editor Manager", true);
-		m_PanelManager->AddPanel<ProjectSettingsPanel>(PanelCategory::Edit, PROJECT_SETTINGS_PANEL_ID, "Project Settings", false, Project::GetActive());
-		m_PanelManager->AddPanel<AssetsPanel>(PanelCategory::View, ASSETS_PANEL_ID, "Assets", false);
-		m_PanelManager->AddPanel<EditorConsolePanel>(PanelCategory::View, EDITOR_CONSOLE_PANEL_ID, "Console", true);
-		m_PanelManager->AddPanel<ShadersPanel>(PanelCategory::View, SHADERS_PANEL_ID, "Shaders", false);
-		m_PanelManager->AddPanel<PhysicsDebugPanel>(PanelCategory::View, PHYSICS_DEBUG_PANEL_ID, "Physics Debug", false);
-		m_PanelManager->AddPanel<ScriptEnginePanel>(PanelCategory::View, SCRIPT_ENGINE_PANEL_ID, "Script Engine", false);
-		m_PanelManager->AddPanel<SceneRendererPanel>(PanelCategory::View, SCENE_RENDERER_PANEL_ID, "Scene Renderer", true);
-		m_PanelManager->AddPanel<StatisticsPanel>(PanelCategory::View, STATISTICS_PANEL_ID, "Statistics", false);
-		m_PanelManager->AddPanel<ECSDebugPanel>(PanelCategory::View, ECS_DEBUG_PANEL_ID, "ECS Debug", false, nullptr);
-		m_PanelManager->AddPanel<IconSelector>(PanelCategory::Edit, ICONS_SELECTOR_PANEL_ID, "Icons Selector", false);
-		m_PanelManager->AddPanel<MaterialPanel>(PanelCategory::Edit, MATERIAL_PANEL_ID, "Materials", true);
+		m_PanelManager->AddPanel<AssetEditorManagerPanel>(PanelCategory::Edit, "Assets Editor Manager", true);
+		m_PanelManager->AddPanel<ProjectSettingsPanel>(PanelCategory::Edit, "Project Settings", false, Project::GetActive());
+		m_PanelManager->AddPanel<AssetsPanel>(PanelCategory::View, "Assets", false);
+		m_PanelManager->AddPanel<EditorConsolePanel>(PanelCategory::View, "Console", true);
+		m_PanelManager->AddPanel<ShadersPanel>(PanelCategory::View, "Shaders", false);
+		m_PanelManager->AddPanel<PhysicsDebugPanel>(PanelCategory::View, "Physics Debug", false);
+		m_PanelManager->AddPanel<ScriptEnginePanel>(PanelCategory::View, "Script Engine", false);
+		m_PanelManager->AddPanel<SceneRendererPanel>(PanelCategory::View, "Scene Renderer", true);
+		m_PanelManager->AddPanel<StatisticsPanel>(PanelCategory::View, "Statistics", false);
+		m_PanelManager->AddPanel<ECSDebugPanel>(PanelCategory::View, "ECS Debug", false, nullptr);
+		m_PanelManager->AddPanel<IconSelector>(PanelCategory::Edit, "Icons Selector", false);
+		m_PanelManager->AddPanel<MaterialPanel>(PanelCategory::Edit, "Materials", true);
 
 		m_SceneRenderer = Ref<SceneRenderer>::Create(window.GetWidth(), window.GetHeight(), "Viewport Renderer");
-		m_PanelManager->Get<SceneRendererPanel>(SCENE_RENDERER_PANEL_ID)->SetRenderer(m_SceneRenderer);
+		m_PanelManager->GetPanel<SceneRendererPanel>()->SetRenderer(m_SceneRenderer);
 
 		Renderer2DSpecifications debugRendererSpec;
 		debugRendererSpec.UseDepthTesting = true;
@@ -183,7 +168,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		m_PanelManager->Clear();
+		m_PanelManager->RemoveAll();
 
 		CloseProject();
 
@@ -451,7 +436,7 @@ namespace Shark {
 			AssetType assetType = AssetUtils::GetAssetTypeFromPath(path);
 			if (assetType != AssetType::None)
 			{
-				Ref<ContentBrowserPanel> panel = m_PanelManager->Get<ContentBrowserPanel>(CONTENT_BROWSER_PANEL_ID);
+				Ref<ContentBrowserPanel> panel = m_PanelManager->GetPanel<ContentBrowserPanel>();
 				Ref<DirectoryInfo> currentDirectory = panel->GetCurrentDirectory();
 				if (currentDirectory)
 				{
@@ -770,7 +755,7 @@ namespace Shark {
 			ImGui::EndMenu();
 		}
 
-		m_PanelManager->DrawPanelsMenu();
+		m_PanelManager->DrawMenus();
 
 		if (ImGui::BeginMenu("Edit"))
 		{

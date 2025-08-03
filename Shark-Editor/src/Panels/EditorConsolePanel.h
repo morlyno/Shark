@@ -9,10 +9,13 @@ namespace Shark {
 	class EditorConsolePanel : public Panel
 	{
 	public:
-		EditorConsolePanel(const std::string& panelName);
+		EditorConsolePanel();
 		~EditorConsolePanel();
 
 		virtual void OnImGuiRender(bool& shown) override;
+
+		static const char* GetStaticID() { return "EditorConsolePanel"; }
+		virtual const char* GetPanelID() const override { return GetStaticID(); }
 
 		void Clear();
 		bool ClearOnPlay() const { return m_ClearOnPlay; }

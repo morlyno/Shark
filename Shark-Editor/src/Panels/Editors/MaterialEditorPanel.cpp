@@ -308,8 +308,7 @@ namespace Shark {
 
 	}
 
-	MaterialPanel::MaterialPanel(const std::string& panelName)
-		: Panel(panelName)
+	MaterialPanel::MaterialPanel()
 	{
 		m_MaterialEditor = Scope<MaterialEditor>::Create();
 	}
@@ -320,7 +319,7 @@ namespace Shark {
 
 	void MaterialPanel::OnImGuiRender(bool& isShown)
 	{
-		ImGui::Begin(m_PanelName.c_str(), &isShown);
+		ImGui::Begin(m_PanelName, &isShown);
 
 		Entity nextEntity;
 		if (SelectionManager::AnySelected(m_Context->GetID()))

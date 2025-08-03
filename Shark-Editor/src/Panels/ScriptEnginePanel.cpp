@@ -19,15 +19,14 @@ namespace Shark {
 	//
 
 
-	ScriptEnginePanel::ScriptEnginePanel(const std::string& panelName)
-		: Panel(panelName)
+	ScriptEnginePanel::ScriptEnginePanel()
 	{
 
 	}
 
 	void ScriptEnginePanel::OnImGuiRender(bool& shown)
 	{
-		if (ImGui::Begin(m_PanelName.c_str(), &shown))
+		if (ImGui::Begin(m_PanelName, &shown))
 		{
 			m_Focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
 

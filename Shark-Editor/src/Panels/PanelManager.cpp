@@ -1,145 +1,181 @@
 #include "PanelManager.h"
 
-#include "Shark/UI/UICore.h"
 #include "Shark/File/FileSystem.h"
+#include "Shark/Serialization/YAML.h"
 #include "Shark/Serialization/SerializationMacros.h"
 #include "Shark/Debug/Profiler.h"
-
-#include <yaml-cpp/yaml.h>
 
 namespace Shark {
 
 	PanelManager::PanelManager()
 	{
-		LoadSettings();
 	}
 
-	void PanelManager::AddPanel(PanelCategory category, const std::string& id, const std::string& panelMame, bool showPanel, Ref<Panel> panel)
+	PanelManager::~PanelManager()
 	{
-		if (!m_Panels.contains(id))
+	}
+
+	void PanelManager::AddPanel(PanelCategory category, const char* id, const char* name, bool isDefaultOpen, Ref<Panel> panel)
+	{
+		PanelData* panelData = GetPanelData(id);
+		if (!panelData)
 		{
-			auto& entry = m_Panels[id];
-			entry.Show = entry.Show || showPanel;
+			panelData = &m_PanelsPerCategory[category].emplace_back(PanelData{
+				.ID = id,
+				.Name = name,
+				.Category = category,
+				.IsOpen = isDefaultOpen
+			});
 		}
 
-		auto& entry = m_Panels.at(id);
-		entry.Instance = panel;
-		entry.Category = category;
+		if (m_Settings.contains(id))
+			panelData->IsOpen = m_Settings.at(id);
 
-		m_PanelsPerCategory[category].push_back(id);
-	}
-
-	Ref<Panel> PanelManager::Get(const std::string& id) const
-	{
-		SK_CORE_VERIFY(m_Panels.contains(id), "Panel with ID: {} dosn't exits", id);
-		return m_Panels.at(id).Instance;
-	}
-
-	void PanelManager::ShowPanel(const std::string& id, bool showPanel)
-	{
-		SK_CORE_VERIFY(m_Panels.contains(id), "Panel with ID: {} dosn't exits", id);
-		auto& entry = m_Panels.at(id);
-		if (entry.Show != showPanel)
+		if (panelData->Panel)
 		{
-			m_Panels.at(id).Show = showPanel;
+			// This should never happen at the moment
+			panelData->Panel = nullptr;
+			SK_DEBUG_BREAK_CONDITIONAL(s_PANEL_NOT_NULL);
+		}
+
+		panelData->Panel = panel;
+		panel->SetName(name);
+
+		if (panelData->IsOpen)
+		{
+			panelData->IsOpen = panel->OnShowPanel();
+		}
+	}
+
+	void PanelManager::RemovePanel(const char* panelID)
+	{
+		if (const PanelData* panelData = GetPanelData(panelID))
+		{
+			std::erase_if(m_PanelsPerCategory[panelData->Category], [panelID](const PanelData& data) { return data.ID == panelID; });
+		}
+	}
+
+	void PanelManager::RemoveAll()
+	{
+		for (auto& panels : m_PanelsPerCategory)
+			panels.clear();
+	}
+
+	Ref<Panel> PanelManager::GetPanel(const char* panelID) const
+	{
+		return GetPanelData(panelID)->Panel;
+	}
+
+	void PanelManager::ShowPanel(const char* panelID)
+	{
+		auto panelDataPtr = GetPanelData(panelID);
+		SK_CORE_VERIFY(panelDataPtr != nullptr, "Panel {} doesn't exist!", panelID);
+
+		PanelData& panelData = *panelDataPtr;
+		if (!panelData.IsOpen && panelData.Panel->OnShowPanel())
+		{
+			panelData.IsOpen = true;
+			SaveSettings();
+		}
+	}
+
+	void PanelManager::HidePanel(const char* panelID)
+	{
+		auto panelDataPtr = GetPanelData(panelID);
+		SK_CORE_VERIFY(panelDataPtr != nullptr, "Panel {} doesn't exist!", panelID);
+
+		PanelData& panelData = *panelDataPtr;
+		if (panelData.IsOpen && panelData.Panel->OnHidePanel())
+		{
+			panelData.IsOpen = false;
 			SaveSettings();
 		}
 	}
 
 	void PanelManager::OnUpdate(TimeStep ts)
 	{
-		for (auto& [id, data] : m_Panels)
-			data.Instance->OnUpdate(ts);
+		Call(&Panel::OnUpdate, ts);
 	}
 
 	void PanelManager::OnImGuiRender()
 	{
-		SK_PROFILE_FUNCTION();
-
-		bool anyJustHiddedChanged = false;
-		for (auto& [id, panel] : m_Panels)
+		for (auto& panels : m_PanelsPerCategory)
 		{
-			if (!panel.Show)
-				continue;
+			for (auto& panelData : panels)
+			{
+				if (!panelData.IsOpen)
+					continue;
 
-			panel.Instance->OnImGuiRender(panel.Show);
-
-			if (!panel.Show)
-				anyJustHiddedChanged = true;
+				panelData.Panel->OnImGuiRender(panelData.IsOpen);
+				if (!panelData.IsOpen)
+					SaveSettings();
+			}
 		}
-
-		if (anyJustHiddedChanged)
-			SaveSettings();
 	}
 
 	void PanelManager::OnEvent(Event& event)
 	{
-		for (auto& [id, data] : m_Panels)
-		{
-			if (event.Handled)
-				break;
-
-			data.Instance->OnEvent(event);
-		}
-	}
-
-	void PanelManager::DrawPanelsMenu()
-	{
-		bool anyChanged = false;
-
-		if (ImGui::BeginMenu("View"))
-		{
-			const auto& panels = m_PanelsPerCategory[PanelCategory::View];
-			for (const auto& id : panels)
-			{
-				PanelEntry& entry = m_Panels.at(id);
-				anyChanged |= ImGui::MenuItem(entry.Instance->GetName().c_str(), nullptr, &entry.Show);
-			}
-			ImGui::End();
-		}
-
-		if (ImGui::BeginMenu("Edit"))
-		{
-			const auto& panels = m_PanelsPerCategory[PanelCategory::Edit];
-			for (const auto& id : panels)
-			{
-				PanelEntry& entry = m_Panels.at(id);
-				anyChanged |= ImGui::MenuItem(entry.Instance->GetName().c_str(), nullptr, &entry.Show);
-			}
-			ImGui::End();
-		}
-
-		if (anyChanged)
-			SaveSettings();
-
+		Call(&Panel::OnEvent, event);
 	}
 
 	void PanelManager::SetContext(Ref<Scene> context)
 	{
-		for (auto& [id, data] : m_Panels)
-			data.Instance->SetContext(context);
+		Call(&Panel::SetContext, context);
 	}
 
 	void PanelManager::OnScenePlay()
 	{
-		for (auto& [id, data] : m_Panels)
-			data.Instance->OnScenePlay();
+		Call(&Panel::OnScenePlay);
 	}
 
 	void PanelManager::OnSceneStop()
 	{
-		for (auto& [id, data] : m_Panels)
-			data.Instance->OnSceneStop();
+		Call(&Panel::OnSceneStop);
 	}
 
 	void PanelManager::OnProjectChanged(Ref<ProjectConfig> projectConfig)
 	{
-		for (auto& [id, data] : m_Panels)
-			data.Instance->OnProjectChanged(projectConfig);
+		Call(&Panel::OnProjectChanged, projectConfig);
+	}
+
+	PanelData* PanelManager::GetPanelData(const char* panelID)
+	{
+		for (auto category : magic_enum::enum_values<PanelCategory>())
+			if (auto panel = GetPanelData(category, panelID))
+				return panel;
+		return nullptr;
+	}
+
+	PanelData* PanelManager::GetPanelData(PanelCategory category, const char* panelID)
+	{
+		std::string_view panelIDStr = panelID;
+		auto panelData = std::ranges::find(m_PanelsPerCategory[category], panelIDStr, &PanelData::ID);
+		if (panelData != m_PanelsPerCategory[category].end())
+			return &*panelData;
+		return nullptr;
+	}
+
+	const PanelData* PanelManager::GetPanelData(const char* panelID) const
+	{
+		for (auto category : magic_enum::enum_values<PanelCategory>())
+			if (auto panel = GetPanelData(category, panelID))
+				return panel;
+		return nullptr;
+	}
+
+	const PanelData* PanelManager::GetPanelData(PanelCategory category, const char* panelID) const
+	{
+		std::string_view panelIDStr = panelID;
+		auto panelData = std::ranges::find(m_PanelsPerCategory[category], panelIDStr, &PanelData::ID);
+		if (panelData != m_PanelsPerCategory[category].end())
+			return &*panelData;
+		return nullptr;
 	}
 
 	void PanelManager::LoadSettings()
 	{
+		SK_PROFILE_FUNCTION();
+
 		const auto& settingsFile = "Config/Panels.yaml";
 		if (!FileSystem::Exists(settingsFile))
 		{
@@ -148,36 +184,41 @@ namespace Shark {
 		}
 
 		YAML::Node root = YAML::LoadFile(settingsFile);
-		
+
 		YAML::Node panelsNode = root["Panels"];
 		if (!panelsNode)
 			return;
 
 		for (auto panelNode : panelsNode)
 		{
+			bool isOpen;
 			std::string id;
-			SK_DESERIALIZE_PROPERTY(panelNode, "ID", id, "");
-			if (id.empty())
+			DeserializeProperty(panelNode, "ID", id);
+			if (!DeserializeProperty(panelNode, "IsOpen", isOpen))
 				continue;
 
-			auto& entry = m_Panels[id];
-			SK_DESERIALIZE_PROPERTY(panelNode, "Show", entry.Show, false);
+			m_Settings[id] = isOpen;
 		}
 	}
 
 	void PanelManager::SaveSettings()
 	{
+		SK_PROFILE_FUNCTION();
+
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Panels" << YAML::Value;
 		out << YAML::BeginSeq;
 
-		for (const auto& [id, entry] : m_Panels)
+		for (auto category : magic_enum::enum_values<PanelCategory>())
 		{
-			out << YAML::BeginMap;
-			SK_SERIALIZE_PROPERTY(out, "ID", id);
-			SK_SERIALIZE_PROPERTY(out, "Show", entry.Show);
-			out << YAML::EndMap;
+			for (const auto& panelData : m_PanelsPerCategory[category])
+			{
+				out << YAML::BeginMap;
+				SK_SERIALIZE_PROPERTY(out, "ID", panelData.ID);
+				SK_SERIALIZE_PROPERTY(out, "IsOpen", panelData.IsOpen);
+				out << YAML::EndMap;
+			}
 		}
 
 		out << YAML::EndSeq;
@@ -185,6 +226,30 @@ namespace Shark {
 
 		const auto& settingsFile = "Config/Panels.yaml";
 		FileSystem::WriteString(settingsFile, { out.c_str(), out.size() });
+	}
+
+	void PanelManager::DrawMenus()
+	{
+		constexpr auto categories = magic_enum::enum_values<PanelCategory>();
+		for (PanelCategory category : categories)
+		{
+			if (ImGui::BeginMenu(magic_enum::enum_name(category).data()))
+			{
+				for (auto& panelData : m_PanelsPerCategory[category])
+				{
+					if (ImGui::MenuItem(panelData.Name, nullptr, panelData.IsOpen))
+					{
+						if (panelData.IsOpen && panelData.Panel->OnHidePanel())
+							panelData.IsOpen = false;
+
+						if (!panelData.IsOpen && panelData.Panel->OnShowPanel())
+							panelData.IsOpen = true;
+					}
+
+				}
+				ImGui::EndMenu();
+			}
+		}
 	}
 
 }

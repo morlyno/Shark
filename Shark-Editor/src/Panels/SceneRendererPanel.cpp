@@ -6,8 +6,7 @@
 
 namespace Shark {
 
-	SceneRendererPanel::SceneRendererPanel(const std::string& panelName)
-		: Panel(panelName)
+	SceneRendererPanel::SceneRendererPanel()
 	{
 	}
 
@@ -16,7 +15,7 @@ namespace Shark {
 		if (!m_Renderer)
 			return;
 
-		if (ImGui::Begin(m_PanelName.c_str(), &show))
+		if (ImGui::Begin(m_PanelName, &show))
 		{
 			ImGui::Text("Viewport Size: %u, %u", m_Renderer->m_Specification.Width, m_Renderer->m_Specification.Height);
 

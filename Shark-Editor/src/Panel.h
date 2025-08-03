@@ -11,11 +11,15 @@ namespace Shark {
 	class Panel : public RefCount
 	{
 	public:
-		Panel(const std::string& panelName) : m_PanelName(panelName) {}
+		Panel() = default;
 		virtual ~Panel() = default;
 
+		// By returning false Showing/Hiding the panel is canceled
+		virtual bool OnShowPanel() { return true; }
+		virtual bool OnHidePanel() { return true; }
+
 		virtual void OnUpdate(TimeStep ts) {}
-		virtual void OnImGuiRender(bool& shown) {}
+		virtual void OnImGuiRender(bool& isOpen) {}
 		virtual void OnEvent(Event& event) {}
 
 		virtual void SetContext(Ref<Scene> context) {}
@@ -23,10 +27,13 @@ namespace Shark {
 		virtual void OnSceneStop() {};
 		virtual void OnProjectChanged(Ref<ProjectConfig> projectConfig) {}
 
-		const std::string& GetName() const { return m_PanelName; }
+		virtual const char* GetPanelID() const = 0;
+
+		const char* GetName() const { return m_PanelName; }
+		void SetName(const char* name) { m_PanelName = name; }
 
 	protected:
-		std::string m_PanelName;
+		const char* m_PanelName;
 	};
 
 }

@@ -5,8 +5,8 @@
 
 namespace Shark {
 
-	ECSDebugPanel::ECSDebugPanel(const std::string& name, Ref<Scene> context)
-		: Panel(name), m_Context(context)
+	ECSDebugPanel::ECSDebugPanel(Ref<Scene> context)
+		: m_Context(context)
 	{
 	}
 
@@ -15,7 +15,7 @@ namespace Shark {
 		if (!shown)
 			return;
 
-		if (ImGui::Begin(m_PanelName.c_str(), &shown) && m_Context)
+		if (ImGui::Begin(m_PanelName, &shown) && m_Context)
 		{
 			for (auto [ent] : m_Context->m_Registry.storage<entt::entity>().each())
 			{

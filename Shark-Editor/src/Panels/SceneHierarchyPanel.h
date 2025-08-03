@@ -17,7 +17,7 @@ namespace Shark {
 	class SceneHierarchyPanel : public Panel
 	{
 	public:
-		SceneHierarchyPanel(const std::string& panelName, Ref<Scene> scene = nullptr, bool isWindow = true);
+		SceneHierarchyPanel(Ref<Scene> scene = nullptr, bool isWindow = true);
 
 		virtual void OnImGuiRender(bool& shown) override;
 		virtual void OnEvent(Event& event) override;
@@ -36,6 +36,9 @@ namespace Shark {
 
 		template<typename TFunc> // void(Entity)
 		void RegisterSnapToEditorCameraCallback(const TFunc& callback) { m_SnapToEditorCameraCallback = callback; }
+
+		static const char* GetStaticID() { return "SceneHierarchyPanel"; }
+		virtual const char* GetPanelID() const override { return GetStaticID(); }
 
 	private:
 		bool OnKeyPressedEvent(KeyPressedEvent& event);

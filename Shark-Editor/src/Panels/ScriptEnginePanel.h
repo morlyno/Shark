@@ -9,11 +9,13 @@ namespace Shark {
 	class ScriptEnginePanel : public Panel
 	{
 	public:
-		ScriptEnginePanel(const std::string& panelName);
+		ScriptEnginePanel();
 
 		virtual void OnImGuiRender(bool& shown) override;
 		virtual void OnEvent(Event& event) override;
 
+		static const char* GetStaticID() { return "ScriptEnginePanel"; }
+		virtual const char* GetPanelID() const override { return GetStaticID(); }
 	private:
 		void DrawInfo();
 		void DrawSettings();

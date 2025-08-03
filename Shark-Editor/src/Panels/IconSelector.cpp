@@ -52,8 +52,7 @@ namespace Shark {
 
 	}
 
-	IconSelector::IconSelector(const std::string& name)
-		: Panel(name)
+	IconSelector::IconSelector()
 	{
 	}
 
@@ -63,7 +62,7 @@ namespace Shark {
 
 	void IconSelector::OnImGuiRender(bool& shown)
 	{
-		if (!ImGui::Begin(m_PanelName.c_str(), &shown))
+		if (!ImGui::Begin(m_PanelName, &shown))
 		{
 			ImGui::End();
 			return;
