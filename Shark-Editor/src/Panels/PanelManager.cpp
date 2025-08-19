@@ -230,6 +230,8 @@ namespace Shark {
 
 	void PanelManager::DrawMenus()
 	{
+		bool anyChanged = false;
+
 		constexpr auto categories = magic_enum::enum_values<PanelCategory>();
 		for (PanelCategory category : categories)
 		{
@@ -240,15 +242,26 @@ namespace Shark {
 					if (ImGui::MenuItem(panelData.Name, nullptr, panelData.IsOpen))
 					{
 						if (panelData.IsOpen && panelData.Panel->OnHidePanel())
+						{
 							panelData.IsOpen = false;
+							anyChanged = true;
+						}
 
 						if (!panelData.IsOpen && panelData.Panel->OnShowPanel())
+						{
 							panelData.IsOpen = true;
+							anyChanged = true;
+						}
 					}
 
 				}
 				ImGui::EndMenu();
 			}
+		}
+
+		if (anyChanged)
+		{
+			SaveSettings();
 		}
 	}
 
