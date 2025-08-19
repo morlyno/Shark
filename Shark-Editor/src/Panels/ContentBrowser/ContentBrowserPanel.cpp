@@ -123,7 +123,7 @@ namespace Shark {
 						UI::ScopedStyle rowSpacing(ImGuiStyleVar_CellPadding, { padding, padding });
 
 						ImGuiMultiSelectFlags multiSelectFlags = /*ImGuiMultiSelectFlags_ClearOnEscape | */ImGuiMultiSelectFlags_ClearOnClickVoid | ImGuiMultiSelectFlags_BoxSelect2d | ImGuiMultiSelectFlags_NavWrapX;
-						multiSelectFlags |= ImGuiMultiSelectFlags_NoBoxSelectOverItem;
+						//multiSelectFlags |= ImGuiMultiSelectFlags_NoBoxSelectOverItem;
 						ImGuiMultiSelectIO* selectionRequests = ImGui::BeginMultiSelect(multiSelectFlags, (int)SelectionManager::GetSelections(m_SelectionID).size(), (int)m_CurrentItems.Items.size());
 						ApplySelectionRequests(selectionRequests, true);
 						if (ImGui::BeginTable("##content.table", columnsCount, ImGuiTableFlags_PadOuterX))
@@ -184,8 +184,8 @@ namespace Shark {
 		ImGui::End();
 
 		const ImGuiStyle& style = ImGui::GetStyle();
-		ImGui::SetNextWindowSize({ 500, { ImGui::GetFrameHeightWithSpacing() * 8 + UI::Fonts::Get("Large")->FontSize + style.FramePadding.y * 2.0f + style.ItemSpacing.y} }, ImGuiCond_Appearing);
-		if (ImGui::BeginPopupModal(m_DeleteDialoguePopupID, "Delete Items", nullptr, ImGuiWindowFlags_NoSavedSettings))
+		ImGui::SetNextWindowSize({ 500, { ImGui::GetFrameHeightWithSpacing() * 8 + UI::Fonts::Get("Large")->LegacySize + style.FramePadding.y * 2.0f + style.ItemSpacing.y} }, ImGuiCond_Appearing);
+		if (ImGui::BeginPopupModalEx(m_DeleteDialoguePopupID, "Delete Items", nullptr, ImGuiWindowFlags_NoSavedSettings))
 		{
 			{
 				UI::ScopedFont title("Large");
@@ -211,7 +211,7 @@ namespace Shark {
 					UI::ScopedStyle borderSize(ImGuiStyleVar_FrameBorderSize, 0.0f);
 					UI::ScopedStyle cellPadding(ImGuiStyleVar_CellPadding, { 0, 0 });
 
-					ImGui::TableSetupColumn("##checkAll", ImGuiTableColumnFlags_WidthFixed, UI::Fonts::Get("Bold")->FontSize);
+					ImGui::TableSetupColumn("##checkAll", ImGuiTableColumnFlags_WidthFixed, UI::Fonts::Get("Bold")->LegacySize);
 					ImGui::TableSetupColumn("Name");
 					ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("MeshSource").x);
 					ImGui::TableSetupScrollFreeze(0, 1);
@@ -369,7 +369,7 @@ namespace Shark {
 			ImGui::EndPopup();
 		}
 
-		if (ImGui::BeginPopupModal(m_ErrorDialogueID, m_ErrorDialogue.Title.c_str()))
+		if (ImGui::BeginPopupModalEx(m_ErrorDialogueID, m_ErrorDialogue.Title.c_str(), nullptr, ImGuiWindowFlags_None))
 		{
 			ImGui::Text(m_ErrorDialogue.Message);
 			
@@ -906,7 +906,7 @@ namespace Shark {
 			ImGui::BeginDisabled(!m_History.CanMoveBack());
 			if (ImGui::InvisibleButton("Move Back", buttonSize))
 				NextDirectory(m_History.MoveBack(), false);
-			
+
 			UI::DrawButtonFrame();
 			UI::DrawImageButton(EditorResources::AngleLeftIcon, buttonColN, buttonColH, buttonColP, UI::RectExpand(UI::GetItemRect(), -style.FramePadding.y, -style.FramePadding.y));
 			ImGui::EndDisabled();
@@ -944,10 +944,10 @@ namespace Shark {
 			UI::ScopedColor popupBg(ImGuiCol_PopupBg, UI::Colors::Theme::Background);
 			if (ImGui::BeginPopupContextItem("CTC_Popup"))
 			{
-				UI::ScopedColorStack dark(ImGuiCol_Text, UI::Colors::Theme::Default,
-										  ImGuiCol_Button, UI::Colors::Theme::Default,
-										  ImGuiCol_ButtonActive, UI::Colors::Theme::Default,
-										  ImGuiCol_ButtonHovered, UI::Colors::Theme::Default);
+				UI::ScopedColorStack colorsDefault(ImGuiCol_Text, UI::Colors::Theme::Default,
+												   ImGuiCol_Button, UI::Colors::Theme::Default,
+												   ImGuiCol_ButtonActive, UI::Colors::Theme::Default,
+												   ImGuiCol_ButtonHovered, UI::Colors::Theme::Default);
 
 				const auto GetAssetHandlesFromItems = [](CBItemList itemList)
 				{
@@ -986,6 +986,8 @@ namespace Shark {
 				if (ImGui::Button("All"))
 					m_ThumbnailCache->ClearDiscCache();
 				ImGui::EndHorizontal();
+
+				colorsDefault = {};
 				ImGui::EndPopup();
 			}
 

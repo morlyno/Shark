@@ -118,8 +118,33 @@ namespace Shark {
 			ID3D11DeviceContext* context = instance->m_CommandBuffer->GetContext();
 			ImGui_ImplDX11_Init(dxDevice, context);
 			ImGui_ImplDX11_CreateDeviceObjects();
-			ImGui_ImplDX11_SetupRenderState({ (float)window.GetWidth(), (float)window.GetHeight() }, context);
-			context->PSGetSamplers(0, 1, &instance->m_ImGuiFontSampler);
+
+			// Temporary!!! will be fixed when own backend is implemented. (13.08.2025)
+			static_assert(IMGUI_VERSION_NUM == 19222);
+			struct ImGui_ImplDX11_Data
+			{
+				ID3D11Device*               pd3dDevice;
+				ID3D11DeviceContext*        pd3dDeviceContext;
+				IDXGIFactory*               pFactory;
+				ID3D11Buffer*               pVB;
+				ID3D11Buffer*               pIB;
+				ID3D11VertexShader*         pVertexShader;
+				ID3D11InputLayout*          pInputLayout;
+				ID3D11Buffer*               pVertexConstantBuffer;
+				ID3D11PixelShader*          pPixelShader;
+				ID3D11SamplerState*         pFontSampler;
+				ID3D11RasterizerState*      pRasterizerState;
+				ID3D11BlendState*           pBlendState;
+				ID3D11DepthStencilState*    pDepthStencilState;
+				int                         VertexBufferSize;
+				int                         IndexBufferSize;
+				ImVector<DXGI_SWAP_CHAIN_DESC> SwapChainDescsForViewports;
+
+				ImGui_ImplDX11_Data()       { memset((void*)this, 0, sizeof(*this)); VertexBufferSize = 5000; IndexBufferSize = 10000; }
+			};
+
+			instance->m_ImGuiFontSampler = ((ImGui_ImplDX11_Data*)ImGui::GetIO().BackendRendererUserData)->pFontSampler;
+			instance->m_ImGuiFontSampler->AddRef();
 		});
 
 		ImGuiContext& ctx = *ImGui::GetCurrentContext();
@@ -222,18 +247,21 @@ namespace Shark {
 	{
 		DirectXImGuiLayer* imguiLayer = (DirectXImGuiLayer*)cmd->UserCallbackData;
 
-		if (!imguiLayer->m_ImageMap.contains(cmd->TextureId))
+		const ImTextureID textureID = cmd->GetTexID();
+		if (!imguiLayer->m_ImageMap.contains(textureID))
 			return;
 
-		Ref<DirectXImage2D> image = imguiLayer->m_ImageMap.at(cmd->TextureId);
+		Ref<DirectXImage2D> image = imguiLayer->m_ImageMap.at(textureID);
 		const DirectXImageInfo& info = image->GetDirectXImageInfo();
 		imguiLayer->m_CommandBuffer->GetContext()->PSSetSamplers(0, 1, &info.Sampler);
 	}
 
 	void DirectXImGuiLayer::AddImage(Ref<Image2D> image)
 	{
-		Ref<DirectXImage2D> dxImage = image.As<DirectXImage2D>();
-		m_ImageMap[dxImage->GetDirectXImageInfo().View] = dxImage;
+		auto dxImage = image.As<DirectXImage2D>();
+		const auto textureID = (ImTextureID)dxImage->GetDirectXImageInfo().View;
+
+		m_ImageMap[textureID] = dxImage;
 
 		ImDrawList* drawList = ImGui::GetWindowDrawList();
 
@@ -244,7 +272,7 @@ namespace Shark {
 			curr_cmd = &drawList->CmdBuffer.Data[drawList->CmdBuffer.Size - 1];
 		}
 
-		curr_cmd->TextureId = dxImage->GetDirectXImageInfo().View;
+		curr_cmd->TexRef = textureID;
 		drawList->AddCallback(&BindSamplerCallback, this);
 	}
 
@@ -261,10 +289,11 @@ namespace Shark {
 
 		auto imageView = view.As<DirectXImageView>();
 		const auto& viewInfo = imageView->GetDirectXViewInfo();
+		const auto textureID = (ImTextureID)viewInfo.View;
 
-		m_ImageMap[viewInfo.View] = imageView->GetImage().As<DirectXImage2D>();
+		m_ImageMap[textureID] = imageView->GetImage().As<DirectXImage2D>();
 
-		curr_cmd->TextureId = viewInfo.View;
+		curr_cmd->TexRef = textureID;
 		drawList->AddCallback(&BindSamplerCallback, this);
 	}
 

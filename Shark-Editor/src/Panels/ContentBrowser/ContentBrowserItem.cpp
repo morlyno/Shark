@@ -273,7 +273,8 @@ namespace Shark {
 
 		{
 			UI::ScopedStyle rounding(ImGuiStyleVar_FrameRounding, cornerRounding);
-			ImGui::RenderNavHighlight(itemRect, buttonID, ImGuiNavHighlightFlags_Compact, cornerFlags);
+			// TODO(moro): corners
+			ImGui::RenderNavCursor(itemRect, buttonID, ImGuiNavRenderCursorFlags_Compact/*, cornerFlags*/);
 		}
 
 		ImGui::PopStyleVar();

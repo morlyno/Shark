@@ -566,38 +566,6 @@ namespace Shark {
 		ImGui::ResumeLayout();
 
 
-		ImGui::SuspendLayout();
-		{
-			ImGui::SetCursorPos(ImVec2(windowPadding.x, 0));
-			ImGui::BeginHorizontal("##centerWindowTitle", { ImGui::GetWindowWidth() - windowPadding.x * 2.0f, ImGui::GetFrameHeightWithSpacing() });
-
-			ImGui::Spring(0.5f);
-
-			UI::ScopedFont titleFont("Bold");
-			ImGui::AlignTextToFramePadding();
-
-			const std::string& windowTitle = Application::Get().GetWindow().GetTitle();
-			const ImVec2 textSize = ImGui::CalcTextSize(windowTitle.data(), windowTitle.data() + windowTitle.length());
-			const ImVec2 itemMin = ImGui::GetCursorScreenPos() + ImVec2(0.0f, ImGui::GetCurrentWindowRead()->DC.CurrLineTextBaseOffset);
-			const ImVec2 itemMax = itemMin + textSize;
-
-			const auto& style = ImGui::GetStyle();
-			ImRect titleRect = UI::RectExpand({ itemMin, itemMax }, style.FramePadding * 2.0f);
-			titleRect.Min.y = 0.0f;
-
-			ImDrawList* drawList = ImGui::GetCurrentWindow()->DrawList;
-			drawList->PushClipRectFullScreen();
-			drawList->AddRectFilled(titleRect.Min, titleRect.Max, IM_COL32(135, 100, 255, 30), 5.0f, ImDrawFlags_RoundCornersBottom);
-			drawList->PopClipRect();
-
-			ImGui::Text(windowTitle.c_str());
-
-			ImGui::Spring(0.5f);
-
-			ImGui::EndHorizontal();
-		}
-		ImGui::ResumeLayout();
-
 
 		const float buttonWidth = 14.0f;
 		const float buttonHeight = 14.0f;
@@ -656,6 +624,37 @@ namespace Shark {
 
 		ImGui::Spring(-1.0f, 18.0f);
 		ImGui::EndHorizontal();
+
+
+		ImGui::SetCursorPos(ImVec2(windowPadding.x, 0));
+		ImGui::BeginHorizontal("##centerWindowTitle", { ImGui::GetWindowWidth() - windowPadding.x * 2.0f, ImGui::GetFrameHeightWithSpacing() });
+		{
+
+			ImGui::Spring(0.5f);
+
+			UI::ScopedFont titleFont("Bold");
+			ImGui::AlignTextToFramePadding();
+
+			const std::string& windowTitle = Application::Get().GetWindow().GetTitle();
+			const ImVec2 textSize = ImGui::CalcTextSize(windowTitle.data(), windowTitle.data() + windowTitle.length());
+			const ImVec2 itemMin = ImGui::GetCursorScreenPos() + ImVec2(0.0f, ImGui::GetCurrentWindowRead()->DC.CurrLineTextBaseOffset);
+			const ImVec2 itemMax = itemMin + textSize;
+
+			const auto& style = ImGui::GetStyle();
+			ImRect titleRect = UI::RectExpand({ itemMin, itemMax }, style.FramePadding * 2.0f);
+			titleRect.Min.y = 0.0f;
+
+			ImDrawList* drawList = ImGui::GetCurrentWindow()->DrawList;
+			drawList->PushClipRectFullScreen();
+			drawList->AddRectFilled(titleRect.Min, titleRect.Max, IM_COL32(135, 100, 255, 30), 5.0f, ImDrawFlags_RoundCornersBottom);
+			drawList->PopClipRect();
+
+			ImGui::Text(windowTitle.c_str());
+
+			ImGui::Spring(0.5f);
+		}
+		ImGui::EndHorizontal();
+
 
 		outTitlebarHeight = titlebarHeight;
 	}
@@ -926,7 +925,7 @@ namespace Shark {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-		ImGui::BeginEx("MainViewport", m_MainViewportID, nullptr, ImGuiWindowFlags_None);
+		ImGui::Begin("MainViewport", nullptr, ImGuiWindowFlags_None);
 		ImGui::PopStyleVar(4);
 
 		if (ImGui::IsWindowHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Right))
@@ -953,7 +952,7 @@ namespace Shark {
 		}
 
 		Ref<Image2D> fbImage = m_SceneRenderer->GetFinalPassImage();
-		ImGui::Image(fbImage->GetViewID(), size);
+		ImGui::Image((ImTextureID)fbImage->GetViewID(), size);
 
 		UI_Gizmo();
 		UI_DragDrop();
@@ -1219,31 +1218,31 @@ namespace Shark {
 		{
 			case SceneState::Edit:
 			{
-				if (ImGui::ImageButton("Play", EditorResources::PlayIcon->GetViewID(), size))
+				if (ImGui::ImageButton("Play", (ImTextureID)EditorResources::PlayIcon->GetViewID(), size))
 					OnScenePlay();
 
 				ImGui::SameLine();
 
-				if (ImGui::ImageButton("Simulate", EditorResources::SimulateIcon->GetViewID(), size))
+				if (ImGui::ImageButton("Simulate", (ImTextureID)EditorResources::SimulateIcon->GetViewID(), size))
 					OnSimulationPlay();
 
 				ImGui::SameLine();
 				{
 					UI::ScopedItemFlag disabled(ImGuiItemFlags_Disabled, true);
-					ImGui::ImageButton("Step Disabled", EditorResources::StepIcon->GetViewID(), size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, { 0.5f, 0.5f, 0.5f, 1.0f });
+					ImGui::ImageButton("Step Disabled", (ImTextureID)EditorResources::StepIcon->GetViewID(), size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, { 0.5f, 0.5f, 0.5f, 1.0f });
 				}
 
 				break;
 			}
 			case SceneState::Play:
 			{
-				if (ImGui::ImageButton("Stop", EditorResources::StopIcon->GetViewID(), size))
+				if (ImGui::ImageButton("Stop", (ImTextureID)EditorResources::StopIcon->GetViewID(), size))
 					OnSceneStop();
 
 				ImGui::SameLine();
 
 				Ref<Texture2D> pausePlayIcon = m_ActiveScene->IsPaused() ? EditorResources::PlayIcon : EditorResources::PauseIcon;
-				if (ImGui::ImageButton("PausePlay", pausePlayIcon->GetViewID(), size))
+				if (ImGui::ImageButton("PausePlay", (ImTextureID)pausePlayIcon->GetViewID(), size))
 					m_ActiveScene->SetPaused(!m_ActiveScene->IsPaused());
 
 				ImGui::SameLine();
@@ -1251,7 +1250,7 @@ namespace Shark {
 				{
 					UI::ScopedItemFlag disabled(ImGuiItemFlags_Disabled, !m_ActiveScene->IsPaused());
 					const ImVec4 tintColor = m_ActiveScene->IsPaused() ? ImVec4(1.0f, 1.0f, 1.0f, 1.0f) : ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
-					if (ImGui::ImageButton("Step", EditorResources::StepIcon->GetViewID(), size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, tintColor))
+					if (ImGui::ImageButton("Step", (ImTextureID)EditorResources::StepIcon->GetViewID(), size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, tintColor))
 						m_ActiveScene->Step(1);
 				}
 
@@ -1259,13 +1258,13 @@ namespace Shark {
 			}
 			case SceneState::Simulate:
 			{
-				if (ImGui::ImageButton("StopIcon", EditorResources::StopIcon->GetViewID(), size))
+				if (ImGui::ImageButton("StopIcon", (ImTextureID)EditorResources::StopIcon->GetViewID(), size))
 					OnSimulationStop();
 
 				ImGui::SameLine();
 
 				Ref<Texture2D> pausePlayIcon = m_ActiveScene->IsPaused() ? EditorResources::PlayIcon : EditorResources::PauseIcon;
-				if (ImGui::ImageButton("PausePlayIcon", pausePlayIcon->GetViewID(), size))
+				if (ImGui::ImageButton("PausePlayIcon", (ImTextureID)pausePlayIcon->GetViewID(), size))
 					m_ActiveScene->SetPaused(!m_ActiveScene->IsPaused());
 
 				ImGui::SameLine();
@@ -1273,7 +1272,7 @@ namespace Shark {
 				{
 					UI::ScopedItemFlag disabled(ImGuiItemFlags_Disabled, !m_ActiveScene->IsPaused());
 					const ImVec4 tintColor = m_ActiveScene->IsPaused() ? ImVec4(1.0f, 1.0f, 1.0f, 1.0f) : ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
-					if (ImGui::ImageButton("Step", EditorResources::StepIcon->GetViewID(), size, {0, 0}, {1, 1}, {0, 0, 0, 0}, tintColor))
+					if (ImGui::ImageButton("Step", (ImTextureID)EditorResources::StepIcon->GetViewID(), size, {0, 0}, {1, 1}, {0, 0, 0, 0}, tintColor))
 						m_ActiveScene->Step(1);
 				}
 

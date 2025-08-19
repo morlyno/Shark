@@ -40,6 +40,7 @@ namespace Shark {
 		inline static Ref<Texture2D> SearchIcon;
 
 		inline static Ref<Texture2D> AlphaBackground;
+		inline static Ref<Texture2D> Logo;
 
 	public:
 		static void Init();

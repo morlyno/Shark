@@ -134,6 +134,16 @@ namespace Shark {
 			WindowRestoreIcon = Texture2D::Create(specification, textureData);
 			textureData.Release();
 		}
+
+		Logo = Texture2D::Create(
+			TextureSpecification{
+				.Width = 1, .Height = 1,
+				.Format = ImageFormat::RGBA8UNorm,
+				.GenerateMips = false,
+				.DebugName = "Logo Placeholder"
+			},
+			Buffer::FromValue(0xF01414FF)
+		);
 	}
 
 	void EditorResources::Shutdown()
@@ -168,6 +178,7 @@ namespace Shark {
 		WindowRestoreIcon = nullptr;
 
 		AlphaBackground = nullptr;
+		Logo = nullptr;
 	}
 
 	static void ReloadIconFromDisc(Ref<Texture2D> icon, const std::filesystem::path& filepath)

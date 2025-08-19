@@ -3,11 +3,6 @@
 #include "Shark/Core/UUID.h"
 #include <imgui.h>
 
-#ifdef IMGUI_DEFINE_MATH_OPERATORS
-static inline ImVec4 operator*(const ImVec4& lhs, const float rhs) { return ImVec4(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs, lhs.w * rhs); }
-static inline ImVec4 operator/(const ImVec4& lhs, const float rhs) { return ImVec4(lhs.x / rhs, lhs.y / rhs, lhs.z / rhs, lhs.w / rhs); }
-#endif
-
 template<typename Char>
 struct fmt::formatter<ImVec2, Char> : fmt::formatter<float, Char>
 {
@@ -26,6 +21,8 @@ struct fmt::formatter<ImVec2, Char> : fmt::formatter<float, Char>
 		return out;
 	}
 };
+
+struct ImRect;
 
 namespace ImGui {
 
@@ -46,6 +43,8 @@ namespace ImGui {
 
 	bool BeginDrapDropTargetWindow(const char* payload_type = NULL);
 
-	bool BeginPopupModal(ImGuiID id, const char* name, bool* p_open = NULL, ImGuiWindowFlags flags = 0);
+	void PushClipRect(const ImRect& clip_rect, bool intersect_with_current_clip_rect = false);
+
+	bool BeginPopupModalEx(ImGuiID id, const char* name, bool* p_open, ImGuiWindowFlags flags);
 
 }

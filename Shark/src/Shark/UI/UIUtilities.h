@@ -113,6 +113,19 @@ namespace Shark::UI {
 	public:
 		ScopedColorStack() = default;
 
+		ScopedColorStack(const ScopedColorStack&) = delete;
+		ScopedColorStack& operator=(const ScopedColorStack&) = delete;
+		ScopedColorStack(ScopedColorStack&&) = delete;
+		ScopedColorStack& operator=(ScopedColorStack&& other)
+		{
+			if (this != std::addressof(other))
+			{
+				ImGui::PopStyleColor(m_Count);
+				m_Count = std::exchange(other.m_Count, 0);
+			}
+			return *this;
+		}
+
 		ScopedColorStack(ImGuiCol color, const ImColor& val)
 		{
 			ImGui::PushStyleColor(color, val.Value);
@@ -162,11 +175,32 @@ namespace Shark::UI {
 		~ScopedDisabled() { ImGui::EndDisabled(); }
 	};
 
+	template<bool TConditional = false>
 	struct ScopedFont
 	{
-		ScopedFont(const char* name) { Fonts::Push(name); }
-		~ScopedFont() { Fonts::Pop(); }
+		ScopedFont(const char* name)
+		{
+			Fonts::Push(name);
+		}
+
+		ScopedFont(const char* name, bool push) requires(TConditional)
+			: m_Pushed(push)
+		{
+			if (push)
+				Fonts::Push(name);
+		}
+
+		~ScopedFont()
+		{
+			if constexpr (!TConditional)
+				Fonts::Pop();
+			else if (m_Pushed)
+				Fonts::Pop();
+		}
+	private:
+		bool m_Pushed = false;
 	};
+	ScopedFont(const char*, bool)->ScopedFont<true>;
 
 	struct ScopedClipRect
 	{

@@ -41,6 +41,7 @@ namespace Shark::UI::Widgets {
 template<typename TString>
 bool Shark::UI::Widgets::Search(TString& searchString, const char* hint, bool* grabFocus, bool clearOnGrab)
 {
+	ImGui::BeginGroup();
 	ImGui::SuspendLayout();
 
 	bool changed = false;
@@ -83,6 +84,8 @@ bool Shark::UI::Widgets::Search(TString& searchString, const char* hint, bool* g
 		searching = searchString[0] != 0;
 	}
 
+	const ImRect itemRect = UI::GetItemRect();
+
 	const auto clearString = [&]()
 	{
 		if constexpr (std::is_same_v<TString, std::string>)
@@ -106,12 +109,7 @@ bool Shark::UI::Widgets::Search(TString& searchString, const char* hint, bool* g
 			*grabFocus = false;
 	}
 
-	ImGui::SameLine();
-	UI::SetCursorScreenPosX(itemStart + framePadding.x);
-
-	ImGui::ResumeLayout();
-
-	ImGui::BeginHorizontal(UI::GenerateID(), ImGui::GetItemRectSize());
+	ImGui::SameLine(framePadding.x);
 
 	// Search Icon
 	{
@@ -121,16 +119,17 @@ bool Shark::UI::Widgets::Search(TString& searchString, const char* hint, bool* g
 
 		if (!searching)
 		{
+			ImGui::SameLine();
 			UI::ScopedColor text(ImGuiCol_Text, Colors::Theme::TextDarker);
 			ImGui::TextUnformatted(hint);
 		}
 	}
 
-	ImGui::Spring();
-
 	if (searching)
 	{
-		const float buttonSize = ImGui::GetItemRectSize().y;
+		const float buttonSize = itemRect.GetHeight();
+		ImGui::SameLine();
+		UI::SetCursorScreenPosX(itemRect.Max.x - buttonSize);
 		if (ImGui::InvisibleButton(GenerateID(), { buttonSize, buttonSize }))
 		{
 			clearString();
@@ -140,12 +139,11 @@ bool Shark::UI::Widgets::Search(TString& searchString, const char* hint, bool* g
 							IM_COL32(160, 160, 160, 200),
 							IM_COL32(170, 170, 170, 255),
 							IM_COL32(160, 160, 160, 150),
-							UI::RectExpand(UI::GetItemRect(), -2.0f, -2.0f));
-
-		ImGui::Spring(-1.0f, framePadding.x);
+							UI::RectExpand(UI::GetItemRect(), -3.0f, -3.0f));
 	}
 
-	ImGui::EndHorizontal();
+	ImGui::ResumeLayout();
+	ImGui::EndGroup();
 	return changed;
 }
 

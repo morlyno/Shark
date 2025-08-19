@@ -774,7 +774,7 @@ namespace Shark::UI {
 		ImGui::InvisibleButton(label.data(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
 
 		auto& g = *GImGui;
-		bool mixed_value = (g.LastItemData.InFlags & ImGuiItemFlags_MixedValue) != 0;
+		bool mixed_value = (g.LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0;
 		if (mixed_value)
 		{
 			UI::DrawButton("--", ImVec2(0.5f, 0.5f), UI::GetItemRect());
@@ -835,7 +835,7 @@ namespace Shark::UI {
 		ImGui::SetItemTooltip("%llu", entityID);
 
 		auto& g = *GImGui;
-		bool mixed_value = (g.LastItemData.InFlags & ImGuiItemFlags_MixedValue) != 0;
+		bool mixed_value = (g.LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0;
 		if (mixed_value)
 		{
 			UI::DrawButton("--", ImVec2(0.5f, 0.5f), UI::GetItemRect());
@@ -893,7 +893,7 @@ namespace Shark::UI {
 		auto& scriptEngine = ScriptEngine::Get();
 
 		auto& g = *GImGui;
-		bool mixed_value = (g.LastItemData.InFlags & ImGuiItemFlags_MixedValue) != 0;
+		bool mixed_value = (g.LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0;
 		if (mixed_value)
 		{
 			UI::DrawButton("--", ImVec2(0.5f, 0.5f), UI::GetItemRect());

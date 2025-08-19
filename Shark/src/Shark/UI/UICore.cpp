@@ -114,20 +114,20 @@ namespace Shark::UI {
 		{
 			io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
 			io.ConfigFlags &= ~ImGuiConfigFlags_NoKeyboard;
-			io.ConfigFlags &= ~ImGuiConfigFlags_NavNoCaptureKeyboard;
+			io.ConfigNavCaptureKeyboard = true;
 		}
 		else
 		{
 			io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
 			io.ConfigFlags |= ImGuiConfigFlags_NoKeyboard;
-			io.ConfigFlags |= ImGuiConfigFlags_NavNoCaptureKeyboard;
+			io.ConfigNavCaptureKeyboard = false;
 		}
 	}
 
 	bool IsInputEnabled()
 	{
 		const auto& io = ImGui::GetIO();
-		return (io.ConfigFlags & ImGuiConfigFlags_NoMouse) == 0 && (io.ConfigFlags & ImGuiConfigFlags_NoKeyboard) == 0 && (io.ConfigFlags & ImGuiConfigFlags_NavNoCaptureKeyboard) == 0;
+		return io.ConfigNavCaptureKeyboard && (io.ConfigFlags & ImGuiConfigFlags_NoMouse) == 0 && (io.ConfigFlags & ImGuiConfigFlags_NoKeyboard) == 0;
 	}
 
 	bool BeginMenubar(const ImRect& barRectangle)
@@ -135,27 +135,26 @@ namespace Shark::UI {
 		ImGuiWindow* window = ImGui::GetCurrentWindow();
 		if (window->SkipItems)
 			return false;
-		/*if (!(window->Flags & ImGuiWindowFlags_MenuBar))
-			return false;*/
+		//if (!(window->Flags & ImGuiWindowFlags_MenuBar))
+		//	return false;
 
 		IM_ASSERT(!window->DC.MenuBarAppending);
 		ImGui::BeginGroup(); // Backup position on layer 0 // FIXME: Misleading to use a group for that backup/restore
-		ImGui::PushID("##menubar");
-
-		const ImVec2 padding = window->WindowPadding;
+		ImGui::PushID("##MenuBar");
 
 		// We don't clip with current window clipping rectangle as it is already set to the area below. However we clip with window full rect.
 		// We remove 1 worth of rounding to Max.x to that text in long menus and small windows don't tend to display over the lower-right rounded area, which looks particularly glitchy.
-		ImRect bar_rect = UI::RectOffset(barRectangle, 0.0f, padding.y);// window->MenuBarRect();
-		ImRect clip_rect(IM_ROUND(ImMax(window->Pos.x, bar_rect.Min.x + window->WindowBorderSize + window->Pos.x - 10.0f)), IM_ROUND(bar_rect.Min.y + window->WindowBorderSize + window->Pos.y),
-						 IM_ROUND(ImMax(bar_rect.Min.x + window->Pos.x, bar_rect.Max.x - ImMax(window->WindowRounding, window->WindowBorderSize))), IM_ROUND(bar_rect.Max.y + window->Pos.y));
-
+		const float border_top = ImMax(IM_ROUND(window->WindowBorderSize * 0.5f - window->TitleBarHeight), 0.0f);
+		const float border_half = IM_ROUND(window->WindowBorderSize * 0.5f);
+		ImRect bar_rect = UI::RectOffset(barRectangle, 0.0f, window->WindowPadding.y);// window->MenuBarRect();
+		ImRect clip_rect(ImFloor(bar_rect.Min.x + border_half), ImFloor(bar_rect.Min.y + border_top), ImFloor(ImMax(bar_rect.Min.x, bar_rect.Max.x - ImMax(window->WindowRounding, border_half))), ImFloor(bar_rect.Max.y));
 		clip_rect.ClipWith(window->OuterRectClipped);
 		ImGui::PushClipRect(clip_rect.Min, clip_rect.Max, false);
 
 		// We overwrite CursorMaxPos because BeginGroup sets it to CursorPos (essentially the .EmitItem hack in EndMenuBar() would need something analogous here, maybe a BeginGroupEx() with flags).
-		window->DC.CursorPos = window->DC.CursorMaxPos = ImVec2(bar_rect.Min.x + window->Pos.x, bar_rect.Min.y + window->Pos.y);
+		window->DC.CursorPos = window->DC.CursorMaxPos = ImVec2(bar_rect.Min.x + window->DC.MenuBarOffset.x, bar_rect.Min.y + window->DC.MenuBarOffset.y);
 		window->DC.LayoutType = ImGuiLayoutType_Horizontal;
+		window->DC.IsSameLine = false;
 		window->DC.NavLayerCurrent = ImGuiNavLayer_Menu;
 		window->DC.MenuBarAppending = true;
 		ImGui::AlignTextToFramePadding();
@@ -169,6 +168,10 @@ namespace Shark::UI {
 			return;
 		ImGuiContext& g = *GImGui;
 
+		IM_MSVC_WARNING_SUPPRESS(6011); // Static Analysis false positive "warning C6011: Dereferencing NULL pointer 'window'"
+		//IM_ASSERT(window->Flags & ImGuiWindowFlags_MenuBar);
+		IM_ASSERT(window->DC.MenuBarAppending);
+
 		// Nav: When a move request within one of our child menu failed, capture the request to navigate among our siblings.
 		if (ImGui::NavMoveRequestButNoResultYet() && (g.NavMoveDir == ImGuiDir_Left || g.NavMoveDir == ImGuiDir_Right) && (g.NavWindow->Flags & ImGuiWindowFlags_ChildMenu))
 		{
@@ -181,26 +184,36 @@ namespace Shark::UI {
 				// To do so we claim focus back, restore NavId and then process the movement request for yet another frame.
 				// This involve a one-frame delay which isn't very problematic in this situation. We could remove it by scoring in advance for multiple window (probably not worth bothering)
 				const ImGuiNavLayer layer = ImGuiNavLayer_Menu;
-				IM_ASSERT(window->DC.NavLayersActiveMaskNext & (1 << layer)); // Sanity check
+				IM_ASSERT(window->DC.NavLayersActiveMaskNext & (1 << layer)); // Sanity check (FIXME: Seems unnecessary)
 				ImGui::FocusWindow(window);
 				ImGui::SetNavID(window->NavLastIds[layer], layer, 0, window->NavRectRel[layer]);
-				g.NavDisableHighlight = true; // Hide highlight for the current frame so we don't see the intermediary selection.
-				g.NavDisableMouseHover = g.NavMousePosDirty = true;
+				// FIXME-NAV: How to deal with this when not using g.IO.ConfigNavCursorVisibleAuto?
+				if (g.NavCursorVisible)
+				{
+					g.NavCursorVisible = false; // Hide nav cursor for the current frame so we don't see the intermediary selection. Will be set again
+					g.NavCursorHideFrames = 2;
+				}
+				g.NavHighlightItemUnderNav = g.NavMousePosDirty = true;
 				ImGui::NavMoveRequestForward(g.NavMoveDir, g.NavMoveClipDir, g.NavMoveFlags, g.NavMoveScrollFlags); // Repeat
 			}
 		}
 
-		IM_MSVC_WARNING_SUPPRESS(6011); // Static Analysis false positive "warning C6011: Dereferencing NULL pointer 'window'"
-		//IM_ASSERT(window->Flags & ImGuiWindowFlags_MenuBar);
-		IM_ASSERT(window->DC.MenuBarAppending);
 		ImGui::PopClipRect();
 		ImGui::PopID();
+		IM_MSVC_WARNING_SUPPRESS(6011); // Static Analysis false positive "warning C6011: Dereferencing NULL pointer 'window'"
 		window->DC.MenuBarOffset.x = window->DC.CursorPos.x - window->Pos.x; // Save horizontal position so next append can reuse it. This is kinda equivalent to a per-layer CursorPos.
-		g.GroupStack.back().EmitItem = false;
-		ImGui::EndGroup(); // Restore position on layer 0
+
+		// FIXME: Extremely confusing, cleanup by (a) working on WorkRect stack system (b) not using a Group confusingly here.
+		ImGuiGroupData& group_data = g.GroupStack.back();
+		group_data.EmitItem = false;
+		ImVec2 restore_cursor_max_pos = group_data.BackupCursorMaxPos;
+		window->DC.IdealMaxPos.x = ImMax(window->DC.IdealMaxPos.x, window->DC.CursorMaxPos.x - window->Scroll.x); // Convert ideal extents for scrolling layer equivalent.
+		ImGui::EndGroup(); // Restore position on layer 0 // FIXME: Misleading to use a group for that backup/restore
 		window->DC.LayoutType = ImGuiLayoutType_Vertical;
+		window->DC.IsSameLine = false;
 		window->DC.NavLayerCurrent = ImGuiNavLayer_Main;
 		window->DC.MenuBarAppending = false;
+		window->DC.CursorMaxPos = restore_cursor_max_pos;
 	}
 
 	bool BeginControlsGrid()
@@ -229,6 +242,22 @@ namespace Shark::UI {
 		}
 	}
 
+	bool BeginTreeNode(const char* name, const BeginTreeNodeSettings& settings)
+	{
+		ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding;
+		if (settings.OpenByDefault)
+			treeFlags |= ImGuiTreeNodeFlags_DefaultOpen;
+
+		UI::ScopedFont font("Bold", settings.Bold);
+
+		return ImGui::TreeNodeEx(name, treeFlags);
+	}
+
+	void EndTreeNode()
+	{
+		ImGui::TreePop();
+	}
+
 	bool MultiSelectInvisibleButton(const char* str_id, bool selected, ImVec2 size_arg, ImGuiButtonFlags flags)
 	{
 		return MultiSelectInvisibleButton(ImGui::GetID(str_id), selected, size_arg, flags);
@@ -250,7 +279,7 @@ namespace Shark::UI {
 		if (!ImGui::ItemAdd(bb, id))
 			return false;
 
-		const bool is_multi_select = (g.LastItemData.InFlags & ImGuiItemFlags_IsMultiSelect) != 0;
+		const bool is_multi_select = (g.LastItemData.ItemFlags & ImGuiItemFlags_IsMultiSelect) != 0;
 
 		if (is_multi_select)
 			ImGui::MultiSelectItemHeader(id, &selected, &flags);
@@ -370,17 +399,17 @@ namespace Shark::UI {
 		if (ImGui::IsItemActive())
 		{
 			utils::AddImage(imagePressed);
-			drawList->AddImage(imagePressed->GetViewID(), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintPressed);
+			drawList->AddImage((ImTextureID)imagePressed->GetViewID(), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintPressed);
 		}
 		else if (ImGui::IsItemHovered())
 		{
 			utils::AddImage(imageHovered);
-			drawList->AddImage(imageHovered->GetViewID(), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintHovered);
+			drawList->AddImage((ImTextureID)imageHovered->GetViewID(), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintHovered);
 		}
 		else
 		{
 			utils::AddImage(imageNormal);
-			drawList->AddImage(imageNormal->GetViewID(), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintNormal);
+			drawList->AddImage((ImTextureID)imageNormal->GetViewID(), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintNormal);
 		}
 
 		utils::BindDefaultSampler();
@@ -441,82 +470,83 @@ namespace Shark::UI {
 		DrawImageButton(texture->GetImage(), tintNormal, tintHovered, tintPressed);
 	}
 
-	void DrawImage(Ref<Image2D> image, const ImRect& rect, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
-	{
-		ImGuiWindow* window = ImGui::GetCurrentWindow();
-		if (window->SkipItems)
-			return;
-
-		const float border_size = (border_col.w > 0.0f) ? 1.0f : 0.0f;
-		const ImVec2 padding(border_size, border_size);
-
-		utils::AddImage(image);
-		if (border_size > 0.0f)
-			window->DrawList->AddRect(rect.Min, rect.Max, ImGui::GetColorU32(border_col), 0.0f, ImDrawFlags_None, border_size);
-		window->DrawList->AddImage(image->GetViewID(), rect.Min + padding, rect.Max - padding, uv0, uv1, ImGui::GetColorU32(tint_col));
-		utils::BindDefaultSampler();
-	}
-
-	void DrawImage(Ref<ImageView> image, const ImRect& rect, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
-	{
-		ImGuiWindow* window = ImGui::GetCurrentWindow();
-		if (window->SkipItems)
-			return;
-
-		const float border_size = (border_col.w > 0.0f) ? 1.0f : 0.0f;
-		const ImVec2 padding(border_size, border_size);
-
-		utils::AddImage(image);
-		if (border_size > 0.0f)
-			window->DrawList->AddRect(rect.Min, rect.Max, ImGui::GetColorU32(border_col), 0.0f, ImDrawFlags_None, border_size);
-		window->DrawList->AddImage(image->GetViewID(), rect.Min + padding, rect.Max - padding, uv0, uv1, ImGui::GetColorU32(tint_col));
-		utils::BindDefaultSampler();
-	}
-
-	void DrawImage(Ref<Texture2D> texture, const ImRect& rect, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
-	{
-		DrawImage(texture->GetImage(), rect, uv0, uv1, tint_col, border_col);
-	}
-
-	void Image(Ref<ImageView> imageView, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
-	{
-		ImGuiWindow* window = ImGui::GetCurrentWindow();
-		if (window->SkipItems)
-			return;
-
-		utils::AddImage(imageView);
-		ImGui::Image(imageView->GetViewID(), size, uv0, uv1, tint_col, border_col);
-		utils::BindDefaultSampler();
-	}
-
-	void Image(Ref<Image2D> image, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
+	void DrawImage(Ref<Image2D> image, const ImRect& rect, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col)
 	{
 		ImGuiWindow* window = ImGui::GetCurrentWindow();
 		if (window->SkipItems)
 			return;
 
 		utils::AddImage(image);
-		ImGui::Image(image->GetViewID(), size, uv0, uv1, tint_col, border_col);
+		window->DrawList->AddImage((ImTextureID)image->GetViewID(), rect.Min, rect.Max, uv0, uv1, ImGui::GetColorU32(tint_col));
 		utils::BindDefaultSampler();
 	}
 
-	void Image(Ref<Texture2D> texture, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
+	void DrawImage(Ref<ImageView> image, const ImRect& rect, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col)
+	{
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		if (window->SkipItems)
+			return;
+
+		utils::AddImage(image);
+		window->DrawList->AddImage((ImTextureID)image->GetViewID(), rect.Min, rect.Max, uv0, uv1, ImGui::GetColorU32(tint_col));
+		utils::BindDefaultSampler();
+	}
+
+	void DrawImage(Ref<Texture2D> texture, const ImRect& rect, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col)
+	{
+		DrawImage(texture->GetImage(), rect, uv0, uv1, tint_col);
+	}
+
+	void Image(Ref<Texture2D> texture, const ImVec2& size, const ImageArgs args)
 	{
 		ImGuiWindow* window = ImGui::GetCurrentWindow();
 		if (window->SkipItems)
 			return;
 
 		utils::AddImage(texture);
-		ImGui::Image(texture->GetViewID(), size, uv0, uv1, tint_col, border_col);
+		ImGui::ImageWithBg((ImTextureID)texture->GetViewID(), size, args.UV0, args.UV1, args.BackgroundColor, args.TintColor);
 		utils::BindDefaultSampler();
 	}
 
-	bool TextureEdit(const char* textID, Ref<Texture2D>& texture, const ImVec2& size, bool clearButton, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
+	void Image(Ref<ImageView> imageView, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col)
+	{
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		if (window->SkipItems)
+			return;
+
+		utils::AddImage(imageView);
+		ImGui::ImageWithBg((ImTextureID)imageView->GetViewID(), size, uv0, uv1, ImVec4(0, 0, 0, 0), tint_col);
+		utils::BindDefaultSampler();
+	}
+
+	void Image(Ref<Image2D> image, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col)
+	{
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		if (window->SkipItems)
+			return;
+
+		utils::AddImage(image);
+		ImGui::ImageWithBg((ImTextureID)image->GetViewID(), size, uv0, uv1, ImVec4(0, 0, 0, 0), tint_col);
+		utils::BindDefaultSampler();
+	}
+
+	void Image(Ref<Texture2D> texture, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col)
+	{
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		if (window->SkipItems)
+			return;
+
+		utils::AddImage(texture);
+		ImGui::ImageWithBg((ImTextureID)texture->GetViewID(), size, uv0, uv1, ImVec4(0, 0, 0, 0), tint_col);
+		utils::BindDefaultSampler();
+	}
+
+	bool TextureEdit(const char* textID, Ref<Texture2D>& texture, const ImVec2& size, bool clearButton, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col)
 	{
 		bool changed = false;
 		Ref<Texture2D> displayTexture = texture;
 
-		UI::Image(displayTexture, size, uv0, uv1, tint_col, border_col);
+		UI::Image(displayTexture, size, uv0, uv1, tint_col);
 		utils::DragDropTargetAsset<Texture2D>(ImGuiDragDropFlags_AcceptNoDrawDefaultRect, [&texture, &changed](Ref<Texture2D> droppedTexture)
 		{
 			texture = droppedTexture;
@@ -571,7 +601,7 @@ namespace Shark::UI {
 	bool ImageButton(const char* strID, Ref<Texture2D> texture, const ImVec2& image_size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& bg_col, const ImVec4& tint_col)
 	{
 		utils::AddImage(texture);
-		const bool pressed = ImGui::ImageButton(strID, texture->GetViewID(), image_size, uv0, uv1, bg_col, tint_col);
+		const bool pressed = ImGui::ImageButton(strID, (ImTextureID)texture->GetViewID(), image_size, uv0, uv1, bg_col, tint_col);
 		utils::BindDefaultSampler();
 		return pressed;
 	}
@@ -579,7 +609,7 @@ namespace Shark::UI {
 	bool ImageButton(const char* strID, Ref<Texture2D> texture, const ImVec2& image_size, const ImVec4& tint_col)
 	{
 		utils::AddImage(texture);
-		const bool pressed = ImGui::ImageButton(strID, texture->GetViewID(), image_size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, tint_col);
+		const bool pressed = ImGui::ImageButton(strID, (ImTextureID)texture->GetViewID(), image_size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, tint_col);
 		utils::BindDefaultSampler();
 		return pressed;
 	}

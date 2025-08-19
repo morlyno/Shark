@@ -29,7 +29,7 @@ namespace Shark::UI {
 	void Fonts::PushDefault()
 	{
 		auto& io = ImGui::GetIO();
-		ImGui::PushFont(io.FontDefault);
+		ImGui::PushFont(io.FontDefault, io.FontDefault->LegacySize);
 	}
 
 	void Fonts::Push(const std::string& name)
@@ -37,11 +37,12 @@ namespace Shark::UI {
 		if (!s_Fonts.contains(name))
 		{
 			auto& io = ImGui::GetIO();
-			ImGui::PushFont(io.FontDefault);
+			ImGui::PushFont(io.FontDefault, io.FontDefault->LegacySize);
 			return;
 		}
 
-		ImGui::PushFont(s_Fonts.at(name));
+		ImFont* font = s_Fonts.at(name);
+		ImGui::PushFont(font, font->LegacySize);
 	}
 
 	void Fonts::Pop()

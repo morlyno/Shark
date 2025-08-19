@@ -23,7 +23,10 @@ workspace "Shark"
 		"YAML_CPP_STATIC_DEFINE",
 
 		"FMT_HEADER_ONLY",
-		"FMT_UNICODE=0"
+		"FMT_UNICODE=0",
+
+		"IMGUI_DISABLE_OBSOLETE_FUNCTIONS",
+		"IMGUI_DEFINE_MATH_OPERATORS"
 	}
 
 	filter "action:vs*"

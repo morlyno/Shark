@@ -200,7 +200,7 @@ namespace Shark::UI::Colors {
 		colors[ImGuiCol_MenuBarBg] = ImGui::ColorConvertU32ToFloat4(Theme::Titlebar);
 
 		// Nav
-		colors[ImGuiCol_NavHighlight] = ImGui::ColorConvertU32ToFloat4(Theme::NavigationHighlight);
+		colors[ImGuiCol_NavCursor] = ImGui::ColorConvertU32ToFloat4(Theme::NavigationHighlight);
 
 		//================================//
 		// Styles

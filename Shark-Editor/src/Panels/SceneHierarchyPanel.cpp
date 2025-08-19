@@ -417,7 +417,7 @@ namespace Shark {
 
 				// List
 				{
-					UI::ScopedColor navDisabled(ImGuiCol_NavHighlight, IM_COL32_DISABLE);
+					UI::ScopedColor navDisabled(ImGuiCol_NavCursor, IM_COL32_DISABLE);
 					UI::ScopedColorStack headerDiabled(ImGuiCol_Header, IM_COL32_DISABLE,
 													   ImGuiCol_HeaderActive, IM_COL32_DISABLE,
 													   ImGuiCol_HeaderHovered, IM_COL32_DISABLE);
