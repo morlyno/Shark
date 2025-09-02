@@ -2,6 +2,11 @@
 VULKAN_SDK = os.getenv("VULKAN_SDK")
 
 Dependencies = {
+    NVHRI = {
+        LibName = "NVRHI",
+        IncludeDir = "%{wks.location}/Shark/dependencies/nvrhi/include"
+    },
+
     spdlog = {
         IncludeDir = "%{wks.location}/Shark/dependencies/spdlog/include"
     },

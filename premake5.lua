@@ -26,7 +26,9 @@ workspace "Shark"
 		"FMT_UNICODE=0",
 
 		"IMGUI_DISABLE_OBSOLETE_FUNCTIONS",
-		"IMGUI_DEFINE_MATH_OPERATORS"
+		"IMGUI_DEFINE_MATH_OPERATORS",
+
+		"SK_WITH_DX11"
 	}
 
 	filter "action:vs*"
@@ -66,7 +68,12 @@ group "Dependencies"
 	include "Shark/dependencies/yaml-cpp"
 	include "Shark/dependencies/Coral/Coral.Native"
 	include "Shark/dependencies/Coral/Coral.Managed"
+group "Dependencies/NVRHI"
+	include "Shark/dependencies/NVRHI"
 group ""
+
+
+
 
 group "Core"
 	include "Shark"
