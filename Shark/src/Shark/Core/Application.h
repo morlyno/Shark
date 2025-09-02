@@ -5,6 +5,7 @@
 #include "Shark/Event/Event.h"
 #include "Shark/Event/WindowEvent.h"
 #include "Shark/Layer/LayerStack.h"
+#include "Shark/Render/DeviceManager.h"
 #include "Shark/Scripting/ScriptHost.h"
 #include "Shark/UI/ImGui/ImGuiLayer.h"
 
@@ -68,6 +69,8 @@ namespace Shark {
 		const Window& GetWindow() const { return *m_Window; }
 		ImGuiLayer& GetImGuiLayer() { return *m_ImGuiLayer; }
 		const ImGuiLayer& GetImGuiLayer() const { return *m_ImGuiLayer; }
+
+		DeviceManager* GetDeviceManager() { return m_DeviceManager; }
 		ScriptHost& GetScriptHost() { return m_ScriptHost; }
 
 		const ApplicationSpecification& GetSpecification() const { return m_Specification; }
@@ -116,6 +119,7 @@ namespace Shark {
 		ImGuiLayer* m_ImGuiLayer;
 		LayerStack m_LayerStack;
 
+		DeviceManager* m_DeviceManager;
 		ScriptHost m_ScriptHost;
 
 		std::mutex m_MainThreadMutex;

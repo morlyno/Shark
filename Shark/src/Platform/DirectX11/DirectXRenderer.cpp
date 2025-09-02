@@ -18,12 +18,7 @@
 #include "Platform/DirectX11/DirectXStorageBuffer.h"
 #include "Platform/DirectX11/DirectXTexture.h"
 #include "Platform/DirectX11/DirectXRenderPass.h"
-#include "Platform/DirectX11/DirectXImGuiLayer.h"
 #include "Platform/Windows/WindowsUtils.h"
-
-#include <backends/imgui_impl_dx11.h>
-#include <dxgi1_3.h>
-#include <dxgidebug.h>
 
 #if SK_ENABLE_GPU_VALIDATION && false
 #define DX11_VALIDATE_CONTEXT(ctx) DirectXRenderer::Get()->GetDebug()->ValidateContext(ctx);
@@ -783,27 +778,6 @@ namespace Shark {
 		genMipsResource->Release();
 
 		device->FlushCommandBuffer(cmd);
-	}
-
-	void DirectXRenderer::RT_PrepareForSwapchainResize()
-	{
-		//for (auto context : m_CommandBuffers)
-		//	context->RT_ClearState();
-
-		Application& app = Application::Get();
-		if (app.GetSpecification().EnableImGui)
-		{
-			DirectXImGuiLayer& imguiLayer = (DirectXImGuiLayer&)app.GetImGuiLayer();
-			imguiLayer.m_CommandBuffer->ReleaseCommandList();
-
-			ID3D11DeviceContext* context = imguiLayer.m_CommandBuffer->GetContext();
-			context->Flush();
-			context->ClearState();
-			
-			ID3D11CommandList* commandList;
-			context->FinishCommandList(false, &commandList);
-			DirectXAPI::ReleaseObject(commandList);
-		}
 	}
 
 	void DirectXRenderer::RT_PrepareAndBindMaterial(Ref<DirectXRenderCommandBuffer> commandBuffer, Ref<DirectXMaterial> material)

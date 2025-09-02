@@ -7,7 +7,6 @@
 #include "Platform/DirectX11/DirectXMaterial.h"
 #include "Platform/DirectX11/DirectXPipeline.h"
 #include "Platform/DirectX11/DirectXRenderCommandBuffer.h"
-#include "Platform/DirectX11/DirectXSwapChain.h"
 
 #include <set>
 #include <d3d11_1.h>
@@ -63,8 +62,6 @@ namespace Shark {
 		virtual uint32_t RT_GetCurrentFrameIndex() const override { return m_RTFrameIndex; }
 
 		virtual bool ResourcesCreated() const override { return m_ResourceCreated; }
-
-		void RT_PrepareForSwapchainResize();
 
 	private:
 		void RT_PrepareAndBindMaterial(Ref<DirectXRenderCommandBuffer> commandBuffer, Ref<DirectXMaterial> material);

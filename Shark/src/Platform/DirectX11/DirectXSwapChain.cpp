@@ -1,4 +1,5 @@
 #include "skpch.h"
+#if 0
 #include "DirectXSwapChain.h"
 
 #include "Shark/Core/Application.h"
@@ -13,7 +14,7 @@
 
 namespace Shark {
 
-	DirectXSwapChain::DirectXSwapChain(const SwapChainSpecifications& specs)
+	DirectXSwapChain::DirectXSwapChain(const SwapChainSpecification& specs)
 		: m_Specification(specs)
 	{
 		ReCreateSwapChain();
@@ -306,3 +307,4 @@ namespace Shark {
 	}
 
 }
+#endif

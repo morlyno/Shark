@@ -191,7 +191,9 @@ namespace Shark {
 
 		if (m_SwapChain)
 		{
+#if TODO // #Renderer #Disabled
 			m_SwapChain->SetFullscreen(fullscreen);
+#endif
 			// NOTE(moro): should this really be hear?
 			m_SwapChain->Resize(width, height);
 		}
@@ -330,10 +332,9 @@ namespace Shark {
 
 		SetFullscreen(m_Specification.Fullscreen);
 
-		SwapChainSpecifications swapChainSpecs;
+		SwapChainSpecification swapChainSpecs;
 		swapChainSpecs.Width = m_Specification.Width;
 		swapChainSpecs.Height = m_Specification.Height;
-		swapChainSpecs.BufferCount = 3;
 		swapChainSpecs.Window = m_WindowHandle;
 		swapChainSpecs.Fullscreen = m_Specification.Fullscreen;
 		m_SwapChain = SwapChain::Create(swapChainSpecs);
@@ -343,6 +344,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		m_SwapChain = nullptr;
 		DestroyWindow(m_WindowHandle);
 		m_WindowHandle = NULL;
 	}

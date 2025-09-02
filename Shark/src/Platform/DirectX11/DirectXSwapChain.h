@@ -1,5 +1,6 @@
 #pragma once
 
+#if 0
 #include "Shark/Render/SwapChain.h"
 #include "Platform/DirectX11/DirectXFrameBuffer.h"
 
@@ -10,7 +11,7 @@ namespace Shark {
 	class DirectXSwapChain : public SwapChain
 	{
 	public:
-		DirectXSwapChain(const SwapChainSpecifications& specs);
+		DirectXSwapChain(const SwapChainSpecification& specs);
 		virtual ~DirectXSwapChain();
 
 		virtual void Present(bool vSync) override;
@@ -23,7 +24,7 @@ namespace Shark {
 
 		virtual Ref<Image2D> GetTargetImage() const override { return m_FrameBuffer->GetImage(0); }
 		virtual Ref<FrameBuffer> GetFrameBuffer() const override { return m_FrameBuffer; }
-		virtual const SwapChainSpecifications& GetSpecification() const override { return m_Specification; }
+		virtual const SwapChainSpecification& GetSpecification() const override { return m_Specification; }
 
 	private:
 		void Release();
@@ -38,7 +39,7 @@ namespace Shark {
 	private:
 		const DXGI_SWAP_EFFECT m_SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 		ImageFormat m_Format = ImageFormat::RGBA8UNorm;
-		SwapChainSpecifications m_Specification;
+		SwapChainSpecification m_Specification;
 		Ref<DirectXFrameBuffer> m_FrameBuffer;
 
 		IDXGISwapChain* m_SwapChain = nullptr;
@@ -50,3 +51,4 @@ namespace Shark {
 	};
 
 }
+#endif

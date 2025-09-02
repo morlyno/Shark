@@ -1,23 +1,20 @@
 #include "skpch.h"
 #include "SwapChain.h"
 
-#include "Shark/Core/Window.h"
-
-#include "Shark/Render/Renderer.h"
-#include "Platform/DirectX11/DirectXSwapChain.h"
+#include "Shark/Core/Application.h"
+#include "Shark/Platform/DirectX11/DirectX11Swapchain.h"
 
 namespace Shark {
 
-	Ref<SwapChain> SwapChain::Create(const SwapChainSpecifications& specs)
+	Ref<SwapChain> SwapChain::Create(const SwapChainSpecification& specification)
 	{
-		switch (RendererAPI::GetCurrentAPI())
+		switch (Application::Get().GetDeviceManager()->GetGraphicsAPI())
 		{
-			case RendererAPIType::None: SK_CORE_ASSERT(false, "No RendererAPI specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXSwapChain>::Create(specs);
+			case nvrhi::GraphicsAPI::D3D11:
+				return Ref<DirectX11SwapChain>::Create(specification);
 		}
-		SK_CORE_ASSERT(false, "Unkown Renderer API");
+		SK_CORE_VERIFY(false, "Unkown graphics api");
 		return nullptr;
 	}
 
 }
-
