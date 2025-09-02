@@ -107,6 +107,8 @@ namespace Shark {
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/CompositWidthDepth.hlsl");
 #endif
 
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/ImGui.hlsl");
+
 		// Compile Shaders
 		Renderer::WaitAndRender();
 

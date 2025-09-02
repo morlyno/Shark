@@ -186,6 +186,23 @@ namespace Shark {
 			return m_Instance;
 		}
 
+		T* Detach()
+		{
+			T* ptr = m_Instance;
+			m_Instance = nullptr;
+			return ptr;
+		}
+
+		void Attach(T* instance)
+		{
+			if (m_Instance)
+			{
+				Release();
+			}
+
+			m_Instance = instance;
+		}
+
 		Ref Clone() const
 		{
 			return Create(*m_Instance);
