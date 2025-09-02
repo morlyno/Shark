@@ -13,6 +13,7 @@
 #include "Shark/Render/Shader.h"
 #include "Shark/Render/Texture.h"
 #include "Shark/Render/Environment.h"
+#include "Shark/Render/ShaderCompiler/ShaderCache.h"
 
 namespace Shark {
 
@@ -104,6 +105,7 @@ namespace Shark {
 		static void GenerateMips(Ref<Image2D> image);
 		static void RT_GenerateMips(Ref<Image2D> image);
 
+		static ShaderCache& GetShaderCache();
 		static void ShaderReloaded(Ref<Shader> shader);
 		static void AcknowledgeShaderDependency(Ref<Shader> shader, Weak<Material> material);
 		static void AcknowledgeShaderDependency(Ref<Shader> shader, Weak<RenderPass> renderPass);

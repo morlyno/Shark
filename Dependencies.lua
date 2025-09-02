@@ -105,6 +105,9 @@ Dependencies = {
     dxguid = {
         Windows = { LibName = "dxguid" }
     },
+    D3DCompiler = {
+        Windows = { LibName = "d3dcompiler" }
+    },
     Winmm = {
         Windows = { LibName = "Winmm" }
     },

@@ -1,11 +1,8 @@
 #include "skpch.h"
 #include "Renderer.h"
 
-#include "Shark/Asset/AssetManager.h"
-#include "Shark/File/FileSystem.h"
-#include "Shark/Debug/Profiler.h"
-
 #include "Platform/DirectX11/DirectXRenderer.h"
+#include "Shark/Debug/Profiler.h"
 
 #include <future>
 
@@ -37,6 +34,7 @@ namespace Shark {
 		Ref<DirectXVertexBuffer> m_CubeVertexBuffer;
 		Ref<DirectXIndexBuffer> m_CubeIndexBuffer;
 
+		ShaderCache m_ShaderCache;
 		std::unordered_map<uint64_t, ShaderDependencies> m_ShaderDependencies;
 	};
 
@@ -75,6 +73,7 @@ namespace Shark {
 
 		s_Data = sknew RendererData;
 		s_Data->m_ShaderLibrary = Ref<ShaderLibrary>::Create();
+		s_Data->m_ShaderCache.LoadRegistry();
 
 		// 3D
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/SharkPBR.hlsl");
@@ -183,6 +182,8 @@ namespace Shark {
 	void Renderer::ShutDown()
 	{
 		SK_PROFILE_FUNCTION();
+
+		s_Data->m_ShaderCache.SaveRegistry();
 
 		s_Data->m_QuadVertexBuffer = nullptr;
 		s_Data->m_QuadIndexBuffer = nullptr;
@@ -346,6 +347,11 @@ namespace Shark {
 	void Renderer::RT_GenerateMips(Ref<Image2D> image)
 	{
 		s_RendererAPI->RT_GenerateMips(image);
+	}
+
+	ShaderCache& Renderer::GetShaderCache()
+	{
+		return s_Data->m_ShaderCache;
 	}
 
 	void Renderer::ShaderReloaded(Ref<Shader> shader)

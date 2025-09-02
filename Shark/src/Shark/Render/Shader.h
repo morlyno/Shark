@@ -3,14 +3,21 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Render/ShaderReflection.h"
 
+#include <nvrhi/nvrhi.h>
+
 namespace Shark {
+
+	class ShaderCompiler;
 
 	class Shader : public RefCount
 	{
 	public:
-		virtual ~Shader() = default;
+		static Ref<Shader> Create();
+		static Ref<Shader> Create(Ref<ShaderCompiler> compiler);
 
 		virtual bool Reload(bool forceCompile = false, bool disableOptimization = false) = 0;
+
+		virtual nvrhi::ShaderHandle GetHandle(nvrhi::ShaderType stage) const = 0;
 
 		virtual uint64_t GetHash() const = 0;
 		virtual const std::string& GetName() const = 0;
@@ -33,9 +40,6 @@ namespace Shark {
 
 	public:
 		virtual const ShaderReflectionData& GetReflectionData() const = 0;
-
-	public:
-		static Ref<Shader> Create();
 
 	};
 

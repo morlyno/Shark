@@ -84,7 +84,7 @@ namespace Shark {
 
 }
 
-#include "Shark/Core/Memory.h"
+#include "Shark/Core/Allocator.h"
 #include "Shark/Core/Log.h"
 #include "Shark/Core/Assert.h"
 
