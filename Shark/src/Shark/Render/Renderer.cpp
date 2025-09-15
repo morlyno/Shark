@@ -158,7 +158,7 @@ namespace Shark {
 
 		{
 			TextureSpecification spec;
-			spec.Format = ImageFormat::RGBA8UNorm;
+			spec.Format = ImageFormat::RGBA;
 			spec.Width = 1;
 			spec.Height = 1;
 			spec.GenerateMips = false;
@@ -169,12 +169,12 @@ namespace Shark {
 			spec.DebugName = "Black Texture";
 			s_Data->m_BlackTexture = Texture2D::Create(spec, Buffer::FromValue(0x00000000));
 
-			spec.Format = ImageFormat::RGBA32Float;
+			spec.Format = ImageFormat::RGBA32F;
 			spec.DebugName = "Black Texture Cube";
 
 			glm::vec4 imageData[6];
 			memset(imageData, 0, sizeof(imageData));
-			spec.Format = ImageFormat::RGBA32Float;
+			spec.Format = ImageFormat::RGBA32F;
 			s_Data->m_BlackTextureCube = TextureCube::Create(spec, Buffer::FromArray(imageData));
 
 			s_Data->m_EmptyEnvironment = Ref<Environment>::Create(s_Data->m_BlackTextureCube, s_Data->m_BlackTextureCube);

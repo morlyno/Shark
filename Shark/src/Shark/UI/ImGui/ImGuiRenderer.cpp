@@ -158,7 +158,7 @@ namespace Shark {
 					pCmd->UserCallback(cmdList, pCmd);
 				}
 				else {
-					drawState.bindings = { GetBindingSet((nvrhi::ITexture*)pCmd->GetTexID()) };
+					drawState.bindings = { GetBindingSet((const ViewInfo*)pCmd->GetTexID()) };
 					assert(drawState.bindings[0]);
 
 					drawState.viewport.scissorRects[0] = nvrhi::Rect(int(pCmd->ClipRect.x),
@@ -251,38 +251,43 @@ namespace Shark {
 
 			auto textureHandle = device->createTexture(textureDesc);
 
-			texture->BackendUserData = textureHandle.Detach();
+			auto viewInfo = sknew ViewInfo();
+			viewInfo->ImageHandle = textureHandle;
+			viewInfo->Sampler = m_FontSampler;
+
+			texture->BackendUserData = viewInfo;
 			texture->SetTexID((ImTextureID)texture->BackendUserData);
 			texture->SetStatus(ImTextureStatus_OK);
 		}
 		else if (texture->Status == ImTextureStatus_WantDestroy)
 		{
-			nvrhi::TextureHandle textureHandle;
-			textureHandle.Attach((nvrhi::ITexture*)texture->BackendUserData);
+			auto viewInfo = (ViewInfo*)texture->BackendUserData;
+			viewInfo->ImageHandle = nullptr;
 
-			textureHandle = nullptr;
+			skdelete viewInfo;
+
 			texture->SetTexID(ImTextureID_Invalid);
 			texture->SetStatus(ImTextureStatus_Destroyed);
 			texture->BackendUserData = nullptr;
 		}
 		else if (texture->Status == ImTextureStatus_WantUpdates)
 		{
-			nvrhi::TextureHandle textureHandle = (nvrhi::ITexture*)texture->BackendUserData;
-			
-			commandList->beginTrackingTextureState(textureHandle, nvrhi::AllSubresources, nvrhi::ResourceStates::Common);
-			commandList->writeTexture(textureHandle, 0, 0, texture->Pixels, texture->Width * 4);
-			commandList->setPermanentTextureState(textureHandle, nvrhi::ResourceStates::ShaderResource);
+			auto viewInfo = (ViewInfo*)texture->BackendUserData;
+
+			commandList->beginTrackingTextureState(viewInfo->ImageHandle, nvrhi::AllSubresources, nvrhi::ResourceStates::Common);
+			commandList->writeTexture(viewInfo->ImageHandle, 0, 0, texture->Pixels, texture->Width * 4);
+			commandList->setPermanentTextureState(viewInfo->ImageHandle, nvrhi::ResourceStates::ShaderResource);
 			commandList->commitBarriers();
 
 			texture->SetStatus(ImTextureStatus_OK);
 		}
 	}
 
-	nvrhi::IBindingSet* ImGuiRenderer::GetBindingSet(nvrhi::ITexture* texture)
+	nvrhi::IBindingSet* ImGuiRenderer::GetBindingSet(const ViewInfo* viewInfo)
 	{
 		auto device = Application::Get().GetDeviceManager()->GetDevice();
 
-		auto iter = m_BindingsCache.find(texture);
+		auto iter = m_BindingsCache.find(viewInfo);
 		if (iter != m_BindingsCache.end())
 		{
 			return iter->second;
@@ -292,15 +297,15 @@ namespace Shark {
 
 		desc.bindings = {
 			nvrhi::BindingSetItem::PushConstants(0, sizeof(glm::vec2) * 2),
-			nvrhi::BindingSetItem::Texture_SRV(0, texture),
-			nvrhi::BindingSetItem::Sampler(0, m_FontSampler)
+			nvrhi::BindingSetItem::Texture_SRV(0, viewInfo->ImageHandle, nvrhi::Format::UNKNOWN, viewInfo->SubresourceSet),
+			nvrhi::BindingSetItem::Sampler(0, viewInfo->Sampler ? viewInfo->Sampler : m_FontSampler)
 		};
 
 		nvrhi::BindingSetHandle binding;
 		binding = device->createBindingSet(desc, m_BindingLayout);
 		assert(binding);
 
-		m_BindingsCache[texture] = binding;
+		m_BindingsCache[viewInfo] = binding;
 		return binding;
 	}
 

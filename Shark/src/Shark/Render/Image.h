@@ -3,25 +3,21 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Buffer.h"
 #include "Shark/Render/RendererResource.h"
+#include <nvrhi/nvrhi.h>
 
 namespace Shark {
-
-	class TextureSource;
 
 	enum class ImageFormat : uint16_t
 	{
 		None = 0,
-		RGBA8UNorm,
-		RGBA16Float,
-		RGBA32Float,
-
+		RGBA,
 		sRGBA,
 
-		R8UNorm,
-		R32SINT,
+		RG16F,
+		RGBA16F,
+		RGBA32F,
 
-		RG16SNorm,
-		RG16Float,
+		RED32SI,
 
 		Depth32,
 		Depth24UNormStencil8UINT
@@ -35,79 +31,106 @@ namespace Shark {
 		Atachment
 	};
 
+	enum class ImageUsage
+	{
+		Texture,
+		Atachment,
+		Storage,
+		HostRead
+	};
+
 	struct ImageSpecification
 	{
-		ImageFormat Format = ImageFormat::RGBA8UNorm;
 		uint32_t Width = 0, Height = 0;
+		ImageFormat Format = ImageFormat::RGBA;
 		uint32_t Layers = 1;
 		uint32_t MipLevels = 1; // 0 == MaxLeves
 
-		ImageType Type = ImageType::Texture;
-		bool CreateSampler = true;
+		ImageUsage Usage = ImageUsage::Texture;
+		bool IsCube = false;
 
 		std::string DebugName;
+	};
+
+	struct ViewInfo
+	{
+		nvrhi::TextureHandle ImageHandle;
+		nvrhi::TextureSubresourceSet SubresourceSet;
+		nvrhi::SamplerHandle Sampler;
 	};
 
 	class Image2D : public RendererResource
 	{
 	public:
-		virtual ~Image2D() = default;
+		static Ref<Image2D> Create() { return Ref<Image2D>::Create(); }
+		static Ref<Image2D> Create(const ImageSpecification& specification) { return Ref<Image2D>::Create(specification); }
 
-		virtual void Release() = 0;
-		virtual void Invalidate() = 0;
-		virtual void RT_Invalidate() = 0;
-		virtual void Resize(uint32_t width, uint32_t height) = 0;
+		void Release();
+		void Submit_Invalidate();
+		void RT_Invalidate();
+		void Resize(uint32_t width, uint32_t height);
 
-		virtual bool IsValid(bool hasView = true) const = 0;
+		uint32_t GetWidth() const { return m_Specification.Width; }
+		uint32_t GetHeight() const { return m_Specification.Height; }
+		float GetAspectRatio() const { return (float)m_Specification.Width / m_Specification.Height; }
+		float GetVerticalAspectRatio() const { return (float)m_Specification.Height / m_Specification.Width; }
 
-		virtual uint32_t GetWidth() const = 0;
-		virtual uint32_t GetHeight() const = 0;
-		virtual float GetAspectRatio() const = 0;         // Height to Width
-		virtual float GetVerticalAspectRatio() const = 0; // Width to Height
+		void Submit_UploadData(const Buffer buffer);
+		void RT_UploadData(const Buffer buffer);
+		//void RT_CopyToHostBuffer(Buffer& buffer);
 
-		virtual void UploadImageData(Buffer buffer) = 0;
-		virtual void RT_UploadImageData(Buffer buffer) = 0;
+		ImageSpecification& GetSpecification() { return m_Specification; }
+		const ImageSpecification& GetSpecification() const { return m_Specification; }
 
-		virtual bool RT_ReadPixel(uint32_t x, uint32_t y, uint32_t& out_Pixel) = 0;
-		virtual void RT_CopyToHostBuffer(Buffer& buffer) = 0;
-
-		virtual RenderID GetViewID() const = 0;
-		virtual ImageType GetType() const = 0;
-
-		virtual ImageSpecification& GetSpecification() = 0;
-		virtual const ImageSpecification& GetSpecification() const = 0;
+		ViewInfo& GetViewInfo() { return m_ViewInfo; }
+		const ViewInfo& GetViewInfo() const { return m_ViewInfo; }
+		nvrhi::TextureHandle GetHandle() const { return m_ImageHandle; }
 
 	public:
-		static Ref<Image2D> Create();
-		static Ref<Image2D> Create(const ImageSpecification& specs);
+		Image2D();
+		Image2D(const ImageSpecification& specification);
+
+	private:
+		ImageSpecification m_Specification;
+
+		ViewInfo m_ViewInfo;
+		nvrhi::TextureHandle m_ImageHandle;
 	};
 	
 	struct ImageViewSpecification
 	{
-		Ref<Image2D> Image;
 		uint32_t MipSlice = 0;
 	};
 
 	class ImageView : public RefCount
 	{
 	public:
-		virtual void Invalidate() = 0;
-		virtual void RT_Invalidate() = 0;
-
-		virtual ImageViewSpecification& GetSpecification() = 0;
-
-		virtual Ref<Image2D> GetImage() const = 0;
-		virtual RenderID GetViewID() const = 0;
+		static Ref<ImageView> Create(Ref<Image2D> image, const ImageViewSpecification& specification) { return Ref<ImageView>::Create(image, specification); }
 
 	public:
-		static Ref<ImageView> Create();
-		static Ref<ImageView> Create(const ImageViewSpecification& specification);
-		static Ref<ImageView> Create(Ref<Image2D> image, uint32_t mipSlice);
+		void RT_Invalidate();
+
+		Ref<Image2D> GetImage() const { return m_Image; }
+		ImageViewSpecification& GetSpecification() { return m_Specification; }
+
+		const ViewInfo& GetViewInfo() const { return m_ViewInfo; }
+
+	public:
+		ImageView(Ref<Image2D> image, const ImageViewSpecification& specification);
+		~ImageView();
+
+	private:
+		ImageViewSpecification m_Specification;
+		Ref<Image2D> m_Image;
+
+		ViewInfo m_ViewInfo;
 	};
 
 	namespace ImageUtils {
 
 		uint32_t CalcMipLevels(uint32_t widht, uint32_t height);
+		nvrhi::Format ConvertImageFormat(ImageFormat format);
+
 		bool IsDepthFormat(ImageFormat format);
 		bool IsIntegerBased(ImageFormat format);
 		uint32_t GetFormatBPP(ImageFormat format);

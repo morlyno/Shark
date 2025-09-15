@@ -330,7 +330,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		TextureSpecification specification;
 		specification.DebugName = path.C_Str();
-		specification.Format = sRGB ? ImageFormat::sRGBA : ImageFormat::RGBA8UNorm;
+		specification.Format = sRGB ? ImageFormat::sRGBA : ImageFormat::RGBA;
 		// TODO(moro): sampler
 
 		if (auto aiTexEmbedded = scene->GetEmbeddedTexture(path.C_Str()))

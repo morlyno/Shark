@@ -54,7 +54,7 @@ namespace Shark {
 			FrameBufferSpecification framebufferSpecification;
 			framebufferSpecification.Width = m_Specifications.Width;
 			framebufferSpecification.Height = m_Specifications.Height;
-			framebufferSpecification.Atachments = { ImageFormat::RGBA32Float, ImageFormat::R32SINT, ImageFormat::Depth32 };
+			framebufferSpecification.Atachments = { ImageFormat::RGBA32F, ImageFormat::RED32SI, ImageFormat::Depth32 };
 			framebufferSpecification.ClearColorOnLoad = false;
 			framebufferSpecification.ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
 			framebufferSpecification.DebugName = "Renderer2D-Main";

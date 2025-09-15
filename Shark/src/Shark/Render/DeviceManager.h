@@ -27,6 +27,12 @@ namespace Shark {
 		virtual nvrhi::GraphicsAPI GetGraphicsAPI() const = 0;
 		const DeviceSpecification& GetSpecification() const { return m_Sepcification; }
 
+		virtual void OnOpenCommandList(nvrhi::ICommandList* commandList) = 0;
+		virtual void OnCloseCommandList(nvrhi::ICommandList* commandList) = 0;
+		virtual void ExecuteCommandList(nvrhi::ICommandList* commandList) = 0;
+
+		virtual nvrhi::ICommandList* GetCommandList(nvrhi::CommandQueue queue) = 0;
+
 	protected:
 		virtual bool CreateDeviceInternal() = 0;
 

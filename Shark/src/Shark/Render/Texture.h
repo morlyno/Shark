@@ -9,38 +9,26 @@ namespace Shark {
 
 	enum class FilterMode : uint16_t
 	{
-		None = 0,
 		Nearest,
-		Linear,
-		Anisotropic
+		Linear
 	};
 
-	enum class WrapMode : uint16_t
+	enum class AddressMode : uint16_t
 	{
-		None = 0,
 		Repeat,
-		Clamp,
-		Mirror
+		ClampToEdge,
+		MirrorRepeat
 	};
-
-	std::string ToString(FilterMode filterMode);
-	std::string ToString(WrapMode wrapMode);
-
-	std::string_view ToStringView(FilterMode filterMode);
-	std::string_view ToStringView(WrapMode wrapMode);
-
-	FilterMode StringToFilterMode(std::string_view filterMode);
-	WrapMode StringToWrapMode(std::string_view wrapMode);
 
 	struct TextureSpecification
 	{
 		uint32_t Width = 0, Height = 0;
-		ImageFormat Format = ImageFormat::RGBA8UNorm;
+		ImageFormat Format = ImageFormat::RGBA;
 		bool GenerateMips = true;
 
+		float MaxAnisotropy = 1.0f;
 		FilterMode Filter = FilterMode::Linear;
-		WrapMode Wrap = WrapMode::Repeat;
-		uint32_t MaxAnisotropy = 0;
+		AddressMode Address = AddressMode::Repeat;
 
 		std::string DebugName;
 	};
@@ -48,63 +36,83 @@ namespace Shark {
 	class Texture2D : public RendererResource
 	{
 	public:
-		virtual ~Texture2D() = default;
+		static Ref<Texture2D> Create() { return Ref<Texture2D>::Create(); }
+		static Ref<Texture2D> Create(const TextureSpecification& specification, const Buffer imageData = Buffer()) { return Ref<Texture2D>::Create(specification, imageData); }
+		static Ref<Texture2D> Create(const TextureSpecification& specification, const std::filesystem::path& filepath) { return Ref<Texture2D>::Create(specification, filepath); }
 
-		virtual void Invalidate() = 0;
-		virtual void RT_Invalidate() = 0;
-		virtual void Release() = 0;
+	public:
+		void Release();
+		void Submit_Invalidate();
+		void RT_Invalidate();
 
-		virtual bool IsValid() const = 0;
+		Ref<Image2D> GetImage() const { return m_Image; }
+		const ViewInfo& GetViewInfo() const { return m_Image->GetViewInfo(); }
 
-		virtual uint32_t GetWidth() const = 0;
-		virtual uint32_t GetHeight() const = 0;
-		virtual uint32_t GetMipLevels() const = 0;
-		virtual float GetAspectRatio() const = 0;
-		virtual float GetVerticalAspectRatio() const = 0;
+		uint32_t GetWidth() const { return m_Specification.Width; }
+		uint32_t GetHeight() const { return m_Specification.Height; }
+		uint32_t GetMipLevels() const { return m_Image->GetSpecification().MipLevels; }
+		float GetAspectRatio() const { return (float)GetWidth() / (float)GetHeight(); }
+		float GetVerticalAspectRatio() const { return (float)GetHeight() / (float)GetWidth(); }
 
-		virtual void SetImageData(Buffer imageData, bool copy = true) = 0;
+		Buffer& GetBuffer() { return m_ImageData; }
+		Buffer GetBuffer() const { return m_ImageData; }
 
-		virtual Buffer& GetBuffer() = 0;
-		virtual Buffer GetBuffer() const = 0;
+		TextureSpecification& GetSpecification() { return m_Specification; }
+		const TextureSpecification& GetSpecification() const { return m_Specification; }
 
-		virtual RenderID GetViewID() const = 0;
-		virtual Ref<Image2D> GetImage() const = 0;
+		const std::filesystem::path& GetFilepath() const { return m_Filepath; }
+		void SetFilepath(const std::filesystem::path& filepath) { m_Filepath = filepath; }
 
-		virtual TextureSpecification& GetSpecification() = 0;
-		virtual const TextureSpecification& GetSpecification() const = 0;
-
-		virtual const std::filesystem::path& GetFilepath() const = 0;
-		virtual void SetFilepath(const std::filesystem::path& filepath) = 0;
-
-		virtual AssetHandle GetSourceTextureHandle() const = 0;
-		virtual void SetSourceTextureHandle(AssetHandle handle) = 0;
+		AssetHandle GetSourceTextureHandle() const { return m_SourceTextureHandle; }
+		void SetSourceTextureHandle(AssetHandle handle) { m_SourceTextureHandle = handle; }
 
 	public: // Asset Interface
 		static AssetType GetStaticType() { return AssetType::Texture; }
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }
 
 	public:
-		static Ref<Texture2D> Create();
-		static Ref<Texture2D> Create(const TextureSpecification& specification, Buffer imageData = Buffer());
-		static Ref<Texture2D> Create(const TextureSpecification& specification, const std::filesystem::path& filepath);
+		Texture2D();
+		Texture2D(const TextureSpecification& specification, const Buffer imageData = Buffer());
+		Texture2D(const TextureSpecification& specification, const std::filesystem::path& filepath);
+		~Texture2D();
+
+	private:
+		TextureSpecification m_Specification;
+		Ref<Image2D> m_Image;
+		nvrhi::SamplerHandle m_Sampler;
+
+		Buffer m_ImageData;
+
+		std::filesystem::path m_Filepath;
+		AssetHandle m_SourceTextureHandle;
 	};
 
 	class TextureCube : public RendererResource
 	{
 	public:
-		virtual void Release() = 0;
-		virtual void Invalidate() = 0;
-		virtual void RT_Invalidate() = 0;
-
-		virtual uint32_t GetWidth() const = 0;
-		virtual uint32_t GetHeight() const = 0;
-
-		virtual uint32_t GetMipLevelCount() const = 0;
-
-		virtual Ref<Image2D> GetImage() const = 0;
+		static Ref<TextureCube> Create(const TextureSpecification& specification, const Buffer imageData = {}) { return Ref<TextureCube>::Create(specification, imageData); }
 
 	public:
-		static Ref<TextureCube> Create(const TextureSpecification& specification, Buffer imageData = {});
+		void Release();
+		void Submit_Invalidate();
+		void RT_Invalidate();
+
+		uint32_t GetWidth() const { return m_Specification.Width; }
+		uint32_t GetHeight() const { return m_Specification.Height; }
+		uint32_t GetMipLevelCount() const { return m_Image->GetSpecification().MipLevels; }
+
+		Ref<Image2D> GetImage() const { return m_Image; }
+
+	public:
+		TextureCube(const TextureSpecification& specification, const Buffer imageData);
+		~TextureCube();
+
+	private:
+		TextureSpecification m_Specification;
+		Ref<Image2D> m_Image;
+		nvrhi::SamplerHandle m_Sampler;
+
+		Buffer m_ImageData;
 	};
 
 }

@@ -160,7 +160,7 @@ namespace Shark {
 
 		changed |= UI::ControlCombo("Filter", spec.Filter);
 		nativeTextureTooltip();
-		changed |= UI::ControlCombo("Wrap", spec.Wrap);
+		changed |= UI::ControlCombo("Address", spec.Address);
 		nativeTextureTooltip();
 		changed |= UI::Control("Max Anisotropy", spec.MaxAnisotropy, 0.05f, 0, capabilities.MaxAnisotropy);
 		nativeTextureTooltip();
@@ -196,7 +196,7 @@ namespace Shark {
 			const auto& backupSpec = m_BackupTexture->GetSpecification();
 			
 			if (backupSpec.Format != specification.Format || backupSpec.GenerateMips != specification.GenerateMips ||
-				backupSpec.Filter != specification.Filter || backupSpec.Wrap != specification.Wrap || backupSpec.MaxAnisotropy != specification.MaxAnisotropy)
+				backupSpec.Filter != specification.Filter || backupSpec.Address != specification.Address || backupSpec.MaxAnisotropy != specification.MaxAnisotropy)
 			{
 				specification = backupSpec;
 				m_Texture->RT_Invalidate();
@@ -238,9 +238,8 @@ namespace Shark {
 			if (!m_PerMipView[i])
 			{
 				ImageViewSpecification specification;
-				specification.Image = image;
 				specification.MipSlice = i;
-				m_PerMipView[i] = ImageView::Create(specification);
+				m_PerMipView[i] = ImageView::Create(image, specification);
 			}
 			else
 			{

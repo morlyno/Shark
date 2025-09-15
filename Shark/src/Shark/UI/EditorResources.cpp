@@ -138,7 +138,7 @@ namespace Shark {
 		Logo = Texture2D::Create(
 			TextureSpecification{
 				.Width = 1, .Height = 1,
-				.Format = ImageFormat::RGBA8UNorm,
+				.Format = ImageFormat::RGBA,
 				.GenerateMips = false,
 				.DebugName = "Logo Placeholder"
 			},
@@ -189,7 +189,7 @@ namespace Shark {
 		TextureSpecification& specification = icon->GetSpecification();
 		imageData = TextureImporter::ToBufferFromFile(filepath, specification.Format, specification.Width, specification.Height);
 
-		icon->Invalidate();
+		icon->Submit_Invalidate();
 	}
 
 	void EditorResources::ReloadIcons()

@@ -184,11 +184,11 @@ namespace Shark {
 		stream.ReadBuffer(imageData);
 
 		ImageSpecification specification;
-		specification.Format = ImageFormat::RGBA8UNorm;
+		specification.Format = ImageFormat::RGBA;
 		specification.Width = header.Width;
 		specification.Height = header.Height;
 		Ref<Image2D> image = Image2D::Create(specification);
-		image->UploadImageData(imageData);
+		image->Submit_UploadData(imageData);
 		m_Thumbnails[handle] = { image, header.Timestamp };
 		imageData.Release();
 

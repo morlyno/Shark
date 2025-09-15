@@ -139,7 +139,7 @@ namespace Shark {
 		SK_SERIALIZE_PROPERTY(out, "Source", texture->GetSourceTextureHandle());
 		SK_SERIALIZE_PROPERTY(out, "GenerateMips", specification.GenerateMips);
 		SK_SERIALIZE_PROPERTY(out, "Filter", specification.Filter);
-		SK_SERIALIZE_PROPERTY(out, "Wrap", specification.Wrap);
+		SK_SERIALIZE_PROPERTY(out, "Address", specification.Address);
 		SK_SERIALIZE_PROPERTY(out, "MaxAnisotropy", specification.MaxAnisotropy);
 		out << YAML::EndMap;
 		out << YAML::EndMap;
@@ -188,14 +188,14 @@ namespace Shark {
 			}
 		}
 
-		SK_DESERIALIZE_PROPERTY(textureNode, "GenerateMips", outSpecification.GenerateMips, false);
-		SK_DESERIALIZE_PROPERTY(textureNode, "Filter", outSpecification.Filter, FilterMode::Linear);
-		SK_DESERIALIZE_PROPERTY(textureNode, "Wrap", outSpecification.Wrap, WrapMode::Repeat);
-		SK_DESERIALIZE_PROPERTY(textureNode, "MaxAnisotropy", outSpecification.MaxAnisotropy, 0);
+		DeserializeProperty(textureNode, "GenerateMips", outSpecification.GenerateMips, false);
+		DeserializeProperty(textureNode, "Filter", outSpecification.Filter, FilterMode::Linear);
+		DeserializeProperty(textureNode, "Address", outSpecification.Address, AddressMode::Repeat);
+		DeserializeProperty(textureNode, "MaxAnisotropy", outSpecification.MaxAnisotropy, 0);
 
 		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Generate Mips {}", outSpecification.GenerateMips);
 		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Filter {}", outSpecification.Filter);
-		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Wrap {}", outSpecification.Wrap);
+		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Address {}", outSpecification.Address);
 		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Max Anisotropy {}", outSpecification.MaxAnisotropy);
 		return true;
 	}

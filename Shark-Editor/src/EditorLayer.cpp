@@ -1218,31 +1218,31 @@ namespace Shark {
 		{
 			case SceneState::Edit:
 			{
-				if (ImGui::ImageButton("Play", (ImTextureID)EditorResources::PlayIcon->GetViewID(), size))
+				if (UI::ImageButton("Play", EditorResources::PlayIcon, size))
 					OnScenePlay();
 
 				ImGui::SameLine();
 
-				if (ImGui::ImageButton("Simulate", (ImTextureID)EditorResources::SimulateIcon->GetViewID(), size))
+				if (UI::ImageButton("Simulate", EditorResources::SimulateIcon, size))
 					OnSimulationPlay();
 
 				ImGui::SameLine();
 				{
 					UI::ScopedItemFlag disabled(ImGuiItemFlags_Disabled, true);
-					ImGui::ImageButton("Step Disabled", (ImTextureID)EditorResources::StepIcon->GetViewID(), size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, { 0.5f, 0.5f, 0.5f, 1.0f });
+					UI::ImageButton("Step Disabled", EditorResources::StepIcon, size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, { 0.5f, 0.5f, 0.5f, 1.0f });
 				}
 
 				break;
 			}
 			case SceneState::Play:
 			{
-				if (ImGui::ImageButton("Stop", (ImTextureID)EditorResources::StopIcon->GetViewID(), size))
+				if (UI::ImageButton("Stop", EditorResources::StopIcon, size))
 					OnSceneStop();
 
 				ImGui::SameLine();
 
 				Ref<Texture2D> pausePlayIcon = m_ActiveScene->IsPaused() ? EditorResources::PlayIcon : EditorResources::PauseIcon;
-				if (ImGui::ImageButton("PausePlay", (ImTextureID)pausePlayIcon->GetViewID(), size))
+				if (UI::ImageButton("PausePlay", pausePlayIcon, size))
 					m_ActiveScene->SetPaused(!m_ActiveScene->IsPaused());
 
 				ImGui::SameLine();
@@ -1250,7 +1250,7 @@ namespace Shark {
 				{
 					UI::ScopedItemFlag disabled(ImGuiItemFlags_Disabled, !m_ActiveScene->IsPaused());
 					const ImVec4 tintColor = m_ActiveScene->IsPaused() ? ImVec4(1.0f, 1.0f, 1.0f, 1.0f) : ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
-					if (ImGui::ImageButton("Step", (ImTextureID)EditorResources::StepIcon->GetViewID(), size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, tintColor))
+					if (UI::ImageButton("Step", EditorResources::StepIcon, size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, tintColor))
 						m_ActiveScene->Step(1);
 				}
 
@@ -1258,13 +1258,13 @@ namespace Shark {
 			}
 			case SceneState::Simulate:
 			{
-				if (ImGui::ImageButton("StopIcon", (ImTextureID)EditorResources::StopIcon->GetViewID(), size))
+				if (UI::ImageButton("StopIcon", EditorResources::StopIcon, size))
 					OnSimulationStop();
 
 				ImGui::SameLine();
 
 				Ref<Texture2D> pausePlayIcon = m_ActiveScene->IsPaused() ? EditorResources::PlayIcon : EditorResources::PauseIcon;
-				if (ImGui::ImageButton("PausePlayIcon", (ImTextureID)pausePlayIcon->GetViewID(), size))
+				if (UI::ImageButton("PausePlayIcon", pausePlayIcon, size))
 					m_ActiveScene->SetPaused(!m_ActiveScene->IsPaused());
 
 				ImGui::SameLine();
@@ -1272,7 +1272,7 @@ namespace Shark {
 				{
 					UI::ScopedItemFlag disabled(ImGuiItemFlags_Disabled, !m_ActiveScene->IsPaused());
 					const ImVec4 tintColor = m_ActiveScene->IsPaused() ? ImVec4(1.0f, 1.0f, 1.0f, 1.0f) : ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
-					if (ImGui::ImageButton("Step", (ImTextureID)EditorResources::StepIcon->GetViewID(), size, {0, 0}, {1, 1}, {0, 0, 0, 0}, tintColor))
+					if (UI::ImageButton("Step", EditorResources::StepIcon, size, {0, 0}, {1, 1}, {0, 0, 0, 0}, tintColor))
 						m_ActiveScene->Step(1);
 				}
 

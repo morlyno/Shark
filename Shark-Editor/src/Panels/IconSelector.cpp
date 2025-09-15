@@ -44,7 +44,7 @@ namespace Shark {
 						Buffer& buffer = texture->GetBuffer();
 						TextureSpecification& specification = texture->GetSpecification();
 						buffer = TextureImporter::ToBufferFromFile(path, specification.Format, specification.Width, specification.Height);
-						texture->Invalidate();
+						texture->Submit_Invalidate();
 					}
 				}
 			});

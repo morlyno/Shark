@@ -6,6 +6,8 @@
 #include "nvrhi/validation.h"
 #include "nvrhi/d3d11.h"
 
+#include <semaphore>
+
 namespace Shark {
 
 	class DirectX11DeviceManager : public DeviceManager
@@ -15,6 +17,12 @@ namespace Shark {
 
 		virtual nvrhi::IDevice* GetDevice() const override { return m_NvrhiDevice; }
 		virtual nvrhi::GraphicsAPI GetGraphicsAPI() const override { return nvrhi::GraphicsAPI::D3D11; }
+
+		virtual void OnOpenCommandList(nvrhi::ICommandList* commandList) override;
+		virtual void OnCloseCommandList(nvrhi::ICommandList* commandList) override;
+		virtual void ExecuteCommandList(nvrhi::ICommandList* commandList) override;
+
+		virtual nvrhi::ICommandList* GetCommandList(nvrhi::CommandQueue queue) override { return m_CommandList; }
 
 		IDXGIFactory1* GetFactory() { return m_Factory; }
 
@@ -26,6 +34,11 @@ namespace Shark {
 		nvrhi::RefCountPtr<IDXGIFactory1> m_Factory;
 		nvrhi::RefCountPtr<ID3D11DeviceContext> m_ImmediateContext;
 		nvrhi::RefCountPtr<IDXGIAdapter> m_Adapter;
+
+		nvrhi::CommandListHandle m_CommandList;
+		std::binary_semaphore m_CommandListSemaphore{ 1 };
+		std::mutex m_ExecutionMutex;
+
 	};
 
 }

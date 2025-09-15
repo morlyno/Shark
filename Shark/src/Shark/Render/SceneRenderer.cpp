@@ -371,7 +371,7 @@ namespace Shark {
 		mainFBSpecification.DebugName = "Geometry";
 		mainFBSpecification.Width = specification.Width;
 		mainFBSpecification.Height = specification.Height;
-		mainFBSpecification.Atachments = { ImageFormat::RGBA32Float, ImageFormat::R32SINT, ImageFormat::Depth32 };
+		mainFBSpecification.Atachments = { ImageFormat::RGBA32F, ImageFormat::RED32SI, ImageFormat::Depth32 };
 		mainFBSpecification.ClearColor = m_ClearColor;
 		mainFBSpecification.IndipendendClearColor[1] = { -1.0f, -1.0f, -1.0f, -1.0f };
 
@@ -436,7 +436,7 @@ namespace Shark {
 			FrameBufferSpecification framebufferSpecification;
 			framebufferSpecification.Width = specification.Width;
 			framebufferSpecification.Height = specification.Height;
-			framebufferSpecification.Atachments = { ImageFormat::RGBA32Float, ImageFormat::Depth32 };
+			framebufferSpecification.Atachments = { ImageFormat::RGBA32F, ImageFormat::Depth32 };
 			framebufferSpecification.DebugName = "Selected Geometry";
 			framebufferSpecification.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 			framebufferSpecification.ClearDepthValue = 1.0f;
@@ -472,7 +472,7 @@ namespace Shark {
 			FrameBufferSpecification framebufferSpecification;
 			framebufferSpecification.Width = specification.Width;
 			framebufferSpecification.Height = specification.Height;
-			framebufferSpecification.Atachments = { ImageFormat::RGBA32Float, ImageFormat::R32SINT, ImageFormat::Depth32 };
+			framebufferSpecification.Atachments = { ImageFormat::RGBA32F, ImageFormat::RED32SI, ImageFormat::Depth32 };
 			framebufferSpecification.ExistingImages[1] = m_GeometryPass->GetOutput(1);
 			framebufferSpecification.ExistingImages[2] = m_GeometryPass->GetDepthOutput();
 			framebufferSpecification.ClearColorOnLoad = false;
@@ -504,7 +504,7 @@ namespace Shark {
 			FrameBufferSpecification framebufferSpecification;
 			framebufferSpecification.Width = m_Specification.Width;
 			framebufferSpecification.Height = m_Specification.Height;
-			framebufferSpecification.Atachments = { ImageFormat::RGBA32Float };
+			framebufferSpecification.Atachments = { ImageFormat::RGBA32F };
 			framebufferSpecification.ClearColor = { 0.5f, 0.1f, 0.1f, 1.0f };
 			framebufferSpecification.BlendMode = FrameBufferBlendMode::OneZero;
 			framebufferSpecification.DebugName = "Temporary";
@@ -554,7 +554,7 @@ namespace Shark {
 			FrameBufferSpecification fbSpec;
 			fbSpec.Width = m_Specification.Width;
 			fbSpec.Height = m_Specification.Height;
-			fbSpec.Atachments = { ImageFormat::RGBA32Float };
+			fbSpec.Atachments = { ImageFormat::RGBA32F };
 			fbSpec.ExistingImages[0] = m_CompositePass->GetOutput(0);
 			fbSpec.ClearColorOnLoad = false;
 			fbSpec.DebugName = "JumpFlood-Composite";

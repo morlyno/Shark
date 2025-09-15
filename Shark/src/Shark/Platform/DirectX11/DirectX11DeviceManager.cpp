@@ -75,6 +75,31 @@ namespace Shark {
 		{
 			m_NvrhiDevice = nvrhi::validation::createValidationLayer(m_NvrhiDevice);
 		}
+
+		auto commandListDesc = nvrhi::CommandListParameters()
+			.setEnableImmediateExecution(true)
+			.setQueueType(nvrhi::CommandQueue::Graphics);
+
+		m_CommandList = m_NvrhiDevice->createCommandList(commandListDesc);
+	}
+
+	void DirectX11DeviceManager::OnOpenCommandList(nvrhi::ICommandList* commandList)
+	{
+		if (commandList->getDesc().enableImmediateExecution)
+			m_CommandListSemaphore.acquire();
+	}
+
+	void DirectX11DeviceManager::OnCloseCommandList(nvrhi::ICommandList* commandList)
+	{
+		if (commandList->getDesc().enableImmediateExecution)
+			m_CommandListSemaphore.release();
+	}
+
+	void DirectX11DeviceManager::ExecuteCommandList(nvrhi::ICommandList* commandList)
+	{
+		m_ExecutionMutex.lock();
+		m_NvrhiDevice->executeCommandList(commandList);
+		m_ExecutionMutex.unlock();
 	}
 
 	HRESULT DirectX11DeviceManager::CreateSwapChain(DXGI_SWAP_CHAIN_DESC* desc, IDXGISwapChain** outSwapChain)

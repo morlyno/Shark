@@ -1,59 +1,148 @@
 #include "skpch.h"
 #include "Image.h"
-
-#include "Shark/Render/Renderer.h"
-#include "Platform/DirectX11/DirectXImage.h"
+#include "Shark/Core/Application.h"
+#include "Renderer.h"
 
 namespace Shark {
 
-	Ref<Image2D> Image2D::Create()
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	////// Image2D Implementation /////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////
+
+	Image2D::Image2D()
 	{
-		switch (RendererAPI::GetCurrentAPI())
-		{
-			case RendererAPIType::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXImage2D>::Create();
-		}
-		SK_CORE_ASSERT(false, "Unkown Renderer API");
-		return nullptr;
+
 	}
 
-	Ref<Image2D> Image2D::Create(const ImageSpecification& specs)
+	Image2D::Image2D(const ImageSpecification& specification)
+		: m_Specification(specification)
 	{
-		switch (RendererAPI::GetCurrentAPI())
-		{
-			case RendererAPIType::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXImage2D>::Create(specs);
-		}
-		SK_CORE_ASSERT(false, "Unkown Renderer API");
-		return nullptr;
+		RT_Invalidate();
 	}
 
-	Ref<ImageView> ImageView::Create()
+	void Image2D::Release()
 	{
-		switch (RendererAPI::GetCurrentAPI())
-		{
-			case RendererAPIType::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXImageView>::Create();
-		}
-		SK_CORE_ASSERT(false, "Unkown Renderer API");
-		return nullptr;
+		m_ImageHandle = nullptr;
+		m_ViewInfo.ImageHandle = nullptr;
+		m_ViewInfo.SubresourceSet = {};
+		m_ViewInfo.Sampler = nullptr;
 	}
 
-	Ref<ImageView> ImageView::Create(const ImageViewSpecification& specification)
+	void Image2D::Submit_Invalidate()
 	{
-		switch (RendererAPI::GetCurrentAPI())
+		Ref instance = this;
+		Renderer::Submit([instance]()
 		{
-			case RendererAPIType::None: SK_CORE_ASSERT(false, "No Renderer API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXImageView>::Create(specification);
-		}
-		SK_CORE_ASSERT(false, "Unkown Renderer API");
-		return nullptr;
+			instance->RT_Invalidate();
+		});
 	}
 
-	Ref<ImageView> ImageView::Create(Ref<Image2D> image, uint32_t mipSlice)
+	void Image2D::RT_Invalidate()
 	{
-		return Create(ImageViewSpecification{ .Image = image, .MipSlice = mipSlice });
+		// reading from images in only used for mouse picking currently
+		SK_CORE_VERIFY(m_Specification.Usage != ImageUsage::Storage,
+					   "Storage Images are not implemented because it is not a normal texture in nvrhi."
+					   "\"Storage\" textures are StagingTextures in nvrhi, i am not sure how to handle this in Image.");
+
+		if (m_Specification.MipLevels == 0)
+			m_Specification.MipLevels = ImageUtils::CalcMipLevels(m_Specification.Width, m_Specification.Height);
+
+		auto textureDesc = nvrhi::TextureDesc()
+			.setWidth(m_Specification.Width)
+			.setHeight(m_Specification.Height)
+			.setArraySize(m_Specification.Layers)
+			.setMipLevels(m_Specification.MipLevels)
+			.setFormat(ImageUtils::ConvertImageFormat(m_Specification.Format));
+
+		textureDesc.isRenderTarget = m_Specification.Usage == ImageUsage::Atachment;
+		textureDesc.isUAV = m_Specification.Usage == ImageUsage::Storage;
+
+		if (m_Specification.IsCube)
+			textureDesc.dimension = nvrhi::TextureDimension::TextureCube;
+		else if (m_Specification.Layers > 1)
+			textureDesc.dimension = nvrhi::TextureDimension::Texture2DArray;
+
+		auto cpuAccess = nvrhi::CpuAccessMode::None;
+
+		if (m_Specification.Usage == ImageUsage::Atachment)
+		{
+			textureDesc.keepInitialState = true;
+			textureDesc.initialState = nvrhi::getFormatInfo(textureDesc.format).hasDepth ?
+				                       nvrhi::ResourceStates::RenderTarget : nvrhi::ResourceStates::DepthWrite;
+		}
+		else if (m_Specification.Usage == ImageUsage::Texture)
+		{
+			textureDesc.keepInitialState = true;
+			textureDesc.initialState = nvrhi::ResourceStates::ShaderResource;
+		}
+
+		auto device = Application::Get().GetDeviceManager()->GetDevice();
+		m_ImageHandle = device->createTexture(textureDesc);
+
+		m_ViewInfo.ImageHandle = m_ImageHandle;
+		m_ViewInfo.SubresourceSet.baseMipLevel = 0;
+		m_ViewInfo.SubresourceSet.numMipLevels = m_Specification.MipLevels;
+		m_ViewInfo.SubresourceSet.baseArraySlice = 0;
+		m_ViewInfo.SubresourceSet.numArraySlices = m_Specification.Layers;
 	}
+
+	void Image2D::Resize(uint32_t width, uint32_t height)
+	{
+		m_Specification.Width = width;
+		m_Specification.Height = height;
+		Submit_Invalidate();
+	}
+
+	void Image2D::Submit_UploadData(const Buffer buffer)
+	{
+		Ref instance = this;
+		Renderer::Submit([instance, tempBuffer = Buffer::Copy(buffer)]() mutable
+		{
+			instance->RT_UploadData(tempBuffer);
+			tempBuffer.Release();
+		});
+	}
+
+	void Image2D::RT_UploadData(const Buffer buffer)
+	{
+		auto deviceManager = Application::Get().GetDeviceManager();
+		auto commandList = deviceManager->GetCommandList(nvrhi::CommandQueue::Copy);
+
+		deviceManager->OnOpenCommandList(commandList);
+		commandList->open();
+		commandList->writeTexture(m_ImageHandle, 0, 0, buffer.As<const void>(), m_Specification.Width * ImageUtils::GetFormatBPP(m_Specification.Format));
+		commandList->close();
+		deviceManager->OnCloseCommandList(commandList);
+
+		deviceManager->ExecuteCommandList(commandList);
+	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	////// Image View Implementation //////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////
+
+	ImageView::ImageView(Ref<Image2D> image, const ImageViewSpecification& specification)
+		: m_Image(image), m_Specification(specification)
+	{
+		RT_Invalidate();
+	}
+
+	ImageView::~ImageView()
+	{
+	}
+
+	void ImageView::RT_Invalidate()
+	{
+		m_ViewInfo.ImageHandle = m_Image->GetHandle();
+		m_ViewInfo.SubresourceSet.baseMipLevel = m_Specification.MipSlice;
+		m_ViewInfo.SubresourceSet.numMipLevels = 1;
+		m_ViewInfo.SubresourceSet.baseArraySlice = 0;
+		m_ViewInfo.SubresourceSet.numArraySlices = m_Image->GetSpecification().Layers;
+	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	////// Image Utilities ////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////
 
 	namespace ImageUtils {
 
@@ -62,75 +151,38 @@ namespace Shark {
 			return (uint32_t)glm::floor(glm::log2((float)glm::max(widht, height))) + 1;
 		}
 
-		bool IsDepthFormat(Shark::ImageFormat format)
+		nvrhi::Format ConvertImageFormat(ImageFormat format)
 		{
 			switch (format)
 			{
-				case ImageFormat::None:
-				case ImageFormat::RGBA8UNorm:
-				case ImageFormat::RGBA16Float:
-				case ImageFormat::RGBA32Float:
-				case ImageFormat::R8UNorm:
-				case ImageFormat::R32SINT:
-				case ImageFormat::RG16SNorm:
-				case ImageFormat::sRGBA:
-					return false;
-
-				case ImageFormat::Depth32:
-				case ImageFormat::Depth24UNormStencil8UINT:
-					return true;
-
-				default:
-					SK_CORE_VERIFY(false, "Unkown ImageFormat");
-					break;
+				case ImageFormat::None: return nvrhi::Format::UNKNOWN;
+				case ImageFormat::RGBA: return nvrhi::Format::RGBA8_UNORM;
+				case ImageFormat::sRGBA: return nvrhi::Format::SRGBA8_UNORM;
+				case ImageFormat::RG16F: return nvrhi::Format::RG16_FLOAT;
+				case ImageFormat::RGBA16F: return nvrhi::Format::RGBA16_FLOAT;
+				case ImageFormat::RGBA32F: return nvrhi::Format::RGBA32_FLOAT;
+				case ImageFormat::RED32SI: return nvrhi::Format::R32_SINT;
+				case ImageFormat::Depth32: return nvrhi::Format::D32;
+				case ImageFormat::Depth24UNormStencil8UINT: return nvrhi::Format::D24S8;
 			}
+			SK_CORE_ASSERT(false, "Unknown ImageFormat");
+			return nvrhi::Format::UNKNOWN;
+		}
 
-			SK_CORE_ASSERT(false, "Unkown ImageFormat", (uint16_t)format);
-			return false;
+
+		bool IsDepthFormat(Shark::ImageFormat format)
+		{
+			return nvrhi::getFormatInfo(ConvertImageFormat(format)).kind == nvrhi::FormatKind::DepthStencil;
 		}
 
 		bool IsIntegerBased(ImageFormat format)
 		{
-			switch (format)
-			{
-				case ImageFormat::None:
-				case ImageFormat::RGBA8UNorm:
-				case ImageFormat::RGBA16Float:
-				case ImageFormat::RGBA32Float:
-				case ImageFormat::R8UNorm:
-				case ImageFormat::RG16SNorm:
-				case ImageFormat::Depth32:
-				case ImageFormat::Depth24UNormStencil8UINT:
-				case ImageFormat::sRGBA:
-					return false;
-
-				case ImageFormat::R32SINT:
-					return true;
-
-				default:
-					SK_CORE_VERIFY(false, "Unkown ImageFormat");
-					break;
-			}
-
-			SK_CORE_ASSERT(false, "Unkown ImageFormat", (uint16_t)format);
-			return false;
+			return nvrhi::getFormatInfo(ConvertImageFormat(format)).kind == nvrhi::FormatKind::Integer;
 		}
 
 		uint32_t GetFormatBPP(ImageFormat format)
 		{
-			switch (format)
-			{
-				case ImageFormat::None: return 0;
-				case ImageFormat::RGBA8UNorm: return 4;
-				case ImageFormat::RGBA16Float: return 8; // 4 * 2bytes
-				case ImageFormat::RGBA32Float: return 4 * 4; // 4 * 4bytes
-				case ImageFormat::R8UNorm: return 1;
-				case ImageFormat::R32SINT: return 4;
-				case ImageFormat::Depth32: return 4;
-				case ImageFormat::sRGBA: return 4;
-			}
-			SK_CORE_ASSERT(false, "Unkown ImageFormat");
-			return 0;
+			return nvrhi::getFormatInfo(ConvertImageFormat(format)).bytesPerBlock;
 		}
 
 	}

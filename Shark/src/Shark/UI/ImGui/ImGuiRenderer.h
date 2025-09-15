@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Shark/Render/SwapChain.h"
+#include "Shark/Render/Image.h"
 
 #include <imgui.h>
 #include <nvrhi/nvrhi.h>
-#include <unordered_set>
 
 namespace Shark {
 
@@ -22,7 +22,7 @@ namespace Shark {
 		void UpdateTexture(nvrhi::CommandListHandle commandList, ImTextureData* texture);
 
 
-		nvrhi::IBindingSet* GetBindingSet(nvrhi::ITexture* texture);
+		nvrhi::IBindingSet* GetBindingSet(const ViewInfo* viewInfo);
 		bool UpdateGeometry(nvrhi::ICommandList* commandList);
 	private:
 		nvrhi::CommandListHandle m_CommandList;
@@ -40,7 +40,7 @@ namespace Shark {
 		nvrhi::BindingLayoutHandle m_BindingLayout;
 		nvrhi::GraphicsPipelineDesc m_BasePSODesc;
 
-		std::unordered_map<nvrhi::ITexture*, nvrhi::BindingSetHandle> m_BindingsCache;
+		std::unordered_map<const ViewInfo*, nvrhi::BindingSetHandle> m_BindingsCache;
 
 		std::vector<ImDrawVert> m_VertexBufferData;
 		std::vector<ImDrawIdx> m_IndexBufferData;
