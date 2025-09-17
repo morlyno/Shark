@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Shark/Render/RenderCommandBuffer.h"
 #include "Shark/Render/SwapChain.h"
 #include "Shark/Render/Image.h"
 
@@ -25,7 +26,7 @@ namespace Shark {
 		nvrhi::IBindingSet* GetBindingSet(const ViewInfo* viewInfo);
 		bool UpdateGeometry(nvrhi::ICommandList* commandList);
 	private:
-		nvrhi::CommandListHandle m_CommandList;
+		Ref<RenderCommandBuffer> m_CommandBuffer;
 
 		nvrhi::ShaderHandle m_VertexShader;
 		nvrhi::ShaderHandle m_PixelShader;

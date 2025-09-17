@@ -114,7 +114,7 @@ namespace Shark {
 		commandList->close();
 		deviceManager->OnCloseCommandList(commandList);
 
-		deviceManager->ExecuteCommandList(commandList);
+		deviceManager->ExecuteCommandListLocked(commandList);
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////////

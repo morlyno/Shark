@@ -3,6 +3,8 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Core/TimeStep.h"
 
+#include <nvrhi/nvrhi.h>
+
 namespace Shark {
 
 	struct PipelineStatistics
@@ -16,26 +18,67 @@ namespace Shark {
 		uint64_t RasterizerPrimitives;
 	};
 
+	class QueryID
+	{
+	public:
+		QueryID() = default;
+
+		bool IsValid() const { return m_ID != Invalid; }
+
+	private:
+		QueryID(uint32_t id) : m_ID(id) {}
+
+		operator uint32_t() const { return m_ID; }
+		static constexpr uint32_t Invalid = (uint32_t)-1;
+
+	private:
+		uint32_t m_ID = Invalid;
+
+		friend class RenderCommandBuffer;
+	};
+
 	class RenderCommandBuffer : public RefCount
 	{
 	public:
-		virtual ~RenderCommandBuffer() = default;
-
-		virtual void Release() = 0;
-
-		virtual void Begin() = 0;
-		virtual void End() = 0;
-		virtual void Execute(bool releaseCommandList = false) = 0;
-
-		virtual uint32_t BeginTimestampQuery() = 0;
-		virtual void EndTimestampQuery(uint32_t queryID) = 0;
-
-		virtual const PipelineStatistics& GetPipelineStatistics() const = 0;
-		virtual TimeStep GetTime(uint32_t queryID) const = 0;
+		static Ref<RenderCommandBuffer> Create(const std::string& name, uint32_t queryCountHint = 0) { return Ref<RenderCommandBuffer>::Create(name, queryCountHint); }
 
 	public:
-		static Ref<RenderCommandBuffer> Create(const std::string& name);
+		void Begin();
+		void End();
+		void Execute();
 
+		void RT_Begin();
+		void RT_End();
+		void RT_Execute();
+
+		nvrhi::CommandListHandle GetHandle() const { return m_CommandList; }
+
+		void BeginMarker(const char* name);
+		void EndMarker();
+
+		QueryID RegisterTimerQuery();
+		void BeginTimerQuery(QueryID queryID);
+		void EndTimerQuery(QueryID queryID);
+		void RT_BeginTimerQuery(QueryID queryID);
+		void RT_EndTimerQuery(QueryID queryID);
+
+		TimeStep GetGPUExecutionTime(QueryID queryID = QueryID(0)) const;
+		TimeStep GetGPUExecutionTime(uint32_t frameIndex, QueryID queryID = QueryID(0)) const;
+
+		const PipelineStatistics& GetPipelineStatistics() const { return PipelineStatistics{}; }
+
+	public:
+		RenderCommandBuffer(const std::string& name, uint32_t queryCountHint);
+		~RenderCommandBuffer();
+
+	private:
+		std::string m_Name;
+		nvrhi::CommandListHandle m_CommandList;
+
+		QueryID m_TimerQuery;
+		uint32_t m_NextQueryID = 0;
+		std::vector<std::vector<nvrhi::TimerQueryHandle>> m_TimerQueryPools;
+		std::vector<std::vector<float>> m_GPUExecutionTimes;
 	};
 
 }

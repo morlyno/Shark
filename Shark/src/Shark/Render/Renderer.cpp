@@ -36,6 +36,9 @@ namespace Shark {
 
 		ShaderCache m_ShaderCache;
 		std::unordered_map<uint64_t, ShaderDependencies> m_ShaderDependencies;
+
+		uint32_t m_FrameIndex = (uint32_t)-1;
+		uint32_t m_RTFrameIndex = (uint32_t)-1;
 	};
 
 	static RendererConfig s_Config = {};
@@ -222,7 +225,9 @@ namespace Shark {
 
 	void Renderer::BeginFrame()
 	{
-		s_RendererAPI->BeginFrame();
+		//s_RendererAPI->BeginFrame();
+		s_Data->m_FrameIndex++;
+		Renderer::Submit([]() { s_Data->m_RTFrameIndex++; });
 	}
 
 	void Renderer::EndFrame()
@@ -399,12 +404,12 @@ namespace Shark {
 
 	uint32_t Renderer::GetCurrentFrameIndex()
 	{
-		return s_RendererAPI->GetCurrentFrameIndex();
+		return s_Data->m_FrameIndex;
 	}
 
 	uint32_t Renderer::RT_GetCurrentFrameIndex()
 	{
-		return s_RendererAPI->RT_GetCurrentFrameIndex();
+		return s_Data->m_RTFrameIndex;
 	}
 
 	Ref<RendererContext> Renderer::GetRendererContext()

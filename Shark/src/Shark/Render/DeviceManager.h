@@ -30,6 +30,10 @@ namespace Shark {
 		virtual void OnOpenCommandList(nvrhi::ICommandList* commandList) = 0;
 		virtual void OnCloseCommandList(nvrhi::ICommandList* commandList) = 0;
 		virtual void ExecuteCommandList(nvrhi::ICommandList* commandList) = 0;
+		virtual void ExecuteCommandListLocked(nvrhi::ICommandList* commandList) = 0;
+
+		virtual void Lock() = 0;
+		virtual void Unlock() = 0;
 
 		virtual nvrhi::ICommandList* GetCommandList(nvrhi::CommandQueue queue) = 0;
 

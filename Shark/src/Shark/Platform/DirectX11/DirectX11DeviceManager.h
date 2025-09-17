@@ -21,6 +21,10 @@ namespace Shark {
 		virtual void OnOpenCommandList(nvrhi::ICommandList* commandList) override;
 		virtual void OnCloseCommandList(nvrhi::ICommandList* commandList) override;
 		virtual void ExecuteCommandList(nvrhi::ICommandList* commandList) override;
+		virtual void ExecuteCommandListLocked(nvrhi::ICommandList* commandList) override;
+
+		virtual void Lock() override { m_ExecutionMutex.lock(); }
+		virtual void Unlock() override { m_ExecutionMutex.unlock(); }
 
 		virtual nvrhi::ICommandList* GetCommandList(nvrhi::CommandQueue queue) override { return m_CommandList; }
 
@@ -38,7 +42,6 @@ namespace Shark {
 		nvrhi::CommandListHandle m_CommandList;
 		std::binary_semaphore m_CommandListSemaphore{ 1 };
 		std::mutex m_ExecutionMutex;
-
 	};
 
 }

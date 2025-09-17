@@ -153,11 +153,11 @@ namespace Shark {
 	private:
 		struct TimestampQueries
 		{
-			uint32_t GeometryPassQuery = UINT32_MAX;
-			uint32_t QuadPassQuery = UINT32_MAX;
-			uint32_t CirclePassQuery = UINT32_MAX;
-			uint32_t LinePassQuery = UINT32_MAX;
-			uint32_t TextPassQuery = UINT32_MAX;
+			QueryID GeometryPassQuery;
+			QueryID QuadPassQuery;
+			QueryID CirclePassQuery;
+			QueryID LinePassQuery;
+			QueryID TextPassQuery;
 		};
 
 		struct QuadVertex

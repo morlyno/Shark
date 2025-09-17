@@ -47,6 +47,12 @@ namespace Shark {
 		uint32_t height = m_Specifications.Height;
 
 		m_CommandBuffer = RenderCommandBuffer::Create("Renderer2D");
+		m_TimestampQueries.GeometryPassQuery = m_CommandBuffer->RegisterTimerQuery();
+		m_TimestampQueries.QuadPassQuery = m_CommandBuffer->RegisterTimerQuery();
+		m_TimestampQueries.CirclePassQuery = m_CommandBuffer->RegisterTimerQuery();
+		m_TimestampQueries.LinePassQuery = m_CommandBuffer->RegisterTimerQuery();
+		m_TimestampQueries.TextPassQuery = m_CommandBuffer->RegisterTimerQuery();
+
 		m_CBCamera = ConstantBuffer::Create(BufferUsage::Dynamic, sizeof(CBCamera));
 
 		if (!targetFramebuffer)
@@ -279,11 +285,11 @@ namespace Shark {
 		m_CommandBuffer->End();
 		m_CommandBuffer->Execute();
 
-		m_Statistics.GeometryPassTime += m_CommandBuffer->GetTime(m_TimestampQueries.GeometryPassQuery);
-		m_Statistics.QuadPassTime += m_CommandBuffer->GetTime(m_TimestampQueries.QuadPassQuery);
-		m_Statistics.CirclePassTime += m_CommandBuffer->GetTime(m_TimestampQueries.CirclePassQuery);
-		m_Statistics.LinePassTime += m_CommandBuffer->GetTime(m_TimestampQueries.LinePassQuery);
-		m_Statistics.TextPassTime += m_CommandBuffer->GetTime(m_TimestampQueries.TextPassQuery);
+		m_Statistics.GeometryPassTime += m_CommandBuffer->GetGPUExecutionTime(m_TimestampQueries.GeometryPassQuery);
+		m_Statistics.QuadPassTime += m_CommandBuffer->GetGPUExecutionTime(m_TimestampQueries.QuadPassQuery);
+		m_Statistics.CirclePassTime += m_CommandBuffer->GetGPUExecutionTime(m_TimestampQueries.CirclePassQuery);
+		m_Statistics.LinePassTime += m_CommandBuffer->GetGPUExecutionTime(m_TimestampQueries.LinePassQuery);
+		m_Statistics.TextPassTime += m_CommandBuffer->GetGPUExecutionTime(m_TimestampQueries.TextPassQuery);
 
 		m_Active = false;
 	}
@@ -626,7 +632,7 @@ namespace Shark {
 	void Renderer2D::GeometryPass()
 	{
 		Renderer::BeginEventMarker(m_CommandBuffer, "Renderer2D - GeometryPass");
-		m_TimestampQueries.GeometryPassQuery = m_CommandBuffer->BeginTimestampQuery();
+		m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.GeometryPassQuery);
 
 		uint32_t maxIndexCount = std::max({ m_QuadIndexCount, m_CircleIndexCount, m_TextIndexCount });
 		if (m_QuadIndexBuffer->GetCount() < maxIndexCount)
@@ -635,7 +641,7 @@ namespace Shark {
 		if (m_QuadIndexCount)
 		{
 			Renderer::BeginEventMarker(m_CommandBuffer, "Quads");
-			m_TimestampQueries.QuadPassQuery = m_CommandBuffer->BeginTimestampQuery();
+			m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.QuadPassQuery);
 			m_QuadVertexBuffer->SetData(m_QuadVertexData, true);
 
 			Renderer::BeginRenderPass(m_CommandBuffer, m_QuadPass);
@@ -651,50 +657,50 @@ namespace Shark {
 			Renderer::EndBatch(m_CommandBuffer);
 			Renderer::EndRenderPass(m_CommandBuffer, m_QuadPass);
 
-			m_CommandBuffer->EndTimestampQuery(m_TimestampQueries.QuadPassQuery);
+			m_CommandBuffer->EndTimerQuery(m_TimestampQueries.QuadPassQuery);
 			Renderer::EndEventMarker(m_CommandBuffer);
 		}
 
 		if (m_CircleIndexCount)
 		{
 			Renderer::BeginEventMarker(m_CommandBuffer, "Circles");
-			m_TimestampQueries.CirclePassQuery = m_CommandBuffer->BeginTimestampQuery();
+			m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.CirclePassQuery);
 			m_CircleVertexBuffer->SetData(m_CircleVertexData, true);
 			Renderer::BeginRenderPass(m_CommandBuffer, m_CirclePass);
 			Renderer::RenderGeometry(m_CommandBuffer, m_CirclePass->GetPipeline(), nullptr, m_CircleVertexBuffer, m_CircleIndexBuffer, m_CircleIndexCount);
 			Renderer::EndRenderPass(m_CommandBuffer, m_CirclePass);
 			m_Statistics.DrawCalls++;
-			m_CommandBuffer->EndTimestampQuery(m_TimestampQueries.CirclePassQuery);
+			m_CommandBuffer->EndTimerQuery(m_TimestampQueries.CirclePassQuery);
 			Renderer::EndEventMarker(m_CommandBuffer);
 		}
 
 		if (m_LineVertexCount)
 		{
 			Renderer::BeginEventMarker(m_CommandBuffer, "Lines");
-			m_TimestampQueries.LinePassQuery = m_CommandBuffer->BeginTimestampQuery();
+			m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.LinePassQuery);
 			m_LineVertexBuffer->SetData(m_LineVertexData, true);
 			Renderer::BeginRenderPass(m_CommandBuffer, m_LinePass);
 			Renderer::RenderGeometry(m_CommandBuffer, m_LinePass->GetPipeline(), nullptr, m_LineVertexBuffer, m_LineVertexCount);
 			Renderer::EndRenderPass(m_CommandBuffer, m_LinePass);
 			m_Statistics.DrawCalls++;
-			m_CommandBuffer->EndTimestampQuery(m_TimestampQueries.LinePassQuery);
+			m_CommandBuffer->EndTimerQuery(m_TimestampQueries.LinePassQuery);
 			Renderer::EndEventMarker(m_CommandBuffer);
 		}
 
 		if (m_TextIndexCount)
 		{
 			Renderer::BeginEventMarker(m_CommandBuffer, "Texts");
-			m_TimestampQueries.TextPassQuery = m_CommandBuffer->BeginTimestampQuery();
+			m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.TextPassQuery);
 			m_TextVertexBuffer->SetData(m_TextVertexData, true);
 			Renderer::BeginRenderPass(m_CommandBuffer, m_TextPass);
 			Renderer::RenderGeometry(m_CommandBuffer, m_TextPass->GetPipeline(), m_TextMaterial, m_TextVertexBuffer, m_TextIndexBuffer, m_TextIndexCount);
 			Renderer::EndRenderPass(m_CommandBuffer, m_TextPass);
 			m_Statistics.DrawCalls++;
-			m_CommandBuffer->EndTimestampQuery(m_TimestampQueries.TextPassQuery);
+			m_CommandBuffer->EndTimerQuery(m_TimestampQueries.TextPassQuery);
 			Renderer::EndEventMarker(m_CommandBuffer);
 		}
 
-		m_CommandBuffer->EndTimestampQuery(m_TimestampQueries.GeometryPassQuery);
+		m_CommandBuffer->EndTimerQuery(m_TimestampQueries.GeometryPassQuery);
 		Renderer::EndEventMarker(m_CommandBuffer);
 	}
 

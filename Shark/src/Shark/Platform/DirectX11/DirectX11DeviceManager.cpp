@@ -1,5 +1,6 @@
 #include "skpch.h"
 #include "DirectX11DeviceManager.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
@@ -96,6 +97,11 @@ namespace Shark {
 	}
 
 	void DirectX11DeviceManager::ExecuteCommandList(nvrhi::ICommandList* commandList)
+	{
+		m_NvrhiDevice->executeCommandList(commandList);
+	}
+
+	void DirectX11DeviceManager::ExecuteCommandListLocked(nvrhi::ICommandList* commandList)
 	{
 		m_ExecutionMutex.lock();
 		m_NvrhiDevice->executeCommandList(commandList);

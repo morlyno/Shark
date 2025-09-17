@@ -3,7 +3,7 @@
 
 #include "Shark/Core/Application.h"
 #include "Shark/Render/Renderer.h"
-#include "Shark/Serialization/Import/TextureImporter.h"
+#include "Shark/Debug/Profiler.h"
 
 #include <nvrhi/utils.h>
 
@@ -19,7 +19,7 @@ namespace Shark {
 
 		nvrhi::IDevice* device = Application::Get().GetDeviceManager()->GetDevice();
 
-		m_CommandList = device->createCommandList();
+		m_CommandBuffer = RenderCommandBuffer::Create("ImGuiRenderer");
 
 		Ref<Shader> shader = Renderer::GetShaderLibrary()->Get("ImGui");
 		m_VertexShader = shader->GetHandle(nvrhi::ShaderType::Vertex);
@@ -90,21 +90,24 @@ namespace Shark {
 
 	bool ImGuiRenderer::Render(ImGuiViewport* viewport, nvrhi::GraphicsPipelineHandle pipeline, nvrhi::FramebufferHandle framebuffer)
 	{
+		SK_PROFILE_FUNCTION();
+		SK_PERF_SCOPED("ImGui Render");
+
 		ImDrawData* drawData = viewport->DrawData;
 		const auto& io = ImGui::GetIO();
 
-		m_CommandList->open();
-		m_CommandList->beginMarker("ImGUI");
+		m_CommandBuffer->RT_Begin();
+		auto commandList = m_CommandBuffer->GetHandle();
 
-		nvrhi::utils::ClearColorAttachment(m_CommandList, framebuffer, 0, { 1.0f, 0.0f, 0.0f, 1.0f });
+		nvrhi::utils::ClearColorAttachment(commandList, framebuffer, 0, { 1.0f, 0.0f, 0.0f, 1.0f });
 
 		if (drawData->Textures)
 			for (ImTextureData* texture : *drawData->Textures)
-				UpdateTexture(m_CommandList, texture);
+				UpdateTexture(commandList, texture);
 
-		if (!UpdateGeometry(m_CommandList))
+		if (!UpdateGeometry(commandList))
 		{
-			m_CommandList->close();
+			m_CommandBuffer->RT_End();
 			return false;
 		}
 
@@ -171,9 +174,9 @@ namespace Shark {
 					drawArguments.startIndexLocation = idxOffset;
 					drawArguments.startVertexLocation = vtxOffset;
 
-					m_CommandList->setGraphicsState(drawState);
-					m_CommandList->setPushConstants(&pushConstants, sizeof(PushConstants));
-					m_CommandList->drawIndexed(drawArguments);
+					commandList->setGraphicsState(drawState);
+					commandList->setPushConstants(&pushConstants, sizeof(PushConstants));
+					commandList->drawIndexed(drawArguments);
 				}
 
 				idxOffset += pCmd->ElemCount;
@@ -182,11 +185,8 @@ namespace Shark {
 			vtxOffset += cmdList->VtxBuffer.Size;
 		}
 
-		m_CommandList->endMarker();
-		m_CommandList->close();
-
-		nvrhi::IDevice* device = Application::Get().GetDeviceManager()->GetDevice();
-		device->executeCommandList(m_CommandList);
+		m_CommandBuffer->RT_End();
+		m_CommandBuffer->RT_Execute();
 
 		return true;
 	}

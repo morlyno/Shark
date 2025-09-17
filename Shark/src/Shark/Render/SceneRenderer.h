@@ -56,11 +56,11 @@ namespace Shark {
 
 		struct TimestampQueries
 		{
-			uint32_t TotalTimeQuery = (uint32_t)-1;
-			uint32_t GeometryPassQuery = (uint32_t)-1;
-			uint32_t SkyboxPassQuery = (uint32_t)-1;
-			uint32_t CompositePassQuery = (uint32_t)-1;
-			uint32_t JumpFloodPassQuery = (uint32_t)-1;
+			QueryID TotalTimeQuery;
+			QueryID GeometryPassQuery;
+			QueryID SkyboxPassQuery;
+			QueryID CompositePassQuery;
+			QueryID JumpFloodPassQuery;
 		};
 
 	public:
