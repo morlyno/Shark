@@ -222,8 +222,7 @@ namespace Shark {
 		if (pointLights.size() > m_SBPointLights->GetCount())
 		{
 			uint32_t newCount = std::max({ m_SBPointLights->GetCount() * 2, (uint32_t)pointLights.size(), 16u });
-			m_SBPointLights->GetCount() = newCount;
-			m_SBPointLights->Invalidate();
+			m_SBPointLights->Resize(newCount);
 		}
 
 		m_SBPointLights->Upload(Buffer::FromArray(pointLights));
@@ -348,15 +347,15 @@ namespace Shark {
 		m_TimestampQueries.CompositePassQuery = m_CommandBuffer->RegisterTimerQuery();
 		m_TimestampQueries.JumpFloodPassQuery = m_CommandBuffer->RegisterTimerQuery();
 
-		m_CBScene             = ConstantBuffer::Create(BufferUsage::Dynamic, sizeof(CBScene), "Scene");
-		m_CBCamera            = ConstantBuffer::Create(BufferUsage::Dynamic, sizeof(CBCamera), "Camera");
-		m_CBSkybox            = ConstantBuffer::Create(BufferUsage::Dynamic, sizeof(CBSkybox), "Skybox");
-		m_CBSkyboxSettings    = ConstantBuffer::Create(BufferUsage::Dynamic, sizeof(CBSkyboxSettings), "SkyboxSettings");
-		m_CBCompositeSettings = ConstantBuffer::Create(BufferUsage::Dynamic, sizeof(CBCompositeSettings), "CompositeSettings");
-		m_CBOutlineSettings   = ConstantBuffer::Create(BufferUsage::Dynamic, sizeof(CBOutlineSettings), "OutlineSettings");
+		m_CBScene             = ConstantBuffer::Create(sizeof(CBScene), "Scene");
+		m_CBCamera            = ConstantBuffer::Create(sizeof(CBCamera), "Camera");
+		m_CBSkybox            = ConstantBuffer::Create(sizeof(CBSkybox), "Skybox");
+		m_CBSkyboxSettings    = ConstantBuffer::Create(sizeof(CBSkyboxSettings), "SkyboxSettings");
+		m_CBCompositeSettings = ConstantBuffer::Create(sizeof(CBCompositeSettings), "CompositeSettings");
+		m_CBOutlineSettings   = ConstantBuffer::Create(sizeof(CBOutlineSettings), "OutlineSettings");
 
-		m_SBPointLights       = StorageBuffer::Create(sizeof(PointLight), 16);
-		m_SBDirectionalLights = StorageBuffer::Create(sizeof(DirectionalLight), LightEnvironment::MaxDirectionLights);
+		m_SBPointLights       = StorageBuffer::Create(sizeof(PointLight), 16, "Point Lights");
+		m_SBDirectionalLights = StorageBuffer::Create(sizeof(DirectionalLight), LightEnvironment::MaxDirectionLights, "Directional Lights");
 
 
 		VertexLayout layout = {

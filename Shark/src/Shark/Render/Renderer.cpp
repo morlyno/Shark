@@ -29,10 +29,10 @@ namespace Shark {
 		Ref<Environment> m_EmptyEnvironment;
 		Ref<Texture2D> m_BRDFLUTTexture;
 
-		Ref<DirectXVertexBuffer> m_QuadVertexBuffer;
-		Ref<DirectXIndexBuffer> m_QuadIndexBuffer;
-		Ref<DirectXVertexBuffer> m_CubeVertexBuffer;
-		Ref<DirectXIndexBuffer> m_CubeIndexBuffer;
+		Ref<VertexBuffer> m_QuadVertexBuffer;
+		Ref<IndexBuffer> m_QuadIndexBuffer;
+		Ref<VertexBuffer> m_CubeVertexBuffer;
+		Ref<IndexBuffer> m_CubeIndexBuffer;
 
 		ShaderCache m_ShaderCache;
 		std::unordered_map<uint64_t, ShaderDependencies> m_ShaderDependencies;
@@ -128,8 +128,8 @@ namespace Shark {
 				2, 3, 0
 			};
 
-			s_Data->m_QuadVertexBuffer = Ref<DirectXVertexBuffer>::Create((uint32_t)sizeof(vertices), false, Buffer::FromArray(vertices));
-			s_Data->m_QuadIndexBuffer = Ref<DirectXIndexBuffer>::Create((uint32_t)std::size(indices), false, Buffer::FromArray(indices));
+			s_Data->m_QuadVertexBuffer = VertexBuffer::Create(Buffer::FromArray(vertices));
+			s_Data->m_QuadIndexBuffer = IndexBuffer::Create(Buffer::FromArray(indices));
 		}
 
 		{
@@ -153,8 +153,8 @@ namespace Shark {
 				0, 1, 4, 1, 5, 4
 			};
 
-			s_Data->m_CubeVertexBuffer = VertexBuffer::Create(Buffer::FromArray(vertices)).As<DirectXVertexBuffer>();
-			s_Data->m_CubeIndexBuffer = IndexBuffer::Create(Buffer::FromArray(indices)).As<DirectXIndexBuffer>();
+			s_Data->m_CubeVertexBuffer = VertexBuffer::Create(Buffer::FromArray(vertices));
+			s_Data->m_CubeIndexBuffer = IndexBuffer::Create(Buffer::FromArray(indices));
 		}
 
 		s_Data->m_BRDFLUTTexture = s_RendererAPI->CreateBRDFLUT();
@@ -254,6 +254,21 @@ namespace Shark {
 		s_CommandQueue[executeIndex]->Execute();
 #endif
 		s_SingleThreadedIsExecuting = false;
+	}
+
+	void Renderer::WriteBuffer(Ref<RenderCommandBuffer> commandBuffer, Ref<GpuBuffer> buffer, const Buffer bufferData)
+	{
+		Submit([commandBuffer, buffer, temp = Buffer::Copy(bufferData)]() mutable
+		{
+			RT_WriteBuffer(commandBuffer, buffer, temp);
+			temp.Release();
+		});
+	}
+
+	void Renderer::RT_WriteBuffer(Ref<RenderCommandBuffer> commandBuffer, Ref<GpuBuffer> buffer, const Buffer bufferData)
+	{
+		auto commandList = commandBuffer->GetHandle();
+		commandList->writeBuffer(buffer->GetHandle(), bufferData.As<const void>(), bufferData.Size);
 	}
 
 	void Renderer::BeginRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass, bool expliciteClear)

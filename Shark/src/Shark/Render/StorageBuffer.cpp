@@ -1,21 +1,31 @@
 #include "skpch.h"
 #include "StorageBuffer.h"
 
-#include "Shark/Render/RendererAPI.h"
-
-#include "Platform/DirectX11/DirectXStorageBuffer.h"
-
 namespace Shark {
 
-	Ref<StorageBuffer> StorageBuffer::Create(uint32_t structSize, uint32_t count)
+	StorageBuffer::StorageBuffer(uint32_t structSize, uint32_t count, const std::string& debugName)
+		: GpuBuffer(
+			nvrhi::BufferDesc()
+			//.setStructStride(structSize) // #Renderer #Investigate Structured Buffer
+			.setByteSize((uint64_t)structSize * count)
+			.setCpuAccess(nvrhi::CpuAccessMode::Write)
+			.setCanHaveRawViews(true)
+			.setKeepInitialState(true)
+			.setInitialState(nvrhi::ResourceStates::ShaderResource)
+			.setDebugName(debugName)
+		),
+		m_StructSize(structSize), m_Count(count), m_DebugName(debugName)
 	{
-		switch (RendererAPI::GetCurrentAPI())
-		{
-			case RendererAPIType::None: return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXStorageBuffer>::Create(structSize, count);
-		}
-		SK_CORE_VERIFY(false, "Unkown RendererAPIType");
-		return nullptr;
+	}
+
+	StorageBuffer::~StorageBuffer()
+	{
+	}
+
+	void StorageBuffer::Resize(uint32_t newCount)
+	{
+		m_Count = newCount;
+		ResizeBuffer((uint64_t)m_Count * m_StructSize);
 	}
 
 }

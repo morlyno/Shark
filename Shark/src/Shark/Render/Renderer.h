@@ -14,6 +14,9 @@
 #include "Shark/Render/Texture.h"
 #include "Shark/Render/Environment.h"
 #include "Shark/Render/ShaderCompiler/ShaderCache.h"
+#include "Shark/Render/GpuBuffer.h"
+
+#include <nvrhi/nvrhi.h>
 
 namespace Shark {
 
@@ -75,6 +78,10 @@ namespace Shark {
 			void* storage = queue.Allocate(command, sizeof(TFunc));
 			new (storage) TFunc(func);
 		}
+
+
+		static void WriteBuffer(Ref<RenderCommandBuffer> commandBuffer, Ref<GpuBuffer> buffer, const Buffer bufferData);
+		static void RT_WriteBuffer(Ref<RenderCommandBuffer> commandBuffer, Ref<GpuBuffer> buffer, const Buffer bufferData);
 
 		static void BeginRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass, bool expliciteClear = false);
 		static void EndRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass);

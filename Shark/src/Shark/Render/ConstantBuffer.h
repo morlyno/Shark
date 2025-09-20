@@ -2,40 +2,23 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Buffer.h"
-#include "Shark/Render/RendererResource.h"
+#include "Shark/Render/GpuBuffer.h"
+
+#include <nvrhi/nvrhi.h>
 
 namespace Shark {
 
-	enum class BufferUsage
-	{
-		Default,
-		Dynamic,
-		Immutable,
-		Staging
-	};
-
-	struct ConstantBufferSpecification
-	{
-		uint32_t ByteSize = 0;
-		BufferUsage Usage = BufferUsage::Dynamic;
-
-		std::string DebugName;
-	};
-
-	class ConstantBuffer : public RendererResource
+	class ConstantBuffer : public GpuBuffer
 	{
 	public:
-		virtual ~ConstantBuffer() = default;
-
-		virtual bool IsDynamic() const = 0;
-		virtual uint32_t GetByteSize() const = 0;
-
-		virtual void Upload(Buffer data) = 0;
-		virtual void RT_Upload(Buffer data) = 0;
+		static Ref<ConstantBuffer> Create(uint64_t byteSize, const std::string& debugName = {}) { return Ref<ConstantBuffer>::Create(byteSize, debugName); }
 
 	public:
-		static Ref<ConstantBuffer> Create(const ConstantBufferSpecification& specification, Buffer initData = {});
-		static Ref<ConstantBuffer> Create(BufferUsage usage, uint32_t byteSize, const std::string& debugName = {});
+		ConstantBuffer(uint64_t byteSize, const std::string& debugName);
+		~ConstantBuffer();
+
+	private:
+		std::string m_DebugName;
 	};
 
 }

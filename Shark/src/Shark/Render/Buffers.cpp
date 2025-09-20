@@ -1,42 +1,56 @@
 #include "skpch.h"
 #include "Buffers.h"
 
-#include "Shark/Render/Renderer.h"
-#include "Platform/DirectX11/DirectXBuffers.h"
-
 namespace Shark {
-
-	Ref<VertexBuffer> VertexBuffer::Create(uint64_t size, bool dynamic, Buffer vertexData)
+	
+	VertexBuffer::VertexBuffer(uint64_t size)
+		: GpuBuffer(
+			nvrhi::BufferDesc()
+			.setByteSize(size)
+			.setCpuAccess(nvrhi::CpuAccessMode::Write)
+			.setIsVertexBuffer(true)
+			.setKeepInitialState(true)
+			.setInitialState(nvrhi::ResourceStates::VertexBuffer)
+		)
 	{
-		switch (RendererAPI::GetCurrentAPI())
-		{
-			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXVertexBuffer>::Create(size, dynamic, vertexData);
-		}
-		SK_CORE_ASSERT(false, "Unknown API");
-		return nullptr;
 	}
 
-	Ref<VertexBuffer> VertexBuffer::Create(Buffer vertexData, bool dynamic)
+	VertexBuffer::VertexBuffer(const Buffer vertexData)
+		: VertexBuffer(vertexData.Size)
 	{
-		return Create(vertexData.Size, dynamic, vertexData);
+		RT_Upload(vertexData);
 	}
 
-	Ref<IndexBuffer> IndexBuffer::Create(uint32_t count, bool dynmaic, Buffer indexData)
+	VertexBuffer::~VertexBuffer()
 	{
-		switch (RendererAPI::GetCurrentAPI())
-		{
-			case RendererAPIType::None: SK_CORE_ASSERT(false, "No API Specified"); return nullptr;
-			case RendererAPIType::DirectX11: return Ref<DirectXIndexBuffer>::Create(count, dynmaic, indexData);
-		}
-		SK_CORE_ASSERT(false, "Unknown API");
-		return nullptr;
 	}
 
-	Ref<IndexBuffer> IndexBuffer::Create(Buffer indexData, bool dynamic)
+	IndexBuffer::IndexBuffer(uint32_t count)
+		: GpuBuffer(
+			nvrhi::BufferDesc()
+			.setByteSize(count * sizeof(uint32_t))
+			.setCpuAccess(nvrhi::CpuAccessMode::Write)
+			.setIsIndexBuffer(true)
+			.setKeepInitialState(true)
+			.setInitialState(nvrhi::ResourceStates::IndexBuffer)
+		)
 	{
-		SK_CORE_VERIFY((indexData.Size % sizeof(uint32_t)) == 0);
-		return Create((uint32_t)(indexData.Size / sizeof(uint32_t)), dynamic, indexData);
+	}
+
+	IndexBuffer::IndexBuffer(const Buffer indexData)
+		: IndexBuffer((uint32_t)indexData.Count<uint32_t>())
+	{
+		RT_Upload(indexData);
+	}
+
+	IndexBuffer::~IndexBuffer()
+	{
+	}
+
+	void IndexBuffer::Resize(uint32_t newCount)
+	{
+		m_Count = newCount;
+		ResizeBuffer(newCount * sizeof(uint32_t));
 	}
 
 }
