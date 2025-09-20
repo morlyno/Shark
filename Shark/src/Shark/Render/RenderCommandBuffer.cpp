@@ -68,7 +68,7 @@ namespace Shark {
 
 	void RenderCommandBuffer::RT_Begin()
 	{
-		Application::Get().GetDeviceManager()->OnOpenCommandList(m_CommandList);
+		Application::Get().GetDeviceManager()->LockCommandList(m_CommandList);
 
 		m_CommandList->open();
 		m_CommandList->beginMarker(m_Name.c_str());
@@ -84,7 +84,7 @@ namespace Shark {
 		m_CommandList->endMarker();
 		m_CommandList->close();
 
-		Application::Get().GetDeviceManager()->OnCloseCommandList(m_CommandList);
+		Application::Get().GetDeviceManager()->UnlockCommandList(m_CommandList);
 	}
 
 	void RenderCommandBuffer::RT_Execute()

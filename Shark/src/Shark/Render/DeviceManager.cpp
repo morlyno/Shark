@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "DeviceManager.h"
 
+#include "Shark/Core/Application.h"
+
 #if SK_WITH_DX11
 #include "Shark/Platform/DirectX11/DirectX11DeviceManager.h"
 #endif
@@ -36,6 +38,51 @@ namespace Shark {
 	{
 		m_Sepcification = specification;
 		return CreateDeviceInternal();
+	}
+
+	void DeviceManager::ExecuteCommandList(CommandList* commandList)
+	{
+		ExecuteCommandList(commandList->m_CommandList);
+	}
+
+	void DeviceManager::ExecuteCommandListLocked(CommandList* commandList)
+	{
+		ExecuteCommandListLocked(commandList->m_CommandList);
+	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	////////// Auto Lockable CommandList //////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////
+
+	CommandList::CommandList(DeviceManager* deviceManager, nvrhi::CommandListHandle commandList)
+		: m_DeviceManager(deviceManager), m_CommandList(commandList)
+	{
+	}
+
+	CommandList::~CommandList()
+	{
+	}
+
+	void CommandList::open()
+	{
+		m_DeviceManager->LockCommandList(m_CommandList);
+		m_CommandList->open();
+	}
+
+	void CommandList::close()
+	{
+		m_CommandList->close();
+		m_DeviceManager->UnlockCommandList(m_CommandList);
+	}
+
+	void CommandList::writeTexture(nvrhi::ITexture* dest, uint32_t arraySlice, uint32_t mipLevel, const void* data, size_t rowPitch, size_t depthPitch)
+	{
+		m_CommandList->writeTexture(dest, arraySlice, mipLevel, data, rowPitch, depthPitch);
+	}
+
+	void CommandList::writeBuffer(nvrhi::IBuffer* b, const void* data, size_t dataSize, uint64_t destOffsetBytes)
+	{
+		m_CommandList->writeBuffer(b, data, dataSize, destOffsetBytes);
 	}
 
 }

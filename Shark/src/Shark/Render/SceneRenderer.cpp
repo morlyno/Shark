@@ -375,7 +375,8 @@ namespace Shark {
 		mainFBSpecification.DebugName = "Geometry";
 		mainFBSpecification.Width = specification.Width;
 		mainFBSpecification.Height = specification.Height;
-		mainFBSpecification.Atachments = { ImageFormat::RGBA32F, ImageFormat::RED32SI, ImageFormat::Depth32 };
+		mainFBSpecification.Attachments = { ImageFormat::RGBA32F, ImageFormat::RED32SI };
+		mainFBSpecification.DepthAttachment = ImageFormat::Depth32;
 		mainFBSpecification.ClearColor = m_ClearColor;
 		mainFBSpecification.IndipendendClearColor[1] = { -1.0f, -1.0f, -1.0f, -1.0f };
 
@@ -390,7 +391,7 @@ namespace Shark {
 		mainFBSpecification.ClearDepthOnLoad = false;
 		mainFBSpecification.ExistingImages[0] = clearFramebuffer->GetImage(0);
 		mainFBSpecification.ExistingImages[1] = clearFramebuffer->GetImage(1);
-		mainFBSpecification.ExistingImages[2] = clearFramebuffer->GetDepthImage();
+		mainFBSpecification.ExistingDepthImage = clearFramebuffer->GetDepthImage();
 		Ref<FrameBuffer> loadFramebuffer = FrameBuffer::Create(mainFBSpecification);
 
 		// Mesh
@@ -440,7 +441,8 @@ namespace Shark {
 			FrameBufferSpecification framebufferSpecification;
 			framebufferSpecification.Width = specification.Width;
 			framebufferSpecification.Height = specification.Height;
-			framebufferSpecification.Atachments = { ImageFormat::RGBA32F, ImageFormat::Depth32 };
+			framebufferSpecification.Attachments = { ImageFormat::RGBA32F };
+			framebufferSpecification.DepthAttachment = ImageFormat::Depth32;
 			framebufferSpecification.DebugName = "Selected Geometry";
 			framebufferSpecification.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 			framebufferSpecification.ClearDepthValue = 1.0f;
@@ -476,9 +478,9 @@ namespace Shark {
 			FrameBufferSpecification framebufferSpecification;
 			framebufferSpecification.Width = specification.Width;
 			framebufferSpecification.Height = specification.Height;
-			framebufferSpecification.Atachments = { ImageFormat::RGBA32F, ImageFormat::RED32SI, ImageFormat::Depth32 };
+			framebufferSpecification.Attachments = { ImageFormat::RGBA32F, ImageFormat::RED32SI, ImageFormat::Depth32 };
 			framebufferSpecification.ExistingImages[1] = m_GeometryPass->GetOutput(1);
-			framebufferSpecification.ExistingImages[2] = m_GeometryPass->GetDepthOutput();
+			framebufferSpecification.ExistingDepthImage = m_GeometryPass->GetDepthOutput();
 			framebufferSpecification.ClearColorOnLoad = false;
 			framebufferSpecification.ClearDepthOnLoad = false;
 			framebufferSpecification.DebugName = "Composite";
@@ -508,7 +510,7 @@ namespace Shark {
 			FrameBufferSpecification framebufferSpecification;
 			framebufferSpecification.Width = m_Specification.Width;
 			framebufferSpecification.Height = m_Specification.Height;
-			framebufferSpecification.Atachments = { ImageFormat::RGBA32F };
+			framebufferSpecification.Attachments = { ImageFormat::RGBA32F };
 			framebufferSpecification.ClearColor = { 0.5f, 0.1f, 0.1f, 1.0f };
 			framebufferSpecification.BlendMode = FrameBufferBlendMode::OneZero;
 			framebufferSpecification.DebugName = "Temporary";
@@ -548,7 +550,7 @@ namespace Shark {
 				renderPassSpecification.DebugName = pipelineSpecification.DebugName;
 				renderPassSpecification.Pipeline = Pipeline::Create(pipelineSpecification);
 				m_JumpFloodPass[i] = RenderPass::Create(renderPassSpecification);
-				m_JumpFloodPass[i]->Set("u_Texture", m_TempFramebuffers[i]->GetImage());
+				m_JumpFloodPass[i]->Set("u_Texture", m_TempFramebuffers[i]->GetImage(0));
 				SK_CORE_VERIFY(m_JumpFloodPass[i]->Validate());
 				m_JumpFloodPass[i]->Bake();
 
@@ -558,7 +560,7 @@ namespace Shark {
 			FrameBufferSpecification fbSpec;
 			fbSpec.Width = m_Specification.Width;
 			fbSpec.Height = m_Specification.Height;
-			fbSpec.Atachments = { ImageFormat::RGBA32F };
+			fbSpec.Attachments = { ImageFormat::RGBA32F };
 			fbSpec.ExistingImages[0] = m_CompositePass->GetOutput(0);
 			fbSpec.ClearColorOnLoad = false;
 			fbSpec.DebugName = "JumpFlood-Composite";
@@ -571,7 +573,7 @@ namespace Shark {
 			renderPassSpecification.Pipeline = Pipeline::Create(pipelineSpecification);
 			renderPassSpecification.DebugName = pipelineSpecification.DebugName;
 			m_JumpFloodCompositePass = RenderPass::Create(renderPassSpecification);
-			m_JumpFloodCompositePass->Set("u_Texture", m_TempFramebuffers[1]->GetImage());
+			m_JumpFloodCompositePass->Set("u_Texture", m_TempFramebuffers[1]->GetImage(0));
 			m_JumpFloodCompositePass->Set("u_Settings", m_CBOutlineSettings);
 			SK_CORE_VERIFY(m_JumpFloodCompositePass->Validate());
 			m_JumpFloodCompositePass->Bake();

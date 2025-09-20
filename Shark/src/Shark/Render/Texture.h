@@ -94,7 +94,6 @@ namespace Shark {
 
 	public:
 		void Release();
-		void Submit_Invalidate();
 		void RT_Invalidate();
 
 		uint32_t GetWidth() const { return m_Specification.Width; }

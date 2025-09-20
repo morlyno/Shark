@@ -81,16 +81,17 @@ namespace Shark {
 			.setEnableImmediateExecution(true)
 			.setQueueType(nvrhi::CommandQueue::Graphics);
 
-		m_CommandList = m_NvrhiDevice->createCommandList(commandListDesc);
+		m_CommandList = Scope<CommandList>::Create(this, m_NvrhiDevice->createCommandList(commandListDesc));
+		return true;
 	}
 
-	void DirectX11DeviceManager::OnOpenCommandList(nvrhi::ICommandList* commandList)
+	void DirectX11DeviceManager::LockCommandList(nvrhi::ICommandList* commandList)
 	{
 		if (commandList->getDesc().enableImmediateExecution)
 			m_CommandListSemaphore.acquire();
 	}
 
-	void DirectX11DeviceManager::OnCloseCommandList(nvrhi::ICommandList* commandList)
+	void DirectX11DeviceManager::UnlockCommandList(nvrhi::ICommandList* commandList)
 	{
 		if (commandList->getDesc().enableImmediateExecution)
 			m_CommandListSemaphore.release();

@@ -92,6 +92,8 @@ namespace Shark {
 		static void* ModuleReallocate(const char* moduleName, void* memory, size_t newSize, const char* descOrFile = s_DefaultDescriptor, int line = -1);
 		static void ModuleFree(const char* moduleName, void* memory);
 
+		static bool SetMemoryDescription(void* memory, const char* description);
+
 		static const MemoryStats& GetMemoryStats() { return s_Data->m_MemoryStats; }
 		static const AllocatorData::AllocationStatsMap& GetAllocationStatsMap() { return s_Data->m_AllocationStatsMap; }
 		static const AllocatorData::AllocationMap& GetAllocationMap() { return s_Data->m_AllocationMap; }

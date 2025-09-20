@@ -173,11 +173,6 @@ namespace Shark {
 		m_Sampler = nullptr;
 	}
 
-	void TextureCube::Submit_Invalidate()
-	{
-
-	}
-
 	void TextureCube::RT_Invalidate()
 	{
 		ImageSpecification& specification = m_Image->GetSpecification();

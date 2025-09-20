@@ -30,66 +30,35 @@ namespace Shark {
 
 	void Image2D::Submit_Invalidate()
 	{
+		if (m_Specification.MipLevels == 0)
+			m_Specification.MipLevels = ImageUtils::CalcMipLevels(m_Specification.Width, m_Specification.Height);
+
 		Ref instance = this;
-		Renderer::Submit([instance]()
+		Renderer::Submit([instance, state = RT_State{ m_Specification }]()
 		{
-			instance->RT_Invalidate();
+			instance->InvalidateFromState(state);
 		});
 	}
 
 	void Image2D::RT_Invalidate()
 	{
-		// reading from images in only used for mouse picking currently
-		SK_CORE_VERIFY(m_Specification.Usage != ImageUsage::Storage,
-					   "Storage Images are not implemented because it is not a normal texture in nvrhi."
-					   "\"Storage\" textures are StagingTextures in nvrhi, i am not sure how to handle this in Image.");
-
 		if (m_Specification.MipLevels == 0)
 			m_Specification.MipLevels = ImageUtils::CalcMipLevels(m_Specification.Width, m_Specification.Height);
 
-		auto textureDesc = nvrhi::TextureDesc()
-			.setWidth(m_Specification.Width)
-			.setHeight(m_Specification.Height)
-			.setArraySize(m_Specification.Layers)
-			.setMipLevels(m_Specification.MipLevels)
-			.setFormat(ImageUtils::ConvertImageFormat(m_Specification.Format));
-
-		textureDesc.isRenderTarget = m_Specification.Usage == ImageUsage::Atachment;
-		textureDesc.isUAV = m_Specification.Usage == ImageUsage::Storage;
-
-		if (m_Specification.IsCube)
-			textureDesc.dimension = nvrhi::TextureDimension::TextureCube;
-		else if (m_Specification.Layers > 1)
-			textureDesc.dimension = nvrhi::TextureDimension::Texture2DArray;
-
-		auto cpuAccess = nvrhi::CpuAccessMode::None;
-
-		if (m_Specification.Usage == ImageUsage::Atachment)
-		{
-			textureDesc.keepInitialState = true;
-			textureDesc.initialState = nvrhi::getFormatInfo(textureDesc.format).hasDepth ?
-				                       nvrhi::ResourceStates::RenderTarget : nvrhi::ResourceStates::DepthWrite;
-		}
-		else if (m_Specification.Usage == ImageUsage::Texture)
-		{
-			textureDesc.keepInitialState = true;
-			textureDesc.initialState = nvrhi::ResourceStates::ShaderResource;
-		}
-
-		auto device = Application::Get().GetDeviceManager()->GetDevice();
-		m_ImageHandle = device->createTexture(textureDesc);
-
-		m_ViewInfo.ImageHandle = m_ImageHandle;
-		m_ViewInfo.SubresourceSet.baseMipLevel = 0;
-		m_ViewInfo.SubresourceSet.numMipLevels = m_Specification.MipLevels;
-		m_ViewInfo.SubresourceSet.baseArraySlice = 0;
-		m_ViewInfo.SubresourceSet.numArraySlices = m_Specification.Layers;
+		InvalidateFromState(m_Specification);
 	}
 
 	void Image2D::Resize(uint32_t width, uint32_t height)
 	{
 		m_Specification.Width = width;
 		m_Specification.Height = height;
+
+		Ref instance = this;
+		Renderer::Submit([instance, state = RT_State{ m_Specification }]()
+		{
+			instance->InvalidateFromState(state);
+		});
+
 		Submit_Invalidate();
 	}
 
@@ -108,13 +77,57 @@ namespace Shark {
 		auto deviceManager = Application::Get().GetDeviceManager();
 		auto commandList = deviceManager->GetCommandList(nvrhi::CommandQueue::Copy);
 
-		deviceManager->OnOpenCommandList(commandList);
 		commandList->open();
 		commandList->writeTexture(m_ImageHandle, 0, 0, buffer.As<const void>(), m_Specification.Width * ImageUtils::GetFormatBPP(m_Specification.Format));
 		commandList->close();
-		deviceManager->OnCloseCommandList(commandList);
 
 		deviceManager->ExecuteCommandListLocked(commandList);
+	}
+
+	void Image2D::InvalidateFromState(const RT_State& state)
+	{
+		// reading from images in only used for mouse picking currently
+		SK_CORE_VERIFY(state.Usage != ImageUsage::Storage,
+					   "Storage Images are not implemented because it is not a normal texture in nvrhi."
+					   "\"Storage\" textures are StagingTextures in nvrhi, i am not sure how to handle this in Image.");
+
+		auto textureDesc = nvrhi::TextureDesc()
+			.setWidth(state.Width)
+			.setHeight(state.Height)
+			.setArraySize(state.Layers)
+			.setMipLevels(state.MipLevels)
+			.setFormat(ImageUtils::ConvertImageFormat(state.Format));
+
+		textureDesc.isRenderTarget = state.Usage == ImageUsage::Attachment;
+		textureDesc.isUAV = state.Usage == ImageUsage::Storage;
+
+		if (state.IsCube)
+			textureDesc.dimension = nvrhi::TextureDimension::TextureCube;
+		else if (state.Layers > 1)
+			textureDesc.dimension = nvrhi::TextureDimension::Texture2DArray;
+
+		auto cpuAccess = nvrhi::CpuAccessMode::None;
+
+		if (state.Usage == ImageUsage::Attachment)
+		{
+			textureDesc.keepInitialState = true;
+			textureDesc.initialState = nvrhi::getFormatInfo(textureDesc.format).hasDepth ?
+				nvrhi::ResourceStates::RenderTarget : nvrhi::ResourceStates::DepthWrite;
+		}
+		else if (state.Usage == ImageUsage::Texture)
+		{
+			textureDesc.keepInitialState = true;
+			textureDesc.initialState = nvrhi::ResourceStates::ShaderResource;
+		}
+
+		auto device = Application::Get().GetDeviceManager()->GetDevice();
+		m_ImageHandle = device->createTexture(textureDesc);
+
+		m_ViewInfo.ImageHandle = m_ImageHandle;
+		m_ViewInfo.SubresourceSet.baseMipLevel = 0;
+		m_ViewInfo.SubresourceSet.numMipLevels = state.MipLevels;
+		m_ViewInfo.SubresourceSet.baseArraySlice = 0;
+		m_ViewInfo.SubresourceSet.numArraySlices = state.Layers;
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////////

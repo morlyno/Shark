@@ -18,15 +18,15 @@ namespace Shark {
 		virtual nvrhi::IDevice* GetDevice() const override { return m_NvrhiDevice; }
 		virtual nvrhi::GraphicsAPI GetGraphicsAPI() const override { return nvrhi::GraphicsAPI::D3D11; }
 
-		virtual void OnOpenCommandList(nvrhi::ICommandList* commandList) override;
-		virtual void OnCloseCommandList(nvrhi::ICommandList* commandList) override;
+		virtual void LockCommandList(nvrhi::ICommandList* commandList) override;
+		virtual void UnlockCommandList(nvrhi::ICommandList* commandList) override;
 		virtual void ExecuteCommandList(nvrhi::ICommandList* commandList) override;
 		virtual void ExecuteCommandListLocked(nvrhi::ICommandList* commandList) override;
 
 		virtual void Lock() override { m_ExecutionMutex.lock(); }
 		virtual void Unlock() override { m_ExecutionMutex.unlock(); }
 
-		virtual nvrhi::ICommandList* GetCommandList(nvrhi::CommandQueue queue) override { return m_CommandList; }
+		virtual CommandList* GetCommandList(nvrhi::CommandQueue queue) override { return m_CommandList.Raw(); }
 
 		IDXGIFactory1* GetFactory() { return m_Factory; }
 
@@ -39,7 +39,7 @@ namespace Shark {
 		nvrhi::RefCountPtr<ID3D11DeviceContext> m_ImmediateContext;
 		nvrhi::RefCountPtr<IDXGIAdapter> m_Adapter;
 
-		nvrhi::CommandListHandle m_CommandList;
+		Scope<CommandList> m_CommandList;
 		std::binary_semaphore m_CommandListSemaphore{ 1 };
 		std::mutex m_ExecutionMutex;
 	};

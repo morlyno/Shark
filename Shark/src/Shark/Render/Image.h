@@ -34,7 +34,7 @@ namespace Shark {
 	enum class ImageUsage
 	{
 		Texture,
-		Atachment,
+		Attachment,
 		Storage,
 		HostRead
 	};
@@ -89,6 +89,10 @@ namespace Shark {
 	public:
 		Image2D();
 		Image2D(const ImageSpecification& specification);
+
+	private:
+		using RT_State = ImageSpecification;
+		void InvalidateFromState(const RT_State& state);
 
 	private:
 		ImageSpecification m_Specification;

@@ -179,6 +179,25 @@ namespace Shark {
 		PROFILE_FREE(memory, allocModule);
 	}
 
+	bool Allocator::SetMemoryDescription(void* memory, const char* description)
+	{
+		if (!s_Data)
+			Init();
+
+		{
+			std::scoped_lock lock(s_Data->m_Mutex);
+			if (!s_Data->m_AllocationMap.contains(memory))
+				return false;
+
+			Allocation& allocation = s_Data->m_AllocationMap.at(memory);
+			s_Data->m_AllocationStatsMap.at(allocation.Descriptor) -= allocation.Size;
+			s_Data->m_AllocationStatsMap[description] += allocation.Size;
+			allocation.Descriptor = description;
+		}
+
+		return true;
+	}
+
 }
 
 #if SK_TRACK_MEMORY
