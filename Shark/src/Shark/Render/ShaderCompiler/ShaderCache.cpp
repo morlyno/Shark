@@ -34,8 +34,11 @@ namespace Shark {
 		{
 			out << YAML::BeginMap;
 			out << YAML::Key << "ID" << YAML::Value << key.ShaderID;
-			out << YAML::Key << "Stage" << YAML::Value << key.Stage;
-			out << YAML::Key << "HashCode" << YAML::Value << entry.HashCode;
+			out << YAML::Key << "HashCodes" << YAML::Value;
+			out << YAML::BeginMap;
+			for (const auto& code : entry.Hashes)
+				out << YAML::Key << code.first << YAML::Value << code.second;
+			out << YAML::EndMap;
 			out << YAML::Key << "SourcePath" << YAML::Value << entry.SourcePath;
 			out << YAML::Key << "Option.ForceCompile" << YAML::Value << entry.ForceCompile;
 			out << YAML::Key << "Option.GenerateDebugInfo" << YAML::Value << entry.GenerateDebugInfo;
@@ -66,23 +69,28 @@ namespace Shark {
 			ShaderCacheEntry entry;
 
 			DeserializeProperty(entryNode, "ID", key.ShaderID);
-			DeserializeProperty(entryNode, "Stage", key.Stage);
-			DeserializeProperty(entryNode, "HashCode", entry.HashCode);
 			DeserializeProperty(entryNode, "SourcePath", entry.SourcePath);
 			DeserializeProperty(entryNode, "Option.ForceCompile", entry.ForceCompile, ShaderCacheOption::Ignore);
-			DeserializeProperty(entryNode, "Option.GenerateDebugInfo", entry.ForceCompile, ShaderCacheOption::Ignore);
+			DeserializeProperty(entryNode, "Option.GenerateDebugInfo", entry.GenerateDebugInfo, ShaderCacheOption::Ignore);
+
+			for (auto codeNode : entryNode["HashCodes"])
+			{
+				auto key = codeNode.first.as<nvrhi::ShaderType>();
+				auto hash = codeNode.second.as<uint64_t>();
+				entry.Hashes.emplace_back(key, hash);
+			}
 
 			m_CacheRegistry[key] = entry;
 		}
 
 	}
 
-	void ShaderCache::UpdateOptions(const ShaderSourceInfo& info, CompilerOptions& options)
+	void ShaderCache::UpdateOptions(const ShaderInfo& info, CompilerOptions& options)
 	{
-		if (!m_CacheRegistry.contains({ info.ShaderID, info.Stage }))
+		if (!m_CacheRegistry.contains({ info.ShaderID }))
 			return;
 
-		auto& entry = m_CacheRegistry.at({ info.ShaderID, info.Stage });
+		auto& entry = m_CacheRegistry.at({ info.ShaderID });
 		if (entry.ForceCompile != ShaderCacheOption::Ignore)
 			options.Force = entry.ForceCompile == ShaderCacheOption::True;
 
@@ -90,20 +98,20 @@ namespace Shark {
 			options.GenerateDebugInfo = entry.GenerateDebugInfo == ShaderCacheOption::True;
 	}
 
-	ShaderCacheEntry& ShaderCache::GetEntry(const ShaderSourceInfo& info)
+	ShaderCacheEntry& ShaderCache::GetEntry(const ShaderInfo& info)
 	{
-		return m_CacheRegistry[{ info.ShaderID, info.Stage }];
+		return m_CacheRegistry[{ info.ShaderID }];
 	}
 
 	ShaderCacheState ShaderCache::GetCacheState(const ShaderSourceInfo& info)
 	{
-		if (!m_CacheRegistry.contains({ info.ShaderID, info.Stage }) || !FileSystem::Exists(utils::GetSPIRVCacheFile(info)))
+		if (!m_CacheRegistry.contains({ info.ShaderID }) || !FileSystem::Exists(utils::GetSPIRVCacheFile(info)))
 			return ShaderCacheState::Missing;
 
-		auto& entry = m_CacheRegistry.at({ info.ShaderID, info.Stage });
-		if (entry.HashCode == info.HashCode)
+		uint64_t hashCode = GetHash(info);
+		if (hashCode == info.HashCode)
 		{
-#if SK_WITH_DX11
+#if SK_WITH_DX11 && false
 			auto syncState = GetD3D11CacheSyncState(info);
 			if (syncState != ShaderCacheState::UpToDate)
 				return ShaderCacheState::OutOfDate;
@@ -138,6 +146,7 @@ namespace Shark {
 
 		binary.CopyTo(outBinary);
 		binary.Release();
+		return true;
 	}
 
 	bool ShaderCache::LoadD3D11(const ShaderSourceInfo& info, Buffer& outBinary)
@@ -155,7 +164,7 @@ namespace Shark {
 #endif
 	}
 
-	bool ShaderCache::LoadReflection(uint64_t shaderID, ShaderReflectionData& reflectionData)
+	bool ShaderCache::LoadReflection(uint64_t shaderID, ShaderReflection& reflectionData)
 	{
 		const std::string cacheFile = fmt::format("Cache/Shaders/Reflection/{}.yaml", shaderID);
 		std::string fileData = FileSystem::ReadString(cacheFile);
@@ -168,26 +177,17 @@ namespace Shark {
 
 		YAML::Node reflectionNode = rootNode["ShaderReflection"];
 
-		DeserializeProperty(reflectionNode, "Resources", reflectionData.Resources);
-		DeserializeProperty(reflectionNode, "Members", reflectionData.Members);
-
-		if (reflectionNode["PushConstant"])
-		{
-			DeserializeProperty(reflectionNode, "PushConstant", reflectionData.PushConstant);
-			DeserializeProperty(reflectionNode, "PushConstantMembers", reflectionData.PushConstantMembers);
-		}
-
-		DeserializeProperty(reflectionNode, "NameCache", reflectionData.NameCache);
-		DeserializeProperty(reflectionNode, "MemberNameCache", reflectionData.MemberNameCache);
-
-		return true;
+		bool anyFailed = false;
+		anyFailed |= !DeserializeProperty(reflectionNode, "BindingLayouts", reflectionData.BindingLayouts);
+		anyFailed |= !DeserializeProperty(reflectionNode, "PushConstant", reflectionData.PushConstant);
+		return !anyFailed;
 	}
 
 	void ShaderCache::CacheStage(const ShaderSourceInfo& info, std::span<const uint32_t> spirvBinary, const Buffer d3d11Binary)
 	{
 		const std::string cacheFile = utils::GetSPIRVCacheFile(info);
 		FileSystem::WriteBinary(cacheFile, Buffer::FromArray(spirvBinary));
-		m_CacheRegistry[{ info.ShaderID, info.Stage }].HashCode = info.HashCode;
+		SetHash(m_CacheRegistry[{ info.ShaderID }], info.Stage, info.HashCode);
 
 #if SK_WITH_DX11
 		if (d3d11Binary)
@@ -196,31 +196,47 @@ namespace Shark {
 			FileSystem::WriteBinary(cacheFile, d3d11Binary);
 		}
 #endif
+
+		SaveRegistry();
 	}
 
-	void ShaderCache::CacheReflection(uint64_t shaderID, const ShaderReflectionData& reflectionData)
+	void ShaderCache::CacheReflection(uint64_t shaderID, const ShaderReflection& reflectionData)
 	{
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "ShaderReflection" << YAML::Value;
 		out << YAML::BeginMap;
-		out << YAML::Key << "Resources" << YAML::Value << reflectionData.Resources;
-		out << YAML::Key << "Members" << YAML::Value << reflectionData.Members;
-
-		if (reflectionData.HasPushConstant)
-		{
-			out << YAML::Key << "PushConstant" << YAML::Value << reflectionData.PushConstant;
-			out << YAML::Key << "PushConstantMembers" << YAML::Value << reflectionData.PushConstantMembers;
-		}
-
-		out << YAML::Key << "NameCache" << YAML::Value << reflectionData.NameCache;
-		out << YAML::Key << "MemberNameCache" << YAML::Value << reflectionData.MemberNameCache;
-
+		out << YAML::Key << "BindingLayouts" << YAML::Value << reflectionData.BindingLayouts;
+		out << YAML::Key << "PushConstant" << YAML::Value << reflectionData.PushConstant;
 		out << YAML::EndMap;
 		out << YAML::EndMap;
 
 		const std::string cacheFile = fmt::format("Cache/Shaders/Reflection/{}.yaml", shaderID);
 		FileSystem::WriteString(cacheFile, out.c_str());
+	}
+
+	uint64_t ShaderCache::GetHash(const ShaderSourceInfo& info) const
+	{
+		if (m_CacheRegistry.contains({ info.ShaderID }))
+		{
+			const auto& entry = m_CacheRegistry.at({ info.ShaderID });
+			const auto hash = std::ranges::find(entry.Hashes, info.Stage, &std::pair<nvrhi::ShaderType, uint64_t>::first);
+			if (hash != entry.Hashes.end())
+				return hash->second;
+		}
+		return 0;
+	}
+
+	void ShaderCache::SetHash(ShaderCacheEntry& entry, nvrhi::ShaderType stage, uint64_t hashCode)
+	{
+		auto hash = std::ranges::find(entry.Hashes, stage, &std::pair<nvrhi::ShaderType, uint64_t>::first);
+		if (hash != entry.Hashes.end())
+		{
+			hash->second = hashCode;
+			return;
+		}
+
+		entry.Hashes.emplace_back(stage, hashCode);
 	}
 
 #if SK_WITH_DX11
@@ -233,12 +249,16 @@ namespace Shark {
 		if (!FileSystem::Exists(d3d11CacheFile))
 			return ShaderCacheState::Missing;
 
+		ShaderCacheState spirvState = GetCacheState(info);
+		if (spirvState == ShaderCacheState::Missing)
+			return ShaderCacheState::OutOfDate;
+
 		const uint64_t spirvTime = FileSystem::GetLastWriteTime(spirvCacheFile);
 		const uint64_t d3d11Time = FileSystem::GetLastWriteTime(d3d11CacheFile);
 
-		if (spirvTime == d3d11Time)
-			return ShaderCacheState::UpToDate;
-		return ShaderCacheState::OutOfDate;
+		if (d3d11Time < spirvTime)
+			return ShaderCacheState::OutOfDate;
+		return ShaderCacheState::UpToDate;
 	}
 
 #else

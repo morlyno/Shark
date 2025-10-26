@@ -206,4 +206,24 @@ namespace Shark {
 		viewInfo.Sampler = m_Sampler;
 	}
 
+	/////////////////////////////////////////////////////////////////////////////////////
+	//////////////////// Sampler ////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	Sampler::Sampler(const SamplerSpecification& specification)
+		: m_Specification(specification)
+	{
+		auto samplerDesc = nvrhi::SamplerDesc()
+			.setMaxAnisotropy(m_Specification.MaxAnisotropy)
+			.setAllFilters(m_Specification.Filter == FilterMode::Linear)
+			.setAllAddressModes(utils::ConvertAddressMode(m_Specification.Address));
+
+		auto device = Application::Get().GetDeviceManager()->GetDevice();
+		m_SamplerHandle = device->createSampler(samplerDesc);
+	}
+
+	Sampler::~Sampler()
+	{
+	}
+
 }

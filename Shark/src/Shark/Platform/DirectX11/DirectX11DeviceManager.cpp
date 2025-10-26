@@ -11,10 +11,10 @@ namespace Shark {
 		{
 			switch (severity)
 			{
-				case nvrhi::MessageSeverity::Info: SK_CORE_INFO_TAG("Renderer", messageText); break;
-				case nvrhi::MessageSeverity::Warning: SK_CORE_WARN_TAG("Renderer", messageText); break;
-				case nvrhi::MessageSeverity::Error: SK_CORE_ERROR_TAG("Renderer", messageText); break;
-				case nvrhi::MessageSeverity::Fatal: SK_CORE_CRITICAL_TAG("Renderer", messageText); break;
+				case nvrhi::MessageSeverity::Info: SK_CORE_INFO_TAG("nvrhi", messageText); break;
+				case nvrhi::MessageSeverity::Warning: SK_CORE_WARN_TAG("nvrhi", messageText); break;
+				case nvrhi::MessageSeverity::Error: SK_CORE_ERROR_TAG("nvrhi", messageText); break;
+				case nvrhi::MessageSeverity::Fatal: SK_CORE_CRITICAL_TAG("nvrhi", messageText); break;
 			}
 		}
 

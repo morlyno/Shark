@@ -1,17 +1,14 @@
 #include "skpch.h"
 #include "Renderer.h"
 
-#include "Platform/DirectX11/DirectXRenderer.h"
 #include "Shark/Debug/Profiler.h"
+#include "Shark/Render/Buffers.h"
 
-#include <future>
+#include <nvrhi/utils.h>
 
 #define SK_SIMULTE_MULTITHREADED 0
 
 namespace Shark {
-
-	Ref<RendererContext> Renderer::s_RendererContext = nullptr;
-	Ref<RendererAPI> Renderer::s_RendererAPI = nullptr;
 
 	struct ShaderDependencies
 	{
@@ -51,18 +48,6 @@ namespace Shark {
 
 	static bool s_SingleThreadedIsExecuting = false;
 
-	Ref<RendererAPI> RendererAPI::Create()
-	{
-		switch (RendererAPI::GetCurrentAPI())
-		{
-			case RendererAPIType::None:        SK_CORE_ASSERT(false, "RendererAPI not specified"); break;
-			case RendererAPIType::DirectX11:   return Ref<DirectXRenderer>::Create(); break;
-		}
-
-		SK_CORE_ASSERT(false, "Unkown RendererAPI");
-		return nullptr;
-	}
-
 	void Renderer::Init()
 	{
 		SK_PROFILE_FUNCTION();
@@ -70,15 +55,12 @@ namespace Shark {
 		s_CommandQueue[0] = sknew RenderCommandQueue();
 		s_CommandQueue[1] = sknew RenderCommandQueue();
 
-		s_RendererContext = RendererContext::Create();
-		s_RendererAPI = RendererAPI::Create();
-		s_RendererAPI->Init();
-
 		s_Data = sknew RendererData;
 		s_Data->m_ShaderLibrary = Ref<ShaderLibrary>::Create();
 		s_Data->m_ShaderCache.LoadRegistry();
 
 		// 3D
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Simple.hlsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/SharkPBR.hlsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Skybox.glsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/EnvironmentIrradiance.glsl");
@@ -111,6 +93,7 @@ namespace Shark {
 #endif
 
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/ImGui.hlsl");
+		s_Data->m_ShaderCache.SaveRegistry();
 
 		// Compile Shaders
 		Renderer::WaitAndRender();
@@ -157,7 +140,8 @@ namespace Shark {
 			s_Data->m_CubeIndexBuffer = IndexBuffer::Create(Buffer::FromArray(indices));
 		}
 
-		s_Data->m_BRDFLUTTexture = s_RendererAPI->CreateBRDFLUT();
+		// #TODO #Renderer #Disabled #moro CreateBRDFLUT not working at the moment.
+		//s_Data->m_BRDFLUTTexture = s_RendererAPI->CreateBRDFLUT();
 
 		{
 			TextureSpecification spec;
@@ -203,24 +187,28 @@ namespace Shark {
 		// The RendererAPI and RendererContext will not submit any commands to the command queue after this point
 		Renderer::WaitAndRender();
 
-		s_RendererAPI->ShutDown();
-		s_RendererAPI = nullptr;
-		s_RendererContext->DestroyDevice();
-		s_RendererContext->ReportLiveObjects();
-		s_RendererContext = nullptr;
-
 		skdelete s_CommandQueue[0];
 		skdelete s_CommandQueue[1];
 	}
 
+	DeviceManager* Renderer::GetDeviceManager()
+	{
+		return Application::Get().GetDeviceManager();
+	}
+
+	nvrhi::IDevice* Renderer::GetGraphicsDevice()
+	{
+		return GetDeviceManager()->GetDevice();
+	}
+
 	void Renderer::BeginEventMarker(Ref<RenderCommandBuffer> commandBuffer, const std::string& name)
 	{
-		s_RendererAPI->BeginEventMarker(commandBuffer, name);
+		commandBuffer->BeginMarker(name.c_str());
 	}
 
 	void Renderer::EndEventMarker(Ref<RenderCommandBuffer> commandBuffer)
 	{
-		s_RendererAPI->EndEventMarker(commandBuffer);
+		commandBuffer->EndMarker();
 	}
 
 	void Renderer::BeginFrame()
@@ -232,7 +220,7 @@ namespace Shark {
 
 	void Renderer::EndFrame()
 	{
-		s_RendererAPI->EndFrame();
+		//s_RendererAPI->EndFrame();
 	}
 
 	void Renderer::WaitAndRender()
@@ -256,6 +244,43 @@ namespace Shark {
 		s_SingleThreadedIsExecuting = false;
 	}
 
+	static void RT_ClearFramebufferAttachments(nvrhi::ICommandList* commandList, Ref<FrameBuffer> framebuffer, bool isLoadClear)
+	{
+		auto fbHandle = framebuffer->GetHandle();
+		const auto& specification = framebuffer->GetSpecification();
+		const bool clearColor = !isLoadClear || specification.ClearColorOnLoad;
+		const bool clearDepth = !isLoadClear || specification.ClearDepthOnLoad;
+
+		if (clearDepth && framebuffer->HasDepthAtachment())
+		{
+			nvrhi::utils::ClearDepthStencilAttachment(commandList, fbHandle, specification.ClearDepthValue, specification.ClearStencilValue);
+		}
+
+		if (!clearColor)
+			return;
+
+		for (uint32_t i = 0; i < framebuffer->GetAttachmentCount(); i++)
+		{
+			const auto& attachment = fbHandle->getDesc().colorAttachments[i];
+			const auto& clearColor = framebuffer->GetClearColor(i);
+
+			if (nvrhi::getFormatInfo(attachment.texture->getDesc().format).kind == nvrhi::FormatKind::Integer)
+				commandList->clearTextureUInt(attachment.texture, attachment.subresources, (uint32_t)clearColor.a);
+			else
+				commandList->clearTextureFloat(attachment.texture, attachment.subresources, clearColor);
+		}
+	}
+
+	void Renderer::ClearFramebuffer(Ref<RenderCommandBuffer> commandBuffer, Ref<FrameBuffer> framebuffer)
+	{
+		Submit([commandBuffer, framebuffer]() { RT_ClearFramebuffer(commandBuffer, framebuffer); });
+	}
+
+	void Renderer::RT_ClearFramebuffer(Ref<RenderCommandBuffer> commandBuffer, Ref<FrameBuffer> framebuffer)
+	{
+		RT_ClearFramebufferAttachments(commandBuffer->GetHandle(), framebuffer, false);
+	}
+
 	void Renderer::WriteBuffer(Ref<RenderCommandBuffer> commandBuffer, Ref<GpuBuffer> buffer, const Buffer bufferData)
 	{
 		Submit([commandBuffer, buffer, temp = Buffer::Copy(bufferData)]() mutable
@@ -273,102 +298,158 @@ namespace Shark {
 
 	void Renderer::BeginRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass, bool expliciteClear)
 	{
-		s_RendererAPI->BeginRenderPass(commandBuffer, renderPass, expliciteClear);
+		Ref<FrameBuffer> framebuffer = renderPass->GetTargetFramebuffer();
+		Ref<Shader> shader = renderPass->GetSpecification().Shader;
+
+		Submit([commandBuffer, renderPass, framebuffer, shader]()
+		{
+			RT_ClearFramebufferAttachments(commandBuffer->GetHandle(), framebuffer, true);
+
+			nvrhi::GraphicsState& graphicsState = commandBuffer->GetGraphicsState();
+
+			graphicsState = nvrhi::GraphicsState();
+			graphicsState.framebuffer = framebuffer->GetHandle();
+			graphicsState.viewport.addViewport(framebuffer->GetViewport());
+			graphicsState.vertexBuffers.resize(1);
+			graphicsState.bindings.resize(shader->GetReflectionData().BindingLayouts.size());
+
+			const auto& inputManager = renderPass->GetInputManager();
+			for (uint32_t set = inputManager.GetStartSet(); set <= inputManager.GetEndSet(); set++)
+			{
+				graphicsState.bindings[set] = inputManager.GetHandle(set);
+			}
+		});
 	}
 
 	void Renderer::EndRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass)
 	{
-		s_RendererAPI->EndRenderPass(commandBuffer, renderPass);
+		//s_RendererAPI->EndRenderPass(commandBuffer, renderPass);
 	}
 
-	void Renderer::RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material)
+	void Renderer::RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Buffer pushConstantsData)
 	{
-		Renderer::RenderGeometry(commandBuffer, pipeline, material, s_Data->m_QuadVertexBuffer, s_Data->m_QuadIndexBuffer, s_Data->m_QuadIndexBuffer->GetCount());
+		//Renderer::RenderGeometry(commandBuffer, pipeline, material, s_Data->m_QuadVertexBuffer, s_Data->m_QuadIndexBuffer, s_Data->m_QuadIndexBuffer->GetCount());
 	}
 
 	void Renderer::BeginBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer)
 	{
-		s_RendererAPI->BeginBatch(renderCommandBuffer, pipeline, vertexBuffer, indexBuffer);
+		//s_RendererAPI->BeginBatch(renderCommandBuffer, pipeline, vertexBuffer, indexBuffer);
 	}
 
 	void Renderer::RenderBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Material> material, uint32_t indexCount, uint32_t startIndex)
 	{
-		s_RendererAPI->RenderBatch(renderCommandBuffer, material, indexCount, startIndex);
+		//s_RendererAPI->RenderBatch(renderCommandBuffer, material, indexCount, startIndex);
 	}
 
 	void Renderer::EndBatch(Ref<RenderCommandBuffer> renderCommandBuffer)
 	{
-		s_RendererAPI->EndBatch(renderCommandBuffer);
+		//s_RendererAPI->EndBatch(renderCommandBuffer);
 	}
 
 	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount)
 	{
-		s_RendererAPI->RenderGeometry(renderCommandBuffer, pipeline, material, vertexBuffer, indexBuffer, indexCount);
 	}
 
 	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount)
 	{
-		s_RendererAPI->RenderGeometry(renderCommandBuffer, pipeline, material, vertexBuffer, vertexCount);
 	}
 
 	void Renderer::RenderCube(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material)
 	{
-		RenderGeometry(commandBuffer, pipeline, material, s_Data->m_CubeVertexBuffer, s_Data->m_CubeIndexBuffer, s_Data->m_CubeIndexBuffer->GetCount());
+		//RenderGeometry(commandBuffer, pipeline, material, s_Data->m_CubeVertexBuffer, s_Data->m_CubeIndexBuffer, s_Data->m_CubeIndexBuffer->GetCount());
 	}
 
 	void Renderer::RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<MaterialTable> materialTable)
 	{
-		s_RendererAPI->RenderSubmesh(commandBuffer, pipeline, mesh, submeshIndex, materialTable);
+		//s_RendererAPI->RenderSubmesh(commandBuffer, pipeline, mesh, submeshIndex, materialTable);
 	}
 
-	void Renderer::RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material)
+	void Renderer::RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material, Buffer pushConstantsData)
 	{
-		s_RendererAPI->RenderSubmeshWithMaterial(commandBuffer, pipeline, mesh, meshSource, submeshIndex, material);
+		Renderer::Submit([=, temp = Buffer::Copy(pushConstantsData)]() mutable
+		{
+			auto vertexBuffer = meshSource->GetVertexBuffer();
+			auto indexBuffer = meshSource->GetIndexBuffer();
+
+			nvrhi::GraphicsState& drawState = commandBuffer->GetGraphicsState();
+
+			drawState.pipeline = pipeline->GetHandle();
+
+			nvrhi::VertexBufferBinding vbufBinding;
+			vbufBinding.buffer = vertexBuffer->GetHandle();
+			vbufBinding.slot = 0;
+			vbufBinding.offset = 0;
+			drawState.vertexBuffers[0] = vbufBinding;
+
+			const auto& inputManager = material->GetInputManager();
+			for (uint32_t set = inputManager.GetStartSet(); set <= inputManager.GetEndSet(); set++)
+			{
+				drawState.bindings[set] = inputManager.GetHandle(set);
+			}
+
+			drawState.indexBuffer.buffer = indexBuffer->GetHandle();
+			drawState.indexBuffer.format = nvrhi::Format::R32_UINT;
+			drawState.indexBuffer.offset = 0;
+
+			const auto& submeshes = meshSource->GetSubmeshes();
+			const auto& submesh = submeshes[submeshIndex];
+
+			nvrhi::DrawArguments drawArgs;
+			drawArgs.vertexCount = submesh.IndexCount;
+			drawArgs.startIndexLocation = submesh.BaseIndex;
+			drawArgs.startVertexLocation = submesh.BaseVertex;
+
+			auto commandList = commandBuffer->GetHandle();
+			commandList->setGraphicsState(drawState);
+			commandList->setPushConstants(temp.As<const void>(), temp.Size);
+			commandList->drawIndexed(drawArgs);
+			temp.Release();
+		});
 	}
 
 	void Renderer::CopyImage(Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
 	{
-		s_RendererAPI->CopyImage(sourceImage, destinationImage);
+		//s_RendererAPI->CopyImage(sourceImage, destinationImage);
 	}
 
 	void Renderer::CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
 	{
-		s_RendererAPI->CopyImage(commandBuffer, sourceImage, destinationImage);
+		//s_RendererAPI->CopyImage(commandBuffer, sourceImage, destinationImage);
 	}
 
 	void Renderer::CopyMip(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, uint32_t sourceMip, Ref<Image2D> destinationImage, uint32_t destinationMip)
 	{
-		s_RendererAPI->CopyMip(commandBuffer, sourceImage, sourceMip, destinationImage, destinationMip);
+		//s_RendererAPI->CopyMip(commandBuffer, sourceImage, sourceMip, destinationImage, destinationMip);
 	}
 
 	void Renderer::BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
 	{
-		s_RendererAPI->BlitImage(commandBuffer, sourceImage, destinationImage);
+		//s_RendererAPI->BlitImage(commandBuffer, sourceImage, destinationImage);
 	}
 
 	void Renderer::GenerateMips(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> image)
 	{
-		s_RendererAPI->GenerateMips(commandBuffer, image);
+		//s_RendererAPI->GenerateMips(commandBuffer, image);
 	}
 
 	std::pair<Ref<TextureCube>, Ref<TextureCube>> Renderer::CreateEnvironmentMap(const std::filesystem::path& filepath)
 	{
-		return s_RendererAPI->CreateEnvironmentMap(filepath);
+		return { nullptr, nullptr };
 	}
 
 	std::pair<Ref<TextureCube>, Ref<TextureCube>> Renderer::RT_CreateEnvironmentMap(const std::filesystem::path& filepath)
 	{
-		return s_RendererAPI->RT_CreateEnvironmentMap(filepath);
+		return { nullptr, nullptr };
 	}
 
 	void Renderer::GenerateMips(Ref<Image2D> image)
 	{
-		s_RendererAPI->GenerateMips(image);
+		//s_RendererAPI->GenerateMips(image);
 	}
 
 	void Renderer::RT_GenerateMips(Ref<Image2D> image)
 	{
-		s_RendererAPI->RT_GenerateMips(image);
+		//s_RendererAPI->RT_GenerateMips(image);
 	}
 
 	ShaderCache& Renderer::GetShaderCache()
@@ -414,7 +495,7 @@ namespace Shark {
 
 	void Renderer::ReportLiveObejcts()
 	{
-		s_RendererContext->ReportLiveObjects();
+		//s_RendererContext->ReportLiveObjects();
 	}
 
 	uint32_t Renderer::GetCurrentFrameIndex()
@@ -425,16 +506,6 @@ namespace Shark {
 	uint32_t Renderer::RT_GetCurrentFrameIndex()
 	{
 		return s_Data->m_RTFrameIndex;
-	}
-
-	Ref<RendererContext> Renderer::GetRendererContext()
-	{
-		return s_RendererContext;
-	}
-
-	Ref<RendererAPI> Renderer::GetRendererAPI()
-	{
-		return s_RendererAPI;
 	}
 
 	Ref<ShaderLibrary> Renderer::GetShaderLibrary()

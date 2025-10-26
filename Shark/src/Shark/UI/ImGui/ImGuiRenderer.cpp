@@ -290,7 +290,14 @@ namespace Shark {
 		auto iter = m_BindingsCache.find(viewInfo);
 		if (iter != m_BindingsCache.end())
 		{
-			return iter->second;
+			auto activeSampler = viewInfo->Sampler ? viewInfo->Sampler : m_FontSampler;
+
+			nvrhi::IBindingSet* bindingSet = iter->second;
+			if (bindingSet->getDesc()->bindings[1].resourceHandle == viewInfo->ImageHandle &&
+				bindingSet->getDesc()->bindings[2].resourceHandle == activeSampler)
+				return iter->second;
+
+			m_BindingsCache.erase(viewInfo);
 		}
 
 		nvrhi::BindingSetDesc desc;

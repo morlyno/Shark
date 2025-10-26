@@ -25,17 +25,6 @@ namespace Shark {
 		static void SwapBuffers(ImGuiViewport* viewport, void* ptr) { GetInstanceRaw()->SwapBuffers(viewport, ptr); }
 	};
 
-	ImGuiLayer* ImGuiLayer::Create()
-	{
-		switch (RendererAPI::GetCurrentAPI())
-		{
-			case RendererAPIType::None: SK_CORE_ASSERT(false, "No RendererAPI specified"); return nullptr;
-			case RendererAPIType::DirectX11: return (ImGuiLayer*)sknew ImGuiLayer();
-		}
-		SK_CORE_ASSERT(false, "Unkown RendererAPI");
-		return nullptr;
-	}
-
 	void ImGuiLayer::OnAttach()
 	{
 		SK_PROFILE_FUNCTION();

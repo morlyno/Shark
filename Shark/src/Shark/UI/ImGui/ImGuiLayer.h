@@ -16,7 +16,7 @@ namespace Shark {
 	class ImGuiLayer : public Layer
 	{
 	public:
-		static ImGuiLayer* Create();
+		static ImGuiLayer* Create() { return sknew ImGuiLayer(); }
 
 		void OnAttach();
 		void OnDetach();

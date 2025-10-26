@@ -952,7 +952,7 @@ namespace Shark {
 		}
 
 		Ref<Image2D> fbImage = m_SceneRenderer->GetFinalPassImage();
-		ImGui::Image((ImTextureID)fbImage->GetViewID(), size);
+		UI::Image(fbImage, size);
 
 		UI_Gizmo();
 		UI_DragDrop();

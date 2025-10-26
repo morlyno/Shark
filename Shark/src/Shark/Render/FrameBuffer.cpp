@@ -4,44 +4,7 @@
 #include "Shark/Render/Renderer.h"
 #include "Shark/Core/Application.h"
 
-#include "Shark/Utils/std.h"
-
 namespace Shark {
-
-	namespace utils {
-
-		static void SetupBlendStateAttachment(FrameBufferBlendMode blendMode, const FrameBufferAttachment& attachment, nvrhi::BlendState::RenderTarget& target)
-		{
-			if (ImageUtils::IsIntegerBased(attachment.Format))
-			{
-				target.setBlendEnable(false);
-				return;
-			}
-
-			target.setBlendEnable(attachment.Blend)
-				.setBlendOp(nvrhi::BlendOp::Add)
-				.setSrcBlend(nvrhi::BlendFactor::One)
-				.setDestBlend(nvrhi::BlendFactor::Zero);
-
-			const FrameBufferBlendMode attachmentBlendMode = blendMode == FrameBufferBlendMode::Independent ? attachment.BlendMode : blendMode;
-
-			switch (attachmentBlendMode)
-			{
-				case FrameBufferBlendMode::OneZero:
-					target.setSrcBlend(nvrhi::BlendFactor::One)
-						.setDestBlend(nvrhi::BlendFactor::Zero);
-					break;
-				case FrameBufferBlendMode::SrcAlphaOneMinusSrcAlpha:
-					target.setSrcBlend(nvrhi::BlendFactor::SrcAlpha)
-						.setDestBlend(nvrhi::BlendFactor::InvSrcAlpha)
-						.setSrcBlendAlpha(nvrhi::BlendFactor::SrcAlpha)
-						.setDestBlendAlpha(nvrhi::BlendFactor::InvSrcAlpha);
-					break;
-			}
-
-		}
-
-	}
 
 	FrameBuffer::FrameBuffer(const FrameBufferSpecification& specification)
 		: m_Specification(specification)
@@ -72,22 +35,23 @@ namespace Shark {
 			}
 
 			m_ColorImages.push_back(nextImage);
-			m_ClearColors.push_back(m_Specification.IndipendendClearColor.contains(attachmentIndex) ?
-									m_Specification.IndipendendClearColor.at(attachmentIndex) : m_Specification.ClearColor);
+			glm::vec4 col = m_Specification.IndipendendClearColor.contains(attachmentIndex) ?
+							m_Specification.IndipendendClearColor.at(attachmentIndex) : m_Specification.ClearColor;
+			m_ClearColors.push_back({ col.x, col.y, col.z, col.w });
 
 			framebufferDesc.addColorAttachment(nextImage->GetHandle());
-
-			if (m_Specification.Blend)
-			{
-				utils::SetupBlendStateAttachment(m_Specification.BlendMode, attachment, m_BlendState.targets[attachmentIndex]);
-			}
 		}
 
-		if (m_Specification.DepthAttachment != ImageFormat::None && !m_Specification.ExistingDepthImage)
+		if (m_Specification.DepthAttachment != ImageFormat::None)
 		{
-			imageSpec.Format = m_Specification.DepthAttachment;
-			imageSpec.DebugName = fmt::format("{}-DepthAttachment", m_Specification.DebugName);
-			m_DepthImage = Image2D::Create(imageSpec);
+			m_DepthImage = m_Specification.ExistingDepthImage;
+
+			if (!m_DepthImage)
+			{
+				imageSpec.Format = m_Specification.DepthAttachment;
+				imageSpec.DebugName = fmt::format("{}-DepthAttachment", m_Specification.DebugName);
+				m_DepthImage = Image2D::Create(imageSpec);
+			}
 
 			framebufferDesc.setDepthAttachment(m_DepthImage->GetHandle());
 		}
@@ -103,22 +67,22 @@ namespace Shark {
 
 	}
 
-	void FrameBuffer::Resize(uint32_t widht, uint32_t height, bool force)
+	void FrameBuffer::Resize(uint32_t width, uint32_t height, bool force)
 	{
-		if (!force && m_Specification.Width == widht && m_Specification.Height == height)
+		if (!force && m_Specification.Width == width && m_Specification.Height == height)
 			return;
 
-		m_Specification.Width = widht;
+		m_Specification.Width = width;
 		m_Specification.Height = height;
 		
 		for (Ref<Image2D> attachmentImage : m_ColorImages)
-			attachmentImage->Resize(widht, height);
+			attachmentImage->Resize(width, height);
 
 		if (m_DepthImage)
-			m_DepthImage->Resize(widht, height);
+			m_DepthImage->Resize(width, height);
 
 		Ref instance = this;
-		Renderer::Submit([instance, state = RT_State{ .Width = widht, .Height = height }]()
+		Renderer::Submit([instance, state = RT_State{ .Width = width, .Height = height }]()
 		{
 			instance->InvalidateFromState(state);
 		});
@@ -138,6 +102,19 @@ namespace Shark {
 		m_FramebufferHandle = device->createFramebuffer(framebufferDesc);
 
 		m_Viewport = nvrhi::Viewport((float)state.Width, (float)state.Height);
+
+		SK_CORE_TRACE_TAG("Renderer", "Framebuffer Invalidated from state. '{}' {} ({}:{})", m_Specification.DebugName, fmt::ptr(m_FramebufferHandle.Get()), state.Width, state.Height);
+
+		for (uint32_t i = 0; i < framebufferDesc.colorAttachments.size(); i++)
+		{
+			nvrhi::ITexture* texture = framebufferDesc.colorAttachments[i].texture;
+			SK_CORE_TRACE_TAG("Renderer", " - [Color {}] '{}' {} ({}:{})", i, texture->getDesc().debugName, fmt::ptr(texture), texture->getDesc().width, texture->getDesc().height);
+		}
+
+		if (nvrhi::ITexture* texture = framebufferDesc.depthAttachment.texture)
+		{
+			SK_CORE_TRACE_TAG("Renderer", " - [Depth] '{}' {} ({}:{})", texture->getDesc().debugName, fmt::ptr(texture), texture->getDesc().width, texture->getDesc().height);
+		}
 	}
 
 }

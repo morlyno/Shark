@@ -114,4 +114,30 @@ namespace Shark {
 		Buffer m_ImageData;
 	};
 
+	struct SamplerSpecification
+	{
+		float MaxAnisotropy = 1.0f;
+		FilterMode Filter = FilterMode::Linear;
+		AddressMode Address = AddressMode::Repeat;
+	};
+
+	class Sampler : public RendererResource
+	{
+	public:
+		static Ref<Sampler> Create(const SamplerSpecification& specification) { return Ref<Sampler>::Create(specification); }
+
+	public:
+		nvrhi::SamplerHandle GetHandle() const { return m_SamplerHandle; }
+		const SamplerSpecification& GetSpecification() const { return m_Specification; }
+
+	public:
+		Sampler(const SamplerSpecification& specification);
+		~Sampler();
+
+	private:
+		SamplerSpecification m_Specification;
+		nvrhi::SamplerHandle m_SamplerHandle;
+
+	};
+
 }

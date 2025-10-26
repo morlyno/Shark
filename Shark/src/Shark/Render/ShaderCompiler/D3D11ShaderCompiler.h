@@ -5,10 +5,6 @@
 #include "Shark/Render/ShaderCompiler/ShaderCache.h"
 #include <nvrhi/nvrhi.h>
 
-#if SK_WITH_DX11
-	#include <d3d11shader.h>
-#endif
-
 namespace Shark {
 
 	class ShaderCompiler;
@@ -18,27 +14,28 @@ namespace Shark {
 	class D3D11ShaderCompilerInterface
 	{
 	public:
-		D3D11ShaderCompilerInterface(ShaderCompiler& compiler);
+		D3D11ShaderCompilerInterface();
 		~D3D11ShaderCompilerInterface();
 
 		void ClearState();
+		void SetContext(const ShaderInfo& info, const CompilerOptions& options) { m_Info = info; m_Options = options; }
 
-		std::string CompileStage(nvrhi::ShaderType stage);
-		void ReflectStage(nvrhi::ShaderType stage);
+		bool CompileOrLoad(const ShaderCompiler& compiler, ShaderCache& cache);
 
-		bool LoadOrCompileStage(nvrhi::ShaderType stage, ShaderCache& cache);
-
+	public:
 		Buffer& GetBinary(nvrhi::ShaderType stage) { return m_D3D11Binary[stage]; }
 		const Buffer& GetBinary(nvrhi::ShaderType stage) const { return m_D3D11Binary.at(stage); }
 		const std::string& GetSource(nvrhi::ShaderType stage) const { return m_HLSLSource.at(stage); }
-	private:
-		void CrossCompileStage(nvrhi::ShaderType stage);
-		void ReflectResource(ShaderReflection::Resource& resource);
-		std::string GetReflectionName(ShaderReflection::ResourceType type, const std::string& name, uint32_t arraySize);
 
 	private:
-		ShaderCompiler& m_Compiler;
-		ID3D11ShaderReflection* m_CurrentReflector = nullptr;
+		std::string CompileStage(nvrhi::ShaderType stage);
+		void CrossCompileStage(nvrhi::ShaderType stage, std::span<const uint32_t> spirvBinary, const ShaderCompiler& compiler);
+
+		bool LoadOrCompileStage(nvrhi::ShaderType stage, ShaderCache& cache);
+
+	private:
+		ShaderInfo m_Info;
+		CompilerOptions m_Options;
 
 		std::map<nvrhi::ShaderType, std::string> m_HLSLSource;
 		std::map<nvrhi::ShaderType, Buffer> m_D3D11Binary;

@@ -1,20 +1,29 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Core/Buffer.h"
 
-#include "Shark/Render/RendererAPI.h"
-#include "Shark/Render/RendererContext.h"
+#include "Shark/Render/DeviceManager.h"
 
 #include "Shark/Render/RenderCommandQueue.h"
 #include "Shark/Render/RenderCommandBuffer.h"
-#include "Shark/Render/RenderPass.h"
-#include "Shark/Render/Pipeline.h"
+
+#include "Shark/Render/GpuBuffer.h"
 #include "Shark/Render/Buffers.h"
-#include "Shark/Render/Shader.h"
+#include "Shark/Render/Image.h"
 #include "Shark/Render/Texture.h"
 #include "Shark/Render/Environment.h"
+#include "Shark/Render/Mesh.h"
+#include "Shark/Render/MeshSource.h"
+
+#include "Shark/Render/Material.h"
+#include "Shark/Render/MaterialAsset.h"
+#include "Shark/Render/RenderPass.h"
+
+#include "Shark/Render/FrameBuffer.h"
+#include "Shark/Render/Shader.h"
+#include "Shark/Render/Pipeline.h"
 #include "Shark/Render/ShaderCompiler/ShaderCache.h"
-#include "Shark/Render/GpuBuffer.h"
 
 #include <nvrhi/nvrhi.h>
 
@@ -37,6 +46,9 @@ namespace Shark {
 	public:
 		static void Init();
 		static void ShutDown();
+
+		static DeviceManager* GetDeviceManager();
+		static nvrhi::IDevice* GetGraphicsDevice();
 
 		static void BeginEventMarker(Ref<RenderCommandBuffer> commandBuffer, const std::string& name);
 		static void EndEventMarker(Ref<RenderCommandBuffer> commandBuffer);
@@ -79,6 +91,8 @@ namespace Shark {
 			new (storage) TFunc(func);
 		}
 
+		static void ClearFramebuffer(Ref<RenderCommandBuffer> commandBuffer, Ref<FrameBuffer> framebuffer);
+		static void RT_ClearFramebuffer(Ref<RenderCommandBuffer> commandBuffer, Ref<FrameBuffer> framebuffer);
 
 		static void WriteBuffer(Ref<RenderCommandBuffer> commandBuffer, Ref<GpuBuffer> buffer, const Buffer bufferData);
 		static void RT_WriteBuffer(Ref<RenderCommandBuffer> commandBuffer, Ref<GpuBuffer> buffer, const Buffer bufferData);
@@ -86,7 +100,7 @@ namespace Shark {
 		static void BeginRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass, bool expliciteClear = false);
 		static void EndRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass);
 
-		static void RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material);
+		static void RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Buffer pushConstantsData = {});
 
 		static void BeginBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer);
 		static void RenderBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Material> material, uint32_t indexCount, uint32_t startIndex);
@@ -98,7 +112,7 @@ namespace Shark {
 		static void RenderCube(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material);
 
 		static void RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<MaterialTable> materialTable);
-		static void RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material);
+		static void RenderSubmeshWithMaterial(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material, Buffer pushConstantsData);
 
 		static void CopyImage(Ref<Image2D> sourceImage, Ref<Image2D> destinationImage);
 		static void CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage);
@@ -123,9 +137,6 @@ namespace Shark {
 		static uint32_t RT_GetCurrentFrameIndex();
 
 	public:
-		static Ref<RendererContext> GetRendererContext();
-		static Ref<RendererAPI> GetRendererAPI();
-
 		static Ref<ShaderLibrary> GetShaderLibrary();
 		static Ref<Texture2D> GetWhiteTexture();
 		static Ref<Texture2D> GetBlackTexture();
@@ -144,8 +155,6 @@ namespace Shark {
 		static RenderCommandQueue& GetResourceFreeQueue();
 
 	private:
-		static Ref<RendererContext> s_RendererContext;
-		static Ref<RendererAPI> s_RendererAPI;
 		friend class DirectXRenderer;
 	};
 

@@ -50,14 +50,11 @@ namespace Shark {
 
 	void Image2D::Resize(uint32_t width, uint32_t height)
 	{
+		if (m_Specification.Width == width && m_Specification.Height == height)
+			return;
+
 		m_Specification.Width = width;
 		m_Specification.Height = height;
-
-		Ref instance = this;
-		Renderer::Submit([instance, state = RT_State{ m_Specification }]()
-		{
-			instance->InvalidateFromState(state);
-		});
 
 		Submit_Invalidate();
 	}
@@ -96,10 +93,12 @@ namespace Shark {
 			.setHeight(state.Height)
 			.setArraySize(state.Layers)
 			.setMipLevels(state.MipLevels)
-			.setFormat(ImageUtils::ConvertImageFormat(state.Format));
+			.setFormat(ImageUtils::ConvertImageFormat(state.Format))
+			.setDebugName(state.DebugName);
 
 		textureDesc.isRenderTarget = state.Usage == ImageUsage::Attachment;
 		textureDesc.isUAV = state.Usage == ImageUsage::Storage;
+		textureDesc.isTypeless = ImageUtils::IsDepthFormat(state.Format);
 
 		if (state.IsCube)
 			textureDesc.dimension = nvrhi::TextureDimension::TextureCube;
@@ -112,7 +111,7 @@ namespace Shark {
 		{
 			textureDesc.keepInitialState = true;
 			textureDesc.initialState = nvrhi::getFormatInfo(textureDesc.format).hasDepth ?
-				nvrhi::ResourceStates::RenderTarget : nvrhi::ResourceStates::DepthWrite;
+				nvrhi::ResourceStates::DepthWrite : nvrhi::ResourceStates::RenderTarget;
 		}
 		else if (state.Usage == ImageUsage::Texture)
 		{
@@ -128,6 +127,8 @@ namespace Shark {
 		m_ViewInfo.SubresourceSet.numMipLevels = state.MipLevels;
 		m_ViewInfo.SubresourceSet.baseArraySlice = 0;
 		m_ViewInfo.SubresourceSet.numArraySlices = state.Layers;
+
+		SK_CORE_TRACE_TAG("Renderer", "Image Invalidated from state. '{}' {} ({}:{})", m_ImageHandle->getDesc().debugName, fmt::ptr(m_ImageHandle.Get()), state.Width, state.Height);
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////////

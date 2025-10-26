@@ -52,6 +52,7 @@ namespace Shark {
 		void RT_Execute();
 
 		nvrhi::CommandListHandle GetHandle() const { return m_CommandList; }
+		nvrhi::GraphicsState& GetGraphicsState() { return m_GraphicsState; }
 
 		void BeginMarker(const char* name);
 		void EndMarker();
@@ -74,10 +75,11 @@ namespace Shark {
 	private:
 		std::string m_Name;
 		nvrhi::CommandListHandle m_CommandList;
+		nvrhi::GraphicsState m_GraphicsState;
 
 		QueryID m_TimerQuery;
 		uint32_t m_NextQueryID = 0;
-		std::vector<std::vector<nvrhi::TimerQueryHandle>> m_TimerQueryPools;
+		std::vector<std::vector<std::pair<nvrhi::TimerQueryHandle, bool>>> m_TimerQueryPools;
 		std::vector<std::vector<float>> m_GPUExecutionTimes;
 	};
 

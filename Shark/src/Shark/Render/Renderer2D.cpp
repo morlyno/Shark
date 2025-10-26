@@ -95,18 +95,19 @@ namespace Shark {
 		// Quad
 		{
 			PipelineSpecification quadPipelineSpecs;
-			quadPipelineSpecs.TargetFrameBuffer = targetFramebuffer;
 			quadPipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Quad");
 			quadPipelineSpecs.Layout = quadVertexLayout;
 			quadPipelineSpecs.DebugName = "Renderer2D-Quad";
 			quadPipelineSpecs.DepthEnabled = m_Specifications.UseDepthTesting;
+			m_QuadPipeline = Pipeline::Create(quadPipelineSpecs, targetFramebuffer->GetFramebufferInfo());
 
 			RenderPassSpecification renderPassSpecification;
-			renderPassSpecification.Pipeline = Pipeline::Create(quadPipelineSpecs);
+			renderPassSpecification.Shader = quadPipelineSpecs.Shader;
+			renderPassSpecification.TargetFramebuffer = targetFramebuffer;
 			renderPassSpecification.DebugName = quadPipelineSpecs.DebugName;
 
 			m_QuadPass = RenderPass::Create(renderPassSpecification);
-			m_QuadPass->Set("u_Camera", m_CBCamera);
+			m_QuadPass->SetInput("u_Camera", m_CBCamera);
 			SK_CORE_VERIFY(m_QuadPass->Validate());
 			m_QuadPass->Bake();
 
@@ -134,18 +135,19 @@ namespace Shark {
 		// Circle
 		{
 			PipelineSpecification pipelineSpec;
-			pipelineSpec.TargetFrameBuffer = targetFramebuffer;
 			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Circle");
 			pipelineSpec.Layout = circleVertexLayout;
 			pipelineSpec.DebugName = "Renderer2D-Circle";
 			pipelineSpec.DepthEnabled = m_Specifications.UseDepthTesting;
+			m_CirclePipeline = Pipeline::Create(pipelineSpec, targetFramebuffer->GetFramebufferInfo());
 
 			RenderPassSpecification renderPassSpecification;
-			renderPassSpecification.Pipeline = Pipeline::Create(pipelineSpec);
+			renderPassSpecification.Shader = pipelineSpec.Shader;
+			renderPassSpecification.TargetFramebuffer = targetFramebuffer;
 			renderPassSpecification.DebugName = pipelineSpec.DebugName;
 
 			m_CirclePass = RenderPass::Create(renderPassSpecification);
-			m_CirclePass->Set("u_Camera", m_CBCamera);
+			m_CirclePass->SetInput("u_Camera", m_CBCamera);
 			SK_CORE_VERIFY(m_CirclePass->Validate());
 			m_CirclePass->Bake();
 
@@ -157,21 +159,22 @@ namespace Shark {
 		// Line
 		{
 			PipelineSpecification pipelineSpecs;
-			pipelineSpecs.TargetFrameBuffer = targetFramebuffer;
 			pipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Line");
 			pipelineSpecs.Layout = lineVertexLayout;
 			pipelineSpecs.DebugName = "Renderer2D-Line";
-			pipelineSpecs.Primitve = PrimitveType::Line;
+			pipelineSpecs.Primitve = PrimitiveType::Line;
 			pipelineSpecs.DepthEnabled = m_Specifications.UseDepthTesting;
 			pipelineSpecs.WriteDepth = true;
 			pipelineSpecs.DepthOperator = CompareOperator::LessEqual;
+			m_LinePipeline = Pipeline::Create(pipelineSpecs, targetFramebuffer->GetFramebufferInfo());
 
 			RenderPassSpecification specification;
-			specification.Pipeline = Pipeline::Create(pipelineSpecs);
+			specification.Shader = pipelineSpecs.Shader;
+			specification.TargetFramebuffer = targetFramebuffer;
 			specification.DebugName = pipelineSpecs.DebugName;
 
 			m_LinePass = RenderPass::Create(specification);
-			m_LinePass->Set("u_Camera", m_CBCamera);
+			m_LinePass->SetInput("u_Camera", m_CBCamera);
 			SK_CORE_VERIFY(m_LinePass->Validate());
 			m_LinePass->Bake();
 
@@ -182,7 +185,6 @@ namespace Shark {
 		// Text
 		{
 			PipelineSpecification pipelineSpec;
-			pipelineSpec.TargetFrameBuffer = targetFramebuffer;
 			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Text");
 			pipelineSpec.Layout = {
 				{ VertexDataType::Float3, "Position" },
@@ -194,16 +196,18 @@ namespace Shark {
 			pipelineSpec.DepthEnabled = m_Specifications.UseDepthTesting;
 			pipelineSpec.WriteDepth = true;
 			pipelineSpec.DepthOperator = CompareOperator::Less;
+			m_TextPipeline = Pipeline::Create(pipelineSpec, targetFramebuffer->GetFramebufferInfo());
 
 			RenderPassSpecification renderPassSpecification;
-			renderPassSpecification.Pipeline = Pipeline::Create(pipelineSpec);
+			renderPassSpecification.Shader = pipelineSpec.Shader;
+			renderPassSpecification.TargetFramebuffer = targetFramebuffer;
 			renderPassSpecification.DebugName = pipelineSpec.DebugName;
 			m_TextPass = RenderPass::Create(renderPassSpecification);
-			m_TextPass->Set("u_Camera", m_CBCamera);
+			m_TextPass->SetInput("u_Camera", m_CBCamera);
 			SK_CORE_VERIFY(m_TextPass->Validate());
 			m_TextPass->Bake();
 
-			m_TextMaterial = Material::Create(pipelineSpec.Shader);
+			m_TextMaterial = Material::Create(pipelineSpec.Shader, "Text");
 
 			m_TextVertexBuffer = VertexBuffer::Create(DefaultTextVertices * sizeof(TextVertex));
 			m_TextIndexBuffer = m_QuadIndexBuffer;
@@ -236,10 +240,10 @@ namespace Shark {
 		m_Specifications.Width = width;
 		m_Specifications.Height = height;
 
-		m_QuadPass->GetTargetFramebuffer()->Resize(width, height);
-		m_CirclePass->GetTargetFramebuffer()->Resize(width, height);
+		//m_QuadPass->GetTargetFramebuffer()->Resize(width, height);
+		//m_CirclePass->GetTargetFramebuffer()->Resize(width, height);
 		m_LinePass->GetTargetFramebuffer()->Resize(width, height);
-		m_TextPass->GetTargetFramebuffer()->Resize(width, height);
+		//m_TextPass->GetTargetFramebuffer()->Resize(width, height);
 	}
 
 	void Renderer2D::BeginScene(const glm::mat4& viewProj)
@@ -270,7 +274,6 @@ namespace Shark {
 		m_TextVertexCount = 0;
 
 		m_Statistics = Statistics();
-		m_TimestampQueries = TimestampQueries();
 	}
 
 	void Renderer2D::EndScene()
@@ -632,7 +635,6 @@ namespace Shark {
 
 	void Renderer2D::GeometryPass()
 	{
-		Renderer::BeginEventMarker(m_CommandBuffer, "Renderer2D - GeometryPass");
 		m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.GeometryPassQuery);
 
 		uint32_t maxIndexCount = std::max({ m_QuadIndexCount, m_CircleIndexCount, m_TextIndexCount });
@@ -651,14 +653,14 @@ namespace Shark {
 		if (m_TextVertexBuffer->GetByteSize() < m_LineVertexData.Size)
 			m_TextVertexBuffer->Resize(m_LineVertexData.Size);
 
-		if (m_QuadIndexCount)
+		if (false && m_QuadIndexCount)
 		{
 			Renderer::BeginEventMarker(m_CommandBuffer, "Quads");
 			m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.QuadPassQuery);
 			m_QuadVertexBuffer->Upload(m_QuadVertexData);
 
 			Renderer::BeginRenderPass(m_CommandBuffer, m_QuadPass);
-			Renderer::BeginBatch(m_CommandBuffer, m_QuadPass->GetPipeline(), m_QuadVertexBuffer, m_QuadIndexBuffer);
+			Renderer::BeginBatch(m_CommandBuffer, m_QuadPipeline, m_QuadVertexBuffer, m_QuadIndexBuffer);
 			uint32_t indexOffset = 0;
 			for (const auto& batch : m_QuadBatches)
 			{
@@ -676,45 +678,50 @@ namespace Shark {
 
 		if (m_CircleIndexCount)
 		{
-			Renderer::BeginEventMarker(m_CommandBuffer, "Circles");
+			m_CommandBuffer->BeginMarker("Circles");
 			m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.CirclePassQuery);
-			m_CircleVertexBuffer->SetData(m_CircleVertexData);
+			Renderer::WriteBuffer(m_CommandBuffer, m_CircleVertexBuffer, m_CircleVertexData);
+
 			Renderer::BeginRenderPass(m_CommandBuffer, m_CirclePass);
-			Renderer::RenderGeometry(m_CommandBuffer, m_CirclePass->GetPipeline(), nullptr, m_CircleVertexBuffer, m_CircleIndexBuffer, m_CircleIndexCount);
+			Renderer::RenderGeometry(m_CommandBuffer, m_CirclePipeline, nullptr, m_CircleVertexBuffer, m_CircleIndexBuffer, m_CircleIndexCount);
 			Renderer::EndRenderPass(m_CommandBuffer, m_CirclePass);
+
 			m_Statistics.DrawCalls++;
 			m_CommandBuffer->EndTimerQuery(m_TimestampQueries.CirclePassQuery);
-			Renderer::EndEventMarker(m_CommandBuffer);
+			m_CommandBuffer->EndMarker();
 		}
 
 		if (m_LineVertexCount)
 		{
-			Renderer::BeginEventMarker(m_CommandBuffer, "Lines");
+			m_CommandBuffer->BeginMarker("Lines");
 			m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.LinePassQuery);
-			m_LineVertexBuffer->SetData(m_LineVertexData);
+			Renderer::WriteBuffer(m_CommandBuffer, m_LineVertexBuffer, m_LineVertexData);
+
 			Renderer::BeginRenderPass(m_CommandBuffer, m_LinePass);
-			Renderer::RenderGeometry(m_CommandBuffer, m_LinePass->GetPipeline(), nullptr, m_LineVertexBuffer, m_LineVertexCount);
+			Renderer::RenderGeometry(m_CommandBuffer, m_LinePipeline, nullptr, m_LineVertexBuffer, m_LineVertexCount);
 			Renderer::EndRenderPass(m_CommandBuffer, m_LinePass);
+
 			m_Statistics.DrawCalls++;
 			m_CommandBuffer->EndTimerQuery(m_TimestampQueries.LinePassQuery);
-			Renderer::EndEventMarker(m_CommandBuffer);
+			m_CommandBuffer->EndMarker();
 		}
 
 		if (m_TextIndexCount)
 		{
-			Renderer::BeginEventMarker(m_CommandBuffer, "Texts");
+			m_CommandBuffer->BeginMarker("Texts");
 			m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.TextPassQuery);
-			m_TextVertexBuffer->SetData(m_TextVertexData);
+			Renderer::WriteBuffer(m_CommandBuffer, m_TextVertexBuffer, m_TextVertexData);
+
 			Renderer::BeginRenderPass(m_CommandBuffer, m_TextPass);
-			Renderer::RenderGeometry(m_CommandBuffer, m_TextPass->GetPipeline(), m_TextMaterial, m_TextVertexBuffer, m_TextIndexBuffer, m_TextIndexCount);
+			Renderer::RenderGeometry(m_CommandBuffer, m_TextPipeline, m_TextMaterial, m_TextVertexBuffer, m_TextIndexBuffer, m_TextIndexCount);
 			Renderer::EndRenderPass(m_CommandBuffer, m_TextPass);
+
 			m_Statistics.DrawCalls++;
 			m_CommandBuffer->EndTimerQuery(m_TimestampQueries.TextPassQuery);
-			Renderer::EndEventMarker(m_CommandBuffer);
+			m_CommandBuffer->EndMarker();
 		}
 
 		m_CommandBuffer->EndTimerQuery(m_TimestampQueries.GeometryPassQuery);
-		Renderer::EndEventMarker(m_CommandBuffer);
 	}
 
 	void Renderer2D::AssureQuadVertexDataSize()
@@ -768,14 +775,12 @@ namespace Shark {
 
 	void Renderer2D::PrepareMaterial(Ref<Material> material, const QuadBatch& batch)
 	{
-		uint32_t index = 0;
-
-		for (uint32_t i = 0; i < MaxTextureSlots; i++)
+		for (uint32_t arrayIndex = 0; arrayIndex < MaxTextureSlots; arrayIndex++)
 		{
-			if (i < batch.Textures.size() && batch.Textures[i])
-				material->Set("u_Textures", i, batch.Textures[i]);
+			if (arrayIndex < batch.Textures.size() && batch.Textures[arrayIndex])
+				material->Set("u_Textures", batch.Textures[arrayIndex], arrayIndex);
 			else
-				material->Set("u_Textures", i, Renderer::GetWhiteTexture());
+				material->Set("u_Textures", Renderer::GetWhiteTexture(), arrayIndex);
 		}
 	}
 
@@ -783,9 +788,8 @@ namespace Shark {
 	{
 		SK_CORE_VERIFY((indexCount % 6) == 0);
 		m_QuadIndexBuffer->Resize(indexCount);
-		
 
-		Renderer::Submit([indexBuffer = m_QuadIndexBuffer, indexCount]()
+		Renderer::Submit([commandBuffer = m_CommandBuffer, indexBuffer = m_QuadIndexBuffer, indexCount]()
 		{
 			uint32_t* quadIndices = sknew uint32_t[indexCount];
 			for (uint32_t i = 0, j = 0; i < indexCount; i += 6, j += 4)
@@ -798,7 +802,7 @@ namespace Shark {
 				quadIndices[i + 4] = j + 3;
 				quadIndices[i + 5] = j + 0;
 			}
-			indexBuffer->RT_SetData({ quadIndices, (uint64_t)indexCount * sizeof(uint32_t) });
+			Renderer::RT_WriteBuffer(commandBuffer, indexBuffer, { quadIndices, (uint64_t)indexCount * sizeof(uint32_t) });
 			skdelete[] quadIndices;
 		});
 	}

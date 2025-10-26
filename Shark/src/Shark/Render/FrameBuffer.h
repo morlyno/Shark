@@ -4,15 +4,6 @@
 
 namespace Shark {
 
-	enum class FrameBufferBlendMode
-	{
-		None = 0,
-		OneZero,
-		SrcAlphaOneMinusSrcAlpha,
-
-		Independent = None
-	};
-
 	enum class FrameBufferLoadOp
 	{
 		Inherit, Load, Clear
@@ -22,9 +13,6 @@ namespace Shark {
 	{
 		ImageFormat Format;
 		FrameBufferLoadOp LoadOp = FrameBufferLoadOp::Inherit;
-
-		bool Blend = true;
-		FrameBufferBlendMode BlendMode = FrameBufferBlendMode::SrcAlphaOneMinusSrcAlpha;
 
 		FrameBufferAttachment(ImageFormat format)
 			: Format(format) {}
@@ -38,14 +26,11 @@ namespace Shark {
 
 		glm::vec4 ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 		float ClearDepthValue = 1.0f;
-		uint8_t ClearStencilValue = 0;
+		uint32_t ClearStencilValue = 0;
 		bool ClearColorOnLoad = true;
 		bool ClearDepthOnLoad = true;
 
 		bool IsSwapChainTarget = false;
-
-		bool Blend = true;
-		FrameBufferBlendMode BlendMode = FrameBufferBlendMode::Independent;
 
 		Ref<Image2D> ExistingDepthImage;
 		std::map<uint32_t, Ref<Image2D>> ExistingImages;
@@ -59,18 +44,22 @@ namespace Shark {
 	public:
 		static Ref<FrameBuffer> Create(const FrameBufferSpecification& specification) { return Ref<FrameBuffer>::Create(specification); }
 
-		void Resize(uint32_t widht, uint32_t height, bool force = false);
+		void Resize(uint32_t width, uint32_t height, bool force = false);
 
-		void SetClearColor(const glm::vec4& clearColor) { std::ranges::fill(m_ClearColors, clearColor); }
-		void SetClearColor(uint32_t colorAtachmentIndex, const glm::vec4& clearColor) { m_ClearColors[colorAtachmentIndex] = clearColor; }
+		void SetClearColor(const glm::vec4& clearColor) { std::ranges::fill(m_ClearColors, nvrhi::Color{ clearColor.x, clearColor.y, clearColor.z, clearColor.w }); }
+		void SetClearColor(uint32_t colorAtachmentIndex, const glm::vec4& clearColor) { m_ClearColors[colorAtachmentIndex] = nvrhi::Color(clearColor.x, clearColor.y, clearColor.z, clearColor.w); }
 
 		Ref<Image2D> GetImage(uint32_t index) const { return m_ColorImages[index]; }
 		Ref<Image2D> GetDepthImage() const { return m_DepthImage; }
 		bool HasDepthAtachment() const { return m_DepthImage != nullptr; }
 
 		nvrhi::FramebufferHandle GetHandle() const { return m_FramebufferHandle; }
-		const nvrhi::BlendState& GetBlendState() const { return m_BlendState; }
+		const nvrhi::Viewport& GetViewport() const { return m_Viewport; }
+		const nvrhi::FramebufferInfo& GetFramebufferInfo() const { return m_FramebufferHandle->getFramebufferInfo(); }
 		const FrameBufferSpecification& GetSpecification() const { return m_Specification; }
+
+		uint32_t GetAttachmentCount() const { return (uint32_t)m_ColorImages.size(); }
+		const nvrhi::Color& GetClearColor(uint32_t index) const { return m_ClearColors[index]; }
 
 	public:
 		FrameBuffer(const FrameBufferSpecification& specification);
@@ -89,10 +78,9 @@ namespace Shark {
 
 		Ref<Image2D> m_DepthImage;
 		nvrhi::static_vector<Ref<Image2D>, nvrhi::c_MaxRenderTargets> m_ColorImages;
-		nvrhi::static_vector<glm::vec4, nvrhi::c_MaxRenderTargets> m_ClearColors;
+		nvrhi::static_vector<nvrhi::Color, nvrhi::c_MaxRenderTargets > m_ClearColors;
 
 		nvrhi::FramebufferHandle m_FramebufferHandle;
-		nvrhi::BlendState m_BlendState;
 		nvrhi::Viewport m_Viewport;
 	};
 

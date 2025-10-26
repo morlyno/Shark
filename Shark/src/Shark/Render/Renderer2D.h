@@ -96,7 +96,6 @@ namespace Shark {
 		void DrawLine(const glm::vec2& pos0, const glm::vec2& pos1, const glm::vec4& color, int id = -1);
 		void DrawLine(const glm::vec3& pos0, const glm::vec3& pos1, const glm::vec4& color, int id = -1);
 
-
 		void DrawRect(const glm::vec2& position, const glm::vec2& scaling, const glm::vec4& color, int id = -1);
 		void DrawRect(const glm::vec3& position, const glm::vec3& scaling, const glm::vec4& color, int id = -1);
 		void DrawRect(const glm::vec2& position, float rotation,            const glm::vec2& scaling, const glm::vec4& color, int id = -1);
@@ -226,6 +225,7 @@ namespace Shark {
 
 		// Quad
 		Ref<RenderPass> m_QuadPass;
+		Ref<Pipeline> m_QuadPipeline;
 		Ref<Material> m_QuadMaterial;
 		Ref<VertexBuffer> m_QuadVertexBuffer;
 		Ref<IndexBuffer> m_QuadIndexBuffer;
@@ -236,6 +236,7 @@ namespace Shark {
 
 		// Circle
 		Ref<RenderPass> m_CirclePass;
+		Ref<Pipeline> m_CirclePipeline;
 		Ref<VertexBuffer> m_CircleVertexBuffer;
 		Ref<IndexBuffer> m_CircleIndexBuffer;
 		Buffer m_CircleVertexData;
@@ -244,12 +245,14 @@ namespace Shark {
 		
 		// Line
 		Ref<RenderPass> m_LinePass;
+		Ref<Pipeline> m_LinePipeline;
 		Ref<VertexBuffer> m_LineVertexBuffer;
 		Buffer m_LineVertexData;
 		uint32_t m_LineVertexCount = 0;
 
 		// Text
 		Ref<RenderPass> m_TextPass;
+		Ref<Pipeline> m_TextPipeline;
 		Ref<Material> m_TextMaterial;
 		Ref<VertexBuffer> m_TextVertexBuffer;
 		Ref<IndexBuffer> m_TextIndexBuffer;
@@ -258,7 +261,6 @@ namespace Shark {
 		uint32_t m_TextVertexCount = 0;
 
 		friend class SceneRenderer;
-
 	};
 
 }

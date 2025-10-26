@@ -2,132 +2,126 @@
 
 #include "Shark/Core/Base.h"
 
+#include <nvrhi/nvrhi.h>
+
 namespace Shark {
 
-	namespace ShaderReflection {
+	enum class GraphicsResourceType
+	{
+		None = 0,
+		ConstantBuffer,
+		ShaderResourceView,
+		UnorderedAccessView,
+		Sampler
+	};
 
-		enum class ShaderStage
-		{
-			None = 0,
-			Vertex,
-			Pixel,
-			Compute
-		};
+	struct GraphicsBinding
+	{
+		uint32_t Space = 0, Slot = 0;
+		GraphicsResourceType Register = GraphicsResourceType::None;
 
-		enum class VariableType
-		{
-			None = 0,
-			Int, Int2, Int3, Int4,
-			UInt, UInt2, UInt3, UInt4,
-			Float, Float2, Float3, Float4,
-			Mat3, Mat4,
-			Bool
-		};
+		auto operator<=>(const GraphicsBinding&) const = default;
+	};
 
-		struct MemberDeclaration
-		{
-			std::string Name;
-			VariableType Type = VariableType::None;
-			uint32_t Size = 0;
-			uint32_t Offset = 0;
-		};
 
-		using MemberList = std::vector<MemberDeclaration>;
+	enum class ShaderInputType
+	{
+		None = 0,
+		ConstantBuffer,
+		StorageBuffer,
+		Sampler,
+		Image2D,
+		ImageCube,
+		StorageImage2D,
+		StorageImageCube
+	};
 
-		enum class ResourceType
-		{
-			None = 0,
+	struct ShaderInputInfo
+	{
+		std::string Name;
+		uint32_t Set = 0;
+		uint32_t Slot = 0;
+		uint32_t Count = 0;
+		GraphicsResourceType GraphicsType = GraphicsResourceType::None;
+		ShaderInputType Type = ShaderInputType::None;
 
-			// Sampler Only
-			Sampler,
+		GraphicsBinding GetGraphicsBinding() const { return { Set, Slot, GraphicsType }; }
+	};
 
-			// Texture Only
-			Image2D,
-			Image3D,
-			ImageCube,
+	enum class ResourceDimension
+	{
+		None = 0,
+		Image2D,
+		ImageCube
+	};
 
-			// Combined Image Sampler
-			Texture2D,
-			Texture3D,
-			TextureCube,
+	namespace ShaderResource {
 
-			StorageImage2D,
-			StorageImage3D,
-			StorageImageCube,
-
-			ConstantBuffer,
-			StorageBuffer,
-			PushConstant
-		};
-
-		constexpr bool IsImageType(ResourceType type)
-		{
-			switch (type)
-			{
-				case ResourceType::Image2D:
-				case ResourceType::Image3D:
-				case ResourceType::ImageCube:
-					return true;
-			}
-			return false;
-		}
-
-		constexpr bool IsTextureType(ResourceType type)
-		{
-			switch (type)
-			{
-				case ResourceType::Texture2D:
-				case ResourceType::Texture3D:
-				case ResourceType::TextureCube:
-					return true;
-			}
-			return false;
-		}
-
-		constexpr bool IsStorageImage(ResourceType type)
-		{
-			switch (type)
-			{
-				case ResourceType::StorageImage2D:
-				case ResourceType::StorageImage3D:
-				case ResourceType::StorageImageCube:
-					return true;
-			}
-			return false;
-		}
-
-		struct Resource
+		struct Buffer
 		{
 			std::string Name;
-			uint32_t Set = (uint32_t)-1, Binding = (uint32_t)-1;
-			ShaderStage Stage = ShaderStage::None;
-			ResourceType Type = ResourceType::None;
-			uint32_t ArraySize = 0;
-
-			// ConstantBuffer size
 			uint32_t StructSize = 0;
+			uint32_t Slot = 0;
+			nvrhi::ShaderType Stage = nvrhi::ShaderType::None;
+		};
+		
+		struct Image
+		{
+			std::string Name;
+			uint32_t Slot = 0;
+			uint32_t ArraySize = 1;
+			uint32_t Dimension = 0;
+			nvrhi::ShaderType Stage = nvrhi::ShaderType::None;
+		};
 
-			// Used only for DirectX 11
-			uint32_t DXBinding = (uint32_t)-1;
+		struct Sampler
+		{
+			std::string Name;
+			uint32_t Slot = 0;
+			uint32_t ArraySize = 1;
+			nvrhi::ShaderType Stage = nvrhi::ShaderType::None;
+		};
 
-			// For all combined image samples this value is valid and is currently the same as DXBinding
-			uint32_t DXSamplerBinding = (uint32_t)-1;
+		struct PushConstant
+		{
+			static constexpr uint32_t Slot = 0;
+			uint32_t StructSize = 0;
+			nvrhi::ShaderType Stage = nvrhi::ShaderType::None;
 		};
 
 	}
 
-	struct ShaderReflectionData
+
+	struct D3D11BindingSetOffsets
 	{
-		// set => binding => resource
-		std::map<uint32_t, std::map<uint32_t, ShaderReflection::Resource>> Resources;
-		std::map<uint32_t, std::map<uint32_t, ShaderReflection::MemberList>> Members;
+		uint32_t ShaderResource = 0;
+		uint32_t Sampler = 0;
+		uint32_t ConstantBuffer = 0;
+		uint32_t UnorderedAccess = 0;
+	};
 
-		bool HasPushConstant = false;
-		ShaderReflection::Resource PushConstant;
-		ShaderReflection::MemberList PushConstantMembers;
+	struct ShaderBindingLayout
+	{
+		std::map<uint32_t, ShaderResource::Buffer> ConstantBuffers;
+		std::map<uint32_t, ShaderResource::Buffer> StorageBuffers;
+		std::map<uint32_t, ShaderResource::Image> Images;
+		std::map<uint32_t, ShaderResource::Image> StorageImages;
+		std::map<uint32_t, ShaderResource::Sampler> Samplers;
 
-		std::unordered_map<std::string, std::pair<uint32_t, uint32_t>> NameCache;
-		std::unordered_map<std::string, std::tuple<uint32_t, uint32_t, uint32_t>> MemberNameCache;
+		nvrhi::ShaderType Stage = nvrhi::ShaderType::None;
+		std::unordered_map<std::string, ShaderInputInfo> InputInfos;
+		D3D11BindingSetOffsets BindingOffsets;
+	};
+
+	struct ShaderReflection
+	{
+		static constexpr uint32_t MaxLayouts = nvrhi::c_MaxBindingLayouts;
+
+		nvrhi::static_vector<ShaderBindingLayout, MaxLayouts> BindingLayouts;
+		std::optional<ShaderResource::PushConstant> PushConstant;
+
+		//std::unordered_map<std::string, ShaderInputInfo> InputInfos;
 	};
 
 }
+

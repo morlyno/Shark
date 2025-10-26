@@ -102,17 +102,22 @@ namespace Shark {
 
 		for (uint32_t queryIndex = 0; queryIndex < pool.size(); queryIndex++)
 		{
-			nvrhi::ITimerQuery* query = pool.at(queryIndex);
+			nvrhi::ITimerQuery* query = pool.at(queryIndex).first;
+			bool& started = pool.at(queryIndex).second;
 
 			float time = 0.0f;
-			if (device->pollTimerQuery(query))
+			if (started)
 			{
-				time = device->getTimerQueryTime(query);
-				device->resetTimerQuery(query);
-			}
-			else
-			{
-				SK_CORE_DEBUG("Failed to retrive timer. Query: ({}, {}), Frame: {}", poolIndex, queryIndex, Renderer::RT_GetCurrentFrameIndex());
+				if (device->pollTimerQuery(query))
+				{
+					time = device->getTimerQueryTime(query);
+					device->resetTimerQuery(query);
+					started = false;
+				}
+				else
+				{
+					SK_CORE_DEBUG("Failed to retrive timer. Query: ({}, {}), Frame: {}", poolIndex, queryIndex, Renderer::RT_GetCurrentFrameIndex());
+				}
 			}
 
 			m_GPUExecutionTimes[poolIndex][queryIndex] = time;
@@ -123,12 +128,20 @@ namespace Shark {
 
 	void RenderCommandBuffer::BeginMarker(const char* name)
 	{
-		m_CommandList->beginMarker(name);
+		Ref instance = this;
+		Renderer::Submit([instance, n = std::string(name)]()
+		{
+			instance->m_CommandList->beginMarker(n.c_str());
+		});
 	}
 
 	void RenderCommandBuffer::EndMarker()
 	{
-		m_CommandList->endMarker();
+		Ref instance = this;
+		Renderer::Submit([instance]()
+		{
+			instance->m_CommandList->endMarker();
+		});
 	}
 
 	QueryID RenderCommandBuffer::RegisterTimerQuery()
@@ -138,7 +151,7 @@ namespace Shark {
 		auto device = Application::Get().GetDeviceManager()->GetDevice();
 		for (uint32_t poolIndex = 0; poolIndex < m_TimerQueryPools.size(); poolIndex++)
 		{
-			m_TimerQueryPools[poolIndex].emplace_back(device->createTimerQuery());
+			m_TimerQueryPools[poolIndex].emplace_back(device->createTimerQuery(), false);
 			m_GPUExecutionTimes[poolIndex].emplace_back(0.0f);
 		}
 
@@ -174,7 +187,9 @@ namespace Shark {
 		uint32_t poolIndex = Renderer::RT_GetCurrentFrameIndex() % m_TimerQueryPools.size();
 		auto& pool = m_TimerQueryPools[poolIndex];
 
-		m_CommandList->beginTimerQuery(pool.at(queryID));
+		auto& query = pool.at(queryID);
+		m_CommandList->beginTimerQuery(query.first);
+		query.second = true;
 	}
 
 	void RenderCommandBuffer::RT_EndTimerQuery(QueryID queryID)
@@ -184,7 +199,9 @@ namespace Shark {
 		uint32_t poolIndex = Renderer::RT_GetCurrentFrameIndex() % m_TimerQueryPools.size();
 		auto& pool = m_TimerQueryPools[poolIndex];
 
-		m_CommandList->endTimerQuery(pool.at(queryID));
+		auto& query = pool.at(queryID);
+		m_CommandList->endTimerQuery(query.first);
+		query.second = true;
 	}
 
 	TimeStep RenderCommandBuffer::GetGPUExecutionTime(QueryID queryID) const

@@ -4,14 +4,6 @@
 #include "Shark/Render/ShaderCompiler/Common.h"
 #include "Shark/Render/ShaderCompiler/D3D11ShaderCompiler.h"
 
-struct IDxcCompiler3;
-struct IDxcUtils;
-
-namespace spirv_cross {
-	struct Resource;
-	class Compiler;
-}
-
 namespace Shark {
 
 	class ShaderCompiler : public RefCount
@@ -23,12 +15,16 @@ namespace Shark {
 		bool Reload();
 		void ClearState();
 
-		const ShaderInfo& GetInfo() const { return m_Info; }
 		bool HasStage(nvrhi::ShaderType stage) { return m_SpirvBinary.contains(stage); }
-		std::span<const uint32_t> GetBinary(nvrhi::ShaderType stage) const { return m_SpirvBinary.at(stage); }
-		const ShaderReflectionData& GetRelfectionData() const { return m_ReflectionData; }
+		const ShaderInfo& GetInfo() const { return m_Info; }
+		const ShaderSourceInfo& GetSourceInfo(nvrhi::ShaderType stage) const { return m_SourceInfo.at(stage); }
+		nvrhi::ShaderType GetCompiledStages() const { return m_CompiledStages; }
 
-		const D3D11ShaderCompilerInterface& GetD3D11Compiler() const { return m_D3D11Compiler; }
+		Buffer GetBinary(nvrhi::ShaderType stage, nvrhi::GraphicsAPI api) const;
+		const ShaderReflection& GetReflectionData() const { return m_Reflection; }
+
+		const auto& GetSpirvBinaries() const { return m_SpirvBinary; }
+
 	private:
 		void Preprocess();
 		bool CompileStage(nvrhi::ShaderType stage);
@@ -36,10 +32,7 @@ namespace Shark {
 		std::string GLSLCompileStage(nvrhi::ShaderType stage);
 		void Reflect();
 		void ReflectStage(nvrhi::ShaderType stage);
-		void BuildNameCache();
-
-		void ReflectMembers(const spirv_cross::Resource& resource, ShaderReflection::MemberList& memberList);
-		ShaderReflection::Resource& ReflectResource(const spirv_cross::Resource& resource);
+		void MapBindings();
 
 	private:
 		CompilerOptions m_Options;
@@ -51,15 +44,11 @@ namespace Shark {
 		std::map<nvrhi::ShaderType, std::vector<uint32_t>> m_SpirvBinary;
 		nvrhi::ShaderType m_CompiledStages = nvrhi::ShaderType::None;
 
-		ShaderReflectionData m_ReflectionData;
+		ShaderReflection m_Reflection;
 
-		// Current state for shader reflection
-		nvrhi::ShaderType m_CurrentStage = nvrhi::ShaderType::None;
-		spirv_cross::Compiler* m_CurrentCompiler = nullptr;
+		//std::map<GraphicsBinding, ShaderReflection::BindingItem*> m_ShaderResources;
 
 		D3D11ShaderCompilerInterface m_D3D11Compiler;
-
-		friend class D3D11ShaderCompilerInterface;
 	};
 
 }

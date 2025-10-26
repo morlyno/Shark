@@ -63,7 +63,7 @@ namespace Shark {
 			renderPassSpecification.Pipeline = Pipeline::Create(pipelineSpecification);
 			renderPassSpecification.DebugName = pipelineSpecification.DebugName;
 			m_PresentPass = RenderPass::Create(renderPassSpecification);
-			m_PresentPass->Set("u_SourceImage", m_Renderer->GetFinalPassImage());
+			m_PresentPass->SetInput("u_SourceImage", m_Renderer->GetFinalPassImage());
 			SK_CORE_VERIFY(m_PresentPass->Validate());
 			m_PresentPass->Bake();
 		}

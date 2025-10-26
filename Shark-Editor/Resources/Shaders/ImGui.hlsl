@@ -42,8 +42,8 @@ struct PixelInput
     float2 uv : TEXCOORD;
 };
 
-[[vk::binding(0)]] Texture2D u_Texture : register(t0);
-[[vk::binding(1)]] sampler u_Sampler : register(s0);
+Texture2D u_Texture : register(t0);
+sampler u_Sampler : register(s0);
 
 float4 main(PixelInput input) : SV_Target
 {

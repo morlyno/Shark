@@ -188,16 +188,27 @@ namespace Shark {
 		std::vector<DrawCommand> m_DrawList;
 		std::vector<DrawCommand> m_SelectedDrawList;
 
+		Ref<Shader> m_SimpleShader;
+		Ref<Material> m_SimpleMaterial;
+
 		Ref<RenderPass> m_GeometryPass;
 		Ref<RenderPass> m_SelectedGeometryPass;
 		Ref<RenderPass> m_SkyboxPass;
 		Ref<RenderPass> m_CompositePass;
+
+		Ref<Pipeline> m_GeometryPipeline;
+		Ref<Pipeline> m_SelectedGeometryPipeline;
+		Ref<Pipeline> m_SkyboxPipeline;
+		Ref<Pipeline> m_CompositePipeline;
 
 		Ref<Material> m_SelectedGeometryMaterial;
 
 		Ref<RenderPass> m_JumpFloodInitPass;
 		Ref<RenderPass> m_JumpFloodPass[2];
 		Ref<RenderPass> m_JumpFloodCompositePass;
+		Ref<Pipeline> m_JumpFloodInitPipeline;
+		Ref<Pipeline> m_JumpFloodPipeline;
+		Ref<Pipeline> m_JumpFloodCompositePipeline;
 		Ref<Material> m_JumpFloodInitMaterial;
 		Ref<Material> m_JumpFloodPassMaterial[2];
 		Ref<Material> m_JumpFloodCompositeMaterial;

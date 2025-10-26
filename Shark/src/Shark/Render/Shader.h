@@ -2,45 +2,51 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Render/ShaderReflection.h"
+#include "Shark/Render/ShaderCompiler/ShaderCompiler.h"
 
 #include <nvrhi/nvrhi.h>
 
 namespace Shark {
 
-	class ShaderCompiler;
-
 	class Shader : public RefCount
 	{
 	public:
-		static Ref<Shader> Create();
-		static Ref<Shader> Create(Ref<ShaderCompiler> compiler);
+		static Ref<Shader> Create() { return Ref<Shader>::Create(); }
+		static Ref<Shader> Create(Ref<ShaderCompiler> compiler) { return Ref<Shader>::Create(compiler); }
 
-		virtual bool Reload(bool forceCompile = false, bool disableOptimization = false) = 0;
+		bool Reload(bool forceCompile = false, bool disableOptimization = false);
 
-		virtual nvrhi::ShaderHandle GetHandle(nvrhi::ShaderType stage) const = 0;
+		nvrhi::ShaderHandle GetHandle(nvrhi::ShaderType stage) const;
 
-		virtual uint64_t GetHash() const = 0;
-		virtual const std::string& GetName() const = 0;
-		virtual const std::filesystem::path& GetFilePath() const = 0;
+		uint64_t GetHash() const { return m_Info.ShaderID; }
+		const std::string& GetName() const { return m_Name; }
+		const std::filesystem::path& GetFilePath() const { return m_Info.SourcePath; }
 
-		virtual bool HasResource(const std::string& name) const = 0;
-		virtual bool HasPushConstant() const = 0;
-		virtual bool HasMember(const std::string& name) const = 0;
+		nvrhi::IBindingLayout* GetBindingLayout(uint32_t set) const { return m_BindingLayouts[set]; }
+		const nvrhi::BindingLayoutVector& GetBindingLayouts() const { return m_BindingLayouts; }
+		const ShaderReflection& GetReflectionData() const { return m_ReflectionData; }
 
-		virtual const ShaderReflection::Resource& GetResourceInfo(const std::string& name) const = 0;
-		virtual const ShaderReflection::Resource& GetPushConstantInfo() const = 0;
-		virtual const ShaderReflection::Resource& GetMembersResourceInfo(const std::string& name) const = 0;
-		virtual const ShaderReflection::MemberDeclaration& GetMemberInfo(const std::string& name) const = 0;
-
-		virtual const std::string& GetResourceName(uint32_t set, uint32_t binding) const = 0;
-		virtual const ShaderReflection::Resource& GetResourceInfo(uint32_t set, uint32_t binding) const = 0;
-
-		virtual std::pair<uint32_t, uint32_t> GetResourceBinding(const std::string& name) const = 0;
-		virtual std::tuple<uint32_t, uint32_t, uint32_t> GetMemberBinding(const std::string& name) const = 0;
 
 	public:
-		virtual const ShaderReflectionData& GetReflectionData() const = 0;
+		Shader();
+		Shader(Ref<ShaderCompiler> compiler);
+		~Shader();
 
+	private:
+		void InitializeFromCompiler();
+		void CreateBindingLayout();
+
+	private:
+		// #Renderer #TODO remove this
+		Ref<ShaderCompiler> m_Compiler;
+
+		ShaderInfo m_Info;
+		std::string m_Name;
+
+		ShaderReflection m_ReflectionData;
+		std::map<nvrhi::ShaderType, nvrhi::ShaderHandle> m_ShaderHandles;
+
+		nvrhi::BindingLayoutVector m_BindingLayouts;
 	};
 
 	class ShaderLibrary : public RefCount

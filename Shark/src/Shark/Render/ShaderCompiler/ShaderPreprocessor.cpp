@@ -62,7 +62,7 @@ namespace Shark {
 				SK_CORE_WARN_TAG("Renderer", "The #version Preprocessor directive is depricated for shader written in HLSL");
 			}
 
-			SK_CORE_ASSERT(stage != ShaderUtils::ShaderStage::None);
+			SK_CORE_ASSERT(stage != nvrhi::ShaderType::None);
 			SK_CORE_ASSERT(!moduleSource.empty());
 			result[stage] = moduleSource;
 		}
@@ -104,7 +104,7 @@ namespace Shark {
 			nvrhi::ShaderType stage = utils::GetShaderStage(stageString);
 			offset = moduleEnd;
 
-			SK_CORE_ASSERT(stage != ShaderUtils::ShaderStage::None);
+			SK_CORE_ASSERT(stage != nvrhi::ShaderType::None);
 			SK_CORE_ASSERT(!moduleSource.empty());
 			result[stage] = moduleSource;
 		}
