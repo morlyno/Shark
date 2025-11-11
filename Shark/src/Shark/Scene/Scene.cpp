@@ -466,8 +466,7 @@ namespace Shark {
 			}
 		}
 
-		renderer->SetScene(this);
-		renderer->BeginScene(camera);
+		renderer->BeginScene(this, camera);
 
 		// Meshes
 		{
@@ -490,7 +489,7 @@ namespace Shark {
 						const auto& submesh = submeshes[submeshComponent.SubmeshIndex];
 
 						AssetHandle materialHandle = submeshComponent.Material ? submeshComponent.Material : meshSourceResult->GetMaterials()[submesh.MaterialIndex];
-						Ref<MaterialAsset> material = AssetManager::GetAssetAsync<MaterialAsset>(materialHandle);
+						Ref<PBRMaterial> material = AssetManager::GetAssetAsync<PBRMaterial>(materialHandle);
 						if (!material)
 							continue;
 
@@ -529,7 +528,7 @@ namespace Shark {
 							{
 								const auto& submesh = submeshes[submeshIndex];
 								auto materialHandle = meshComponent.MaterialTable->HasMaterial(submesh.MaterialIndex) ? meshComponent.MaterialTable->GetMaterial(submesh.MaterialIndex) : mesh->GetMaterials()->GetMaterial(submesh.MaterialIndex);
-								auto material = AssetManager::GetAsset<MaterialAsset>(materialHandle);
+								auto material = AssetManager::GetAsset<PBRMaterial>(materialHandle);
 
 								renderer->SubmitMesh(mesh, meshSource, submeshIndex, material, rootTransform * node.Transform, (int)ent);
 								if (isSelected)
@@ -542,6 +541,9 @@ namespace Shark {
 		}
 
 		renderer->EndScene();
+
+		// #Renderer #Disabled 2D renderer not implemented
+		return;
 
 		// Renderer 2D
 		Ref<Renderer2D> renderer2D = renderer->GetRenderer2D();

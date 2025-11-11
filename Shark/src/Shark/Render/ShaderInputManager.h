@@ -11,12 +11,96 @@
 
 namespace Shark {
 
+	enum class RenderInputType
+	{
+		None = 0,
+		ConstantBuffer,
+		StorageBuffer,
+		Sampler,
+		Viewable,
+		Image2D,
+		ImageView,
+		Texture2D,
+		TextureCube
+	};
+
+	struct InputResource
+	{
+		Ref<RendererResource> Item;
+		RenderInputType Type;
+
+		std::optional<nvrhi::TextureSubresourceSet> SubresourceSet;
+	};
+
 	struct BindingSetInput
 	{
 		ShaderInputType Type = ShaderInputType::None;
-		std::vector<Ref<RendererResource>> Items;
+		std::vector<InputResource> Items;
+
+		void Set(Ref<ConstantBuffer> constantBuffer, uint32_t arrayIndex)
+		{
+			Items[arrayIndex].Item = constantBuffer;
+			Items[arrayIndex].Type = RenderInputType::ConstantBuffer;
+		}
+
+		void Set(Ref<StorageBuffer> storageBuffer, uint32_t arrayIndex)
+		{
+			Items[arrayIndex].Item = storageBuffer;
+			Items[arrayIndex].Type = RenderInputType::StorageBuffer;
+		}
+
+		void Set(Ref<Sampler> sampler, uint32_t arrayIndex)
+		{
+			Items[arrayIndex].Item = sampler;
+			Items[arrayIndex].Type = RenderInputType::Sampler;
+		}
+
+		void Set(Ref<ViewableResource> viewable, uint32_t arrayIndex)
+		{
+			Items[arrayIndex].Item = viewable;
+			Items[arrayIndex].Type = RenderInputType::Viewable;
+		}
+
+		void Set(Ref<Image2D> image, uint32_t arrayIndex)
+		{
+			Items[arrayIndex].Item = image;
+			Items[arrayIndex].Type = RenderInputType::Image2D;
+		}
+
+		void Set(Ref<ImageView> imageView, uint32_t arrayIndex)
+		{
+			Items[arrayIndex].Item = imageView;
+			Items[arrayIndex].Type = RenderInputType::ImageView;
+		}
+
+		void Set(Ref<Texture2D> texture, uint32_t arrayIndex)
+		{
+			Items[arrayIndex].Item = texture;
+			Items[arrayIndex].Type = RenderInputType::Texture2D;
+		}
+
+		void Set(Ref<TextureCube> textureCube, uint32_t arrayIndex)
+		{
+			Items[arrayIndex].Item = textureCube;
+			Items[arrayIndex].Type = RenderInputType::TextureCube;
+		}
+
+		void Set(const nvrhi::TextureSubresourceSet& subresourceSet, uint32_t arrayIndex)
+		{
+			Items[arrayIndex].SubresourceSet = subresourceSet;
+		}
 
 		BindingSetInput() = default;
+	};
+
+	// Helper to deside how Graphics-/ComputePasses and Materials should share the binding layout
+	enum class LayoutShareMode
+	{
+		PassOnly,
+		MaterialOnly,
+		PassAndMaterial,
+
+		Default = PassAndMaterial
 	};
 
 	struct ShaderInputManagerSpecification
@@ -33,6 +117,7 @@ namespace Shark {
 	class ShaderInputManager
 	{
 	public:
+		ShaderInputManager();
 		ShaderInputManager(const ShaderInputManagerSpecification& specification);
 		~ShaderInputManager();
 
@@ -42,17 +127,24 @@ namespace Shark {
 
 		void SetInput(const std::string& name, Ref<ConstantBuffer> constantBuffer, uint32_t arrayIndex = 0);
 		void SetInput(const std::string& name, Ref<StorageBuffer> storageBuffer, uint32_t arrayIndex = 0);
+		void SetInput(const std::string& name, Ref<ViewableResource> viewable, uint32_t arrayIndex = 0);
 		void SetInput(const std::string& name, Ref<Image2D> image, uint32_t arrayIndex = 0);
+		void SetInput(const std::string& name, Ref<ImageView> imageView, uint32_t arrayIndex = 0);
 		void SetInput(const std::string& name, Ref<Texture2D> texture, uint32_t arrayIndex = 0);
 		void SetInput(const std::string& name, Ref<TextureCube> textureCube, uint32_t arrayIndex = 0);
 		void SetInput(const std::string& name, Ref<Sampler> sampler, uint32_t arrayIndex = 0);
+
+		void SetInputSubresourceSet(const std::string& name, const nvrhi::TextureSubresourceSet& subresourceSet, uint32_t arrayIndex = 0);
 
 		uint32_t GetStartSet() const { return m_Specification.StartSet; }
 		uint32_t GetEndSet() const { return m_Specification.EndSet; }
 		nvrhi::BindingSetHandle GetHandle(uint32_t set) const { return m_BackedSets[set - m_Specification.StartSet]; }
 
+		Ref<Shader> GetShader() const { return m_Specification.Shader; }
+
 	private:
 		const ShaderInputInfo* GetInputInfo(const std::string& name) const;
+		bool IsWritable(const InputResource& input) const;
 
 	private:
 		template<typename T>

@@ -9,14 +9,19 @@ namespace Shark {
 		seed *= FNVPrime;
 	}
 
-	void Hash::AppendFNV(uint64_t& seed, const Buffer values)
+	void Hash::AppendFNV(uint64_t& seed, const void* values, uint64_t byteSize)
 	{
-		uint8_t* first = values.As<uint8_t>();
-		for (uint64_t i = 0; i < values.Size; i++)
+		const uint8_t* first = static_cast<const uint8_t*>(values);
+		for (uint64_t i = 0; i < byteSize; i++)
 		{
 			seed ^= first[i];
 			seed *= FNVPrime;
 		}
+	}
+
+	void Hash::AppendFNV(uint64_t& seed, const Buffer values)
+	{
+		AppendFNV(seed, values.Data, values.Size);
 	}
 
 	uint64_t Hash::CombineFNV(uint64_t seed, uint64_t value)

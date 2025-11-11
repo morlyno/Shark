@@ -40,11 +40,11 @@ namespace Shark {
 
 		const ImVec2 textureSize = { 64, 64 };
 
-		AsyncLoadResult materialResult = AssetManager::GetAssetAsync<MaterialAsset>(m_MaterialHandle);
+		AsyncLoadResult materialResult = AssetManager::GetAssetAsync<PBRMaterial>(m_MaterialHandle);
 		if (!materialResult.Ready)
 			return;
 
-		Ref<MaterialAsset> material = materialResult;
+		Ref<PBRMaterial> material = materialResult;
 
 		ImGui::Text(fmt::format("Shader: {}", material->GetMaterial()->GetShader()->GetName()));
 		ImGui::Text(fmt::format("Name: {}", material->GetMaterial()->GetName()));
@@ -437,7 +437,7 @@ namespace Shark {
 		if (!handle)
 			return "";
 
-		Ref<MaterialAsset> material = AssetManager::GetAsset<MaterialAsset>(handle);
+		auto material = AssetManager::GetAsset<PBRMaterial>(handle);
 		auto& name = material->GetName();
 		if (!name.empty())
 			return name;

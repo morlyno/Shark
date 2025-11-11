@@ -2,7 +2,6 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Layer/Layer.h"
-#include "Shark/UI/ImGui/ImGuiRenderer.h"
 
 #include <imgui.h>
 
@@ -10,8 +9,7 @@
 
 namespace Shark {
 
-	class Image2D;
-	class ImageView;
+	class ImGuiRenderer;
 
 	class ImGuiLayer : public Layer
 	{
@@ -34,10 +32,6 @@ namespace Shark {
 		bool BlocksMouseEvents() const { return m_BlockEvents && ImGui::GetIO().WantCaptureMouse; }
 		bool BlocksKeyboardEvents() const { return m_BlockEvents && ImGui::GetIO().WantCaptureKeyboard; }
 		void BlockEvents(bool block) { m_BlockEvents = block; }
-
-		void AddImage(Ref<Image2D> image);
-		void AddImage(Ref<ImageView> view);
-		void BindFontSampler();
 
 	private:
 		ImGuiLayer();

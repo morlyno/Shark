@@ -11,7 +11,15 @@ namespace Shark {
 	class HLSLPreprocessor
 	{
 	public:
-		PreProcessorResult Preprocess(const std::string& source);
+		bool Preprocess(const std::string& source);
+
+		PreProcessorResult PreProcessedResult;
+		std::vector<std::pair<std::string, std::string>> CombinedImageSamplers;
+
+	private:
+		bool SplitStages(const std::string& source);
+		void ProcessCombineInstructions(nvrhi::ShaderType stage, const std::string& code);
+
 	};
 
 	class GLSLPreprocssor

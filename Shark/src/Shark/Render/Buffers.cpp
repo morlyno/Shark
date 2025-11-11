@@ -6,11 +6,11 @@ namespace Shark {
 	VertexBuffer::VertexBuffer(uint64_t size)
 		: GpuBuffer(
 			nvrhi::BufferDesc()
-			.setByteSize(size)
-			.setCpuAccess(nvrhi::CpuAccessMode::Write)
-			.setIsVertexBuffer(true)
-			.setKeepInitialState(true)
-			.setInitialState(nvrhi::ResourceStates::VertexBuffer)
+				.setByteSize(size)
+				.setCpuAccess(nvrhi::CpuAccessMode::Write)
+				.setIsVertexBuffer(true)
+				.setKeepInitialState(true)
+				.setInitialState(nvrhi::ResourceStates::VertexBuffer)
 		)
 	{
 	}
@@ -28,12 +28,13 @@ namespace Shark {
 	IndexBuffer::IndexBuffer(uint32_t count)
 		: GpuBuffer(
 			nvrhi::BufferDesc()
-			.setByteSize(count * sizeof(uint32_t))
-			.setCpuAccess(nvrhi::CpuAccessMode::Write)
-			.setIsIndexBuffer(true)
-			.setKeepInitialState(true)
-			.setInitialState(nvrhi::ResourceStates::IndexBuffer)
-		)
+				.setByteSize(count * sizeof(uint32_t))
+				.setCpuAccess(nvrhi::CpuAccessMode::Write)
+				.setIsIndexBuffer(true)
+				.setKeepInitialState(true)
+				.setInitialState(nvrhi::ResourceStates::IndexBuffer)
+		),
+		m_Count(count)
 	{
 	}
 

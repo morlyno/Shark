@@ -155,7 +155,7 @@ namespace Shark {
 								CreateAsset<Scene>("New Scene.skscene", true);
 
 							if (ImGui::MenuItem("Material"))
-								CreateAsset<MaterialAsset>("New Material.skmat", true, Material::Create(Renderer::GetShaderLibrary()->Get("SharkPBR")));
+								CreateAsset<PBRMaterial>("New Material.skmat", true, "New Material");
 
 							if (ImGui::MenuItem("Prefab"))
 								CreateAsset<Prefab>("New Prefab.sfab", true);

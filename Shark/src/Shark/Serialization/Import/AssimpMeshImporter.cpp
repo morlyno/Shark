@@ -179,9 +179,9 @@ namespace Shark {
 			{
 				auto aiMaterial = scene->mMaterials[i];
 				auto materialName = aiMaterial->GetName();
-				auto material = Material::Create(Renderer::GetShaderLibrary()->Get("SharkPBR"), materialName.data);
-				auto materialAsset = Ref<MaterialAsset>::Create(material);
-				meshSource->m_Materials[i] = AssetManager::AddMemoryAsset(materialAsset);
+
+				auto pbrMaterial = PBRMaterial::Create(materialName.data, false);
+				meshSource->m_Materials[i] = AssetManager::AddMemoryAsset(pbrMaterial);
 
 				SK_MESH_LOG("  {} (Index = {})", materialName.data, i);
 
@@ -250,9 +250,9 @@ namespace Shark {
 				if (aiMaterial->Get(AI_MATKEY_REFLECTIVITY, metalness) != aiReturn_SUCCESS)
 					metalness = 0.0f;
 
-				materialAsset->SetAlbedoColor(albedoColor);
-				materialAsset->SetMetalness(metalness);
-				materialAsset->SetRoughness(roughness);
+				pbrMaterial->SetAlbedoColor(albedoColor);
+				pbrMaterial->SetMetalness(metalness);
+				pbrMaterial->SetRoughness(roughness);
 
 				aiString aiTexPath;
 				if (aiMaterial->GetTexture(AI_MATKEY_BASE_COLOR_TEXTURE, &aiTexPath) == aiReturn_SUCCESS ||
@@ -261,8 +261,8 @@ namespace Shark {
 					AssetHandle textureHandle = LoadTexture(scene, aiTexPath, true);
 					if (textureHandle != AssetHandle::Invalid)
 					{
-						materialAsset->SetAlbedoMap(textureHandle);
-						materialAsset->SetAlbedoColor(glm::vec3(1.0f));
+						pbrMaterial->SetAlbedoMap(textureHandle);
+						pbrMaterial->SetAlbedoColor(glm::vec3(1.0f));
 					}
 				}
 
@@ -271,8 +271,8 @@ namespace Shark {
 					AssetHandle textureHandle = LoadTexture(scene, aiTexPath, false);
 					if (textureHandle != AssetHandle::Invalid)
 					{
-						materialAsset->SetNormalMap(textureHandle);
-						materialAsset->SetUsingNormalMap(true);
+						pbrMaterial->SetNormalMap(textureHandle);
+						pbrMaterial->SetUsingNormalMap(true);
 					}
 				}
 
@@ -281,8 +281,8 @@ namespace Shark {
 					AssetHandle textureHandle = LoadTexture(scene, aiTexPath, false);
 					if (textureHandle != AssetHandle::Invalid)
 					{
-						materialAsset->SetMetalnessMap(textureHandle);
-						materialAsset->SetMetalness(1.0f);
+						pbrMaterial->SetMetalnessMap(textureHandle);
+						pbrMaterial->SetMetalness(1.0f);
 					}
 				}
 				
@@ -291,8 +291,8 @@ namespace Shark {
 					AssetHandle textureHandle = LoadTexture(scene, aiTexPath, false);
 					if (textureHandle != AssetHandle::Invalid)
 					{
-						materialAsset->SetRoughnessMap(textureHandle);
-						materialAsset->SetRoughness(1.0f);
+						pbrMaterial->SetRoughnessMap(textureHandle);
+						pbrMaterial->SetRoughness(1.0f);
 					}
 				}
 			}

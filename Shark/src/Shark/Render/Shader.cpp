@@ -69,7 +69,6 @@ namespace Shark {
 		static D3D11BindingSetOffsets s_NullOffsets = {};
 		const D3D11BindingSetOffsets* bindingOffsets = &s_NullOffsets;
 
-		m_BindingLayouts.resize(m_ReflectionData.BindingLayouts.size());
 		for (uint32_t set = 0; set < m_ReflectionData.BindingLayouts.size(); set++)
 		{
 			const auto& layout = m_ReflectionData.BindingLayouts[set];
@@ -103,28 +102,27 @@ namespace Shark {
 			for (const auto& [slot, layoutItem] : layout.Images)
 			{
 				layoutDesc.visibility |= layoutItem.Stage;
-				layoutDesc.addItem(nvrhi::BindingLayoutItem::Texture_SRV(layoutItem.Slot + bindingOffsets->ShaderResource));
+				layoutDesc.addItem(nvrhi::BindingLayoutItem::Texture_SRV(layoutItem.Slot + bindingOffsets->ShaderResource).setSize(layoutItem.ArraySize));
 			}
 
 			for (const auto& [slot, layoutItem] : layout.StorageImages)
 			{
 				layoutDesc.visibility |= layoutItem.Stage;
-				layoutDesc.addItem(nvrhi::BindingLayoutItem::Texture_UAV(layoutItem.Slot + bindingOffsets->UnorderedAccess));
+				layoutDesc.addItem(nvrhi::BindingLayoutItem::Texture_UAV(layoutItem.Slot + bindingOffsets->UnorderedAccess).setSize(layoutItem.ArraySize));
 			}
 
 			for (const auto& [slot, layoutItem] : layout.Samplers)
 			{
 				layoutDesc.visibility |= layoutItem.Stage;
-				layoutDesc.addItem(nvrhi::BindingLayoutItem::Sampler(layoutItem.Slot + bindingOffsets->Sampler));
+				layoutDesc.addItem(nvrhi::BindingLayoutItem::Sampler(layoutItem.Slot + bindingOffsets->Sampler).setSize(layoutItem.ArraySize));
 			}
 
-			// #Investigate empty binding layouts
-			// set visibility to all when the layout is empty, because visibility none is not allowed
 			if (layoutDesc.bindings.empty())
-				layoutDesc.visibility = nvrhi::ShaderType::All;
+				continue;
 
 			nvrhi::BindingLayoutHandle bindingLayout = device->createBindingLayout(layoutDesc);
-			m_BindingLayouts[set] = bindingLayout;
+			m_BindingLayouts.push_back(bindingLayout);
+			m_LayoutMapping[set] = m_BindingLayouts.size() - 1;
 		}
 
 		if (m_BindingLayouts.empty() && m_ReflectionData.PushConstant)
@@ -135,6 +133,7 @@ namespace Shark {
 
 			nvrhi::BindingLayoutHandle bindingLayout = device->createBindingLayout(layoutDesc);
 			m_BindingLayouts.push_back(bindingLayout);
+			m_LayoutMapping[0] = 0;
 		}
 
 	}
@@ -145,7 +144,7 @@ namespace Shark {
 
 	Ref<Shader> ShaderLibrary::Load(const std::filesystem::path& filepath, bool forceCompile, bool disableOptimization)
 	{
-		auto compiler = ShaderCompiler::Load(filepath, { .Force = forceCompile, .Optimize = !disableOptimization });
+		auto compiler = ShaderCompiler::Load(filepath, { .Force = forceCompile, .Optimize = !disableOptimization, .GenerateDebugInfo = true });
 		if (!compiler)
 			return nullptr;
 

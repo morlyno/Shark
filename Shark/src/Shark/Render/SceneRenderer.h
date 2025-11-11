@@ -65,19 +65,18 @@ namespace Shark {
 
 	public:
 		SceneRenderer(uint32_t width, uint32_t height, const std::string& debugName);
-		SceneRenderer(Ref<Scene> scene, const SceneRendererSpecification& specification);
+		SceneRenderer(const SceneRendererSpecification& specification);
 		SceneRenderer(Ref<Scene> scene);
 		~SceneRenderer();
 
 		void Resize(uint32_t width, uint32_t height);
 		void SetClearColor(const glm::vec4& clearColor);
 
-		void SetScene(Ref<Scene> scene) { m_Scene = scene; }
-		void BeginScene(const SceneRendererCamera& camera);
+		void BeginScene(Ref<Scene> scene, const SceneRendererCamera& camera);
 		void EndScene();
 
-		void SubmitMesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<MaterialAsset> material, const glm::mat4& transform, int id);
-		void SubmitSelectedMesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<MaterialAsset> material, const glm::mat4& transform);
+		void SubmitMesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<PBRMaterial> material, const glm::mat4& transform, int id);
+		void SubmitSelectedMesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<PBRMaterial> material, const glm::mat4& transform);
 
 		Ref<Renderer2D> GetRenderer2D() const { return m_Renderer2D; }
 		Ref<Image2D> GetFinalPassImage() const { return m_CompositePass->GetOutput(0); }
@@ -153,7 +152,7 @@ namespace Shark {
 			Ref<Mesh> Mesh;
 			Ref<MeshSource> MeshSource;
 			uint32_t SubmeshIndex;
-			Ref<MaterialAsset> Material;
+			Ref<PBRMaterial> Material;
 			glm::mat4 Transform;
 			int ID;
 		};

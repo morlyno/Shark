@@ -161,7 +161,10 @@ namespace Shark {
 					pCmd->UserCallback(cmdList, pCmd);
 				}
 				else {
-					drawState.bindings = { GetBindingSet((const ViewInfo*)pCmd->GetTexID()) };
+					Ref<ViewableResource> texture;
+					texture.Attach(reinterpret_cast<ViewableResource*>(pCmd->GetTexID()));
+
+					drawState.bindings = { GetBindingSet(texture) };
 					assert(drawState.bindings[0]);
 
 					drawState.viewport.scissorRects[0] = nvrhi::Rect(int(pCmd->ClipRect.x),
@@ -177,6 +180,9 @@ namespace Shark {
 					commandList->setGraphicsState(drawState);
 					commandList->setPushConstants(&pushConstants, sizeof(PushConstants));
 					commandList->drawIndexed(drawArguments);
+
+					if (m_FontTextures.contains(texture.Raw()))
+						texture.Detach();
 				}
 
 				idxOffset += pCmd->ElemCount;
@@ -251,61 +257,54 @@ namespace Shark {
 
 			auto textureHandle = device->createTexture(textureDesc);
 
-			auto viewInfo = sknew ViewInfo();
-			viewInfo->ImageHandle = textureHandle;
-			viewInfo->Sampler = m_FontSampler;
+			auto tex = Ref<ImGuiTexture>::Create();
+			tex->View.Handle = textureHandle;
+			tex->View.TextureSampler = m_FontSampler;
+			m_FontTextures.emplace(tex.Raw());
 
-			texture->BackendUserData = viewInfo;
-			texture->SetTexID((ImTextureID)texture->BackendUserData);
+			texture->BackendUserData = tex.Detach();
+			texture->SetTexID(reinterpret_cast<ImTextureID>(texture->BackendUserData));
 			texture->SetStatus(ImTextureStatus_OK);
 		}
 		else if (texture->Status == ImTextureStatus_WantDestroy)
 		{
-			auto viewInfo = (ViewInfo*)texture->BackendUserData;
-			viewInfo->ImageHandle = nullptr;
+			Ref<ImGuiTexture> tex;
+			tex.Attach(static_cast<ImGuiTexture*>(texture->BackendUserData));
 
-			skdelete viewInfo;
-
+			m_FontTextures.erase(tex.Raw());
 			texture->SetTexID(ImTextureID_Invalid);
 			texture->SetStatus(ImTextureStatus_Destroyed);
 			texture->BackendUserData = nullptr;
 		}
 		else if (texture->Status == ImTextureStatus_WantUpdates)
 		{
-			auto viewInfo = (ViewInfo*)texture->BackendUserData;
+			auto tex = static_cast<ImGuiTexture*>(texture->BackendUserData);
+			const auto& viewInfo = tex->GetViewInfo();
 
-			commandList->beginTrackingTextureState(viewInfo->ImageHandle, nvrhi::AllSubresources, nvrhi::ResourceStates::Common);
-			commandList->writeTexture(viewInfo->ImageHandle, 0, 0, texture->Pixels, texture->Width * 4);
-			commandList->setPermanentTextureState(viewInfo->ImageHandle, nvrhi::ResourceStates::ShaderResource);
+			commandList->beginTrackingTextureState(viewInfo.Handle, nvrhi::AllSubresources, nvrhi::ResourceStates::Common);
+			commandList->writeTexture(viewInfo.Handle, 0, 0, texture->Pixels, texture->Width * 4);
+			commandList->setPermanentTextureState(viewInfo.Handle, nvrhi::ResourceStates::ShaderResource);
 			commandList->commitBarriers();
 
 			texture->SetStatus(ImTextureStatus_OK);
 		}
 	}
 
-	nvrhi::IBindingSet* ImGuiRenderer::GetBindingSet(const ViewInfo* viewInfo)
+	nvrhi::IBindingSet* ImGuiRenderer::GetBindingSet(Ref<ViewableResource> viewable)
 	{
 		auto device = Application::Get().GetDeviceManager()->GetDevice();
 
-		auto iter = m_BindingsCache.find(viewInfo);
+		const auto iter = m_BindingsCache.find(viewable->GetViewInfo());
 		if (iter != m_BindingsCache.end())
-		{
-			auto activeSampler = viewInfo->Sampler ? viewInfo->Sampler : m_FontSampler;
-
-			nvrhi::IBindingSet* bindingSet = iter->second;
-			if (bindingSet->getDesc()->bindings[1].resourceHandle == viewInfo->ImageHandle &&
-				bindingSet->getDesc()->bindings[2].resourceHandle == activeSampler)
-				return iter->second;
-
-			m_BindingsCache.erase(viewInfo);
-		}
+			iter->second;
 
 		nvrhi::BindingSetDesc desc;
+		const auto& viewInfo = viewable->GetViewInfo();
 
 		desc.bindings = {
 			nvrhi::BindingSetItem::PushConstants(0, sizeof(glm::vec2) * 2),
-			nvrhi::BindingSetItem::Texture_SRV(0, viewInfo->ImageHandle, nvrhi::Format::UNKNOWN, viewInfo->SubresourceSet),
-			nvrhi::BindingSetItem::Sampler(0, viewInfo->Sampler ? viewInfo->Sampler : m_FontSampler)
+			nvrhi::BindingSetItem::Texture_SRV(0, viewInfo.Handle, viewInfo.Format, viewInfo.SubresourceSet, viewInfo.Dimension),
+			nvrhi::BindingSetItem::Sampler(0, viewInfo.TextureSampler ? viewInfo.TextureSampler : m_FontSampler)
 		};
 
 		nvrhi::BindingSetHandle binding;

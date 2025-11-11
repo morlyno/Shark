@@ -25,7 +25,7 @@ namespace Shark {
 
 	void RenderPass::Update()
 	{
-		//SK_NOT_IMPLEMENTED();
+		m_InputManager.Bake();
 	}
 
 	void RenderPass::SetInput(const std::string& name, Ref<ConstantBuffer> constantBuffer)

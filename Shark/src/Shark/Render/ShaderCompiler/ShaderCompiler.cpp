@@ -61,9 +61,6 @@ namespace Shark {
 		m_Info.SourcePath = FileSystem::Relative(sourcePath);
 		m_Info.Language = utils::ShaderLanguageFromFileExtension(m_Info.SourcePath.extension().string());
 		m_Info.ShaderID = Hash::GenerateFNV(m_Info.SourcePath.string());
-		m_Options.Optimize = false;
-		m_Options.GenerateDebugInfo = true;
-		//m_Options.Force = true;
 	}
 
 	Ref<ShaderCompiler> ShaderCompiler::Load(const std::filesystem::path& sourcePath, const CompilerOptions& options)
@@ -162,7 +159,9 @@ namespace Shark {
 			case ShaderLanguage::HLSL:
 			{
 				HLSLPreprocessor preprocessor;
-				result = preprocessor.Preprocess(m_Source);
+				preprocessor.Preprocess(m_Source);
+				result = std::move(preprocessor.PreProcessedResult);
+				m_CombinedImageSampler = std::move(preprocessor.CombinedImageSamplers);
 				break;
 			}
 			case ShaderLanguage::GLSL:
@@ -228,6 +227,7 @@ namespace Shark {
 			filename.c_str(),
 
 			L"-I Resources/Shaders/",
+			L"-I Resources/Shaders/EnvMap",
 
 			L"-E", L"main",
 			L"-T", version,
@@ -236,7 +236,7 @@ namespace Shark {
 			L"-fspv-reflect",
 			L"-fspv-target-env=vulkan1.2",
 			//L"-fspv-preserve-bindings",
-			//L"-fspv-preserve-interface"
+			L"-fspv-preserve-interface"
 		};
 
 		if (m_Options.GenerateDebugInfo)
@@ -314,6 +314,7 @@ namespace Shark {
 		for (const auto& [stage, binary] : m_SpirvBinary)
 			ReflectStage(stage);
 		
+		BuildCombinedImageSampler();
 		MapBindings();
 	}
 
@@ -321,7 +322,7 @@ namespace Shark {
 	{
 		const auto& spirvBinary = m_SpirvBinary.at(stage);
 		spirv_cross::Compiler compiler(spirvBinary.data(), spirvBinary.size());
-		spirv_cross::ShaderResources shaderResources = compiler.get_shader_resources();
+		spirv_cross::ShaderResources shaderResources = compiler.get_shader_resources(compiler.get_active_interface_variables());
 
 #if 0
 	#define CHECK_BINDING(_binding, _typeStr)\
@@ -334,6 +335,10 @@ namespace Shark {
 #else
 	#define CHECK_BINDING(...)
 #endif
+
+#define LOG_REFLECTION(_set, _slot, _register, _name, _type) SK_CORE_INFO_TAG("ShaderCompiler", " - {} [{} {}{}] {}", _name, _set, _register, _slot, _type)
+
+		SK_CORE_INFO_TAG("ShaderCompiler", "=== Reflection {} ===", stage);
 
 		SK_CORE_VERIFY(shaderResources.push_constant_buffers.size() <= 1);
 		for (const auto& pushConstant : shaderResources.push_constant_buffers)
@@ -356,6 +361,7 @@ namespace Shark {
 				SK_CORE_VERIFY(m_Reflection.PushConstant->StructSize == (uint32_t)compiler.get_declared_struct_size(type));
 			}
 
+			SK_CORE_INFO_TAG("ShaderCompiler", " - {} PushConstant", name);
 			//m_ShaderResources[m_ReflectionData.PushConstant.Binding] = &m_ReflectionData.PushConstant;
 			//m_SpirvCrossIDs[{ ~0u, 0, GraphicsResourceType::ConstantBuffer }] = pushConstant.id;
 		}
@@ -377,6 +383,17 @@ namespace Shark {
 			auto& layout = m_Reflection.BindingLayouts[set];
 			CHECK_BINDING(binding, "b");
 
+			if (layout.ConstantBuffers.contains(slot))
+			{
+				auto& buffer = layout.ConstantBuffers.at(slot);
+				SK_CORE_VERIFY(buffer.Name == name);
+				SK_CORE_VERIFY(buffer.StructSize == (uint32_t)compiler.get_declared_struct_size(type));
+				buffer.Stage |= stage;
+
+				LOG_REFLECTION(set, slot, "b", name, "ConstantBuffer Shared");
+				continue;
+			}
+
 			auto& buffer = layout.ConstantBuffers[slot];
 			buffer.Name = name;
 			buffer.StructSize = (uint32_t)compiler.get_declared_struct_size(type);
@@ -393,6 +410,7 @@ namespace Shark {
 				.Type = ShaderInputType::ConstantBuffer
 			};
 
+			LOG_REFLECTION(set, slot, "b", name, "ConstantBuffer");
 			//m_ShaderResources[binding] = &buffer;
 			//m_SpirvCrossIDs[binding] = constantBuffer.id;
 		}
@@ -414,6 +432,17 @@ namespace Shark {
 			auto& layout = m_Reflection.BindingLayouts[set];
 			CHECK_BINDING(binding, "t");
 
+			if (layout.StorageBuffers.contains(slot))
+			{
+				auto& buffer = layout.StorageBuffers.at(slot);
+				SK_CORE_VERIFY(buffer.Name == name);
+				SK_CORE_VERIFY(buffer.StructSize == (uint32_t)compiler.get_declared_struct_size(type));
+				buffer.Stage |= stage;
+
+				LOG_REFLECTION(set, slot, "t", name, "StorageBuffer Shared");
+				continue;
+			}
+
 			auto& buffer = layout.StorageBuffers[slot];
 			buffer.Name = name;
 			buffer.StructSize = (uint32_t)compiler.get_declared_struct_size(type);
@@ -430,6 +459,7 @@ namespace Shark {
 				.Type = ShaderInputType::StorageBuffer
 			};
 
+			LOG_REFLECTION(set, slot, "t", name, "StorageBuffer");
 			//m_ShaderResources[binding] = &buffer;
 			//m_SpirvCrossIDs[binding] = storageBuffer.id;
 		}
@@ -450,6 +480,17 @@ namespace Shark {
 			auto& layout = m_Reflection.BindingLayouts[set];
 			CHECK_BINDING(binding, "t");
 
+			if (layout.Images.contains(slot))
+			{
+				auto& image = layout.Images.at(slot);
+				SK_CORE_VERIFY(image.Name == name);
+				SK_CORE_VERIFY(image.ArraySize == !type.array.empty() ? type.array[0] : 1);
+				image.Stage |= stage;
+
+				LOG_REFLECTION(set, slot, "t", name, "SeparateImage Shared");
+				continue;
+			}
+
 			auto& image = layout.Images[slot];
 			image.Name = name;
 			image.Slot = slot;
@@ -458,15 +499,12 @@ namespace Shark {
 			if (!type.array.empty())
 				image.ArraySize = type.array[0];
 
-			ShaderInputType inputType = ShaderInputType::None;
 			switch (type.image.dim)
 			{
 				case spv::Dim2D:
-					inputType = ShaderInputType::Image2D;
 					image.Dimension = 2;
 					break;
 				case spv::DimCube:
-					inputType = ShaderInputType::ImageCube;
 					image.Dimension = 3;
 					break;
 				default: SK_CORE_VERIFY(false); break;
@@ -479,9 +517,10 @@ namespace Shark {
 				.Slot = slot,
 				.Count = image.ArraySize,
 				.GraphicsType = GraphicsResourceType::ShaderResourceView,
-				.Type = inputType
+				.Type = ShaderInputType::Image
 			};
 
+			LOG_REFLECTION(set, slot, "t", name, "SeparateImage");
 			//m_ShaderResources[binding] = &image;
 			//m_SpirvCrossIDs[binding] = resource.id;
 		}
@@ -502,6 +541,17 @@ namespace Shark {
 			auto& layout = m_Reflection.BindingLayouts[set];
 			CHECK_BINDING(binding, "u");
 
+			if (layout.StorageImages.contains(slot))
+			{
+				auto& storageImage = layout.StorageImages.at(slot);
+				SK_CORE_VERIFY(storageImage.Name == name);
+				SK_CORE_VERIFY(storageImage.ArraySize == !type.array.empty() ? type.array[0] : 1);
+				storageImage.Stage |= stage;
+
+				LOG_REFLECTION(set, slot, "u", name, "StorageImage Shared");
+				continue;
+			}
+
 			auto& storageImage = layout.StorageImages[slot];
 			storageImage.Name = name;
 			storageImage.Slot = slot;
@@ -510,14 +560,13 @@ namespace Shark {
 			if (!type.array.empty())
 				storageImage.ArraySize = type.array[0];
 
-			ShaderInputType inputType = ShaderInputType::None;
 			switch (type.image.dim)
 			{
 				case spv::Dim2D:
-					inputType = ShaderInputType::StorageImage2D;
+					storageImage.Dimension = 2;
 					break;
 				case spv::DimCube:
-					inputType = ShaderInputType::StorageImageCube;
+					storageImage.Dimension = 3;
 					break;
 				default: SK_CORE_VERIFY(false); break;
 			}
@@ -529,9 +578,10 @@ namespace Shark {
 				.Slot = slot,
 				.Count = storageImage.ArraySize,
 				.GraphicsType = GraphicsResourceType::UnorderedAccessView,
-				.Type = inputType
+				.Type = ShaderInputType::StorageImage
 			};
 
+			LOG_REFLECTION(set, slot, "u", name, "StorageImage");
 			//m_ShaderResources[binding] = &storageImage;
 			//m_SpirvCrossIDs[binding] = resource.id;
 		}
@@ -552,6 +602,16 @@ namespace Shark {
 			auto& layout = m_Reflection.BindingLayouts[set];
 			CHECK_BINDING(binding, "s");
 
+			if (layout.Samplers.contains(slot))
+			{
+				auto& sampler = layout.Samplers.at(slot);
+				SK_CORE_VERIFY(sampler.Name == name);
+				sampler.Stage |= stage;
+
+				LOG_REFLECTION(set, slot, "s", name, "Sampler Shared");
+				continue;
+			}
+
 			auto& sampler = layout.Samplers[slot];
 			sampler.Name = name;
 			sampler.Slot = slot;
@@ -570,6 +630,7 @@ namespace Shark {
 				.Type = ShaderInputType::Sampler
 			};
 
+			LOG_REFLECTION(set, slot, "s", name, "Sampler");
 			//m_ShaderResources[binding] = &sampler;
 			//m_SpirvCrossIDs[binding] = resource.id;
 		}
@@ -611,6 +672,69 @@ namespace Shark {
 			m_Reflection.BindingLayouts[set].BindingOffsets = bindingOffsets;
 		}
 
+	}
+
+	void ShaderCompiler::BuildCombinedImageSampler()
+	{
+		for (const auto& [imageName, samplerName] : m_CombinedImageSampler)
+		{
+			ShaderInputInfo* imageInfo = FindInputInfo(imageName);
+			ShaderInputInfo* samplerInfo = FindInputInfo(samplerName);
+
+			if (!imageInfo || !samplerInfo)
+			{
+				std::string errorMessage;
+				if (!imageInfo)   errorMessage += fmt::format("\n - Image input '{}' not found", imageName);
+				if (!samplerInfo) errorMessage += fmt::format("\n - Sampler input '{}' not found", samplerName);
+
+				SK_CORE_WARN_TAG("ShaderCompiler", "Failed to build combined image sampler!{}", errorMessage);
+				continue;
+			}
+
+			if (imageInfo->Set != samplerInfo->Set)
+			{
+				SK_CORE_WARN_TAG("ShaderCompiler", "Failed to build combined image sampler because Image and Sampler are in different sets!\n"
+								 " - Image '{}' {}\n - Sampler '{}' {}", 
+								 imageInfo->Name, imageInfo->Set,
+								 samplerInfo->Name, samplerInfo->Set);
+				continue;
+			}
+
+			auto& layout = m_Reflection.BindingLayouts[imageInfo->Set];
+			auto& image = layout.Images.at(imageInfo->Slot);
+			auto& sampler = layout.Samplers.at(imageInfo->Slot);
+
+			auto& sampledImage = layout.SampledImages[imageInfo->Slot];
+			sampledImage.Name = image.Name;
+			sampledImage.SeparateImage = image;
+			sampledImage.SeparateSampler = sampler;
+
+			ShaderInputInfo info = {
+				.Name = imageInfo->Name,
+				.Set = imageInfo->Set,
+				.Slot = imageInfo->Slot,
+				.Count = imageInfo->Count,
+				.GraphicsType = GraphicsResourceType::ShaderResourceView,
+				.Type = ShaderInputType::Texture
+			};
+			
+			layout.InputInfos.erase(imageInfo->Name);
+			layout.InputInfos.erase(samplerInfo->Name);
+			layout.InputInfos[info.Name] = info;
+		}
+	}
+
+	ShaderInputInfo* ShaderCompiler::FindInputInfo(const std::string& name)
+	{
+		for (auto& layout : m_Reflection.BindingLayouts)
+		{
+			if (!layout.InputInfos.contains(name))
+				continue;
+
+			return &layout.InputInfos.at(name);
+		}
+
+		return nullptr;
 	}
 
 }

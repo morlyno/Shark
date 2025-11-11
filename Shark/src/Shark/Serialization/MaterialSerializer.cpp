@@ -23,7 +23,7 @@ namespace Shark {
 		ScopedTimer timer("Serializing Material");
 		m_ErrorMsg.clear();
 
-		std::string result = SerializeToYAML(asset.As<MaterialAsset>());
+		std::string result = SerializeToYAML(asset.As<PBRMaterial>());
 		if (result.empty())
 		{
 			SK_CORE_ERROR_TAG("Serialization", "YAML result was empty!\n\tError Message: {}", m_ErrorMsg);
@@ -57,7 +57,7 @@ namespace Shark {
 			return false;
 		}
 
-		Ref<MaterialAsset> material = Ref<MaterialAsset>::Create(Material::Create(Renderer::GetShaderLibrary()->Get("SharkPBR"), FileSystem::GetStemString(metadata.FilePath)));
+		Ref<PBRMaterial> material = PBRMaterial::Create(FileSystem::GetStemString(metadata.FilePath));
 		if (!DeserializeFromYAML(material, filedata))
 		{
 			SK_CORE_ERROR_TAG("Serialization", "Failed to deserialize YAML file!\n\tError Message: {}", m_ErrorMsg);
@@ -69,7 +69,7 @@ namespace Shark {
 		return true;
 	}
 
-	std::string MaterialSerializer::SerializeToYAML(Ref<MaterialAsset> material)
+	std::string MaterialSerializer::SerializeToYAML(Ref<PBRMaterial> material)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -93,7 +93,7 @@ namespace Shark {
 		return out.c_str();
 	}
 
-	bool MaterialSerializer::DeserializeFromYAML(Ref<MaterialAsset> material, const std::string& filedata)
+	bool MaterialSerializer::DeserializeFromYAML(Ref<PBRMaterial> material, const std::string& filedata)
 	{
 		SK_PROFILE_FUNCTION();
 

@@ -59,27 +59,19 @@ namespace Shark {
 	Texture2D::~Texture2D()
 	{
 		m_Image = nullptr;
-		Release();
+		m_ViewInfo.Handle = nullptr;
+		m_ViewInfo.TextureSampler = nullptr;
 		m_ImageData.Release();
-	}
-
-	void Texture2D::Release()
-	{
-		if (m_Image)
-			m_Image->Release();
-
-		m_Sampler = nullptr;
 	}
 
 	void Texture2D::Submit_Invalidate()
 	{
-		m_Specification.GenerateMips = false;
-
 		ImageSpecification& specification = m_Image->GetSpecification();
 		specification.Width = m_Specification.Width;
 		specification.Height = m_Specification.Height;
 		specification.Format = m_Specification.Format;
 		specification.MipLevels = m_Specification.GenerateMips ? 0 : 1;
+		specification.Usage = m_Specification.Storage ? ImageUsage::Storage : ImageUsage::Texture;
 		specification.DebugName = m_Specification.DebugName;
 
 		m_Image->Submit_Invalidate();
@@ -97,32 +89,21 @@ namespace Shark {
 				Renderer::GenerateMips(m_Image);
 		}
 
-		auto samplerDesc = nvrhi::SamplerDesc()
-			.setMaxAnisotropy(m_Specification.MaxAnisotropy)
-			.setAllFilters(m_Specification.Filter == FilterMode::Linear)
-			.setAllAddressModes(utils::ConvertAddressMode(m_Specification.Address));
-		
 		Ref instance = this;
-		Renderer::Submit([instance, samplerDesc]()
+		Renderer::Submit([instance, image = m_Image, state = RT_State(m_Specification)]()
 		{
-			auto device = Application::Get().GetDeviceManager()->GetDevice();
-			instance->m_Sampler = device->createSampler(samplerDesc);
-
-			auto& viewInfo = instance->m_Image->GetViewInfo();
-			viewInfo.Sampler = instance->m_Sampler;
+			instance->InvalidateFromState(image, state);
 		});
-
 	}
 
 	void Texture2D::RT_Invalidate()
 	{
-		m_Specification.GenerateMips = false;
-
 		ImageSpecification& specification = m_Image->GetSpecification();
 		specification.Width = m_Specification.Width;
 		specification.Height = m_Specification.Height;
 		specification.Format = m_Specification.Format;
 		specification.MipLevels = m_Specification.GenerateMips ? 0 : 1;
+		specification.Usage = m_Specification.Storage ? ImageUsage::Storage : ImageUsage::Texture;
 		specification.DebugName = m_Specification.DebugName;
 
 		m_Image->RT_Invalidate();
@@ -133,19 +114,31 @@ namespace Shark {
 			m_ImageData.Release();
 
 			if (m_Specification.GenerateMips)
-				Renderer::RT_GenerateMips(m_Image);
+			{
+				// #Renderer #TODO RT_GenerateMips is not implemented
+				Application::Get().SubmitToMainThread([image = m_Image]()
+				{
+					Renderer::GenerateMips(image);
+				});
+				//Renderer::RT_GenerateMips(m_Image);
+			}
 		}
 
+		InvalidateFromState(m_Image, RT_State(m_Specification));
+	}
+
+	void Texture2D::InvalidateFromState(Ref<Image2D> image, const RT_State& state)
+	{
 		auto samplerDesc = nvrhi::SamplerDesc()
 			.setMaxAnisotropy(m_Specification.MaxAnisotropy)
 			.setAllFilters(m_Specification.Filter == FilterMode::Linear)
 			.setAllAddressModes(utils::ConvertAddressMode(m_Specification.Address));
 
 		auto device = Application::Get().GetDeviceManager()->GetDevice();
-		m_Sampler = device->createSampler(samplerDesc);
+		m_ViewInfo.TextureSampler = device->createSampler(samplerDesc);
 
-		auto& viewInfo = m_Image->GetViewInfo();
-		viewInfo.Sampler = m_Sampler;
+		m_ViewInfo.Handle = image->GetHandle();
+		m_ViewInfo.SubresourceSet = nvrhi::AllSubresources;
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -155,34 +148,15 @@ namespace Shark {
 	TextureCube::TextureCube(const TextureSpecification& specification, Buffer imageData)
 		: m_Specification(specification), m_ImageData(Buffer::Copy(imageData)), m_Image(Image2D::Create())
 	{
-		RT_Invalidate();
-	}
-
-	TextureCube::~TextureCube()
-	{
-		m_Image = nullptr;
-		Release();
-		m_ImageData.Release();
-	}
-
-	void TextureCube::Release()
-	{
-		if (m_Image)
-			m_Image->Release();
-
-		m_Sampler = nullptr;
-	}
-
-	void TextureCube::RT_Invalidate()
-	{
-		ImageSpecification& specification = m_Image->GetSpecification();
-		specification.Width = m_Specification.Width;
-		specification.Height = m_Specification.Height;
-		specification.Format = m_Specification.Format;
-		specification.Layers = 6;
-		specification.IsCube = true;
-		specification.MipLevels = m_Specification.GenerateMips ? 0 : 1;
-		specification.DebugName = m_Specification.DebugName;
+		ImageSpecification& imageSpec = m_Image->GetSpecification();
+		imageSpec.Width = m_Specification.Width;
+		imageSpec.Height = m_Specification.Height;
+		imageSpec.Format = m_Specification.Format;
+		imageSpec.Layers = 6;
+		imageSpec.IsCube = true;
+		imageSpec.MipLevels = m_Specification.GenerateMips ? 0 : 1;
+		imageSpec.Usage = m_Specification.Storage ? ImageUsage::Storage : ImageUsage::Texture;
+		imageSpec.DebugName = m_Specification.DebugName;
 		m_Image->RT_Invalidate();
 
 		if (m_ImageData)
@@ -190,7 +164,8 @@ namespace Shark {
 			m_Image->RT_UploadData(m_ImageData);
 			m_ImageData.Release();
 
-			if (m_Specification.GenerateMips)
+			// #Renderer #Disabled Texture2D GenerateMips
+			if (m_Specification.GenerateMips && false)
 				Renderer::RT_GenerateMips(m_Image);
 		}
 
@@ -200,10 +175,16 @@ namespace Shark {
 			.setAllAddressModes(utils::ConvertAddressMode(m_Specification.Address));
 
 		auto device = Application::Get().GetDeviceManager()->GetDevice();
-		m_Sampler = device->createSampler(samplerDesc);
+		m_ViewInfo.TextureSampler = device->createSampler(samplerDesc);
 
-		auto& viewInfo = m_Image->GetViewInfo();
-		viewInfo.Sampler = m_Sampler;
+		m_ViewInfo.Handle = m_Image->GetHandle();
+		m_ViewInfo.SubresourceSet = nvrhi::AllSubresources;
+	}
+
+	TextureCube::~TextureCube()
+	{
+		m_Image = nullptr;
+		m_ImageData.Release();
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////

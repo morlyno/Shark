@@ -22,10 +22,11 @@ namespace Shark {
 		const std::string& GetName() const { return m_Name; }
 		const std::filesystem::path& GetFilePath() const { return m_Info.SourcePath; }
 
-		nvrhi::IBindingLayout* GetBindingLayout(uint32_t set) const { return m_BindingLayouts[set]; }
+		nvrhi::IBindingLayout* GetBindingLayout(uint32_t set) const { return m_BindingLayouts[m_LayoutMapping[set]]; }
 		const nvrhi::BindingLayoutVector& GetBindingLayouts() const { return m_BindingLayouts; }
 		const ShaderReflection& GetReflectionData() const { return m_ReflectionData; }
 
+		uint32_t MapSet(uint32_t set) { return m_LayoutMapping[set]; }
 
 	public:
 		Shader();
@@ -46,6 +47,7 @@ namespace Shark {
 		ShaderReflection m_ReflectionData;
 		std::map<nvrhi::ShaderType, nvrhi::ShaderHandle> m_ShaderHandles;
 
+		std::array<uint32_t, nvrhi::c_MaxBindingLayouts> m_LayoutMapping;
 		nvrhi::BindingLayoutVector m_BindingLayouts;
 	};
 

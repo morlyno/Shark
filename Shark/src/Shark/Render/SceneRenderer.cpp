@@ -9,6 +9,7 @@
 
 #include "Shark/Debug/Profiler.h"
 #include <glm/gtx/optimum_pow.hpp>
+#include "Shark/Asset/AssetManager.h"
 
 namespace Shark {
 
@@ -21,14 +22,12 @@ namespace Shark {
 		Initialize(specification);
 	}
 
-	SceneRenderer::SceneRenderer(Ref<Scene> scene, const SceneRendererSpecification& specification)
-		: m_Scene(scene)
+	SceneRenderer::SceneRenderer(const SceneRendererSpecification& specification)
 	{
 		Initialize(specification);
 	}
 
 	SceneRenderer::SceneRenderer(Ref<Scene> scene)
-		: m_Scene(scene)
 	{
 		SceneRendererSpecification specification;
 		specification.Width = scene->GetViewportWidth();
@@ -62,10 +61,12 @@ namespace Shark {
 		m_GeometryPass->GetTargetFramebuffer()->SetClearColor(clearColor);
 	}
 
-	void SceneRenderer::BeginScene(const SceneRendererCamera& camera)
+	void SceneRenderer::BeginScene(Ref<Scene> scene, const SceneRendererCamera& camera)
 	{
 		SK_PROFILE_FUNCTION();
 		
+		m_Scene = scene;
+
 		if (m_NeedsResize && m_Specification.Width != 0 && m_Specification.Height != 0)
 		{
 			m_GeometryPass->GetTargetFramebuffer()->Resize(m_Specification.Width, m_Specification.Height);
@@ -142,15 +143,17 @@ namespace Shark {
 		m_Statistics.CompositePass = m_CommandBuffer->GetGPUExecutionTime(m_TimestampQueries.CompositePassQuery);
 		m_Statistics.JumpFloodPass = m_CommandBuffer->GetGPUExecutionTime(m_TimestampQueries.JumpFloodPassQuery);
 		m_PipelineStatistics = m_CommandBuffer->GetPipelineStatistics();
+
+		m_Scene = nullptr;
 	}
 
-	void SceneRenderer::SubmitMesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<MaterialAsset> material, const glm::mat4& transform, int id)
+	void SceneRenderer::SubmitMesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<PBRMaterial> material, const glm::mat4& transform, int id)
 	{
 		SK_CORE_VERIFY(mesh);
 		SK_CORE_VERIFY(material);
 
 		// set concrete textures in the material
-		material->Invalidate();
+		material->PrepareAndUpdate();
 
 		auto& meshData = m_DrawList.emplace_back();
 		meshData.Mesh = mesh;
@@ -161,7 +164,7 @@ namespace Shark {
 		meshData.ID = id;
 	}
 
-	void SceneRenderer::SubmitSelectedMesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<MaterialAsset> material, const glm::mat4& transform)
+	void SceneRenderer::SubmitSelectedMesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<PBRMaterial> material, const glm::mat4& transform)
 	{
 		SK_CORE_VERIFY(mesh);
 		SK_CORE_VERIFY(material);
@@ -254,10 +257,9 @@ namespace Shark {
 		static bool textureSet = false;
 		if (!textureSet)
 		{
-			if (Ref<Texture2D> texture = AssetManager::GetAsset<Texture2D>(13490309991543351279))
+			if (auto texture = AssetManager::GetAsset<Texture2D>(13490309991543351279))
 			{
 				m_SimpleMaterial->Set("u_Texture", texture);
-				m_SimpleMaterial->Set("u_Sampler", m_SimpleSampler);
 				m_SimpleMaterial->Prepare();
 				textureSet = true;
 			}
@@ -300,11 +302,9 @@ namespace Shark {
 	void SceneRenderer::SkyboxPass()
 	{
 		m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.SkyboxPassQuery);
-		Renderer::BeginEventMarker(m_CommandBuffer, "Skybox Pass");
 		Renderer::BeginRenderPass(m_CommandBuffer, m_SkyboxPass);
 		Renderer::RenderCube(m_CommandBuffer, m_SkyboxPipeline, nullptr);
 		Renderer::EndRenderPass(m_CommandBuffer, m_SkyboxPass);
-		Renderer::EndEventMarker(m_CommandBuffer);
 		m_CommandBuffer->EndTimerQuery(m_TimestampQueries.SkyboxPassQuery);
 	}
 
@@ -389,8 +389,11 @@ namespace Shark {
 
 		if (specification.IsSwapchainTarget)
 		{
+			SK_NOT_IMPLEMENTED(); // #Renderer #Disabled #moro: not implemented
+#if TODO
 			Ref<FrameBuffer> swapchainFramebuffer = Application::Get().GetWindow().GetSwapChain()->GetFrameBuffer();
 			mainFBSpecification.ExistingImages[0] = swapchainFramebuffer->GetImage(0);
+#endif
 		}
 
 		Ref<FrameBuffer> clearFramebuffer = FrameBuffer::Create(mainFBSpecification);
@@ -617,9 +620,12 @@ namespace Shark {
 
 		if (specification.IsSwapchainTarget)
 		{
+			SK_NOT_IMPLEMENTED(); // #Renderer #moro not implemented
+#if TODO
 			Ref<SwapChain> swapchain = Application::Get().GetWindow().GetSwapChain();
 			swapchain->AcknowledgeDependency(m_GeometryPass->GetSpecification().Pipeline->GetSpecification().TargetFrameBuffer);
 			swapchain->AcknowledgeDependency(m_SkyboxPass->GetSpecification().Pipeline->GetSpecification().TargetFrameBuffer);
+#endif
 		}
 
 		m_Renderer2D = Ref<Renderer2D>::Create(m_CompositePass->GetTargetFramebuffer());

@@ -6,6 +6,34 @@
 
 namespace Shark {
 
+	namespace utils {
+
+		static bool IsImageType(RenderInputType type)
+		{
+			switch (type)
+			{
+				case RenderInputType::ConstantBuffer:
+				case RenderInputType::StorageBuffer:
+				case RenderInputType::Sampler:
+					return false;
+
+				case RenderInputType::Image2D:
+				case RenderInputType::Texture2D:
+				case RenderInputType::TextureCube:
+					return true;
+			}
+			SK_CORE_ASSERT(false, "Unknown RenderInputType");
+			return false;
+		}
+
+	}
+
+	ShaderInputManager::ShaderInputManager()
+	{
+		m_Specification.StartSet = 1;
+		m_Specification.EndSet = 0;
+	}
+
 	ShaderInputManager::ShaderInputManager(const ShaderInputManagerSpecification& specification)
 		: m_Specification(specification)
 	{
@@ -58,6 +86,7 @@ namespace Shark {
 		static constexpr D3D11BindingSetOffsets s_NullOffsets = {};
 		const D3D11BindingSetOffsets* bindingOffsets = &s_NullOffsets;
 
+		// #Renderer #TODO This should happen on the render thread
 		for (uint32_t inputSetIndex = 0; inputSetIndex < m_InputSetItems.size(); inputSetIndex++)
 		{
 			const uint32_t set = inputSetIndex + m_Specification.StartSet;
@@ -81,13 +110,13 @@ namespace Shark {
 				{
 					case ShaderInputType::ConstantBuffer:
 					{
-						auto constantBuffer = input.Items[0].As<ConstantBuffer>();
+						auto constantBuffer = input.Items[0].Item.As<ConstantBuffer>();
 						bindingSetDesc.addItem(nvrhi::BindingSetItem::ConstantBuffer(slot + bindingOffsets->ConstantBuffer, constantBuffer->GetHandle()));
 						break;
 					}
 					case ShaderInputType::StorageBuffer:
 					{
-						auto storageBuffer = input.Items[0].As<StorageBuffer>();
+						auto storageBuffer = input.Items[0].Item.As<StorageBuffer>();
 						bindingSetDesc.addItem(nvrhi::BindingSetItem::StructuredBuffer_SRV(slot + bindingOffsets->ShaderResource, storageBuffer->GetHandle()));
 						break;
 					}
@@ -95,7 +124,7 @@ namespace Shark {
 					{
 						for (uint32_t i = 0; i < input.Items.size(); i++)
 						{
-							auto sampler = input.Items[i].As<Sampler>();
+							auto sampler = input.Items[i].Item.As<Sampler>();
 							bindingSetDesc.addItem(
 								nvrhi::BindingSetItem::Sampler(slot + bindingOffsets->Sampler, sampler->GetHandle())
 									.setArrayElement(i)
@@ -103,57 +132,61 @@ namespace Shark {
 						}
 						break;
 					}
-					case ShaderInputType::Image2D:
+					case ShaderInputType::Image:
 					{
 						for (uint32_t i = 0; i < input.Items.size(); i++)
 						{
-							auto image = input.Items[i].As<Image2D>();
-							bindingSetDesc.addItem(
-								nvrhi::BindingSetItem::Texture_SRV(slot + bindingOffsets->ShaderResource, image->GetHandle())
-									.setArrayElement(i)
-							);
-						}
-						break;
-					}
-					case ShaderInputType::ImageCube:
-					{
-						for (uint32_t i = 0; i < input.Items.size(); i++)
-						{
-							auto textureCube = input.Items[i].As<TextureCube>();
-							bindingSetDesc.addItem(
-								nvrhi::BindingSetItem::Texture_SRV(slot + bindingOffsets->ShaderResource, textureCube->GetImage()->GetHandle())
-									.setArrayElement(i)
-							);
-						}
-						break;
-					}
-					case ShaderInputType::StorageImage2D:
-					{
-						for (uint32_t i = 0; i < input.Items.size(); i++)
-						{
-							auto image = input.Items[i].As<Image2D>();
-							bindingSetDesc.addItem(
-								nvrhi::BindingSetItem::Texture_UAV(slot + bindingOffsets->UnorderedAccess, image->GetHandle())
-									.setArrayElement(i)
-							);
-						}
-						break;
-					}
-					case ShaderInputType::StorageImageCube:
-					{
-						for (uint32_t i = 0; i < input.Items.size(); i++)
-						{
-							auto cube = input.Items[i].As<TextureCube>();
-							bindingSetDesc.addItem(
-								nvrhi::BindingSetItem::Texture_UAV(slot + bindingOffsets->UnorderedAccess, cube->GetImage()->GetHandle())
-									.setArrayElement(i)
-							);
-						}
-						break;
-					}
-					default:
-						break;
+							const auto& item = input.Items[i];
+							Ref<ViewableResource> viewable = item.Item.As<ViewableResource>();
+							const auto& viewInfo = viewable->GetViewInfo();
 
+							bindingSetDesc.addItem(
+								nvrhi::BindingSetItem::Texture_SRV(slot + bindingOffsets->ShaderResource, viewInfo.Handle, viewInfo.Format, item.SubresourceSet.value_or(viewInfo.SubresourceSet), viewInfo.Dimension)
+									.setArrayElement(i)
+							);
+						}
+						break;
+					}
+					case ShaderInputType::Texture:
+					{
+						for (uint32_t i = 0; i < input.Items.size(); i++)
+						{
+							const auto& item = input.Items[i];
+							Ref<ViewableResource> viewable = input.Items[i].Item.As<ViewableResource>();
+							const auto& viewInfo = viewable->GetViewInfo();
+							SK_CORE_ASSERT(viewInfo.TextureSampler, "Sampler is null indicating that the provided input is not a combined texture but the Shader expects one.");
+
+							const auto& reflection = m_Specification.Shader->GetReflectionData();
+							const auto& sampledImage = reflection.BindingLayouts[set].SampledImages.at(slot);
+
+							bindingSetDesc.addItem(
+								nvrhi::BindingSetItem::Texture_SRV(sampledImage.SeparateImage.Slot + bindingOffsets->ShaderResource, viewInfo.Handle, viewInfo.Format, item.SubresourceSet.value_or(viewInfo.SubresourceSet), viewInfo.Dimension)
+									.setArrayElement(i)
+							);
+
+							bindingSetDesc.addItem(
+								nvrhi::BindingSetItem::Sampler(sampledImage.SeparateSampler.Slot + bindingOffsets->Sampler, viewInfo.TextureSampler)
+									.setArrayElement(i)
+							);
+						}
+						break;
+					}
+					case ShaderInputType::StorageImage:
+					{
+						for (uint32_t i = 0; i < input.Items.size(); i++)
+						{
+							const auto& item = input.Items[i];
+							Ref<ViewableResource> viewable = input.Items[i].Item.As<ViewableResource>();
+							const auto& viewInfo = viewable->GetViewInfo();
+
+							SK_CORE_ASSERT(viewInfo.Handle->getDesc().isUAV, "Input provided is not writable");
+							bindingSetDesc.addItem(
+								nvrhi::BindingSetItem::Texture_UAV(slot + bindingOffsets->UnorderedAccess, viewInfo.Handle, viewInfo.Format, item.SubresourceSet.value_or(viewInfo.SubresourceSet), viewInfo.Dimension)
+									.setArrayElement(i)
+							);
+						}
+						break;
+					}
 				}
 			}
 
@@ -165,7 +198,7 @@ namespace Shark {
 
 			if (m_BackedSets[inputSetIndex] && *m_BackedSets[inputSetIndex]->getDesc() == bindingSetDesc)
 			{
-				SK_CORE_INFO_TAG("Renderer", "[ShaderInputManager '{}'] Creation of Binding set {} skipped", m_Specification.DebugName, set);
+				SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Creation of Binding set {} skipped", m_Specification.DebugName, set);
 				m_PendingSets.reset(set);
 				continue;
 			}
@@ -184,159 +217,118 @@ namespace Shark {
 		SK_NOT_IMPLEMENTED();
 	}
 
+	namespace utils {
+
+		static bool InputCompadible(RenderInputType providedType, ShaderInputType requiredType)
+		{
+			switch (requiredType)
+			{
+				case ShaderInputType::None: return providedType == RenderInputType::None;
+				case ShaderInputType::ConstantBuffer: return providedType == RenderInputType::ConstantBuffer;
+				case ShaderInputType::StorageBuffer: return providedType == RenderInputType::StorageBuffer;
+				case ShaderInputType::Sampler: return providedType == RenderInputType::Sampler;
+				case ShaderInputType::Texture: return providedType == RenderInputType::Texture2D || providedType == RenderInputType::TextureCube || providedType == RenderInputType::Viewable;
+
+				case ShaderInputType::Image:
+				case ShaderInputType::StorageImage:
+					return providedType == RenderInputType::Image2D || providedType == RenderInputType::ImageView ||
+						   providedType == RenderInputType::Texture2D || providedType == RenderInputType::TextureCube ||
+						   providedType == RenderInputType::Viewable;
+			}
+			SK_CORE_ASSERT(false, "Unknown ShaderInputType");
+			return false;
+		}
+
+		static std::string_view GetBindingPrefix(GraphicsResourceType type)
+		{
+			switch (type)
+			{
+				case GraphicsResourceType::ConstantBuffer: return "b";
+				case GraphicsResourceType::ShaderResourceView: return "t";
+				case GraphicsResourceType::UnorderedAccessView: return "u";
+				case GraphicsResourceType::Sampler: return "s";
+			}
+			return "<UNKNOWN>";
+		}
+
+	}
+
 	bool ShaderInputManager::Validate() const
 	{
 		const auto& reflection = m_Specification.Shader->GetReflectionData();
 
-		std::string errorMessage;
-		fmt::memory_buffer setError;
-		std::bitset<nvrhi::c_MaxBindingLayouts> activeSets;
+		std::map<uint32_t, fmt::memory_buffer> setErrors;
 
-		LayoutArray<nvrhi::BindingSetHandle> backedSets;
-
-		for (uint32_t currentSet = m_Specification.StartSet; currentSet <= m_Specification.EndSet; currentSet++)
+		for (const auto& [name, inputInfo] : m_InputInfos)
 		{
-			const auto& layout = reflection.BindingLayouts[currentSet];
-			const auto& inputSet = m_InputSetItems[currentSet - m_Specification.StartSet];
+			auto stream = fmt::appender(setErrors[inputInfo.Set]);
 
-			setError.clear();
-			auto stream = fmt::appender(setError);
+			const auto& inputSet = m_InputSetItems[inputInfo.Set - m_Specification.StartSet];
+			const auto& input = inputSet.at(inputInfo.GetGraphicsBinding());
 
-			for (const auto& [slot, constantBuffer] : layout.ConstantBuffers)
+			for (uint32_t i = 0; i < inputInfo.Count; i++)
 			{
-				const GraphicsBinding binding = { .Space = currentSet, .Slot = slot, .Register = GraphicsResourceType::ConstantBuffer };
-				if (!inputSet.contains(binding))
+				if (!input.Items[i].Item)
 				{
-					fmt::format_to(stream, "Input missing for slot b{}\n", slot);
-					fmt::format_to(stream, "Required is ConstantBuffer '{}'\n", constantBuffer.Name);
-					continue;
-				}
-
-				const auto& input = inputSet.at(binding);
-				if (input.Type != ShaderInputType::ConstantBuffer)
-				{
-					fmt::format_to(stream, "Incompatible type for slot b{}\n", slot);
-					fmt::format_to(stream, "Required is ConstantBuffer but {} is provided\n", input.Type);
-				}
-
-				if (input.Items.empty() || !input.Items[0])
-				{
-					fmt::format_to(stream, "Input for b{} index {} is null\n", slot, 0);
-					fmt::format_to(stream, "Required is ConstantBuffer '{}'\n", constantBuffer.Name);
-				}
-			}
-
-			for (const auto& [slot, storageBuffer] : layout.StorageBuffers)
-			{
-				const GraphicsBinding binding = { .Space = currentSet, .Slot = slot, .Register = GraphicsResourceType::ShaderResourceView };
-				if (!inputSet.contains(binding))
-				{
-					fmt::format_to(stream, "Input missing for slot t{}\n", slot);
-					fmt::format_to(stream, "Required is StorageBuffer '{}'\n", storageBuffer.Name);
-					continue;
-				}
-
-				const auto& input = inputSet.at(binding);
-				if (input.Type != ShaderInputType::StorageBuffer)
-				{
-					fmt::format_to(stream, "Incompatible type for slot t{}\n", slot);
-					fmt::format_to(stream, "Required is StorageBuffer but {} is provided\n", input.Type);
-				}
-
-				if (input.Items.empty() || !input.Items[0])
-				{
-					fmt::format_to(stream, "Input for t{} index {} is null\n", slot, 0);
-					fmt::format_to(stream, "Required is StorageBuffer '{}'\n", storageBuffer.Name);
-				}
-			}
-
-			for (const auto& [slot, image] : layout.Images)
-			{
-				const GraphicsBinding binding = { .Space = currentSet, .Slot = slot, .Register = GraphicsResourceType::ShaderResourceView };
-				if (!inputSet.contains(binding))
-				{
-					fmt::format_to(stream, "Input missing for slot t{}\n", slot);
-					fmt::format_to(stream, "Required is Image '{}'\n", image.Name);
-					continue;
-				}
-
-				const auto& input = inputSet.at(binding);
-				if (input.Type != ShaderInputType::Image2D && input.Type != ShaderInputType::ImageCube)
-				{
-					fmt::format_to(stream, "Incompatible type for slot t{}\n", slot);
-					fmt::format_to(stream, "Required is Image but {} is provided\n", input.Type);
-				}
-
-				for (uint32_t i = 0; i < image.ArraySize; i++)
-				{
-					if (input.Items.size() < i || !input.Items[i])
+					if (inputInfo.Type == ShaderInputType::Texture)
 					{
-						fmt::format_to(stream, "Input for t{} index {} is null\n", slot, i);
-						fmt::format_to(stream, "Required is Image '{}'\n", image.Name);
-						continue;
+						const auto& sampledImage = reflection.BindingLayouts[inputInfo.Set].SampledImages.at(inputInfo.Slot);
+						fmt::format_to(stream, " - Input for (t{} s{}) index {} is null\n", sampledImage.SeparateImage.Slot, sampledImage.SeparateSampler.Slot, i);
+						fmt::format_to(stream, "   Required is Texture '{}'\n", inputInfo.Name);
+					}
+					else
+					{
+						fmt::format_to(stream, " - Input for {}{} index {} is null\n", utils::GetBindingPrefix(inputInfo.GraphicsType), inputInfo.Slot, i);
+						fmt::format_to(stream, "   Required is {} '{}'\n", inputInfo.Type, inputInfo.Name);
+					}
+					continue;
+				}
+
+				if (!utils::InputCompadible(input.Items[i].Type, input.Type))
+				{
+					if (inputInfo.Type == ShaderInputType::ConstantBuffer || inputInfo.Type == ShaderInputType::StorageBuffer)
+					{
+						fmt::format_to(stream, " - Incompatible type for '{}' slot {}{}\n", inputInfo.Name, utils::GetBindingPrefix(inputInfo.GraphicsType), inputInfo.Slot);
+						fmt::format_to(stream, "   Required is {} but {} is provided\n", inputInfo.Type, input.Items[i].Type);
+					}
+					else if (inputInfo.Type == ShaderInputType::Texture)
+					{
+						const auto& sampledImage = reflection.BindingLayouts[inputInfo.Set].SampledImages.at(inputInfo.Slot);
+						fmt::format_to(stream, " - Incompatible type for '{}' (t{}, s{}) index {}\n", sampledImage.Name, sampledImage.SeparateImage.Slot, sampledImage.SeparateSampler.Slot, i);
+						fmt::format_to(stream, "   Required is Texture but {} is provided\n", input.Items[i].Type);
+					}
+					else
+					{
+						fmt::format_to(stream, " - Incompatible type for '{}' slot {}{} index {}\n", inputInfo.Name, utils::GetBindingPrefix(inputInfo.GraphicsType), inputInfo.Slot, i);
+						fmt::format_to(stream, "   Required is {} but {} is provided\n", inputInfo.Type, input.Items[i].Type);
 					}
 				}
-			}
-
-			for (const auto& [slot, storageImage] : layout.StorageImages)
-			{
-				const GraphicsBinding binding = { .Space = currentSet, .Slot = slot, .Register = GraphicsResourceType::UnorderedAccessView };
-				if (!inputSet.contains(binding))
+				else if (input.Items[i].Type == RenderInputType::Viewable && input.Type == ShaderInputType::Texture)
 				{
-					fmt::format_to(stream, "Input missing for slot u{}\n", slot);
-					fmt::format_to(stream, "Required is StorageImage '{}'\n", storageImage.Name);
-					continue;
-				}
-
-				const auto& input = inputSet.at(binding);
-				if (input.Type != ShaderInputType::StorageImage2D && input.Type != ShaderInputType::StorageImageCube)
-				{
-					fmt::format_to(stream, "Incompatible type for slot u{}\n", slot);
-					fmt::format_to(stream, "Required is StorageImage but {} is provided\n", input.Type);
-				}
-
-				for (uint32_t i = 0; i < storageImage.ArraySize; i++)
-				{
-					if (input.Items.size() < i || !input.Items[i])
+					auto viewable = input.Items[i].Item.As<ViewableResource>();
+					if (!viewable->HasSampler())
 					{
-						fmt::format_to(stream, "Input for u{} index {} is null\n", slot, i);
-						fmt::format_to(stream, "Required is StorageImage '{}'\n", storageImage.Name);
-						continue;
+						const auto& sampledImage = reflection.BindingLayouts[inputInfo.Set].SampledImages.at(inputInfo.Slot);
+						fmt::format_to(stream, " - Incompatible tye for '{}' (t{}, s{}) index {}\n", sampledImage.Name, sampledImage.SeparateImage.Slot, sampledImage.SeparateSampler.Slot, i);
+						fmt::format_to(stream, "   Required is Texture but Viewable without Sampler is provided\n");
 					}
 				}
+
+				if (inputInfo.Type == ShaderInputType::StorageImage && !IsWritable(input.Items[i]))
+				{
+					fmt::format_to(stream, " - Input '{}' for u{} index {} is not writable\n", inputInfo.Name, inputInfo.Slot, i);
+				}
+
 			}
 
-			for (const auto& [slot, sampler] : layout.Samplers)
+		}
+
+		std::string errorMessage;
+		for (auto& [set, message] : setErrors)
+		{
+			if (message.size())
 			{
-				const GraphicsBinding binding = { .Space = currentSet, .Slot = slot, .Register = GraphicsResourceType::Sampler };
-				if (!inputSet.contains(binding))
-				{
-					fmt::format_to(stream, "Input missing for slot s{}\n", slot);
-					fmt::format_to(stream, "Required is Sampler '{}'\n", sampler.Name);
-					continue;
-				}
-
-				const auto& input = inputSet.at(binding);
-				if (input.Type != ShaderInputType::Sampler)
-				{
-					fmt::format_to(stream, "Incompatible type for slot s{}\n", slot);
-					fmt::format_to(stream, "Required is Sampler but {} is provided\n", input.Type);
-				}
-
-				for (uint32_t i = 0; i < sampler.ArraySize; i++)
-				{
-					if (input.Items.size() < i || !input.Items[i])
-					{
-						fmt::format_to(stream, "Input for s{} index {} is null\n", slot, i);
-						fmt::format_to(stream, "Required is Sampler '{}'\n", sampler.Name);
-						continue;
-					}
-				}
-			}
-
-			if (setError.size())
-			{
-				errorMessage += fmt::format("Invalid inputs in set {}\n{}", currentSet, fmt::to_string(setError));
+				errorMessage += fmt::format("Invalid inputs in set {}:\n{}", set, fmt::to_string(message));
 			}
 		}
 
@@ -356,10 +348,9 @@ namespace Shark {
 		if (inputInfo)
 		{
 			BindingSetInput& input = m_InputSetItems[inputInfo->Set - m_Specification.StartSet].at(inputInfo->GetGraphicsBinding());
-			input.Items[arrayIndex] = constantBuffer;
-			input.Type = ShaderInputType::ConstantBuffer;
+			input.Set(constantBuffer, arrayIndex);
 			m_PendingSets.set(inputInfo->Set);
-			SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
+			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
 		}
 		else
 		{
@@ -373,10 +364,25 @@ namespace Shark {
 		if (inputInfo)
 		{
 			BindingSetInput& input = m_InputSetItems[inputInfo->Set - m_Specification.StartSet].at(inputInfo->GetGraphicsBinding());
-			input.Items[arrayIndex] = storageBuffer;
-			input.Type = ShaderInputType::StorageBuffer;
+			input.Set(storageBuffer, arrayIndex);
 			m_PendingSets.set(inputInfo->Set);
-			SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
+			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
+		}
+		else
+		{
+			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+		}
+	}
+
+	void ShaderInputManager::SetInput(const std::string& name, Ref<ViewableResource> viewable, uint32_t arrayIndex)
+	{
+		const ShaderInputInfo* inputInfo = GetInputInfo(name);
+		if (inputInfo)
+		{
+			BindingSetInput& input = m_InputSetItems[inputInfo->Set - m_Specification.StartSet].at(inputInfo->GetGraphicsBinding());
+			input.Set(viewable, arrayIndex);
+			m_PendingSets.set(inputInfo->Set);
+			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
 		}
 		else
 		{
@@ -390,10 +396,25 @@ namespace Shark {
 		if (inputInfo)
 		{
 			BindingSetInput& input = m_InputSetItems[inputInfo->Set - m_Specification.StartSet].at(inputInfo->GetGraphicsBinding());
-			input.Items[arrayIndex] = image;
-			input.Type = ShaderInputType::Image2D;
+			input.Set(image, arrayIndex);
 			m_PendingSets.set(inputInfo->Set);
-			SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
+			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
+		}
+		else
+		{
+			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+		}
+	}
+
+	void ShaderInputManager::SetInput(const std::string& name, Ref<ImageView> imageView, uint32_t arrayIndex)
+	{
+		const ShaderInputInfo* inputInfo = GetInputInfo(name);
+		if (inputInfo)
+		{
+			BindingSetInput& input = m_InputSetItems[inputInfo->Set - m_Specification.StartSet].at(inputInfo->GetGraphicsBinding());
+			input.Set(imageView, arrayIndex);
+			m_PendingSets.set(inputInfo->Set);
+			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
 		}
 		else
 		{
@@ -407,10 +428,9 @@ namespace Shark {
 		if (inputInfo)
 		{
 			BindingSetInput& input = m_InputSetItems[inputInfo->Set - m_Specification.StartSet].at(inputInfo->GetGraphicsBinding());
-			input.Items[arrayIndex] = texture ? texture->GetImage() : nullptr;
-			input.Type = ShaderInputType::Image2D;
+			input.Set(texture, arrayIndex);
 			m_PendingSets.set(inputInfo->Set);
-			SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
+			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
 		}
 		else
 		{
@@ -424,10 +444,9 @@ namespace Shark {
 		if (inputInfo)
 		{
 			BindingSetInput& input = m_InputSetItems[inputInfo->Set - m_Specification.StartSet].at(inputInfo->GetGraphicsBinding());
-			input.Items[arrayIndex] = textureCube;
-			input.Type = ShaderInputType::ImageCube;
+			input.Set(textureCube, arrayIndex);
 			m_PendingSets.set(inputInfo->Set);
-			SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
+			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
 		}
 		else
 		{
@@ -441,13 +460,24 @@ namespace Shark {
 		if (inputInfo)
 		{
 			BindingSetInput& input = m_InputSetItems[inputInfo->Set - m_Specification.StartSet].at(inputInfo->GetGraphicsBinding());
-			input.Items[arrayIndex] = sampler;
+			input.Set(sampler, arrayIndex);
 			m_PendingSets.set(inputInfo->Set);
-			SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
+			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
 		}
 		else
 		{
 			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+		}
+	}
+
+	void ShaderInputManager::SetInputSubresourceSet(const std::string& name, const nvrhi::TextureSubresourceSet& subresourceSet, uint32_t arrayIndex)
+	{
+		const ShaderInputInfo* inputInfo = GetInputInfo(name);
+		if (inputInfo)
+		{
+			BindingSetInput& input = m_InputSetItems[inputInfo->Set - m_Specification.StartSet].at(inputInfo->GetGraphicsBinding());
+			input.Set(subresourceSet, arrayIndex);
+			m_PendingSets.set(inputInfo->Set);
 		}
 	}
 
@@ -457,6 +487,40 @@ namespace Shark {
 			return &m_InputInfos.at(name);
 
 		return nullptr;
+	}
+
+	bool ShaderInputManager::IsWritable(const InputResource& input) const
+	{
+		switch (input.Type)
+		{
+			case RenderInputType::ConstantBuffer:
+			case RenderInputType::StorageBuffer:
+			case RenderInputType::Sampler:
+				return false;
+
+			case RenderInputType::Image2D:
+			{
+				auto item = input.Item.AsSafe<Image2D>();
+				return item && item->GetSpecification().Usage == ImageUsage::Storage && ImageUtils::SupportsUAV(item->GetSpecification().Format);
+			}
+			case RenderInputType::ImageView:
+			{
+				auto item = input.Item.AsSafe<ImageView>();
+				return item && item->SupportsStorage();
+			}
+			case RenderInputType::Texture2D:
+			{
+				auto item = input.Item.AsSafe<Texture2D>();
+				return item && item->GetSpecification().Storage && ImageUtils::SupportsUAV(item->GetSpecification().Format);
+			}
+			case RenderInputType::TextureCube:
+			{
+				auto item = input.Item.AsSafe<TextureCube>();
+				return item && item->GetSpecification().Storage && ImageUtils::SupportsUAV(item->GetSpecification().Format);
+			}
+		}
+		SK_CORE_ASSERT(false, "Unknown RenderInputType");
+		return false;
 	}
 
 }

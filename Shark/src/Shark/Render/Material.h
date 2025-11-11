@@ -19,6 +19,7 @@ namespace Shark {
 		Ref<Shader> GetShader() const { return m_Shader; }
 		const std::string& GetName() const { return m_Name; }
 		void SetName(const std::string& name) { m_Name = name; }
+		ShaderInputManager& GetInputManager() { return m_InputManager; }
 		const ShaderInputManager& GetInputManager() const { return m_InputManager; }
 
 		void Set(const std::string& name, Ref<Image2D> image, uint32_t arrayIndex = 0);

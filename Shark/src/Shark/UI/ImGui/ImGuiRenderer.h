@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Shark/Core/Base.h"
+#include "Shark/Core/Hash.h"
+
 #include "Shark/Render/RenderCommandBuffer.h"
 #include "Shark/Render/SwapChain.h"
 #include "Shark/Render/Image.h"
@@ -8,6 +11,15 @@
 #include <nvrhi/nvrhi.h>
 
 namespace Shark {
+
+	class ImGuiTexture : public ViewableResource
+	{
+	public:
+		virtual bool HasSampler() const override { return true; }
+		virtual const ViewInfo& GetViewInfo() const override { return View; }
+
+		ViewInfo View;
+	};
 
 	class ImGuiRenderer
 	{
@@ -23,7 +35,7 @@ namespace Shark {
 		void UpdateTexture(nvrhi::CommandListHandle commandList, ImTextureData* texture);
 
 
-		nvrhi::IBindingSet* GetBindingSet(const ViewInfo* viewInfo);
+		nvrhi::IBindingSet* GetBindingSet(Ref<ViewableResource> viewable);
 		bool UpdateGeometry(nvrhi::ICommandList* commandList);
 	private:
 		Ref<RenderCommandBuffer> m_CommandBuffer;
@@ -33,6 +45,7 @@ namespace Shark {
 		nvrhi::InputLayoutHandle m_ShaderAttribLayout;
 
 		nvrhi::TextureHandle m_FontTexture;
+		std::unordered_set<const ViewableResource*> m_FontTextures;
 		nvrhi::SamplerHandle m_FontSampler;
 
 		nvrhi::BufferHandle m_VertexBuffer;
@@ -41,7 +54,7 @@ namespace Shark {
 		nvrhi::BindingLayoutHandle m_BindingLayout;
 		nvrhi::GraphicsPipelineDesc m_BasePSODesc;
 
-		std::unordered_map<const ViewInfo*, nvrhi::BindingSetHandle> m_BindingsCache;
+		std::unordered_map<ViewInfo, nvrhi::BindingSetHandle> m_BindingsCache;
 
 		std::vector<ImDrawVert> m_VertexBufferData;
 		std::vector<ImDrawIdx> m_IndexBufferData;

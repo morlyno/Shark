@@ -215,6 +215,13 @@ namespace Shark {
 			return (T2*)m_Instance;
 		}
 
+		template<typename TTo>
+			requires std::is_base_of_v<T, TTo> || std::is_base_of_v<TTo, T>
+		Ref<TTo> AsSafe() const
+		{
+			return dynamic_cast<TTo*>(m_Instance);
+		}
+
 		template<typename... Args>
 		static Ref Create(Args&&... args)
 		{

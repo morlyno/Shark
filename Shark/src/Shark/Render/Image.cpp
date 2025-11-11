@@ -22,10 +22,13 @@ namespace Shark {
 
 	void Image2D::Release()
 	{
-		m_ImageHandle = nullptr;
-		m_ViewInfo.ImageHandle = nullptr;
-		m_ViewInfo.SubresourceSet = {};
-		m_ViewInfo.Sampler = nullptr;
+		Ref instance = this;
+		Renderer::Submit([instance]()
+		{
+			instance->m_ImageHandle = nullptr;
+			instance->m_ViewInfo = {};
+		});
+
 	}
 
 	void Image2D::Submit_Invalidate()
@@ -53,10 +56,34 @@ namespace Shark {
 		if (m_Specification.Width == width && m_Specification.Height == height)
 			return;
 
+		SK_CORE_VERIFY(m_Specification.MipLevels == 1);
 		m_Specification.Width = width;
 		m_Specification.Height = height;
 
-		Submit_Invalidate();
+		Ref instance = this;
+		Renderer::Submit([instance, state = RT_State{ m_Specification }]()
+		{
+			instance->InvalidateFromState(state);
+		});
+	}
+
+	void Image2D::Resize(uint32_t width, uint32_t height, uint32_t mipLevels)
+	{
+		if (m_Specification.Width == width && m_Specification.Height == height && m_Specification.MipLevels == mipLevels)
+			return;
+
+		if (mipLevels == 0)
+			mipLevels = ImageUtils::CalcMipLevels(width, height);
+
+		m_Specification.Width = width;
+		m_Specification.Height = height;
+		m_Specification.MipLevels = mipLevels;
+
+		Ref instance = this;
+		Renderer::Submit([instance, state = RT_State{ m_Specification }]()
+		{
+			instance->InvalidateFromState(state);
+		});
 	}
 
 	void Image2D::Submit_UploadData(const Buffer buffer)
@@ -83,10 +110,11 @@ namespace Shark {
 
 	void Image2D::InvalidateFromState(const RT_State& state)
 	{
-		// reading from images in only used for mouse picking currently
-		SK_CORE_VERIFY(state.Usage != ImageUsage::Storage,
-					   "Storage Images are not implemented because it is not a normal texture in nvrhi."
-					   "\"Storage\" textures are StagingTextures in nvrhi, i am not sure how to handle this in Image.");
+		// reading from images is only used for mouse picking currently
+		// #Renderer #Investigate #TODO Staging Textures
+		SK_CORE_VERIFY(state.Usage != ImageUsage::HostRead,
+					   "HostRead (Stagin) Images are not implemented because it is not a normal texture in nvrhi."
+					   "I am not sure how to handle this in Image at the moment.");
 
 		auto textureDesc = nvrhi::TextureDesc()
 			.setWidth(state.Width)
@@ -119,14 +147,9 @@ namespace Shark {
 			textureDesc.initialState = nvrhi::ResourceStates::ShaderResource;
 		}
 
-		auto device = Application::Get().GetDeviceManager()->GetDevice();
+		auto device = Renderer::GetGraphicsDevice();
 		m_ImageHandle = device->createTexture(textureDesc);
-
-		m_ViewInfo.ImageHandle = m_ImageHandle;
-		m_ViewInfo.SubresourceSet.baseMipLevel = 0;
-		m_ViewInfo.SubresourceSet.numMipLevels = state.MipLevels;
-		m_ViewInfo.SubresourceSet.baseArraySlice = 0;
-		m_ViewInfo.SubresourceSet.numArraySlices = state.Layers;
+		m_ViewInfo.Handle = m_ImageHandle;
 
 		SK_CORE_TRACE_TAG("Renderer", "Image Invalidated from state. '{}' {} ({}:{})", m_ImageHandle->getDesc().debugName, fmt::ptr(m_ImageHandle.Get()), state.Width, state.Height);
 	}
@@ -135,23 +158,45 @@ namespace Shark {
 	////// Image View Implementation //////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////////
 
-	ImageView::ImageView(Ref<Image2D> image, const ImageViewSpecification& specification)
+	ImageView::ImageView(Ref<Image2D> image, const ImageViewSpecification& specification, bool initOnRT)
 		: m_Image(image), m_Specification(specification)
 	{
-		RT_Invalidate();
+		SK_CORE_VERIFY(image);
+
+		ImageFormat format = specification.Format;
+		if (format == ImageFormat::None)
+			format = image->GetSpecification().Format;
+
+		m_StorageSupported = image->GetSpecification().Usage == ImageUsage::Storage && ImageUtils::SupportsUAV(specification.Format);
+
+		if (!initOnRT)
+		{
+			InvalidateFromState(image, specification);
+			return;
+		}
+
+		Ref instance = this;
+		Renderer::Submit([instance, image, specification]()
+		{
+			instance->InvalidateFromState(image, specification);
+		});
 	}
 
 	ImageView::~ImageView()
 	{
 	}
 
-	void ImageView::RT_Invalidate()
+	void ImageView::InvalidateFromState(Ref<Image2D> image, const ViewState& viewState)
 	{
-		m_ViewInfo.ImageHandle = m_Image->GetHandle();
-		m_ViewInfo.SubresourceSet.baseMipLevel = m_Specification.MipSlice;
-		m_ViewInfo.SubresourceSet.numMipLevels = 1;
-		m_ViewInfo.SubresourceSet.baseArraySlice = 0;
-		m_ViewInfo.SubresourceSet.numArraySlices = m_Image->GetSpecification().Layers;
+		m_ViewInfo.Handle = image->GetHandle();
+		m_ViewInfo.Format = ImageUtils::ConvertImageFormat(viewState.Format);
+		m_ViewInfo.Dimension = viewState.Dimension;
+		m_ViewInfo.SubresourceSet.baseMipLevel = viewState.BaseMip;
+		m_ViewInfo.SubresourceSet.numMipLevels = viewState.MipCount;
+		m_ViewInfo.SubresourceSet.baseArraySlice = viewState.BaseLayer;
+		m_ViewInfo.SubresourceSet.numArraySlices = viewState.LayerCount;
+
+		SK_CORE_TRACE_TAG("Renderer", "ImageView invalidated from state.");
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
@@ -184,6 +229,11 @@ namespace Shark {
 		}
 
 
+		bool IsSRGB(ImageFormat format)
+		{
+			return nvrhi::getFormatInfo(ConvertImageFormat(format)).isSRGB;
+		}
+
 		bool IsDepthFormat(Shark::ImageFormat format)
 		{
 			return nvrhi::getFormatInfo(ConvertImageFormat(format)).kind == nvrhi::FormatKind::DepthStencil;
@@ -192,6 +242,11 @@ namespace Shark {
 		bool IsIntegerBased(ImageFormat format)
 		{
 			return nvrhi::getFormatInfo(ConvertImageFormat(format)).kind == nvrhi::FormatKind::Integer;
+		}
+
+		bool SupportsUAV(ImageFormat format)
+		{
+			return !IsSRGB(format);
 		}
 
 		uint32_t GetFormatBPP(ImageFormat format)

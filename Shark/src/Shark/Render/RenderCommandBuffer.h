@@ -53,6 +53,7 @@ namespace Shark {
 
 		nvrhi::CommandListHandle GetHandle() const { return m_CommandList; }
 		nvrhi::GraphicsState& GetGraphicsState() { return m_GraphicsState; }
+		nvrhi::ComputeState& GetComputeState() { return m_ComputeState; }
 
 		void BeginMarker(const char* name);
 		void EndMarker();
@@ -66,6 +67,7 @@ namespace Shark {
 		TimeStep GetGPUExecutionTime(QueryID queryID = QueryID(0)) const;
 		TimeStep GetGPUExecutionTime(uint32_t frameIndex, QueryID queryID = QueryID(0)) const;
 
+		// #Renderer #Investigate Pipeline Statistics are not supported by nvrhi
 		const PipelineStatistics& GetPipelineStatistics() const { return PipelineStatistics{}; }
 
 	public:
@@ -76,6 +78,7 @@ namespace Shark {
 		std::string m_Name;
 		nvrhi::CommandListHandle m_CommandList;
 		nvrhi::GraphicsState m_GraphicsState;
+		nvrhi::ComputeState m_ComputeState;
 
 		QueryID m_TimerQuery;
 		uint32_t m_NextQueryID = 0;

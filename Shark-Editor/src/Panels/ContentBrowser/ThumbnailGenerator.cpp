@@ -209,8 +209,8 @@ namespace Shark {
 		AssetHandle meshSource = Project::GetEditorAssetManager()->GetEditorAsset("Resources/Meshes/Default/Sphere.gltf");
 		m_SphereHandle = AssetManager::CreateMemoryOnlyAsset<Mesh>(meshSource);
 
-		m_MaterialHandle = AssetManager::CreateMemoryOnlyAsset<MaterialAsset>();
-		Ref<MaterialAsset> reflectiveMaterial = AssetManager::GetAsset<MaterialAsset>(m_MaterialHandle);
+		m_MaterialHandle = AssetManager::CreateMemoryOnlyAsset<PBRMaterial>("ThumnbailGenerator-Environment-Reflective");
+		auto reflectiveMaterial = AssetManager::GetAsset<PBRMaterial>(m_MaterialHandle);
 		reflectiveMaterial->SetMetalness(1.0f);
 		reflectiveMaterial->SetRoughness(0.0f);
 	}
@@ -267,7 +267,7 @@ namespace Shark {
 		specification.Width = 512;
 		specification.Height = 512;
 		specification.DebugName = "Thumbnail Generator";
-		m_Renderer = Ref<SceneRenderer>::Create(m_Scene, specification);
+		m_Renderer = Ref<SceneRenderer>::Create(specification);
 
 		m_AssetThumbnailGenerators[AssetType::Material] = Scope<MaterialThumbnailGenerator>::Create();
 		m_AssetThumbnailGenerators[AssetType::Mesh] = Scope<MeshThumbnailGenerator>::Create();

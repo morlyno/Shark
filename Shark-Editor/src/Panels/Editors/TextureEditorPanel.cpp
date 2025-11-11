@@ -173,7 +173,7 @@ namespace Shark {
 
 		if (changed)
 		{
-			m_Texture->RT_Invalidate();
+			m_Texture->Submit_Invalidate();
 			
 			m_CommandBuffer->Begin();
 			Renderer::CopyMip(m_CommandBuffer, m_BackupTexture->GetImage(), 0, m_Texture->GetImage(), 0);
@@ -199,7 +199,7 @@ namespace Shark {
 				backupSpec.Filter != specification.Filter || backupSpec.Address != specification.Address || backupSpec.MaxAnisotropy != specification.MaxAnisotropy)
 			{
 				specification = backupSpec;
-				m_Texture->RT_Invalidate();
+				m_Texture->Submit_Invalidate();
 				
 				m_CommandBuffer->Begin();
 				Renderer::CopyImage(m_CommandBuffer, m_BackupTexture->GetImage(), m_Texture->GetImage());
@@ -235,16 +235,9 @@ namespace Shark {
 		Ref<Image2D> image = m_Texture->GetImage();
 		for (uint32_t i = 0; i < mipLevels; i++)
 		{
-			if (!m_PerMipView[i])
-			{
-				ImageViewSpecification specification;
-				specification.MipSlice = i;
-				m_PerMipView[i] = ImageView::Create(image, specification);
-			}
-			else
-			{
-				m_PerMipView[i]->RT_Invalidate();
-			}
+			ImageViewSpecification specification;
+			specification.BaseMip = i;
+			m_PerMipView[i] = ImageView::Create(image, specification);
 		}
 
 		m_MipIndex = glm::clamp(m_MipIndex, 0u, mipLevels - 1);

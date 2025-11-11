@@ -24,12 +24,17 @@ namespace Shark {
 		Ref<Texture2D> m_BlackTexture;
 		Ref<TextureCube> m_BlackTextureCube;
 		Ref<Environment> m_EmptyEnvironment;
-		Ref<Texture2D> m_BRDFLUTTexture;
+		Ref<Image2D> m_BRDFLUTTexture;
+		Ref<Sampler> m_LinearClampSampler;
+		Ref<Sampler> m_NearestClampSampler;
 
 		Ref<VertexBuffer> m_QuadVertexBuffer;
 		Ref<IndexBuffer> m_QuadIndexBuffer;
 		Ref<VertexBuffer> m_CubeVertexBuffer;
 		Ref<IndexBuffer> m_CubeIndexBuffer;
+
+		std::array<Ref<Image2D>, 3> m_NullUAVs;
+		std::array<Ref<Image2D>, 3> m_NullArrayUAVs;
 
 		ShaderCache m_ShaderCache;
 		std::unordered_map<uint64_t, ShaderDependencies> m_ShaderDependencies;
@@ -59,13 +64,12 @@ namespace Shark {
 		s_Data->m_ShaderLibrary = Ref<ShaderLibrary>::Create();
 		s_Data->m_ShaderCache.LoadRegistry();
 
+		Log::EnabledTags()["ShaderCompiler"].Level = LogLevel::Info;
+
 		// 3D
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Simple.hlsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/SharkPBR.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Skybox.glsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/EnvironmentIrradiance.glsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/EquirectangularToCubeMap.glsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/EnvironmentMipFilter.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Skybox.hlsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/BRDF_LUT.glsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Tonemap.glsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Composite.glsl");
@@ -82,9 +86,15 @@ namespace Shark {
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/JumpFlood/JumpFloodPass.hlsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/JumpFlood/JumpFloodComposite.hlsl");
 
+		// EnvMap
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/EnvMap/EquirectangularToCubeMap.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/EnvMap/EnvIrradiance.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/EnvMap/EnvMipFilter.hlsl");
 
 		// Commands
 		Renderer::GetShaderLibrary()->Load("resources/Shaders/Commands/BlitImage.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Commands/LinearSample.hlsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Commands/LinearSampleArray.hlsl");
 
 		// Misc
 #if TODO
@@ -95,8 +105,6 @@ namespace Shark {
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/ImGui.hlsl");
 		s_Data->m_ShaderCache.SaveRegistry();
 
-		// Compile Shaders
-		Renderer::WaitAndRender();
 
 		{
 			float vertices[4 * 5] = {
@@ -140,8 +148,7 @@ namespace Shark {
 			s_Data->m_CubeIndexBuffer = IndexBuffer::Create(Buffer::FromArray(indices));
 		}
 
-		// #TODO #Renderer #Disabled #moro CreateBRDFLUT not working at the moment.
-		//s_Data->m_BRDFLUTTexture = s_RendererAPI->CreateBRDFLUT();
+		s_Data->m_BRDFLUTTexture = CreateBRDFLUT();
 
 		{
 			TextureSpecification spec;
@@ -158,14 +165,31 @@ namespace Shark {
 
 			spec.Format = ImageFormat::RGBA32F;
 			spec.DebugName = "Black Texture Cube";
-
-			glm::vec4 imageData[6];
-			memset(imageData, 0, sizeof(imageData));
 			spec.Format = ImageFormat::RGBA32F;
-			s_Data->m_BlackTextureCube = TextureCube::Create(spec, Buffer::FromArray(imageData));
+			glm::vec4 imageData[6]{};
 
+			s_Data->m_BlackTextureCube = TextureCube::Create(spec, Buffer::FromArray(imageData));
 			s_Data->m_EmptyEnvironment = Ref<Environment>::Create(s_Data->m_BlackTextureCube, s_Data->m_BlackTextureCube);
+
+			s_Data->m_LinearClampSampler = Sampler::Create({ .Filter = FilterMode::Linear, .Address = AddressMode::ClampToEdge });
+			s_Data->m_NearestClampSampler = Sampler::Create({ .Filter = FilterMode::Nearest, .Address = AddressMode::ClampToEdge });
 		}
+
+		ImageSpecification nullUAVSpec;
+		nullUAVSpec.Width = 1;
+		nullUAVSpec.Height = 1;
+		nullUAVSpec.Format = ImageFormat::RGBA;
+		nullUAVSpec.Usage = ImageUsage::Storage;
+		nullUAVSpec.DebugName = "NULL-UAV";
+		for (uint32_t i = 0; i < 3; i++)
+		{
+			nullUAVSpec.Layers = 1;
+			s_Data->m_NullUAVs[i] = Image2D::Create(nullUAVSpec);
+			nullUAVSpec.Layers = 2;
+			s_Data->m_NullArrayUAVs[i] = Image2D::Create(nullUAVSpec);
+		}
+
+		Renderer::WaitAndRender();
 	}
 
 	void Renderer::ShutDown()
@@ -296,6 +320,30 @@ namespace Shark {
 		commandList->writeBuffer(buffer->GetHandle(), bufferData.As<const void>(), bufferData.Size);
 	}
 
+	namespace utils {
+
+		static void BindShaderInputManager(nvrhi::GraphicsState& state, const ShaderInputManager& inputManager)
+		{
+			Ref<Shader> shader = inputManager.GetShader();
+
+			for (uint32_t set = inputManager.GetStartSet(); set <= inputManager.GetEndSet(); set++)
+			{
+				state.bindings[shader->MapSet(set)] = inputManager.GetHandle(set);
+			}
+		}
+
+		static void BindShaderInputManager(nvrhi::ComputeState& state, const ShaderInputManager& inputManager)
+		{
+			Ref<Shader> shader = inputManager.GetShader();
+
+			for (uint32_t set = inputManager.GetStartSet(); set <= inputManager.GetEndSet(); set++)
+			{
+				state.bindings[shader->MapSet(set)] = inputManager.GetHandle(set);
+			}
+		}
+
+	}
+
 	void Renderer::BeginRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass, bool expliciteClear)
 	{
 		Ref<FrameBuffer> framebuffer = renderPass->GetTargetFramebuffer();
@@ -303,6 +351,11 @@ namespace Shark {
 
 		Submit([commandBuffer, renderPass, framebuffer, shader]()
 		{
+			SK_CORE_TRACE_TAG("Renderer", "Renderer - BeginRenderPass '{}'", renderPass->GetSpecification().DebugName);
+
+			auto commandList = commandBuffer->GetHandle();
+			commandList->beginMarker(renderPass->GetSpecification().DebugName.c_str());
+
 			RT_ClearFramebufferAttachments(commandBuffer->GetHandle(), framebuffer, true);
 
 			nvrhi::GraphicsState& graphicsState = commandBuffer->GetGraphicsState();
@@ -311,19 +364,97 @@ namespace Shark {
 			graphicsState.framebuffer = framebuffer->GetHandle();
 			graphicsState.viewport.addViewport(framebuffer->GetViewport());
 			graphicsState.vertexBuffers.resize(1);
-			graphicsState.bindings.resize(shader->GetReflectionData().BindingLayouts.size());
+			graphicsState.bindings.resize(shader->GetBindingLayouts().size());
 
-			const auto& inputManager = renderPass->GetInputManager();
-			for (uint32_t set = inputManager.GetStartSet(); set <= inputManager.GetEndSet(); set++)
-			{
-				graphicsState.bindings[set] = inputManager.GetHandle(set);
-			}
+			utils::BindShaderInputManager(graphicsState, renderPass->GetInputManager());
 		});
 	}
 
 	void Renderer::EndRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass)
 	{
-		//s_RendererAPI->EndRenderPass(commandBuffer, renderPass);
+		// 
+		// NOTE(moro): Do not remove commandBuffer and renderPass!
+		//             This capture keeps them alive until the pass finished.
+		// 
+		Renderer::Submit([commandBuffer, renderPass]()
+		{
+			SK_CORE_TRACE_TAG("Renderer", "Renderer - EndRenderPass '{}'", renderPass->GetSpecification().DebugName);
+
+			auto commandList = commandBuffer->GetHandle();
+			commandList->endMarker();
+		});
+	}
+
+	void Renderer::BeginComputePass(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePass> computePass)
+	{
+		Renderer::Submit([commandBuffer, computePass, shader = computePass->GetShader()]()
+		{
+			SK_CORE_TRACE_TAG("Renderer", "Renderer - BeginComputePass '{}'", computePass->GetSpecification().DebugName);
+
+			auto commandList = commandBuffer->GetHandle();
+			commandList->beginMarker(computePass->GetSpecification().DebugName.c_str());
+
+			nvrhi::ComputeState& computeState = commandBuffer->GetComputeState();
+			computeState = nvrhi::ComputeState();
+			computeState.bindings.resize(shader->GetBindingLayouts().size());
+
+			utils::BindShaderInputManager(computeState, computePass->GetInputManager());
+		});
+	}
+
+	void Renderer::EndComputePass(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePass> computePass)
+	{
+		// 
+		// NOTE(moro): Do not remove commandBuffer and computePass!
+		//             This capture keeps them alive until the pass finished.
+		// 
+		Renderer::Submit([commandBuffer, computePass]()
+		{
+			SK_CORE_TRACE_TAG("Renderer", "Renderer - EndComputePass '{}'", computePass->GetSpecification().DebugName);
+
+			auto commandList = commandBuffer->GetHandle();
+			commandList->endMarker();
+		});
+	}
+
+	void Renderer::Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, const glm::vec3& workGroups, const Buffer pushConstantData)
+	{
+		Renderer::Submit([commandBuffer, pipeline, workGroups, temp = Buffer::Copy(pushConstantData)]() mutable
+		{
+			SK_CORE_TRACE_TAG("Renderer", "Renderer - Dispatch '{}' {}", pipeline->GetDebugName(), workGroups);
+
+			nvrhi::ComputeState& computeState = commandBuffer->GetComputeState();
+			computeState.pipeline = pipeline->GetHandle();
+
+			auto commandList = commandBuffer->GetHandle();
+			commandList->setComputeState(computeState);
+
+			if (temp.Size)
+				commandList->setPushConstants(temp.As<const void>(), temp.Size);
+
+			commandList->dispatch(workGroups.x, workGroups.y, workGroups.z);
+			temp.Release();
+		});
+	}
+
+	void Renderer::Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, Ref<Material> material, const glm::vec3& workGroups, const Buffer pushConstantData)
+	{
+		Renderer::Submit([commandBuffer, pipeline, material, workGroups, temp = Buffer::Copy(pushConstantData)]() mutable
+		{
+			SK_CORE_TRACE_TAG("Renderer", "Renderer - Dispatch '{}' '{}' {}", pipeline->GetDebugName(), material->GetName(), workGroups);
+
+			nvrhi::ComputeState& computeState = commandBuffer->GetComputeState();
+			computeState.pipeline = pipeline->GetHandle();
+
+			utils::BindShaderInputManager(computeState, material->GetInputManager());
+
+			auto commandList = commandBuffer->GetHandle();
+			commandList->setComputeState(computeState);
+			commandList->setPushConstants(temp.As<const void>(), temp.Size);
+
+			commandList->dispatch(workGroups.x, workGroups.y, workGroups.z);
+			temp.Release();
+		});
 	}
 
 	void Renderer::RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Buffer pushConstantsData)
@@ -346,8 +477,36 @@ namespace Shark {
 		//s_RendererAPI->EndBatch(renderCommandBuffer);
 	}
 
-	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount)
+	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount)
 	{
+		Renderer::Submit([=]()
+		{
+			nvrhi::GraphicsState graphicsState = commandBuffer->GetGraphicsState();
+
+			graphicsState.pipeline = pipeline->GetHandle();
+
+			nvrhi::VertexBufferBinding vbufBinding;
+			vbufBinding.buffer = vertexBuffer->GetHandle();
+			vbufBinding.slot = 0;
+			vbufBinding.offset = 0;
+			graphicsState.vertexBuffers[0] = vbufBinding;
+
+			if (material)
+			{
+				utils::BindShaderInputManager(graphicsState, material->GetInputManager());
+			}
+
+			graphicsState.indexBuffer.buffer = indexBuffer->GetHandle();
+			graphicsState.indexBuffer.format = nvrhi::Format::R32_UINT;
+			graphicsState.indexBuffer.offset = 0;
+
+			nvrhi::DrawArguments drawArgs;
+			drawArgs.vertexCount = indexCount;
+
+			auto commandList = commandBuffer->GetHandle();
+			commandList->setGraphicsState(graphicsState);
+			commandList->drawIndexed(drawArgs);
+		});
 	}
 
 	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount)
@@ -356,7 +515,7 @@ namespace Shark {
 
 	void Renderer::RenderCube(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material)
 	{
-		//RenderGeometry(commandBuffer, pipeline, material, s_Data->m_CubeVertexBuffer, s_Data->m_CubeIndexBuffer, s_Data->m_CubeIndexBuffer->GetCount());
+		RenderGeometry(commandBuffer, pipeline, material, s_Data->m_CubeVertexBuffer, s_Data->m_CubeIndexBuffer, s_Data->m_CubeIndexBuffer->GetCount());
 	}
 
 	void Renderer::RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<MaterialTable> materialTable)
@@ -381,11 +540,7 @@ namespace Shark {
 			vbufBinding.offset = 0;
 			drawState.vertexBuffers[0] = vbufBinding;
 
-			const auto& inputManager = material->GetInputManager();
-			for (uint32_t set = inputManager.GetStartSet(); set <= inputManager.GetEndSet(); set++)
-			{
-				drawState.bindings[set] = inputManager.GetHandle(set);
-			}
+			utils::BindShaderInputManager(drawState, material->GetInputManager());
 
 			drawState.indexBuffer.buffer = indexBuffer->GetHandle();
 			drawState.indexBuffer.format = nvrhi::Format::R32_UINT;
@@ -414,12 +569,56 @@ namespace Shark {
 
 	void Renderer::CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
 	{
-		//s_RendererAPI->CopyImage(commandBuffer, sourceImage, destinationImage);
+		Renderer::Submit([commandBuffer, sourceImage, destinationImage]()
+		{
+			SK_PROFILE_SCOPED("Renderer - CopyImage");
+			SK_CORE_TRACE_TAG("Renderer", "CopyImage '{}' -> '{}'", sourceImage->GetSpecification().DebugName, destinationImage->GetSpecification().DebugName);
+
+			auto commandList = commandBuffer->GetHandle();
+			
+			nvrhi::ITexture* srcTex = sourceImage->GetHandle();
+			nvrhi::ITexture* dstTex = destinationImage->GetHandle();
+
+			nvrhi::TextureSlice slice;
+
+			for (uint32_t mip = 0; mip < srcTex->getDesc().mipLevels; mip++)
+			{
+				slice.mipLevel = mip;
+
+				for (uint32_t layer = 0; layer < srcTex->getDesc().arraySize; layer++)
+				{
+					slice.arraySlice = layer;
+					commandList->copyTexture(dstTex, slice, srcTex, slice);
+				}
+			}
+
+		});
 	}
 
 	void Renderer::CopyMip(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, uint32_t sourceMip, Ref<Image2D> destinationImage, uint32_t destinationMip)
 	{
-		//s_RendererAPI->CopyMip(commandBuffer, sourceImage, sourceMip, destinationImage, destinationMip);
+		Renderer::Submit([commandBuffer, sourceImage, sourceMip, destinationImage, destinationMip]()
+		{
+			SK_PROFILE_SCOPED("Renderer - CopyMip");
+			SK_CORE_TRACE_TAG("Renderer", "CopyMip '{}':{} -> '{}':{}", sourceImage->GetSpecification().DebugName, sourceMip, destinationImage->GetSpecification().DebugName, destinationMip);
+
+			auto commandList = commandBuffer->GetHandle();
+
+			auto srcSlice = nvrhi::TextureSlice().setMipLevel(sourceMip);
+			auto dstSlice = nvrhi::TextureSlice().setMipLevel(destinationMip);
+
+			nvrhi::ITexture* srcTex = sourceImage->GetHandle();
+			nvrhi::ITexture* dstTex = destinationImage->GetHandle();
+
+			for (uint32_t layer = 0; layer < srcTex->getDesc().arraySize; layer++)
+			{
+				srcSlice.arraySlice = layer;
+				dstSlice.arraySlice = layer;
+
+				commandList->copyTexture(dstTex, dstSlice,
+										 srcTex, srcSlice);
+			}
+		});
 	}
 
 	void Renderer::BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
@@ -427,29 +626,246 @@ namespace Shark {
 		//s_RendererAPI->BlitImage(commandBuffer, sourceImage, destinationImage);
 	}
 
-	void Renderer::GenerateMips(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> image)
+	static void GenerateMipsForLayer(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, Ref<Image2D> targetImage, uint32_t layer)
 	{
-		//s_RendererAPI->GenerateMips(commandBuffer, image);
+		SK_PROFILE_SCOPED("Renderer - GenerateMips");
+		SK_CORE_VERIFY(!ImageUtils::IsIntegerBased(targetImage->GetSpecification().Format));
+		SK_CORE_VERIFY(targetImage->GetSpecification().Usage == ImageUsage::Storage);
+
+		static constexpr uint32_t NUM_LODS = 4;
+		Ref<ViewableResource> targetView = targetImage;
+
+		if (targetImage->GetSpecification().Layers > 1)
+		{
+			ImageViewSpecification viewSpec;
+			viewSpec.BaseLayer = layer;
+			viewSpec.LayerCount = 1;
+			viewSpec.BaseMip = 0;
+			viewSpec.MipCount = targetImage->GetSpecification().MipLevels;
+			viewSpec.Dimension = nvrhi::TextureDimension::Texture2DArray;
+			targetView = ImageView::Create(targetImage, viewSpec);
+		}
+
+		struct Settings
+		{
+			uint32_t Dispatch;
+			uint32_t LODs;
+		} settings;
+
+		float targetMipWidth = (float)targetImage->GetWidth();
+		float targetMipHeight = (float)targetImage->GetHeight();
+
+		auto dstSubresource = nvrhi::TextureSubresourceSet(0, 1, layer, 1);
+		auto srcSubresource = nvrhi::TextureSubresourceSet(0, 1, layer, 1);
+
+		const uint32_t layers = targetImage->GetSpecification().Layers;
+		const uint32_t mipLevels = targetImage->GetSpecification().MipLevels;
+		for (uint32_t baseMip = 1, dispatch = 0; baseMip < mipLevels; baseMip += NUM_LODS, dispatch++)
+		{
+			targetMipWidth /= 2;
+			targetMipHeight /= 2;
+
+			settings.Dispatch = dispatch;
+			settings.LODs = std::min(mipLevels - baseMip, NUM_LODS);
+
+			auto material = Material::Create(pipeline->GetShader(), fmt::format("Mip {}-{} Material", baseMip, baseMip + NUM_LODS - 1));
+			auto& inputManager = material->GetInputManager();
+
+			inputManager.SetInput("u_Source", targetView);
+			inputManager.SetInputSubresourceSet("u_Source", srcSubresource.setBaseMipLevel(baseMip - 1), 0);
+
+			for (uint32_t i = 0; i < NUM_LODS; i++)
+			{
+				if ((baseMip + i) < (mipLevels))
+				{
+					dstSubresource.baseMipLevel = baseMip + i;
+					inputManager.SetInput("o_Mips", targetView, i);
+					inputManager.SetInputSubresourceSet("o_Mips", dstSubresource, i);
+				}
+				else
+				{
+					auto nullUAV = (targetImage->GetSpecification().Layers == 1) ? s_Data->m_NullUAVs[i - 1] : s_Data->m_NullArrayUAVs[i - 1];
+					inputManager.SetInput("o_Mips", nullUAV, i);
+				}
+			}
+
+			material->Prepare();
+
+			const auto workGroups = glm::max({ targetMipWidth / 8, targetMipHeight / 8, 1 }, glm::uvec3(1));
+			Renderer::Dispatch(commandBuffer, pipeline, material, workGroups, Buffer::FromValue(settings));
+		}
+
 	}
 
-	std::pair<Ref<TextureCube>, Ref<TextureCube>> Renderer::CreateEnvironmentMap(const std::filesystem::path& filepath)
+	static ImageFormat ConvertToWritableFormat(ImageFormat format)
 	{
-		return { nullptr, nullptr };
+		switch (format)
+		{
+			case ImageFormat::sRGBA: return ImageFormat::RGBA;
+		}
+
+		SK_CORE_ASSERT(!ImageUtils::IsSRGB(format));
+		return format;
 	}
 
-	std::pair<Ref<TextureCube>, Ref<TextureCube>> Renderer::RT_CreateEnvironmentMap(const std::filesystem::path& filepath)
+	void Renderer::GenerateMips(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> targetImage)
 	{
-		return { nullptr, nullptr };
+		SK_PROFILE_SCOPED("Renderer - GenerateMips");
+		SK_CORE_VERIFY(!ImageUtils::IsIntegerBased(targetImage->GetSpecification().Format));
+
+		Ref<Image2D> generationImage = targetImage;
+		if (targetImage->GetSpecification().Usage != ImageUsage::Storage)
+		{
+			ImageSpecification specification = targetImage->GetSpecification();
+			specification.Usage = ImageUsage::Storage;
+			specification.Format = ConvertToWritableFormat(specification.Format);
+			generationImage = Image2D::Create(specification);
+			CopyMip(commandBuffer, targetImage, 0, generationImage, 0);
+		}
+
+		auto shader = generationImage->GetSpecification().Layers == 1 ? Renderer::GetShaderLibrary()->Get("LinearSample") : Renderer::GetShaderLibrary()->Get("LinearSampleArray");
+
+		auto pipeline = ComputePipeline::Create(shader, "GenerateMips");
+		auto pass = ComputePass::Create(shader, "GenerateMips");
+
+		Renderer::BeginComputePass(commandBuffer, pass);
+
+		for (uint32_t layer = 0; layer < generationImage->GetSpecification().Layers; layer++)
+		{
+			GenerateMipsForLayer(commandBuffer, pipeline, generationImage, layer);
+		}
+
+		Renderer::EndComputePass(commandBuffer, pass);
+
+		if (generationImage != targetImage)
+		{
+			CopyImage(commandBuffer, generationImage, targetImage);
+		}
 	}
 
 	void Renderer::GenerateMips(Ref<Image2D> image)
 	{
-		//s_RendererAPI->GenerateMips(image);
+		auto commandBuffer = RenderCommandBuffer::Create("GenerateMips Commands");
+		commandBuffer->Begin();
+		GenerateMips(commandBuffer, image);
+		commandBuffer->End();
+		commandBuffer->Execute();
 	}
 
 	void Renderer::RT_GenerateMips(Ref<Image2D> image)
 	{
-		//s_RendererAPI->RT_GenerateMips(image);
+		//SK_NOT_IMPLEMENTED();
+	}
+
+	std::pair<Ref<TextureCube>, Ref<TextureCube>> Renderer::CreateEnvironmentMap(const std::filesystem::path& filepath)
+	{
+		SK_PROFILE_SCOPED("Renderer - CreateEnvironmentMap");
+
+		const uint32_t cubemapSize = Renderer::GetConfig().EnvironmentMapResolution;
+		const uint32_t irradianceMapSize = 32;
+
+		Ref<Texture2D> equirectangular = Texture2D::Create({ .GenerateMips = false }, filepath);
+		SK_CORE_VERIFY(equirectangular->GetSpecification().Format == ImageFormat::RGBA32F, "Environment Texture is not HDR!");
+
+		const uint32_t mipCount = ImageUtils::CalcMipLevels(cubemapSize, cubemapSize);
+
+		TextureSpecification cubemapSpec;
+		cubemapSpec.Format = ImageFormat::RGBA32F;
+		cubemapSpec.Width = cubemapSize;
+		cubemapSpec.Height = cubemapSize;
+		cubemapSpec.GenerateMips = true;
+		cubemapSpec.Storage = true;
+
+		cubemapSpec.DebugName = fmt::format("EnvironmentMap Unfiltered {}", filepath);
+		auto unfiltered = TextureCube::Create(cubemapSpec);
+		cubemapSpec.DebugName = fmt::format("EnvironmentMap Filtered {}", filepath);
+		auto filtered = TextureCube::Create(cubemapSpec);
+
+		cubemapSpec.Width = irradianceMapSize;
+		cubemapSpec.Height = irradianceMapSize;
+		cubemapSpec.DebugName = fmt::format("IrradianceMap {}", filepath);
+		auto irradianceMap = TextureCube::Create(cubemapSpec);
+
+		auto equirectToCubeShader = GetShaderLibrary()->Get("EquirectangularToCubeMap");
+		auto mipFilterShader = GetShaderLibrary()->Get("EnvMipFilter");
+		auto irradianceShader = GetShaderLibrary()->Get("EnvIrradiance");
+
+		auto commandBuffer = RenderCommandBuffer::Create("Environment");
+		commandBuffer->Begin();
+
+		{
+			auto pipeline = ComputePipeline::Create(equirectToCubeShader);
+			auto pass = ComputePass::Create(equirectToCubeShader, LayoutShareMode::PassOnly, "EquirectangularToCube");
+			pass->SetInput("u_Equirect", equirectangular);
+			pass->SetInput("u_Sampler", Renderer::GetLinearClampSampler());
+			pass->SetInput("o_CubeMap", unfiltered);
+			SK_CORE_VERIFY(pass->Validate());
+			pass->Bake();
+
+			BeginComputePass(commandBuffer, pass);
+			Dispatch(commandBuffer, pipeline, { cubemapSize / 32, cubemapSize / 32, 6 });
+			EndComputePass(commandBuffer, pass);
+
+			GenerateMips(commandBuffer, unfiltered->GetImage());
+		}
+
+		{
+			auto pipeline = ComputePipeline::Create(mipFilterShader);
+			auto pass = ComputePass::Create(mipFilterShader, "EnvMipFilter");
+			pass->SetInput("u_Unfiltered", unfiltered);
+			pass->SetInput("u_Sampler", Renderer::GetLinearClampSampler());
+			SK_CORE_VERIFY(pass->Validate());
+			pass->Bake();
+
+			auto subresource = nvrhi::TextureSubresourceSet(0, 1, 0, nvrhi::TextureSubresourceSet::AllArraySlices);
+			const float deltaRoughness = 1.0f / glm::max((float)filtered->GetMipLevelCount() - 1.0f, 1.0f);
+
+			BeginComputePass(commandBuffer, pass);
+			for (uint32_t i = 0, size = cubemapSize; i < mipCount; i++, size /= 2)
+			{
+				const uint32_t workGroups = glm::max(1u, size / 32);
+				const float roughness = glm::max(i * deltaRoughness, 0.05f);
+
+				auto material = Material::Create(mipFilterShader, fmt::format("EnvMipFilter Mip {}", i));
+				material->Set("o_Filtered", filtered);
+
+				auto& inputManager = material->GetInputManager();
+				inputManager.SetInputSubresourceSet("o_Filtered", subresource.setBaseMipLevel(i));
+				SK_CORE_VERIFY(material->Validate());
+				material->Prepare();
+
+				Dispatch(commandBuffer, pipeline, material, { workGroups, workGroups, 6 }, Buffer::FromValue(roughness));
+			}
+			EndComputePass(commandBuffer, pass);
+		}
+
+		{
+			auto pipeline = ComputePipeline::Create(irradianceShader);
+			auto pass = ComputePass::Create(irradianceShader, LayoutShareMode::PassOnly, "EnvIrradiance");
+			pass->SetInput("o_Irradiance", irradianceMap);
+			pass->SetInput("u_Radiance", filtered);
+			pass->SetInput("u_Sampler", GetLinearClampSampler());
+			SK_CORE_VERIFY(pass->Validate());
+			pass->Bake();
+
+			BeginComputePass(commandBuffer, pass);
+			Dispatch(commandBuffer, pipeline, { irradianceMap->GetWidth() / 32, irradianceMap->GetHeight() / 32, 6 }, Buffer::FromValue(GetConfig().IrradianceMapComputeSamples));
+			EndComputePass(commandBuffer, pass);
+
+
+			GenerateMips(commandBuffer, irradianceMap->GetImage());
+		}
+
+		commandBuffer->End();
+		commandBuffer->Execute();
+
+		return { filtered, irradianceMap };
+	}
+
+	std::pair<Ref<TextureCube>, Ref<TextureCube>> Renderer::RT_CreateEnvironmentMap(const std::filesystem::path& filepath)
+	{
+		SK_NOT_IMPLEMENTED();
+		return { nullptr, nullptr };
 	}
 
 	ShaderCache& Renderer::GetShaderCache()
@@ -533,9 +949,19 @@ namespace Shark {
 		return s_Data->m_EmptyEnvironment;
 	}
 
-	Ref<Texture2D> Renderer::GetBRDFLUTTexture()
+	Ref<Image2D> Renderer::GetBRDFLUTTexture()
 	{
 		return s_Data->m_BRDFLUTTexture;
+	}
+
+	Ref<Sampler> Renderer::GetLinearClampSampler()
+	{
+		return s_Data->m_LinearClampSampler;
+	}
+
+	Ref<Sampler> Renderer::GetNearestClampSampler()
+	{
+		return s_Data->m_NearestClampSampler;
 	}
 
 	RendererCapabilities& Renderer::GetCapabilities()
@@ -564,9 +990,35 @@ namespace Shark {
 		return *s_CommandQueue[s_CommandQueueSubmissionIndex];
 	}
 
-	RenderCommandQueue& Renderer::GetResourceFreeQueue()
+	Ref<Image2D> Renderer::CreateBRDFLUT()
 	{
-		return *s_CommandQueue[s_CommandQueueSubmissionIndex];
+		auto shader = Renderer::GetShaderLibrary()->Get("BRDF_LUT");
+		const uint32_t imageSize = 256;
+
+		ImageSpecification spec;
+		spec.Format = ImageFormat::RG16F;
+		spec.Width = imageSize;
+		spec.Height = imageSize;
+		spec.Usage = ImageUsage::Storage;
+		spec.DebugName = "BRDF_LUT";
+		auto image = Image2D::Create(spec);
+
+
+		auto pipeline = ComputePipeline::Create(shader, "BRDF_LUT");
+		auto pass = ComputePass::Create(shader, LayoutShareMode::PassOnly, "BRDF_LUT");
+		pass->SetInput("LUT", image);
+		SK_CORE_VERIFY(pass->Validate());
+		pass->Bake();
+
+		auto commandBuffer = RenderCommandBuffer::Create("BRDF_LUT");
+
+		commandBuffer->Begin();
+		Renderer::BeginComputePass(commandBuffer, pass);
+		Renderer::Dispatch(commandBuffer, pipeline, { imageSize / 32, imageSize / 32, 1 });
+		Renderer::EndComputePass(commandBuffer, pass);
+		commandBuffer->End();
+
+		return image;
 	}
 
 }

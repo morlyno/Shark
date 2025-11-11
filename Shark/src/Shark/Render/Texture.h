@@ -7,6 +7,10 @@
 
 namespace Shark {
 
+	//////////////////////////////////////////////////////////////////////////
+	//// Texture2D
+	//////////////////////////////////////////////////////////////////////////
+
 	enum class FilterMode : uint16_t
 	{
 		Nearest,
@@ -25,6 +29,7 @@ namespace Shark {
 		uint32_t Width = 0, Height = 0;
 		ImageFormat Format = ImageFormat::RGBA;
 		bool GenerateMips = true;
+		bool Storage = false;
 
 		float MaxAnisotropy = 1.0f;
 		FilterMode Filter = FilterMode::Linear;
@@ -33,7 +38,7 @@ namespace Shark {
 		std::string DebugName;
 	};
 
-	class Texture2D : public RendererResource
+	class Texture2D : public ViewableResource
 	{
 	public:
 		static Ref<Texture2D> Create() { return Ref<Texture2D>::Create(); }
@@ -41,12 +46,13 @@ namespace Shark {
 		static Ref<Texture2D> Create(const TextureSpecification& specification, const std::filesystem::path& filepath) { return Ref<Texture2D>::Create(specification, filepath); }
 
 	public:
-		void Release();
+		//void Release(); // #Renderer #Investigate Remove Release
 		void Submit_Invalidate();
 		void RT_Invalidate();
 
 		Ref<Image2D> GetImage() const { return m_Image; }
-		const ViewInfo& GetViewInfo() const { return m_Image->GetViewInfo(); }
+		virtual const ViewInfo& GetViewInfo() const override { return m_ViewInfo; }
+		virtual bool HasSampler() const override { return true; }
 
 		uint32_t GetWidth() const { return m_Specification.Width; }
 		uint32_t GetHeight() const { return m_Specification.Height; }
@@ -77,9 +83,23 @@ namespace Shark {
 		~Texture2D();
 
 	private:
+		struct RT_State
+		{
+			float MaxAnisotropy = 1.0f;
+			FilterMode Filter = FilterMode::Linear;
+			AddressMode Address = AddressMode::Repeat;
+
+			RT_State(const TextureSpecification& specification)
+				: MaxAnisotropy(specification.MaxAnisotropy), Filter(specification.Filter), Address(specification.Address)
+			{}
+		};
+		void InvalidateFromState(Ref<Image2D> image, const RT_State& state);
+
+	private:
 		TextureSpecification m_Specification;
+
+		ViewInfo m_ViewInfo;
 		Ref<Image2D> m_Image;
-		nvrhi::SamplerHandle m_Sampler;
 
 		Buffer m_ImageData;
 
@@ -87,20 +107,25 @@ namespace Shark {
 		AssetHandle m_SourceTextureHandle;
 	};
 
-	class TextureCube : public RendererResource
+	//////////////////////////////////////////////////////////////////////////
+	//// TextureCube
+	//////////////////////////////////////////////////////////////////////////
+
+	class TextureCube : public ViewableResource
 	{
 	public:
 		static Ref<TextureCube> Create(const TextureSpecification& specification, const Buffer imageData = {}) { return Ref<TextureCube>::Create(specification, imageData); }
 
 	public:
-		void Release();
-		void RT_Invalidate();
-
 		uint32_t GetWidth() const { return m_Specification.Width; }
 		uint32_t GetHeight() const { return m_Specification.Height; }
 		uint32_t GetMipLevelCount() const { return m_Image->GetSpecification().MipLevels; }
 
 		Ref<Image2D> GetImage() const { return m_Image; }
+		const TextureSpecification& GetSpecification() const { return m_Specification; }
+
+		virtual const ViewInfo& GetViewInfo() const override { return m_ViewInfo; }
+		virtual bool HasSampler() const override { return true; }
 
 	public:
 		TextureCube(const TextureSpecification& specification, const Buffer imageData);
@@ -108,11 +133,16 @@ namespace Shark {
 
 	private:
 		TextureSpecification m_Specification;
+
+		ViewInfo m_ViewInfo;
 		Ref<Image2D> m_Image;
-		nvrhi::SamplerHandle m_Sampler;
 
 		Buffer m_ImageData;
 	};
+
+	//////////////////////////////////////////////////////////////////////////
+	//// Sampler
+	//////////////////////////////////////////////////////////////////////////
 
 	struct SamplerSpecification
 	{

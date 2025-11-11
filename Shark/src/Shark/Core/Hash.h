@@ -13,6 +13,7 @@ namespace Shark {
 
 		// FNV1a Hash Function
 		static void AppendFNV(uint64_t& seed, uint64_t value);
+		static void AppendFNV(uint64_t& seed, const void* values, uint64_t byteSize);
 		static void AppendFNV(uint64_t& seed, const Buffer values);
 
 		static uint64_t CombineFNV(uint64_t seed, uint64_t value);
@@ -30,5 +31,8 @@ namespace Shark {
 			return GenerateFNV(Buffer::FromValue<TValue>(value));
 		}
 	};
+
+	template<typename T>
+	uint64_t StandartHash(const T& value) { return std::hash<T>{}(value); }
 
 }

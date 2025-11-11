@@ -58,6 +58,7 @@ namespace Shark {
 
 		Buffer temp = std::exchange(m_LocalStorage, {});
 		m_LocalStorage.Allocate(m_ByteSize);
+		Allocator::SetMemoryDescription(m_LocalStorage.Data, "LocalStorage");
 
 		Ref instance = this;
 		Renderer::Submit([instance, state = RT_State{ .ByteSize = m_ByteSize }, temp]() mutable

@@ -4,7 +4,7 @@
 
 namespace Shark {
 
-	class MaterialAsset;
+	class PBRMaterial;
 
 	class MaterialSerializer : public SerializerBase
 	{
@@ -13,8 +13,8 @@ namespace Shark {
 		virtual bool TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata) override;
 
 	private:
-		std::string SerializeToYAML(Ref<MaterialAsset> material);
-		bool DeserializeFromYAML(Ref<MaterialAsset> material, const std::string& filedata);
+		std::string SerializeToYAML(Ref<PBRMaterial> material);
+		bool DeserializeFromYAML(Ref<PBRMaterial> material, const std::string& filedata);
 
 	private:
 		std::string m_ErrorMsg;

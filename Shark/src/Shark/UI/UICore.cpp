@@ -39,24 +39,9 @@ namespace Shark::UI {
 			}
 		}
 
-		static void AddImage(Ref<Image2D> image)
+		static ImTextureID GetTextureID(Ref<ViewableResource> viewable)
 		{
-			Application::Get().GetImGuiLayer().AddImage(image);
-		}
-
-		static void AddImage(Ref<ImageView> imageView)
-		{
-			Application::Get().GetImGuiLayer().AddImage(imageView);
-		}
-
-		static void AddImage(Ref<Texture2D> texture)
-		{
-			Application::Get().GetImGuiLayer().AddImage(texture->GetImage());
-		}
-
-		static void BindDefaultSampler()
-		{
-			Application::Get().GetImGuiLayer().BindFontSampler();
+			return reinterpret_cast<ImTextureID>(viewable.Detach());
 		}
 
 	}
@@ -394,21 +379,16 @@ namespace Shark::UI {
 		auto* drawList = ImGui::GetWindowDrawList();
 		if (ImGui::IsItemActive())
 		{
-			utils::AddImage(imagePressed);
-			drawList->AddImage((ImTextureID)&imagePressed->GetViewInfo(), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintPressed);
+			drawList->AddImage(utils::GetTextureID(imagePressed.Detach()), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintPressed);
 		}
 		else if (ImGui::IsItemHovered())
 		{
-			utils::AddImage(imageHovered);
-			drawList->AddImage((ImTextureID)&imageHovered->GetViewInfo(), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintHovered);
+			drawList->AddImage(utils::GetTextureID(imageHovered.Detach()), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintHovered);
 		}
 		else
 		{
-			utils::AddImage(imageNormal);
-			drawList->AddImage((ImTextureID)&imageNormal->GetViewInfo(), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintNormal);
+			drawList->AddImage(utils::GetTextureID(imageNormal.Detach()), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintNormal);
 		}
-
-		utils::BindDefaultSampler();
 	}
 
 	void DrawImageButton(Ref<Image2D> imageNormal, Ref<Image2D> imageHovered, Ref<Image2D> imagePressed, ImU32 tintNormal, ImU32 tintHovered, ImU32 tintPressed, ImRect rectangle)
@@ -472,9 +452,7 @@ namespace Shark::UI {
 		if (window->SkipItems)
 			return;
 
-		utils::AddImage(image);
-		window->DrawList->AddImage((ImTextureID)&image->GetViewInfo(), rect.Min, rect.Max, uv0, uv1, ImGui::GetColorU32(tint_col));
-		utils::BindDefaultSampler();
+		window->DrawList->AddImage(utils::GetTextureID(image.Detach()), rect.Min, rect.Max, uv0, uv1, ImGui::GetColorU32(tint_col));
 	}
 
 	void DrawImage(Ref<ImageView> image, const ImRect& rect, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col)
@@ -483,9 +461,7 @@ namespace Shark::UI {
 		if (window->SkipItems)
 			return;
 
-		utils::AddImage(image);
-		window->DrawList->AddImage((ImTextureID)&image->GetViewInfo(), rect.Min, rect.Max, uv0, uv1, ImGui::GetColorU32(tint_col));
-		utils::BindDefaultSampler();
+		window->DrawList->AddImage(utils::GetTextureID(image.Detach()), rect.Min, rect.Max, uv0, uv1, ImGui::GetColorU32(tint_col));
 	}
 
 	void DrawImage(Ref<Texture2D> texture, const ImRect& rect, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col)
@@ -499,9 +475,7 @@ namespace Shark::UI {
 		if (window->SkipItems)
 			return;
 
-		utils::AddImage(texture);
-		ImGui::ImageWithBg((ImTextureID)&texture->GetViewInfo(), size, args.UV0, args.UV1, args.BackgroundColor, args.TintColor);
-		utils::BindDefaultSampler();
+		ImGui::ImageWithBg(utils::GetTextureID(texture.Detach()), size, args.UV0, args.UV1, args.BackgroundColor, args.TintColor);
 	}
 
 	void Image(Ref<ImageView> imageView, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col)
@@ -510,9 +484,7 @@ namespace Shark::UI {
 		if (window->SkipItems)
 			return;
 
-		utils::AddImage(imageView);
-		ImGui::ImageWithBg((ImTextureID)&imageView->GetViewInfo(), size, uv0, uv1, ImVec4(0, 0, 0, 0), tint_col);
-		utils::BindDefaultSampler();
+		ImGui::ImageWithBg(utils::GetTextureID(imageView), size, uv0, uv1, ImVec4(0, 0, 0, 0), tint_col);
 	}
 
 	void Image(Ref<Image2D> image, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col)
@@ -521,9 +493,7 @@ namespace Shark::UI {
 		if (window->SkipItems)
 			return;
 
-		utils::AddImage(image);
-		ImGui::ImageWithBg((ImTextureID)&image->GetViewInfo(), size, uv0, uv1, ImVec4(0, 0, 0, 0), tint_col);
-		utils::BindDefaultSampler();
+		ImGui::ImageWithBg(utils::GetTextureID(image), size, uv0, uv1, ImVec4(0, 0, 0, 0), tint_col);
 	}
 
 	void Image(Ref<Texture2D> texture, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col)
@@ -532,9 +502,7 @@ namespace Shark::UI {
 		if (window->SkipItems)
 			return;
 
-		utils::AddImage(texture);
-		ImGui::ImageWithBg((ImTextureID)&texture->GetViewInfo(), size, uv0, uv1, ImVec4(0, 0, 0, 0), tint_col);
-		utils::BindDefaultSampler();
+		ImGui::ImageWithBg(utils::GetTextureID(texture), size, uv0, uv1, ImVec4(0, 0, 0, 0), tint_col);
 	}
 
 	bool TextureEdit(const char* textID, Ref<Texture2D>& texture, const ImVec2& size, bool clearButton, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col)
@@ -596,18 +564,12 @@ namespace Shark::UI {
 
 	bool ImageButton(const char* strID, Ref<Texture2D> texture, const ImVec2& image_size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& bg_col, const ImVec4& tint_col)
 	{
-		utils::AddImage(texture);
-		const bool pressed = ImGui::ImageButton(strID, (ImTextureID)&texture->GetViewInfo(), image_size, uv0, uv1, bg_col, tint_col);
-		utils::BindDefaultSampler();
-		return pressed;
+		return ImGui::ImageButton(strID, utils::GetTextureID(texture), image_size, uv0, uv1, bg_col, tint_col);
 	}
 
 	bool ImageButton(const char* strID, Ref<Texture2D> texture, const ImVec2& image_size, const ImVec4& tint_col)
 	{
-		utils::AddImage(texture);
-		const bool pressed = ImGui::ImageButton(strID, (ImTextureID)&texture->GetViewInfo(), image_size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, tint_col);
-		utils::BindDefaultSampler();
-		return pressed;
+		return ImGui::ImageButton(strID, utils::GetTextureID(texture), image_size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, tint_col);
 	}
 
 	void Text(const char* fontName, const char* text)

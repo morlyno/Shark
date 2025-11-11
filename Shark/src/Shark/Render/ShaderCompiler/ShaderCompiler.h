@@ -33,6 +33,8 @@ namespace Shark {
 		void Reflect();
 		void ReflectStage(nvrhi::ShaderType stage);
 		void MapBindings();
+		void BuildCombinedImageSampler();
+		ShaderInputInfo* FindInputInfo(const std::string& name);
 
 	private:
 		CompilerOptions m_Options;
@@ -44,6 +46,7 @@ namespace Shark {
 		std::map<nvrhi::ShaderType, std::vector<uint32_t>> m_SpirvBinary;
 		nvrhi::ShaderType m_CompiledStages = nvrhi::ShaderType::None;
 
+		std::vector<std::pair<std::string, std::string>> m_CombinedImageSampler;
 		ShaderReflection m_Reflection;
 
 		//std::map<GraphicsBinding, ShaderReflection::BindingItem*> m_ShaderResources;

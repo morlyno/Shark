@@ -11,7 +11,6 @@
 
 #include "Shark/Debug/Profiler.h"
 
-#include <stb_image.h>
 #include <yaml-cpp/yaml.h>
 
 #define SK_SERIALIZATION_ERROR(...) SK_CORE_ERROR_TAG("Serialization", __VA_ARGS__); SK_DEBUG_BREAK();
@@ -103,25 +102,36 @@ namespace Shark {
 	Ref<Texture2D> TextureSerializer::TryLoad(const std::filesystem::path& filepath, bool useFallback)
 	{
 		SK_PROFILE_FUNCTION();
-		Ref<Texture2D> texture = Texture2D::Create();
 
-		AssetHandle sourceHandle;
-		Buffer& imageData = texture->GetBuffer();
-		TextureSpecification& specification = texture->GetSpecification();
+
+		Ref<Texture2D> texture;
 
 		if (utils::ShouldBeSharkTexture(filepath))
 		{
-			const std::string yamlSource = FileSystem::ReadString(filepath);
-			DesrializeFromYAML(yamlSource, specification, sourceHandle, imageData);
-			texture->SetSourceTextureHandle(sourceHandle);
-		}
-		else
-		{
-			LoadImageData(filepath, specification, imageData);
-			texture->SetFilepath(filepath);
+			TextureSpecification specification;
+			AssetHandle sourceHandle;
+			Buffer imageData;
+
+			const std::string fileData = FileSystem::ReadString(filepath);
+			if (DesrializeFromYAML(fileData, specification, sourceHandle, imageData))
+			{
+				texture = Texture2D::Create(specification, imageData);
+				texture->SetSourceTextureHandle(sourceHandle);
+				imageData.Release();
+			}
 		}
 
-		texture->RT_Invalidate();
+		if (!texture)
+		{
+			Buffer imageData;
+			TextureSpecification specification;
+
+			LoadImageData(filepath, specification, imageData);
+			texture = Texture2D::Create(specification, imageData);
+			texture->SetFilepath(filepath);
+			imageData.Release();
+		}
+
 		return texture;
 	}
 

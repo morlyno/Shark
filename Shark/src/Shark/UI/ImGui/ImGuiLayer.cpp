@@ -2,14 +2,15 @@
 #include "ImGuiLayer.h"
 
 #include "Shark/Render/Renderer.h"
+#include "Shark/UI/ImGui/ImGuiRenderer.h"
 #include "Shark/UI/Theme.h"
 #include "Shark/UI/ImGui/ImGuiFonts.h"
 #include "Shark/File/FileSystem.h"
 #include "Shark/Debug/Profiler.h"
 
-#include <ImGuizmo/ImGuizmo.h>
 #include <imgui_internal.h>
 #include <backends/imgui_impl_win32.h>
+#include <ImGuizmo/ImGuizmo.h>
 
 namespace Shark {
 
@@ -143,7 +144,7 @@ namespace Shark {
 	void ImGuiLayer::End()
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_VERIFY(!Renderer::IsOnRenderThread());
+		//SK_CORE_VERIFY(!Renderer::IsOnRenderThread());
 
 		ImGuiIO& io = ImGui::GetIO();
 		auto& window = Application::Get().GetWindow();
@@ -159,21 +160,6 @@ namespace Shark {
 			ImGui::UpdatePlatformWindows();
 			ImGui::RenderPlatformWindowsDefault();
 		}
-	}
-
-	void ImGuiLayer::AddImage(Ref<Image2D> image)
-	{
-
-	}
-
-	void ImGuiLayer::AddImage(Ref<ImageView> view)
-	{
-
-	}
-
-	void ImGuiLayer::BindFontSampler()
-	{
-
 	}
 
 	ImGuiLayer::ImGuiLayer()

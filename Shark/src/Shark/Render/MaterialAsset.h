@@ -4,52 +4,62 @@
 
 namespace Shark {
 
-	class MaterialAsset : public Asset
+	class PBRMaterial : public Asset
 	{
 	public:
-		MaterialAsset();
-		MaterialAsset(Ref<Material> material, bool setDefault = true);
-		~MaterialAsset();
+		static Ref<PBRMaterial> Create(const std::string& name, bool setDefault = true) { return Ref<PBRMaterial>::Create(name, setDefault); }
 
-		void Invalidate();
+	public:
+		void SetDefaults();
+		void PrepareAndUpdate();
 
-		const std::string& GetName() const;
-		Ref<Material> GetMaterial();
-		void SetMaterial(Ref<Material> material);
-
-		glm::vec3& GetAlbedoColor();
-		void SetAlbedoColor(const glm::vec3& color);
-
-		float& GetMetalness();
-		void SetMetalness(float value);
-
-		float& GetRoughness();
-		void SetRoughness(float value);
+		const std::string& GetName() const { return m_Material->GetName(); }
+		Ref<Material> GetMaterial() const { return m_Material; }
 
 		AssetHandle GetAlbedoMap();
 		void SetAlbedoMap(AssetHandle handle);
 		void ClearAlbedoMap();
+		glm::vec3& GetAlbedoColor();
+		void SetAlbedoColor(const glm::vec3& color);
 
 		AssetHandle GetNormalMap();
 		void SetNormalMap(AssetHandle handle);
+		void ClearNormalMap();
 		bool IsUsingNormalMap();
 		void SetUsingNormalMap(bool value);
-		void ClearNormalMap();
 
 		AssetHandle GetMetalnessMap();
 		void SetMetalnessMap(AssetHandle handle);
 		void ClearMetalnessMap();
-		
+		float& GetMetalness();
+		void SetMetalness(float value);
+
 		AssetHandle GetRoughnessMap();
 		void SetRoughnessMap(AssetHandle handle);
 		void ClearRoughnessMap();
+		float& GetRoughness();
+		void SetRoughness(float value);
 
-		void SetDefault();
 	public:
+		PBRMaterial(const std::string& name, bool setDefault = true);
+		~PBRMaterial();
+
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }
 		static AssetType GetStaticType() { return AssetType::Material; }
-		static Ref<MaterialAsset> Create() { return Ref<MaterialAsset>::Create(); }
-		static Ref<MaterialAsset> Create(Ref<Material> material, bool setDefault = true) { return Ref<MaterialAsset>::Create(material, setDefault); }
+
+	private:
+		struct Uniforms
+		{
+			glm::vec3 Albedo;
+			float Metalness;
+			float Roughness;
+			float AmbientOcclusion;
+			bool UsingNormalMap;
+			float P0;
+
+			bool operator==(const Uniforms& other) const = default;
+			bool operator!=(const Uniforms& other) const = default;
+		};
 
 	private:
 		Ref<Material> m_Material;
@@ -58,6 +68,9 @@ namespace Shark {
 		AssetHandle m_NormalMap;
 		AssetHandle m_MetalnessMap;
 		AssetHandle m_RoughnessMap;
+
+		Uniforms m_Uniforms;
+		Uniforms m_ActiveState;
 	};
 
 	class MaterialTable : public RefCount

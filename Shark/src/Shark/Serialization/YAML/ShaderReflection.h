@@ -117,6 +117,30 @@ namespace YAML {
 	};
 
 	template<>
+	struct convert<Shark::ShaderResource::SampledImage>
+	{
+		static Node encode(const Shark::ShaderResource::SampledImage& resource)
+		{
+			Node node(NodeType::Map);
+			node.force_insert("Name", resource.Name);
+			node.force_insert("SeparateImage", resource.SeparateImage);
+			node.force_insert("SeparateSampler", resource.SeparateSampler);
+			return node;
+		}
+
+		static bool decode(const Node& node, Shark::ShaderResource::SampledImage& outResource)
+		{
+			if (!node.IsMap() || node.size() != 3)
+				return false;
+
+			YAML::Read(node, "Name", outResource.Name);
+			YAML::Read(node, "SeparateImage", outResource.SeparateImage);
+			YAML::Read(node, "SeparateSampler", outResource.SeparateSampler);
+			return true;
+		}
+	};
+
+	template<>
 	struct convert<Shark::ShaderResource::PushConstant>
 	{
 		static Node encode(const Shark::ShaderResource::PushConstant& resource)
@@ -206,6 +230,7 @@ namespace YAML {
 			node.force_insert("StorageBuffers", layout.StorageBuffers);
 			node.force_insert("Images", layout.Images);
 			node.force_insert("StorageImages", layout.StorageImages);
+			node.force_insert("SampledImages", layout.SampledImages);
 			node.force_insert("Samplers", layout.Samplers);
 			
 			node.force_insert("Stage", layout.Stage);
@@ -216,14 +241,16 @@ namespace YAML {
 
 		static bool decode(const Node& node, Shark::ShaderBindingLayout& layout)
 		{
-			if (!node.IsMap() || node.size() != 8)
+			if (!node.IsMap() || node.size() != 9)
 				return false;
 
 			YAML::Read(node, "ConstantBuffers", layout.ConstantBuffers);
 			YAML::Read(node, "StorageBuffers", layout.StorageBuffers);
 			YAML::Read(node, "Images", layout.Images);
 			YAML::Read(node, "StorageImages", layout.StorageImages);
+			YAML::Read(node, "SampledImages", layout.SampledImages);
 			YAML::Read(node, "Samplers", layout.Samplers);
+
 			YAML::Read(node, "Stage", layout.Stage);
 			YAML::Read(node, "InputInfos", layout.InputInfos);
 			YAML::Read(node, "BindingOffsets", layout.BindingOffsets);

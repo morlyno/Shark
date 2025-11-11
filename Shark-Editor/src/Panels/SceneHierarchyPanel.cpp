@@ -259,8 +259,8 @@ namespace Shark {
 					UI::ScopedItemFlag mixedValue(ImGuiItemFlags_MixedValue, isInconsistantProperty);
 
 					std::string materialName;
-					Ref<MaterialAsset> materialAsset = AssetManager::GetAssetAsync<MaterialAsset>(materialHandle);
-					if (materialAsset)
+					auto materialAsset = AssetManager::GetAssetAsync<PBRMaterial>(materialHandle);
+					if (materialAsset.Ready)
 					{
 						auto& name = materialAsset->GetName();
 						if (!name.empty())
@@ -1120,8 +1120,8 @@ namespace Shark {
 				std::string materialName;
 				if (!isMixed)
 				{
-					Ref<MaterialAsset> materialAsset = AssetManager::GetAssetAsync<MaterialAsset>(firstComponent.Material);
-					if (materialAsset)
+					auto materialAsset = AssetManager::GetAssetAsync<PBRMaterial>(firstComponent.Material);
+					if (materialAsset.Ready)
 					{
 						auto& name = materialAsset->GetName();
 						if (!name.empty())

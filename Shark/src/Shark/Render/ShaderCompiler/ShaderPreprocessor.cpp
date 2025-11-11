@@ -1,6 +1,7 @@
 #include "skpch.h"
 #include "ShaderPreprocessor.h"
 #include "Shark/Utils/String.h"
+#include <regex>
 
 namespace Shark {
 
@@ -23,7 +24,18 @@ namespace Shark {
 
 	}
 
-	PreProcessorResult HLSLPreprocessor::Preprocess(const std::string& source)
+	bool HLSLPreprocessor::Preprocess(const std::string& source)
+	{
+		if (!SplitStages(source))
+			return false;
+
+		for (const auto& [stage, code] : PreProcessedResult)
+		{
+			ProcessCombineInstructions(stage, code);
+		}
+	}
+
+	bool HLSLPreprocessor::SplitStages(const std::string& source)
 	{
 		PreProcessorResult result;
 		const std::string_view ShaderStageToken = "#pragma stage";
@@ -35,7 +47,7 @@ namespace Shark {
 			if (moduleBegin == std::string::npos)
 			{
 				SK_CORE_ERROR_TAG("Renderer", "Failed to find Shader Stage!");
-				return {};
+				return false;
 			}
 
 			const size_t moduleEnd = source.find(ShaderStageToken, offset + moduleBegin + ShaderStageToken.length());
@@ -45,7 +57,7 @@ namespace Shark {
 			if (stageBegin == std::string::npos)
 			{
 				SK_CORE_ERROR_TAG("Renderer", "Failed to find Shader Stage!");
-				return {};
+				return false;
 			}
 
 			const size_t stageArgBegin = moduleSource.find_first_not_of(": ", stageBegin + ShaderStageToken.length());
@@ -67,11 +79,91 @@ namespace Shark {
 			result[stage] = moduleSource;
 		}
 
+		PreProcessedResult = std::move(result);
+		return true;
+	}
+
+	static std::vector<std::string> TokenizeCode(const std::string& code)
+	{
+		static const std::regex wordRegex(R"(\w+|[:()\n\r#])");
+
+		std::sregex_iterator rit(code.begin(), code.end(), wordRegex);
+		std::sregex_iterator end;
+
+		std::vector<std::string> result;
+		for (; rit != end; rit++)
+			result.push_back(rit->str());
+
 		return result;
 	}
 
+	class Tokens
+	{
+		std::vector<std::string>& m_Tokens;
+		size_t m_CurrentToken = 0;
+
+	public:
+		Tokens(std::vector<std::string>& tokens)
+			: m_Tokens(tokens)
+		{}
+
+		size_t Count() const { return m_Tokens.size(); }
+		bool Valid() const { return m_CurrentToken < m_Tokens.size(); }
+
+		bool Next(uint32_t count = 1)
+		{
+			m_CurrentToken += count;
+			return Valid();
+		}
+
+		bool Seek(std::string_view token)
+		{
+			while (Valid() && !Compare(token, 0))
+				Next();
+
+			return Valid();
+		}
+
+		std::string_view Peek(size_t offset) const
+		{
+			if ((m_CurrentToken + offset) >= m_Tokens.size())
+				return {};
+			return m_Tokens[m_CurrentToken + offset];
+		}
+
+		bool Compare(std::string_view value, size_t offset) const
+		{
+			return Peek(offset) == value;
+		}
+
+	};
+
+	void HLSLPreprocessor::ProcessCombineInstructions(nvrhi::ShaderType stage, const std::string& code)
+	{
+		auto tempTokens = TokenizeCode(code);
+		Tokens tokens(tempTokens);
+
+		while (tokens.Seek("#") && tokens.Next())
+		{
+			if (!tokens.Compare("pragma", 0) || !tokens.Next())
+				continue;
+
+			if (tokens.Compare("combine", 0) && tokens.Compare("\n", 4))
+			{
+				auto first = tokens.Peek(2);
+				auto second = tokens.Peek(3);
+				CombinedImageSamplers.emplace_back(first, second);
+				tokens.Next(4);
+			}
+		}
+	}
+
+
+
+
 	PreProcessorResult GLSLPreprocssor::Preprocess(const std::string& source)
 	{
+		//SK_NOT_IMPLEMENTED();
 		PreProcessorResult result;
 
 		const std::string_view VersionToken = "#version";

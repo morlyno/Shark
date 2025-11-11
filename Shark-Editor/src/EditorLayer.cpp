@@ -143,10 +143,12 @@ namespace Shark {
 		debugRendererSpec.UseDepthTesting = true;
 		m_DebugRenderer = Ref<Renderer2D>::Create(m_SceneRenderer->GetTargetFramebuffer(), debugRendererSpec);
 
+#if TODO // #Renderer #Disabled reading from images is not yet supported
 		// Readable image for Mouse Picking
 		ImageSpecification imageSpecs = m_SceneRenderer->GetIDImage()->GetSpecification();
 		imageSpecs.Type = ImageType::Storage;
 		m_MousePickingImage = Image2D::Create(imageSpecs);
+#endif
 
 		// Load Project
 		if (!m_StartupProject.empty())
@@ -195,7 +197,7 @@ namespace Shark {
 				m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 				m_SceneRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
 				m_DebugRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
-				m_MousePickingImage->Resize(m_ViewportWidth, m_ViewportHeight);
+				//m_MousePickingImage->Resize(m_ViewportWidth, m_ViewportHeight); // #Renderer #Disabled
 				m_EditorCamera.Resize((float)m_ViewportWidth, (float)m_ViewportHeight);
 				m_NeedsResize = false;
 			}
@@ -498,7 +500,8 @@ namespace Shark {
 			UI_DrawMenuBar();
 
 		UI_Viewport();
-		UI_MousePicking();
+		// #Renderer #Disabled #moro mouse picking
+		//UI_MousePicking();
 
 		UI_ToolBar();
 
@@ -1285,6 +1288,9 @@ namespace Shark {
 
 	bool EditorLayer::UI_MousePicking()
 	{
+		// #Renderer #Disabled mouse picking is not yet supported
+		return false;
+#if TODO
 		SK_PROFILE_FUNCTION();
 
 		if (ImGuizmo::IsUsing())
@@ -1309,6 +1315,7 @@ namespace Shark {
 				Renderer::Submit([this, x, y]()
 				{
 					uint32_t hoverdEntity = (uint32_t)-1;
+					// #Renderer #Disabled Image2D::RT_ReadPixel is not implemented and this is not on the render thread
 					if (!m_MousePickingImage->RT_ReadPixel(x, y, hoverdEntity))
 						return;
 
@@ -1345,6 +1352,7 @@ namespace Shark {
 			}
 		}
 		return true;
+#endif
 	}
 
 	void EditorLayer::UI_OpenProjectModal()
@@ -1743,7 +1751,6 @@ namespace Shark {
 		m_EditorScene = scene;
 		m_EditorScene->IsEditorScene(true);
 		m_EditorScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
-		m_SceneRenderer->SetScene(m_EditorScene);
 		m_PanelManager->SetContext(m_EditorScene);
 		ScriptEngine::Get().SetCurrentScene(m_EditorScene);
 		m_ActiveScene = m_EditorScene;
@@ -1866,7 +1873,6 @@ namespace Shark {
 	void EditorLayer::OnSceneStateChanged(Ref<Scene> stateScene)
 	{
 		ScriptEngine::Get().SetCurrentScene(stateScene);
-		m_SceneRenderer->SetScene(stateScene);
 		m_PanelManager->SetContext(stateScene);
 		m_ActiveScene = stateScene;
 	}
@@ -1943,7 +1949,6 @@ namespace Shark {
 		SelectionManager::DeselectAll();
 
 		m_ActiveScene = nullptr;
-		m_SceneRenderer->SetScene(nullptr);
 		m_PanelManager->SetContext(nullptr);
 		ScriptEngine::Get().SetCurrentScene(nullptr);
 		m_EditorScene = nullptr;

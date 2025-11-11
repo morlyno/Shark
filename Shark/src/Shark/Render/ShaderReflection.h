@@ -30,10 +30,9 @@ namespace Shark {
 		ConstantBuffer,
 		StorageBuffer,
 		Sampler,
-		Image2D,
-		ImageCube,
-		StorageImage2D,
-		StorageImageCube
+		Image,
+		Texture,
+		StorageImage,
 	};
 
 	struct ShaderInputInfo
@@ -82,6 +81,15 @@ namespace Shark {
 			nvrhi::ShaderType Stage = nvrhi::ShaderType::None;
 		};
 
+		struct SampledImage
+		{
+			std::string Name;
+			nvrhi::ShaderType Stage = nvrhi::ShaderType::None;
+
+			Image SeparateImage;
+			Sampler SeparateSampler;
+		};
+
 		struct PushConstant
 		{
 			static constexpr uint32_t Slot = 0;
@@ -106,6 +114,7 @@ namespace Shark {
 		std::map<uint32_t, ShaderResource::Buffer> StorageBuffers;
 		std::map<uint32_t, ShaderResource::Image> Images;
 		std::map<uint32_t, ShaderResource::Image> StorageImages;
+		std::map<uint32_t, ShaderResource::SampledImage> SampledImages;
 		std::map<uint32_t, ShaderResource::Sampler> Samplers;
 
 		nvrhi::ShaderType Stage = nvrhi::ShaderType::None;

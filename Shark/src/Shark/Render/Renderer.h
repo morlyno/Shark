@@ -25,6 +25,9 @@
 #include "Shark/Render/Pipeline.h"
 #include "Shark/Render/ShaderCompiler/ShaderCache.h"
 
+#include "Shark/Render/ComputePass.h"
+#include "Shark/Render/ComputePipeline.h"
+
 #include <nvrhi/nvrhi.h>
 
 namespace Shark {
@@ -75,22 +78,6 @@ namespace Shark {
 			new (storage) TFunc(func);
 		}
 
-		template<typename TFunc>
-		static void SubmitResourceFree(const TFunc& func)
-		{
-			auto& queue = GetResourceFreeQueue();
-
-			auto command = [](void* funcPtr)
-			{
-				auto cmdPtr = (TFunc*)funcPtr;
-				(*cmdPtr)();
-				cmdPtr->~TFunc();
-			};
-
-			void* storage = queue.Allocate(command, sizeof(TFunc));
-			new (storage) TFunc(func);
-		}
-
 		static void ClearFramebuffer(Ref<RenderCommandBuffer> commandBuffer, Ref<FrameBuffer> framebuffer);
 		static void RT_ClearFramebuffer(Ref<RenderCommandBuffer> commandBuffer, Ref<FrameBuffer> framebuffer);
 
@@ -99,6 +86,11 @@ namespace Shark {
 
 		static void BeginRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass, bool expliciteClear = false);
 		static void EndRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass);
+		static void BeginComputePass(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePass> computePass);
+		static void EndComputePass(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePass> computePass);
+
+		static void Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, const glm::vec3& workGroups, const Buffer pushConstantData = {});
+		static void Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, Ref<Material> material, const glm::vec3& workGroups, const Buffer pushConstantData = {});
 
 		static void RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Buffer pushConstantsData = {});
 
@@ -118,13 +110,14 @@ namespace Shark {
 		static void CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage);
 		static void CopyMip(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, uint32_t sourceMip, Ref<Image2D> destinationImage, uint32_t destinationMip);
 		static void BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage);
-		static void GenerateMips(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> image);
 
-		static std::pair<Ref<TextureCube>, Ref<TextureCube>> CreateEnvironmentMap(const std::filesystem::path& filepath);
-		static std::pair<Ref<TextureCube>, Ref<TextureCube>> RT_CreateEnvironmentMap(const std::filesystem::path& filepath);
+		static void GenerateMips(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> image);
 
 		static void GenerateMips(Ref<Image2D> image);
 		static void RT_GenerateMips(Ref<Image2D> image);
+
+		static std::pair<Ref<TextureCube>, Ref<TextureCube>> CreateEnvironmentMap(const std::filesystem::path& filepath);
+		static std::pair<Ref<TextureCube>, Ref<TextureCube>> RT_CreateEnvironmentMap(const std::filesystem::path& filepath);
 
 		static ShaderCache& GetShaderCache();
 		static void ShaderReloaded(Ref<Shader> shader);
@@ -142,7 +135,9 @@ namespace Shark {
 		static Ref<Texture2D> GetBlackTexture();
 		static Ref<TextureCube> GetBlackTextureCube();
 		static Ref<Environment> GetEmptyEnvironment();
-		static Ref<Texture2D> GetBRDFLUTTexture();
+		static Ref<Image2D> GetBRDFLUTTexture();
+		static Ref<Sampler> GetLinearClampSampler();
+		static Ref<Sampler> GetNearestClampSampler();
 
 		static RendererCapabilities& GetCapabilities();
 		static bool IsOnRenderThread();
@@ -152,7 +147,8 @@ namespace Shark {
 
 	private:
 		static RenderCommandQueue& GetCommandQueue();
-		static RenderCommandQueue& GetResourceFreeQueue();
+
+		static Ref<Image2D> CreateBRDFLUT();
 
 	private:
 		friend class DirectXRenderer;

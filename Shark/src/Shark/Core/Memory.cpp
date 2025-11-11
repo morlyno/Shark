@@ -13,4 +13,9 @@ namespace Shark {
 		memcpy(destination, source.Data, source.Size);
 	}
 
+	void Memory::WriteZero(void* destination, uint64_t byteSize)
+	{
+		memset(destination, 0, byteSize);
+	}
+
 }

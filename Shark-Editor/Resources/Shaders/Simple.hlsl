@@ -46,6 +46,8 @@ VertexOutput main(VertexInput Input)
 
 #pragma stage : Pixel
 
+#pragma combine : u_Texture, u_Sampler
+
 Texture2D u_Texture : register(t0, space0);
 SamplerState u_Sampler : register(s0, space0);
 
@@ -72,7 +74,7 @@ float4 ToLinear(float4 sRGB)
 PixelOutput main(PixelInput Input)
 {
     PixelOutput Output;
-    Output.Color = u_Texture.Sample(u_Sampler, Input.Texcoord);
+    Output.Color = float4(u_Texture.Sample(u_Sampler, Input.Texcoord).xyz, 1.0f);
     Output.ID = -1;
     return Output;
 }
