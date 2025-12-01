@@ -5,6 +5,7 @@
 #include "Shark/Render/ShaderCompiler/ShaderCompiler.h"
 
 #include <nvrhi/nvrhi.h>
+#include <utility>
 
 namespace Shark {
 
@@ -22,11 +23,15 @@ namespace Shark {
 		const std::string& GetName() const { return m_Name; }
 		const std::filesystem::path& GetFilePath() const { return m_Info.SourcePath; }
 
+		bool HasLayout(uint32_t set) const { return m_LayoutMapping[set] != -1; }
 		nvrhi::IBindingLayout* GetBindingLayout(uint32_t set) const { return m_BindingLayouts[m_LayoutMapping[set]]; }
 		const nvrhi::BindingLayoutVector& GetBindingLayouts() const { return m_BindingLayouts; }
 		const ShaderReflection& GetReflectionData() const { return m_ReflectionData; }
 
-		uint32_t MapSet(uint32_t set) { return m_LayoutMapping[set]; }
+		int MapSet(uint32_t set) { return m_LayoutMapping[set]; }
+
+		const auto& GetRequestedBindingSets() const { return m_RequestedBindingSets; }
+		LayoutShareMode GetLayoutMode() const { return m_LayoutMode; }
 
 	public:
 		Shader();
@@ -47,12 +52,30 @@ namespace Shark {
 		ShaderReflection m_ReflectionData;
 		std::map<nvrhi::ShaderType, nvrhi::ShaderHandle> m_ShaderHandles;
 
-		std::array<uint32_t, nvrhi::c_MaxBindingLayouts> m_LayoutMapping;
+		std::array<int, nvrhi::c_MaxBindingLayouts> m_LayoutMapping;
 		nvrhi::BindingLayoutVector m_BindingLayouts;
+
+		std::map<uint32_t, nvrhi::BindingSetHandle> m_RequestedBindingSets;
+		LayoutShareMode m_LayoutMode;
+	};
+
+	struct DefaultCompilerOptions
+	{
+		bool ForceCompile = false;
+		bool Optimize = false;
+		bool GenerateDebugInfo = false;
 	};
 
 	class ShaderLibrary : public RefCount
 	{
+	private:
+		struct LoadArgs
+		{
+			std::optional<bool> ForceCompile;
+			std::optional<bool> Optimize;
+			std::optional<bool> GenerateDebugInfo;
+		};
+
 	public:
 		using ShadersMap = std::unordered_map<std::string, Ref<Shader>>;
 
@@ -60,7 +83,9 @@ namespace Shark {
 		ShaderLibrary() = default;
 		~ShaderLibrary() { Clear(); }
 
-		Ref<Shader> Load(const std::filesystem::path& filepath, bool forceCompile = false, bool disableOptimization = false);
+		void SetCompilerOptions(const DefaultCompilerOptions& defaultOptions) { m_DefaultOptions = defaultOptions; }
+
+		Ref<Shader> Load(const std::filesystem::path& filepath, const LoadArgs& options = {});
 		Ref<Shader> Get(const std::string& name);
 		Ref<Shader> TryGet(const std::string& name);
 
@@ -74,7 +99,7 @@ namespace Shark {
 		ShadersMap::const_iterator end() const { return m_ShaderMap.cend(); }
 	private:
 		ShadersMap m_ShaderMap;
-
+		DefaultCompilerOptions m_DefaultOptions;
 	};
 
 }

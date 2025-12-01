@@ -1,11 +1,15 @@
 #pragma once
 
-struct Camera
-{
-    matrix ViewProjection;
-    float3 Position;
-    float Padding;
-};
+#include "Camera.hlslh"
+
+ //////////////////////////
+/// ==== Bindings ==== ///
+//
+// space1:
+//  - pc
+//  - b0-b1
+//  - t0-t1
+// 
 
 struct MeshData
 {
@@ -13,10 +17,6 @@ struct MeshData
     int ID;
     float P0, P1, P2;
 };
-
-[[vk::push_constant]]
-ConstantBuffer<MeshData> u_MeshData;
-ConstantBuffer<Camera> u_Camera : register(b0, space1);
 
 struct PointLight
 {
@@ -42,6 +42,15 @@ struct Scene
     float EnvironmentMapIntensity;
     float P0;
 };
+
+// 
+// Defined in Camera.hlslh
+// 
+// ConstantBuffer<Camera> u_Camera : register(b0, space1);
+// 
+
+[[vk::push_constant]]
+ConstantBuffer<MeshData> u_MeshData;
 
 ConstantBuffer<Scene> u_Scene : register(b1, space1);
 StructuredBuffer<PointLight> u_PointLights : register(t0, space1);

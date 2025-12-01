@@ -32,6 +32,16 @@
 
 namespace Shark {
 
+	struct Samplers
+	{
+		Ref<Sampler> NearestRepeat;
+		Ref<Sampler> NearestClamp;
+		Ref<Sampler> NearestMirrorRepeat;
+		Ref<Sampler> LinearRepeat;
+		Ref<Sampler> LinearClamp;
+		Ref<Sampler> LinearMirrorRepeat;
+	};
+
 	struct RendererConfig
 	{
 		uint32_t EnvironmentMapResolution = 1024;
@@ -98,7 +108,7 @@ namespace Shark {
 		static void RenderBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Material> material, uint32_t indexCount, uint32_t startIndex);
 		static void EndBatch(Ref<RenderCommandBuffer> renderCommandBuffer);
 
-		static void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount);
+		static void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, Buffer pushConstant = {});
 		static void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount);
 
 		static void RenderCube(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material);
@@ -138,6 +148,9 @@ namespace Shark {
 		static Ref<Image2D> GetBRDFLUTTexture();
 		static Ref<Sampler> GetLinearClampSampler();
 		static Ref<Sampler> GetNearestClampSampler();
+		static const Samplers& GetSamplers();
+
+		static std::pair<nvrhi::BindingLayoutHandle, nvrhi::BindingSetHandle> GetBindingSet(const std::string& name);
 
 		static RendererCapabilities& GetCapabilities();
 		static bool IsOnRenderThread();

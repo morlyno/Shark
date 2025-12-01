@@ -81,6 +81,21 @@ namespace Shark {
 			m_JumpFloodPass[1]->GetTargetFramebuffer()->Resize(m_Specification.Width, m_Specification.Height);
 			m_JumpFloodCompositePass->GetTargetFramebuffer()->Resize(m_Specification.Width, m_Specification.Height);
 
+			// #Renderer #Investigate submitting should be handled by the backend, not the user
+			Renderer::Submit([this]()
+			{
+				// Update invalidated binding sets
+				m_GeometryPass->Update();
+				m_SkyboxPass->Update();
+				m_CompositePass->Update();
+				m_SelectedGeometryPass->Update();
+				m_JumpFloodInitPass->Update();
+				m_JumpFloodPass[0]->Update();
+				m_JumpFloodPass[1]->Update();
+				m_JumpFloodCompositePass->Update();
+			});
+
+
 			m_Renderer2D->Resize(m_Specification.Width, m_Specification.Height);
 			m_NeedsResize = false;
 		}
@@ -127,7 +142,7 @@ namespace Shark {
 			Renderer::BeginEventMarker(m_CommandBuffer, "JumpFlood-Composite");
 
 			Renderer::BeginRenderPass(m_CommandBuffer, m_JumpFloodCompositePass);
-			Renderer::RenderFullScreenQuad(m_CommandBuffer, m_JumpFloodCompositePipeline, m_JumpFloodCompositeMaterial);
+			Renderer::RenderFullScreenQuad(m_CommandBuffer, m_JumpFloodCompositePipeline, nullptr);
 			Renderer::EndRenderPass(m_CommandBuffer, m_JumpFloodCompositePass);
 
 			Renderer::EndEventMarker(m_CommandBuffer);
@@ -182,13 +197,14 @@ namespace Shark {
 
 	void SceneRenderer::PreRender()
 	{
+		// #idear #Renderer check if environment has changed
 		Ref<Environment> environment = m_Scene->GetEnvironment();
 		m_GeometryPass->SetInput("u_IrradianceMap", environment->GetIrradianceMap());
 		m_GeometryPass->SetInput("u_RadianceMap", environment->GetRadianceMap());
-		m_GeometryPass->Update();
+		m_GeometryPass->Bake();
 
 		m_SkyboxPass->SetInput("u_EnvironmentMap", environment->GetRadianceMap());
-		m_SkyboxPass->Update();
+		m_SkyboxPass->Bake();
 
 		CBScene sceneData;
 		sceneData.EnvironmentMapIntensity = m_Scene->GetEnvironmentIntesity();
@@ -240,8 +256,9 @@ namespace Shark {
 		});
 
 		CBOutlineSettings outlineSettings;
-		outlineSettings.Color = m_OutlineColor;
-		outlineSettings.Color.a = m_OutlinePixelWidth;
+		outlineSettings.Color = m_OutlineColor.xyz;
+		outlineSettings.PixelWidth = m_OutlinePixelWidth;
+		outlineSettings.TexelSize = { 1.0f / static_cast<float>(m_Specification.Width), 1.0f / static_cast<float>(m_Specification.Height) };
 		Renderer::Submit([buffer = m_CBOutlineSettings, outlineSettings]()
 		{
 			buffer->RT_Upload(Buffer::FromValue(outlineSettings));
@@ -253,25 +270,15 @@ namespace Shark {
 		m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.GeometryPassQuery);
 		Renderer::BeginEventMarker(m_CommandBuffer, "Geometry Pass");
 
-
-		static bool textureSet = false;
-		if (!textureSet)
-		{
-			if (auto texture = AssetManager::GetAsset<Texture2D>(13490309991543351279))
-			{
-				m_SimpleMaterial->Set("u_Texture", texture);
-				m_SimpleMaterial->Prepare();
-				textureSet = true;
-			}
-		}
-
 		Renderer::BeginRenderPass(m_CommandBuffer, m_GeometryPass);
 		for (const auto& mesh : m_DrawList)
 		{
+			mesh.Material->PrepareAndUpdate();
+
 			MeshPushConstant pcMesh;
 			pcMesh.Transform = mesh.Transform;
 			pcMesh.ID = mesh.ID;
-			Renderer::RenderSubmeshWithMaterial(m_CommandBuffer, m_GeometryPipeline, mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, m_SimpleMaterial, Buffer::FromValue(mesh.Transform));
+			Renderer::RenderSubmeshWithMaterial(m_CommandBuffer, m_GeometryPipeline, mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, mesh.Material->GetMaterial(), Buffer::FromValue(pcMesh));
 
 			m_Statistics.DrawCalls++;
 			m_Statistics.VertexCount += mesh.MeshSource->GetSubmeshes()[mesh.SubmeshIndex].VertexCount;
@@ -279,14 +286,10 @@ namespace Shark {
 		}
 		Renderer::EndRenderPass(m_CommandBuffer, m_GeometryPass);
 
-
 		Renderer::BeginRenderPass(m_CommandBuffer, m_SelectedGeometryPass);
 		for (const auto& mesh : m_SelectedDrawList)
 		{
-			MeshPushConstant pcMesh;
-			pcMesh.Transform = mesh.Transform;
-			pcMesh.ID = mesh.ID;
-			Renderer::RenderSubmeshWithMaterial(m_CommandBuffer, m_SelectedGeometryPipeline, mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, m_SelectedGeometryMaterial, Buffer::FromValue(pcMesh));
+			Renderer::RenderSubmeshWithMaterial(m_CommandBuffer, m_SelectedGeometryPipeline, mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, nullptr, Buffer::FromValue(mesh.Transform));
 
 			m_Statistics.DrawCalls++;
 			m_Statistics.VertexCount += mesh.MeshSource->GetSubmeshes()[mesh.SubmeshIndex].VertexCount;
@@ -314,7 +317,7 @@ namespace Shark {
 		Renderer::BeginEventMarker(m_CommandBuffer, "JumpFlood");
 
 		Renderer::BeginRenderPass(m_CommandBuffer, m_JumpFloodInitPass);
-		Renderer::RenderFullScreenQuad(m_CommandBuffer, m_JumpFloodInitPipeline, m_JumpFloodInitMaterial);
+		Renderer::RenderFullScreenQuad(m_CommandBuffer, m_JumpFloodInitPipeline, nullptr);
 		Renderer::EndRenderPass(m_CommandBuffer, m_JumpFloodInitPass);
 
 		int steps = m_JumpFloodSteps;
@@ -330,7 +333,7 @@ namespace Shark {
 			vertexOverrides.Write(&step, sizeof(int), sizeof(glm::vec2));
 
 			Renderer::BeginRenderPass(m_CommandBuffer, m_JumpFloodPass[index]);
-			Renderer::RenderFullScreenQuad(m_CommandBuffer, m_JumpFloodPipeline, m_JumpFloodPassMaterial[index], vertexOverrides);
+			Renderer::RenderFullScreenQuad(m_CommandBuffer, m_JumpFloodPipeline, nullptr, vertexOverrides);
 			Renderer::EndRenderPass(m_CommandBuffer, m_JumpFloodPass[index]);
 
 			index = (index + 1) % 2;
@@ -407,8 +410,8 @@ namespace Shark {
 		// Mesh
 		{
 			PipelineSpecification specification;
-			//specification.Shader = Renderer::GetShaderLibrary()->Get("SharkPBR");
-			specification.Shader = Renderer::GetShaderLibrary()->Get("Simple");
+			specification.Shader = Renderer::GetShaderLibrary()->Get("SharkPBR");
+			//specification.Shader = Renderer::GetShaderLibrary()->Get("Simple");
 			specification.Layout = layout;
 			specification.DebugName = "PBR";
 			specification.WireFrame = false;
@@ -426,10 +429,9 @@ namespace Shark {
 			m_GeometryPass->SetInput("u_IrradianceMap", Renderer::GetBlackTextureCube());
 			m_GeometryPass->SetInput("u_RadianceMap", Renderer::GetBlackTextureCube());
 			m_GeometryPass->SetInput("u_BRDFLUTTexture", Renderer::GetBRDFLUTTexture());
+			m_GeometryPass->SetInput("u_EnvironmentSampler", Renderer::GetLinearClampSampler());
 			SK_CORE_VERIFY(m_GeometryPass->Validate());
 			m_GeometryPass->Bake();
-
-			m_SimpleMaterial = Material::Create(renderPassSpecification.Shader);
 		}
 
 		// Skybox
@@ -487,8 +489,6 @@ namespace Shark {
 			m_SelectedGeometryPass->SetInput("u_Camera", m_CBCamera);
 			SK_CORE_VERIFY(m_SelectedGeometryPass->Validate());
 			m_SelectedGeometryPass->Bake();
-
-			m_SelectedGeometryMaterial = Material::Create(pipelineSpecification.Shader, pipelineSpecification.DebugName);
 		}
 
 		// Composite
@@ -498,9 +498,6 @@ namespace Shark {
 			framebufferSpecification.Height = specification.Height;
 			framebufferSpecification.Attachments = { ImageFormat::RGBA32F, ImageFormat::RED32SI };
 			framebufferSpecification.DepthAttachment = ImageFormat::Depth32;
-
-			// Temp
-			framebufferSpecification.ExistingImages[0] = m_GeometryPass->GetOutput(0);
 
 			framebufferSpecification.ExistingImages[1] = m_GeometryPass->GetOutput(1);
 			framebufferSpecification.ExistingDepthImage = m_GeometryPass->GetDepthOutput();
@@ -576,6 +573,7 @@ namespace Shark {
 			pipelineSpecification.DebugName = fbSpec.DebugName;
 			pipelineSpecification.Shader = compositeShader;
 			pipelineSpecification.DepthEnabled = false;
+			pipelineSpecification.BlendMode = FramebufferBlendMode::SrcAlphaOneMinusSrcAlpha;
 			m_JumpFloodCompositePipeline = Pipeline::Create(pipelineSpecification, compositeFramebuffer->GetFramebufferInfo());
 
 
@@ -589,8 +587,6 @@ namespace Shark {
 			SK_CORE_VERIFY(m_JumpFloodInitPass->Validate());
 			m_JumpFloodInitPass->Bake();
 
-			m_JumpFloodInitMaterial = Material::Create(initShader);
-
 			const char* passNames[2] = { "EvenPass", "OddPass" };
 			for (uint32_t i = 0; i < 2; i++)
 			{
@@ -602,8 +598,6 @@ namespace Shark {
 				m_JumpFloodPass[i]->SetInput("u_Texture", m_TempFramebuffers[i]->GetImage(0));
 				SK_CORE_VERIFY(m_JumpFloodPass[i]->Validate());
 				m_JumpFloodPass[i]->Bake();
-
-				m_JumpFloodPassMaterial[i] = Material::Create(passShader, pipelineSpecification.DebugName);
 			}
 
 			renderPassSpecification.Shader = compositeShader;
@@ -614,8 +608,6 @@ namespace Shark {
 			m_JumpFloodCompositePass->SetInput("u_Settings", m_CBOutlineSettings);
 			SK_CORE_VERIFY(m_JumpFloodCompositePass->Validate());
 			m_JumpFloodCompositePass->Bake();
-
-			m_JumpFloodCompositeMaterial = Material::Create(compositeShader, pipelineSpecification.DebugName);
 		}
 
 		if (specification.IsSwapchainTarget)

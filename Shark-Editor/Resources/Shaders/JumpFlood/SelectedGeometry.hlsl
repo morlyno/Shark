@@ -1,23 +1,19 @@
+#pragma layout : renderpass
 
 // Implemented based on this article
 // https://bgolus.medium.com/the-quest-for-very-wide-outlines-ba82ed442cd9
 
 #pragma stage : vertex
 
-struct Camera
-{
-    matrix ViewProjection;
-    float3 Position;
-    float Padding;
-};
+#include "Core/Bindings/Camera.hlslh"
 
 struct Mesh
 {
     matrix Transform;
 };
 
-[[vk::binding(0, 1)]] ConstantBuffer<Camera> u_Camera;
-[[vk::push_constant]] ConstantBuffer<Mesh> u_Mesh;
+[[vk::push_constant]]
+ConstantBuffer<Mesh> u_Mesh;
 
 struct VertexInput
 {

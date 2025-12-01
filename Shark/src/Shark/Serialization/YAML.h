@@ -162,6 +162,19 @@ namespace YAML {
 		}
 	};
 
+	template<typename T>
+	struct convert<std::span<const T>>
+	{
+		static Node encode(std::span<const T> span)
+		{
+			Node node(NodeType::Sequence);
+			for (const auto& val : span)
+				node.push_back(val);
+			return node;
+		}
+	};
+
+
 	template<typename TEnum>
 		requires std::is_enum_v<TEnum>
 	struct convert<TEnum>

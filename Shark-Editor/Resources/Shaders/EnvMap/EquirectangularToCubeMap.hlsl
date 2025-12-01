@@ -1,6 +1,6 @@
 #pragma stage : compute
 
-#include "EnvMapCommon.hlsl"
+#include "EnvMapCommon.hlslh"
 
 RWTexture2DArray<float4> o_CubeMap : register(u0);
 Texture2D<float4> u_Equirect : register(t0);

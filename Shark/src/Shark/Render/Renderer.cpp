@@ -25,13 +25,14 @@ namespace Shark {
 		Ref<TextureCube> m_BlackTextureCube;
 		Ref<Environment> m_EmptyEnvironment;
 		Ref<Image2D> m_BRDFLUTTexture;
-		Ref<Sampler> m_LinearClampSampler;
-		Ref<Sampler> m_NearestClampSampler;
 
 		Ref<VertexBuffer> m_QuadVertexBuffer;
 		Ref<IndexBuffer> m_QuadIndexBuffer;
 		Ref<VertexBuffer> m_CubeVertexBuffer;
 		Ref<IndexBuffer> m_CubeIndexBuffer;
+
+		Samplers m_Samplers;
+		std::map<std::string, std::pair<nvrhi::BindingLayoutHandle, nvrhi::BindingSetHandle>> m_BindingSets;
 
 		std::array<Ref<Image2D>, 3> m_NullUAVs;
 		std::array<Ref<Image2D>, 3> m_NullArrayUAVs;
@@ -64,46 +65,57 @@ namespace Shark {
 		s_Data->m_ShaderLibrary = Ref<ShaderLibrary>::Create();
 		s_Data->m_ShaderCache.LoadRegistry();
 
-		Log::EnabledTags()["ShaderCompiler"].Level = LogLevel::Info;
+		{
+			s_Data->m_Samplers.NearestRepeat       = Sampler::Create({ .Filter = FilterMode::Nearest, .Address = AddressMode::Repeat });
+			s_Data->m_Samplers.NearestClamp        = Sampler::Create({ .Filter = FilterMode::Nearest, .Address = AddressMode::ClampToEdge });
+			s_Data->m_Samplers.NearestMirrorRepeat = Sampler::Create({ .Filter = FilterMode::Nearest, .Address = AddressMode::MirrorRepeat });
+			s_Data->m_Samplers.LinearRepeat        = Sampler::Create({ .Filter = FilterMode::Linear,  .Address = AddressMode::Repeat });
+			s_Data->m_Samplers.LinearClamp         = Sampler::Create({ .Filter = FilterMode::Linear,  .Address = AddressMode::ClampToEdge });
+			s_Data->m_Samplers.LinearMirrorRepeat  = Sampler::Create({ .Filter = FilterMode::Linear,  .Address = AddressMode::MirrorRepeat });
+		}
+
+		Log::EnabledTags()["ShaderCompiler"].Level = LogLevel::Warn;
+		Timer loadShadersTimer;
+
+		SK_CORE_INFO_TAG("Renderer", "Loading Shaders...");
+
+		auto shaderLibrary = GetShaderLibrary();
+		shaderLibrary->SetCompilerOptions({ .ForceCompile = false, .Optimize = true, .GenerateDebugInfo = true });
 
 		// 3D
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Simple.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/SharkPBR.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Skybox.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/BRDF_LUT.glsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Tonemap.glsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Composite.glsl");
+		shaderLibrary->Load("Resources/Shaders/Simple.hlsl");
+		shaderLibrary->Load("Resources/Shaders/SharkPBR.hlsl");
+		shaderLibrary->Load("Resources/Shaders/Skybox.hlsl");
+		shaderLibrary->Load("Resources/Shaders/BRDF_LUT.hlsl");
+		shaderLibrary->Load("Resources/Shaders/Tonemap.hlsl");
+		shaderLibrary->Load("Resources/Shaders/Composite.hlsl");
 
 		// 2D
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Quad.glsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Circle.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Line.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/2D/Renderer2D_Text.hlsl");
+		shaderLibrary->Load("Resources/Shaders/Renderer2D_Quad.hlsl");
+		shaderLibrary->Load("Resources/Shaders/2D/Renderer2D_Circle.hlsl");
+		shaderLibrary->Load("Resources/Shaders/2D/Renderer2D_Line.hlsl");
+		shaderLibrary->Load("Resources/Shaders/2D/Renderer2D_Text.hlsl");
 
 		// Jump Flood
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/JumpFlood/SelectedGeometry.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/JumpFlood/JumpFloodInit.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/JumpFlood/JumpFloodPass.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/JumpFlood/JumpFloodComposite.hlsl");
+		shaderLibrary->Load("Resources/Shaders/JumpFlood/SelectedGeometry.hlsl");
+		shaderLibrary->Load("Resources/Shaders/JumpFlood/JumpFloodInit.hlsl");
+		shaderLibrary->Load("Resources/Shaders/JumpFlood/JumpFloodPass.hlsl");
+		shaderLibrary->Load("Resources/Shaders/JumpFlood/JumpFloodComposite.hlsl");
 
 		// EnvMap
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/EnvMap/EquirectangularToCubeMap.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/EnvMap/EnvIrradiance.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/EnvMap/EnvMipFilter.hlsl");
+		shaderLibrary->Load("Resources/Shaders/EnvMap/EquirectangularToCubeMap.hlsl");
+		shaderLibrary->Load("Resources/Shaders/EnvMap/EnvIrradiance.hlsl");
+		shaderLibrary->Load("Resources/Shaders/EnvMap/EnvMipFilter.hlsl");
 
 		// Commands
-		Renderer::GetShaderLibrary()->Load("resources/Shaders/Commands/BlitImage.glsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Commands/LinearSample.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/Commands/LinearSampleArray.hlsl");
+		//shaderLibrary->Load("resources/Shaders/Commands/BlitImage.glsl");
+		shaderLibrary->Load("Resources/Shaders/Commands/LinearSample.hlsl");
+		shaderLibrary->Load("Resources/Shaders/Commands/LinearSampleArray.hlsl");
 
-		// Misc
-#if TODO
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/FullScreen.hlsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/CompositWidthDepth.hlsl");
-#endif
-
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/ImGui.hlsl");
+		shaderLibrary->Load("Resources/Shaders/ImGui.hlsl");
 		s_Data->m_ShaderCache.SaveRegistry();
+
+		SK_CORE_INFO_TAG("Renderer", "Finished loading shaders in {}", loadShadersTimer.Elapsed());
 
 
 		{
@@ -170,9 +182,24 @@ namespace Shark {
 
 			s_Data->m_BlackTextureCube = TextureCube::Create(spec, Buffer::FromArray(imageData));
 			s_Data->m_EmptyEnvironment = Ref<Environment>::Create(s_Data->m_BlackTextureCube, s_Data->m_BlackTextureCube);
+		}
 
-			s_Data->m_LinearClampSampler = Sampler::Create({ .Filter = FilterMode::Linear, .Address = AddressMode::ClampToEdge });
-			s_Data->m_NearestClampSampler = Sampler::Create({ .Filter = FilterMode::Nearest, .Address = AddressMode::ClampToEdge });
+		// Sampler binding set
+		{
+			nvrhi::BindingSetDesc set;
+			set.trackLiveness = false;
+			set.bindings = {
+				nvrhi::BindingSetItem::Sampler(0, s_Data->m_Samplers.NearestRepeat->GetHandle()),
+				nvrhi::BindingSetItem::Sampler(1, s_Data->m_Samplers.NearestClamp->GetHandle()),
+				nvrhi::BindingSetItem::Sampler(2, s_Data->m_Samplers.NearestMirrorRepeat->GetHandle()),
+				nvrhi::BindingSetItem::Sampler(3, s_Data->m_Samplers.LinearRepeat->GetHandle()),
+				nvrhi::BindingSetItem::Sampler(4, s_Data->m_Samplers.LinearClamp->GetHandle()),
+				nvrhi::BindingSetItem::Sampler(5, s_Data->m_Samplers.LinearMirrorRepeat->GetHandle()),
+			};
+
+			nvrhi::BindingLayoutHandle layoutHandle;
+			nvrhi::BindingSetHandle setHandle;
+			nvrhi::utils::CreateBindingSetAndLayout(GetGraphicsDevice(), nvrhi::ShaderType::All, 3, set, layoutHandle, setHandle, true);
 		}
 
 		ImageSpecification nullUAVSpec;
@@ -328,7 +355,8 @@ namespace Shark {
 
 			for (uint32_t set = inputManager.GetStartSet(); set <= inputManager.GetEndSet(); set++)
 			{
-				state.bindings[shader->MapSet(set)] = inputManager.GetHandle(set);
+				if (shader->HasLayout(set))
+					state.bindings[shader->MapSet(set)] = inputManager.GetHandle(set);
 			}
 		}
 
@@ -338,7 +366,8 @@ namespace Shark {
 
 			for (uint32_t set = inputManager.GetStartSet(); set <= inputManager.GetEndSet(); set++)
 			{
-				state.bindings[shader->MapSet(set)] = inputManager.GetHandle(set);
+				if (shader->HasLayout(set))
+					state.bindings[shader->MapSet(set)] = inputManager.GetHandle(set);
 			}
 		}
 
@@ -459,7 +488,7 @@ namespace Shark {
 
 	void Renderer::RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Buffer pushConstantsData)
 	{
-		//Renderer::RenderGeometry(commandBuffer, pipeline, material, s_Data->m_QuadVertexBuffer, s_Data->m_QuadIndexBuffer, s_Data->m_QuadIndexBuffer->GetCount());
+		Renderer::RenderGeometry(commandBuffer, pipeline, material, s_Data->m_QuadVertexBuffer, s_Data->m_QuadIndexBuffer, s_Data->m_QuadIndexBuffer->GetCount(), pushConstantsData);
 	}
 
 	void Renderer::BeginBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer)
@@ -477,9 +506,9 @@ namespace Shark {
 		//s_RendererAPI->EndBatch(renderCommandBuffer);
 	}
 
-	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount)
+	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, Buffer pushConstant)
 	{
-		Renderer::Submit([=]()
+		Renderer::Submit([=, temp = Buffer::Copy(pushConstant)]() mutable
 		{
 			nvrhi::GraphicsState graphicsState = commandBuffer->GetGraphicsState();
 
@@ -505,7 +534,9 @@ namespace Shark {
 
 			auto commandList = commandBuffer->GetHandle();
 			commandList->setGraphicsState(graphicsState);
+			commandList->setPushConstants(temp.As<const void>(), temp.Size);
 			commandList->drawIndexed(drawArgs);
+			temp.Release();
 		});
 	}
 
@@ -540,7 +571,10 @@ namespace Shark {
 			vbufBinding.offset = 0;
 			drawState.vertexBuffers[0] = vbufBinding;
 
-			utils::BindShaderInputManager(drawState, material->GetInputManager());
+			if (material)
+			{
+				utils::BindShaderInputManager(drawState, material->GetInputManager());
+			}
 
 			drawState.indexBuffer.buffer = indexBuffer->GetHandle();
 			drawState.indexBuffer.format = nvrhi::Format::R32_UINT;
@@ -956,12 +990,25 @@ namespace Shark {
 
 	Ref<Sampler> Renderer::GetLinearClampSampler()
 	{
-		return s_Data->m_LinearClampSampler;
+		return s_Data->m_Samplers.LinearClamp;
 	}
 
 	Ref<Sampler> Renderer::GetNearestClampSampler()
 	{
-		return s_Data->m_NearestClampSampler;
+		return s_Data->m_Samplers.NearestClamp;
+	}
+
+	const Samplers& Renderer::GetSamplers()
+	{
+		return s_Data->m_Samplers;
+	}
+
+	std::pair<nvrhi::BindingLayoutHandle, nvrhi::BindingSetHandle> Renderer::GetBindingSet(const std::string& name)
+	{
+		if (!s_Data->m_BindingSets.contains(name))
+			return {};
+
+		return s_Data->m_BindingSets.at(name);
 	}
 
 	RendererCapabilities& Renderer::GetCapabilities()
@@ -1006,7 +1053,7 @@ namespace Shark {
 
 		auto pipeline = ComputePipeline::Create(shader, "BRDF_LUT");
 		auto pass = ComputePass::Create(shader, LayoutShareMode::PassOnly, "BRDF_LUT");
-		pass->SetInput("LUT", image);
+		pass->SetInput("o_LUT", image);
 		SK_CORE_VERIFY(pass->Validate());
 		pass->Bake();
 

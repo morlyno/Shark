@@ -20,6 +20,8 @@ namespace Shark {
 	Material::Material(Ref<Shader> shader, const std::string& name)
 		: m_InputManager({ .Shader = shader, .StartSet = 0, .EndSet = 0, .DebugName = utils::GetMaterialName(shader, name) }), m_Name(utils::GetMaterialName(shader, name))
 	{
+		SK_CORE_VERIFY(shader->GetLayoutMode() != LayoutShareMode::PassOnly);
+
 		const auto& layout = shader->GetReflectionData();
 		if (layout.BindingLayouts.empty())
 			return;
@@ -31,6 +33,7 @@ namespace Shark {
 			m_InputManager.SetInput(buffer.Name, constantBuffer);
 		}
 
+		SK_CORE_TRACE_TAG("Renderer", "Material {}:'{}' created", shader->GetName(), name);
 	}
 
 	Material::~Material()

@@ -110,6 +110,7 @@ namespace Shark {
 		spirv_cross::CompilerHLSL::Options options;
 
 		options.shader_model = 50;
+		options.preserve_structured_buffers = true;
 
 		compiler.set_hlsl_options(options);
 
@@ -120,9 +121,11 @@ namespace Shark {
 			spirv_cross::ShaderResources shaderResources = compiler.get_shader_resources();
 			for (const auto& resource : shaderResources.stage_inputs)
 			{
-				std::string name = resource.name.substr(m_Info.Language == ShaderLanguage::HLSL ? 7 : 2);
-				uint32_t location = compiler.get_decoration(resource.id, spv::DecorationLocation);
-				compiler.add_vertex_attribute_remap({ location, name });
+				if (resource.name.starts_with("in.var."))
+				{
+					uint32_t location = compiler.get_decoration(resource.id, spv::DecorationLocation);
+					compiler.add_vertex_attribute_remap({ location, resource.name.substr(7) });
+				}
 			}
 		}
 

@@ -1,3 +1,4 @@
+#pragma layout : renderpass
 
 #pragma stage : vertex
 
@@ -13,7 +14,9 @@ struct PushConstant
     float2 TexelSize;
     int Step;
 };
-[[vk::push_constant]] ConstantBuffer<PushConstant> u_Uniforms;
+
+[[vk::push_constant]]
+ConstantBuffer<PushConstant> u_Uniforms;
 
 VertexOutput main(float3 Position : Position, float2 TexCoord : TexCoord)
 {
@@ -39,7 +42,8 @@ VertexOutput main(float3 Position : Position, float2 TexCoord : TexCoord)
 
 #pragma stage : pixel
 
-#include "JumpFlood/JumpFloodCommon.hlsl"
+#include "JumpFloodCommon.hlslh"
+#include "Core/Samplers.hlslh"
 
 struct VertexOutput
 {
@@ -47,16 +51,15 @@ struct VertexOutput
     float2 UV[9] : UV;
 };
 
-[[vk::binding(0, 1), vk::combinedImageSampler]] uniform Texture2D u_Texture;
-[[vk::binding(0, 1), vk::combinedImageSampler]] uniform SamplerState u_Sampler;
+uniform Texture2D u_Texture : register(t0, space1);
 
 float4 main(VertexOutput input) : SV_Target
 {
-    float4 pixel = u_Texture.Sample(u_Sampler, input.UV[0]);
+    float4 pixel = u_Texture.Sample(u_LinearClamp, input.UV[0]);
     
     for (int i = 1; i <= 8; i++)
     {
-        float4 n = u_Texture.Sample(u_Sampler, input.UV[i]);
+        float4 n = u_Texture.Sample(u_LinearClamp, input.UV[i]);
         if (n.w != pixel.w)
             n.xyz = (float3)0.0f;
         

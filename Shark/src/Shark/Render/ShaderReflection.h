@@ -117,9 +117,10 @@ namespace Shark {
 		std::map<uint32_t, ShaderResource::SampledImage> SampledImages;
 		std::map<uint32_t, ShaderResource::Sampler> Samplers;
 
-		nvrhi::ShaderType Stage = nvrhi::ShaderType::None;
-		std::unordered_map<std::string, ShaderInputInfo> InputInfos;
+		std::map<std::string, ShaderInputInfo> InputInfos;
 		D3D11BindingSetOffsets BindingOffsets;
+
+		nvrhi::ShaderType Stage = nvrhi::ShaderType::None;
 	};
 
 	struct ShaderReflection
@@ -128,8 +129,16 @@ namespace Shark {
 
 		nvrhi::static_vector<ShaderBindingLayout, MaxLayouts> BindingLayouts;
 		std::optional<ShaderResource::PushConstant> PushConstant;
+	};
 
-		//std::unordered_map<std::string, ShaderInputInfo> InputInfos;
+	// Helper to deside how Graphics-/ComputePasses and Materials should share the binding layout
+	enum class LayoutShareMode
+	{
+		PassOnly,
+		MaterialOnly,
+		PassAndMaterial,
+
+		Default = PassAndMaterial
 	};
 
 }

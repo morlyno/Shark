@@ -1,0 +1,9 @@
+#pragma once
+#pragma bind : samplers
+
+SamplerState u_NearestRepeat       : register(s0, space3);
+SamplerState u_NearestClamp        : register(s1, space3);
+SamplerState u_NearestMirrorRepeat : register(s2, space3);
+SamplerState u_LinearRepeat        : register(s3, space3);
+SamplerState u_LinearClamp         : register(s4, space3);
+SamplerState u_LinearMirrorRepeat  : register(s5, space3);

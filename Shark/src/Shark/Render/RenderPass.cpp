@@ -6,6 +6,17 @@ namespace Shark {
 	RenderPass::RenderPass(const RenderPassSpecification& specification)
 		: m_Specification(specification), m_InputManager({ .Shader = specification.Shader, .DebugName = specification.DebugName })
 	{
+		const auto layoutMode = m_Specification.Shader->GetLayoutMode();
+		if (layoutMode == LayoutShareMode::MaterialOnly)
+			return;
+
+		ShaderInputManagerSpecification inputManagerSpec;
+		inputManagerSpec.Shader = m_Specification.Shader;
+		inputManagerSpec.DebugName = m_Specification.DebugName;
+		if (layoutMode == LayoutShareMode::PassOnly)
+			inputManagerSpec.StartSet = 0;
+
+		m_InputManager = ShaderInputManager(inputManagerSpec);
 	}
 
 	RenderPass::~RenderPass()
@@ -25,7 +36,7 @@ namespace Shark {
 
 	void RenderPass::Update()
 	{
-		m_InputManager.Bake();
+		m_InputManager.Update();
 	}
 
 	void RenderPass::SetInput(const std::string& name, Ref<ConstantBuffer> constantBuffer)

@@ -180,7 +180,8 @@ namespace Shark {
 				auto aiMaterial = scene->mMaterials[i];
 				auto materialName = aiMaterial->GetName();
 
-				auto pbrMaterial = PBRMaterial::Create(materialName.data, false);
+				// #TODO avoid setDefaults=true
+				auto pbrMaterial = PBRMaterial::Create(materialName.data, true);
 				meshSource->m_Materials[i] = AssetManager::AddMemoryAsset(pbrMaterial);
 
 				SK_MESH_LOG("  {} (Index = {})", materialName.data, i);

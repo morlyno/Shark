@@ -1,13 +1,15 @@
 #include "skpch.h"
-#include "ShaderPreprocessor.h"
+#include "Shark/Render/ShaderCompiler/ShaderPreprocessor.h"
+
+#include "Shark/File/FileSystem.h"
+#include "Shark/String/RegexStream.h"
 #include "Shark/Utils/String.h"
-#include <regex>
 
 namespace Shark {
 
 	namespace utils {
 
-		static nvrhi::ShaderType GetShaderStage(const std::string& stage)
+		static nvrhi::ShaderType GetShaderStage(std::string_view stage)
 		{
 			if (String::Compare(stage, "vertex", String::Case::Ignore)) return nvrhi::ShaderType::Vertex;
 			if (String::Compare(stage, "vert", String::Case::Ignore)) return nvrhi::ShaderType::Vertex;
@@ -18,190 +20,285 @@ namespace Shark {
 
 			if (String::Compare(stage, "compute", String::Case::Ignore)) return nvrhi::ShaderType::Compute;
 
-			SK_CORE_ASSERT(false, "Unkown Shader Stage");
+			SK_CORE_ASSERT(false, "Unknown Shader Stage");
 			return nvrhi::ShaderType::None;
 		}
 
-	}
-
-	bool HLSLPreprocessor::Preprocess(const std::string& source)
-	{
-		if (!SplitStages(source))
-			return false;
-
-		for (const auto& [stage, code] : PreProcessedResult)
+		static std::string_view ShaderStageToMakro(nvrhi::ShaderType stage)
 		{
-			ProcessCombineInstructions(stage, code);
-		}
-	}
-
-	bool HLSLPreprocessor::SplitStages(const std::string& source)
-	{
-		PreProcessorResult result;
-		const std::string_view ShaderStageToken = "#pragma stage";
-
-		size_t offset = 0;
-		while (offset != std::string::npos)
-		{
-			const size_t moduleBegin = source.find(ShaderStageToken, offset);
-			if (moduleBegin == std::string::npos)
+			switch (stage)
 			{
-				SK_CORE_ERROR_TAG("Renderer", "Failed to find Shader Stage!");
-				return false;
+				case nvrhi::ShaderType::Vertex: return "__VERTEX_STAGE__";
+				case nvrhi::ShaderType::Pixel: return "__PIXEL_STAGE__";
+				case nvrhi::ShaderType::Compute: return "__COMPUTE_STAGE__";
 			}
 
-			const size_t moduleEnd = source.find(ShaderStageToken, offset + moduleBegin + ShaderStageToken.length());
-			std::string moduleSource = source.substr(moduleBegin, moduleEnd == std::string::npos ? std::string::npos : moduleEnd - moduleBegin);
-
-			const size_t stageBegin = moduleSource.find(ShaderStageToken);
-			if (stageBegin == std::string::npos)
-			{
-				SK_CORE_ERROR_TAG("Renderer", "Failed to find Shader Stage!");
-				return false;
-			}
-
-			const size_t stageArgBegin = moduleSource.find_first_not_of(": ", stageBegin + ShaderStageToken.length());
-			const size_t stageArgEnd = moduleSource.find_first_of(" \n\r", stageArgBegin);
-
-			std::string stageString = moduleSource.substr(stageArgBegin, stageArgEnd - stageArgBegin);
-			nvrhi::ShaderType stage = utils::GetShaderStage(stageString);
-			offset = moduleEnd;
-
-			for (size_t versionBegin = moduleSource.find("#version"); versionBegin != std::string::npos; versionBegin = moduleSource.find("#version"))
-			{
-				const size_t versionEnd = moduleSource.find_first_of("\n\r", versionBegin);
-				moduleSource.erase(versionBegin, versionEnd - versionBegin);
-				SK_CORE_WARN_TAG("Renderer", "The #version Preprocessor directive is depricated for shader written in HLSL");
-			}
-
-			SK_CORE_ASSERT(stage != nvrhi::ShaderType::None);
-			SK_CORE_ASSERT(!moduleSource.empty());
-			result[stage] = moduleSource;
+			SK_CORE_ASSERT(false, "Unknown ShaderType");
+			return "__UNKNOWN_STAGE__";
 		}
 
-		PreProcessedResult = std::move(result);
+	}
+
+	ShaderPreprocessor::ShaderPreprocessor()
+	{
+	}
+
+	bool ShaderPreprocessor::PreprocessFile(const std::filesystem::path& filepath)
+	{
+		ScopedTimer timer(fmt::format("PreprocessFile '{}'", filepath));
+
+		/////////////////////////////////////////////////
+		//// Backup and assign context
+		const auto backupDirectory = m_ActiveDirectory;
+		const uint64_t backupShaderID = m_ActiveShaderID;
+		m_ActiveDirectory = filepath.parent_path();
+		m_ActiveShaderID = Hash::GenerateFNV(filepath.generic_string());
+
+		/////////////////////////////////////////////////
+		//// Load and tokenize source
+		std::string source = FileSystem::ReadString(filepath);
+
+		static const auto s_Regex = std::regex(R"(\w+|[:()\n#\/<>".])");
+		String::RegexStreamReader tokens(s_Regex, source);
+
+		/////////////////////////////////////////////////
+		//// Separate shader stages
+		InsertStageDeviders(tokens, source);
+
+		/////////////////////////////////////////////////
+		//// Parse compiler instructions and includes
+
+		tokens.SetStreamPosition(String::StreamPosition::Start);
+
+		while (tokens.SeekPast("#"))
+		{
+			std::string_view token;
+			tokens.Read(token);
+
+			if (token == "include")
+			{
+				ParseInclude(tokens);
+				continue;
+			}
+
+			if (token != "pragma")
+				continue;
+
+			tokens.ReadCurrent(token);
+			if (token == "combine")
+			{
+				ParseCombine(tokens);
+			}
+			else if (token == "bind")
+			{
+				ParseBind(tokens);
+			}
+			else if (token == "layout")
+			{
+				ParseLayout(tokens);
+			}
+		}
+
+		/////////////////////////////////////////////////
+		//// Build preprocessed shader source
+		Source = std::move(source);
+		ShaderID = m_ActiveShaderID;
+
+		m_ActiveDirectory = backupDirectory;
+		m_ActiveShaderID = backupShaderID;
 		return true;
 	}
 
-	static std::vector<std::string> TokenizeCode(const std::string& code)
+	bool ShaderPreprocessor::InsertStageDeviders(String::ITokenStreamReader& stream, std::string& source)
 	{
-		static const std::regex wordRegex(R"(\w+|[:()\n\r#])");
+		std::vector<std::tuple<size_t, size_t, nvrhi::ShaderType>> deviders;
 
-		std::sregex_iterator rit(code.begin(), code.end(), wordRegex);
-		std::sregex_iterator end;
+		bool insideStage = false;
+		while (stream.Seek("#", "pragma", "stage"))
+		{
+			// #pragma stage : <stage> => #if <stage_macro> | #elif <stage_macro>
+			const size_t start = stream.GetSourcePosition();
 
-		std::vector<std::string> result;
-		for (; rit != end; rit++)
-			result.push_back(rit->str());
+			stream.SeekUntil(":", "\n");
+			if (!stream.IsStreamGood())
+				return false;
 
-		return result;
+			stream.Advance();
+
+			auto stage = utils::GetShaderStage(stream.Read());
+			Stages.emplace(stage);
+			stream.Seek("\n");
+
+			const size_t end = stream.GetSourcePosition();
+
+			deviders.emplace_back(start, end, stage);
+		}
+
+		if (!deviders.empty())
+		{
+			source.insert(stream.GetSourcePosition(), "\n#endif");
+
+			for (auto i = deviders.rbegin(); i != deviders.rend(); i++)
+			{
+				const auto& [start, end, stage] = *i;
+				const bool isFirst = i == std::prev(deviders.rend());
+
+				source.erase(start, end - start);
+				source.insert(start, fmt::format("#{} {}", isFirst ? "if" : "elif", utils::ShaderStageToMakro(stage)));
+			}
+		}
+
+		stream.SetSource(source, false);
+		return true;
 	}
 
-	class Tokens
+	bool ShaderPreprocessor::ParseCombine(String::ITokenStreamReader& stream)
 	{
-		std::vector<std::string>& m_Tokens;
-		size_t m_CurrentToken = 0;
+		//
+		// #pragma combine : <texture>, <sampler>
+		//
 
-	public:
-		Tokens(std::vector<std::string>& tokens)
-			: m_Tokens(tokens)
-		{}
-
-		size_t Count() const { return m_Tokens.size(); }
-		bool Valid() const { return m_CurrentToken < m_Tokens.size(); }
-
-		bool Next(uint32_t count = 1)
+		if (stream.Read() != "combine" || stream.Read() != ":")
 		{
-			m_CurrentToken += count;
-			return Valid();
+			SK_CORE_VERIFY(false);
+			return false;
 		}
 
-		bool Seek(std::string_view token)
-		{
-			while (Valid() && !Compare(token, 0))
-				Next();
+		auto& instruction = CompilerInstructions.emplace_back();
+		instruction.SourceID = m_ActiveShaderID;
+		instruction.Instruction = CompilerInstruction::Type::Combine;
+		instruction.Arguments = {
+			std::string(stream.Read()),
+			std::string(stream.Read())
+		};
 
-			return Valid();
-		}
-
-		std::string_view Peek(size_t offset) const
-		{
-			if ((m_CurrentToken + offset) >= m_Tokens.size())
-				return {};
-			return m_Tokens[m_CurrentToken + offset];
-		}
-
-		bool Compare(std::string_view value, size_t offset) const
-		{
-			return Peek(offset) == value;
-		}
-
-	};
-
-	void HLSLPreprocessor::ProcessCombineInstructions(nvrhi::ShaderType stage, const std::string& code)
-	{
-		auto tempTokens = TokenizeCode(code);
-		Tokens tokens(tempTokens);
-
-		while (tokens.Seek("#") && tokens.Next())
-		{
-			if (!tokens.Compare("pragma", 0) || !tokens.Next())
-				continue;
-
-			if (tokens.Compare("combine", 0) && tokens.Compare("\n", 4))
-			{
-				auto first = tokens.Peek(2);
-				auto second = tokens.Peek(3);
-				CombinedImageSamplers.emplace_back(first, second);
-				tokens.Next(4);
-			}
-		}
+		return true;
 	}
 
-
-
-
-	PreProcessorResult GLSLPreprocssor::Preprocess(const std::string& source)
+	bool ShaderPreprocessor::ParseBind(String::ITokenStreamReader& stream)
 	{
-		//SK_NOT_IMPLEMENTED();
-		PreProcessorResult result;
+		// #pragma bind : <identifier>, <space>
 
-		const std::string_view VersionToken = "#version";
-		const std::string_view ShaderStageToken = "#pragma stage";
-
-		size_t offset = 0;
-
-		while (offset != std::string::npos)
+		if (stream.Read() != "bind" || stream.Read() != ":")
 		{
-			const size_t moduleBegin = source.find(VersionToken, offset);
-			if (moduleBegin == std::string::npos)
-			{
-				SK_CORE_ERROR_TAG("Renderer", "Failed to find Shader Version!");
-				return {};
-			}
-
-			const size_t moduleEnd = source.find(VersionToken, offset + VersionToken.length());
-			std::string moduleSource = source.substr(moduleBegin, moduleEnd == std::string::npos ? std::string::npos : moduleEnd - moduleBegin);
-
-			const size_t stageBegin = moduleSource.find(ShaderStageToken);
-			if (stageBegin == std::string::npos)
-			{
-				SK_CORE_ERROR_TAG("Renderer", "Failed to find Shader Stage!");
-				return {};
-			}
-
-			const size_t stageArgBegin = moduleSource.find_first_not_of(": ", stageBegin + ShaderStageToken.length());
-			const size_t stageArgEnd = moduleSource.find_first_of(" \n\r", stageArgBegin);
-			std::string stageString = moduleSource.substr(stageArgBegin, stageArgEnd - stageArgBegin);
-			nvrhi::ShaderType stage = utils::GetShaderStage(stageString);
-			offset = moduleEnd;
-
-			SK_CORE_ASSERT(stage != nvrhi::ShaderType::None);
-			SK_CORE_ASSERT(!moduleSource.empty());
-			result[stage] = moduleSource;
+			SK_CORE_VERIFY(false);
+			return false;
 		}
 
-		return result;
+		auto& pragma = CompilerInstructions.emplace_back();
+		pragma.SourceID = m_ActiveShaderID;
+		pragma.Instruction = CompilerInstruction::Type::Bind;
+		pragma.Arguments = {
+			std::string{ stream.Read() },
+		};
+
+		return true;
+	}
+
+	bool ShaderPreprocessor::ParseLayout(String::ITokenStreamReader& stream)
+	{
+		// #pragma layout : <sharemode>
+
+		if (stream.Read() != "layout" || stream.Read() != ":")
+		{
+			SK_CORE_VERIFY(false);
+			return false;
+		}
+
+		auto& pragma = CompilerInstructions.emplace_back();
+		pragma.SourceID = m_ActiveShaderID;
+		pragma.Instruction = CompilerInstruction::Type::Layout;
+		pragma.Arguments = {
+			std::string{ stream.Read() }
+		};
+
+		return true;
+	}
+
+	bool ShaderPreprocessor::ParseInclude(String::ITokenStreamReader& stream)
+	{
+		using namespace String::RegexLiterals;
+
+		stream.SeekPast(R"([<"])"_r);
+		const auto pathBegin = stream.GetStreamPosition();
+
+		stream.Seek(R"([>"])"_r);
+		const auto pathEnd = stream.GetStreamPosition();
+
+		std::string result;
+		stream.SetStreamPosition(pathBegin);
+		while (pathEnd != stream.GetStreamPosition())
+			result.append(stream.Read());
+
+		std::filesystem::path includePath = result;
+
+		static const std::filesystem::path s_BasePath = "Resources/Shaders";
+		bool isRelative = false;
+		bool exists = false;
+
+		auto absolutePath = m_ActiveDirectory / includePath;
+		if (FileSystem::Exists(absolutePath))
+		{
+			isRelative = true;
+			exists = true;
+		}
+
+		if (!exists)
+		{
+			absolutePath = s_BasePath / includePath;
+			if (FileSystem::Exists(absolutePath))
+			{
+				isRelative = false;
+				exists = true;
+			}
+		}
+
+		if (!exists)
+		{
+			Errors.emplace_back(fmt::format("Include file '{}' doesn't exists!\nTested:\n - {}\n - {}", includePath, (m_ActiveDirectory / includePath).generic_string(), (s_BasePath / includePath).generic_string()));
+			return false;
+		}
+
+		absolutePath = FileSystem::Relative(std::filesystem::canonical(absolutePath)).generic_wstring();
+		const uint64_t includeShaderID = Hash::GenerateFNV(absolutePath.string());
+
+		if (m_IncludedHeadersCache.contains(includeShaderID))
+		{
+			return true;
+		}
+
+		const uint32_t includeIndex = Includes.size();
+
+		{
+			auto& includeData = Includes.emplace_back();
+			includeData.OriginalPath = includePath;
+			includeData.Filepath = absolutePath;
+			includeData.IsRelative = isRelative;
+			includeData.ShaderID = includeShaderID;
+			includeData.Depth = m_Depth + 1;
+
+			m_IncludedHeadersCache.emplace(includeShaderID);
+		}
+
+		if (m_Depth > 0)
+		{
+			auto& parentInclude = Includes[m_ParentIncludeIndex];
+			parentInclude.Includes.push_back(includeIndex);
+		}
+
+		const uint32_t backupParentIndex = std::exchange(m_ParentIncludeIndex, includeIndex);
+		m_Depth++;
+		if (PreprocessFile(absolutePath))
+		{
+			auto& includeData = Includes[includeIndex];
+			includeData.IsValid = true;
+			includeData.Source = std::move(Source);
+			includeData.HashCode = Hash::GenerateFNV(includeData.HashCode);
+		}
+		m_Depth--;
+		m_ParentIncludeIndex = backupParentIndex;
+
+		return Includes[includeIndex].IsValid;
 	}
 
 }

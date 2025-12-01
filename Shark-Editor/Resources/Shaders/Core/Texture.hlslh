@@ -1,0 +1,22 @@
+#pragma once
+
+uint2 TextureSize(Texture2D texture)
+{
+	uint2 size;
+	texture.GetDimensions(size.x, size.y);
+	return size;
+}
+
+uint2 TextureSize(RWTexture2D<float2> texture)
+{
+	uint2 size;
+	texture.GetDimensions(size.x, size.y);
+	return size;
+}
+
+float2 GetTexelSize(Texture2D texture)
+{
+	float2 texelSize;
+	texture.GetDimensions(texelSize.x, texelSize.y);
+	return 1.0f / texelSize;
+}

@@ -1,6 +1,6 @@
 #pragma stage : compute
 
-#include "EnvMapCommon.hlsl"
+#include "EnvMapCommon.hlslh"
 
 struct Uniforms
 {

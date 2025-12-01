@@ -6,13 +6,12 @@ namespace Shark {
 	StorageBuffer::StorageBuffer(uint32_t structSize, uint32_t count, const std::string& debugName)
 		: GpuBuffer(
 			nvrhi::BufferDesc()
-			//.setStructStride(structSize) // #Renderer #Investigate Structured Buffer
-			.setByteSize((uint64_t)structSize * count)
-			.setCpuAccess(nvrhi::CpuAccessMode::Write)
-			.setCanHaveRawViews(true)
-			.setKeepInitialState(true)
-			.setInitialState(nvrhi::ResourceStates::ShaderResource)
-			.setDebugName(debugName)
+				.setStructStride(structSize) // #Renderer #Investigate Structured Buffer
+				.setByteSize((uint64_t)structSize * count)
+				.setCpuAccess(nvrhi::CpuAccessMode::Write)
+				.setKeepInitialState(true)
+				.setInitialState(nvrhi::ResourceStates::ShaderResource)
+				.setDebugName(debugName)
 		),
 		m_StructSize(structSize), m_Count(count), m_DebugName(debugName)
 	{

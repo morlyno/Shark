@@ -1,31 +1,73 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/String/TokenStreamReader.h"
+#include "Shark/Render/ShaderCompiler/Common.h"
 
 #include <nvrhi/nvrhi.h>
+#include <set>
 
 namespace Shark {
 
-	using PreProcessorResult = std::map<nvrhi::ShaderType, std::string>;
-
-	class HLSLPreprocessor
+	struct CompilerInstruction
 	{
-	public:
-		bool Preprocess(const std::string& source);
+		enum class Type
+		{
+			None = 0,
+			Combine,
+			Bind,
+			Layout
+		};
 
-		PreProcessorResult PreProcessedResult;
-		std::vector<std::pair<std::string, std::string>> CombinedImageSamplers;
-
-	private:
-		bool SplitStages(const std::string& source);
-		void ProcessCombineInstructions(nvrhi::ShaderType stage, const std::string& code);
-
+		Type Instruction = Type::None;
+		std::vector<std::string> Arguments;
+		uint64_t SourceID;
 	};
 
-	class GLSLPreprocssor
+	struct IncludeData
+	{
+		std::filesystem::path OriginalPath;
+		std::filesystem::path Filepath;
+		uint64_t ShaderID = 0;
+		bool IsRelative = false;
+		bool IsValid = false;
+
+		uint64_t HashCode = 0;
+		uint32_t Depth = 0;
+
+		std::string Source;
+		std::vector<uint32_t> Includes;
+	};
+
+	class ShaderPreprocessor
 	{
 	public:
-		PreProcessorResult Preprocess(const std::string& source);
+		ShaderPreprocessor();
+		bool PreprocessFile(const std::filesystem::path& filepath);
+
+		uint64_t ShaderID;
+		std::string Source;
+		std::set<nvrhi::ShaderType> Stages;
+		std::vector<CompilerInstruction> CompilerInstructions;
+		std::vector<IncludeData> Includes;
+
+		std::vector<std::string> Errors;
+
+	private:
+		bool InsertStageDeviders(String::ITokenStreamReader& stream, std::string& source);
+		bool ParseCombine(String::ITokenStreamReader& stream);
+		bool ParseBind(String::ITokenStreamReader& stream);
+		bool ParseLayout(String::ITokenStreamReader& stream);
+		bool ParseInclude(String::ITokenStreamReader& stream);
+
+	private:
+		std::filesystem::path m_ActiveDirectory;
+		uint64_t m_ActiveShaderID = 0;
+		uint32_t m_ParentIncludeIndex = 0;
+
+		uint32_t m_Depth = 0;
+		std::set<uint64_t> m_IncludedHeadersCache;
+		bool m_PreprocessIncludes = true;
 	};
 
 }

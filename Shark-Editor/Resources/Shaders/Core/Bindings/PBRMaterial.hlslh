@@ -1,6 +1,6 @@
 #pragma once
 
-// PBR Material Bindings
+#pragma combine : u_AlbedoMap, u_AlbedoSampler
 
 struct MaterialUniforms
 {

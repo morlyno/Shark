@@ -3,8 +3,42 @@
 
 #include "Shark/Core/Application.h"
 #include "Shark/Render/ShaderCompiler/ShaderCompiler.h"
+#include "Renderer.h"
 
 namespace Shark {
+
+	template<auto Value>
+	struct Equals
+	{
+		constexpr bool operator()(const auto& other) const { return Value == other; }
+	};
+
+	namespace utils {
+
+		nvrhi::BindingSetHandle CreateSamplerBindingSet(nvrhi::IBindingLayout* layout)
+		{
+			const auto& samplers = Renderer::GetSamplers();
+			const auto& desc = *layout->getDesc();
+
+			SK_CORE_VERIFY(desc.bindings.size() == 6);
+			SK_CORE_VERIFY(std::ranges::all_of(desc.bindings, Equals<nvrhi::ResourceType::Sampler>{}, [](const auto& b) { return b.type; }));
+
+			nvrhi::BindingSetDesc set;
+			set.trackLiveness = false;
+			set.bindings = {
+				nvrhi::BindingSetItem::Sampler(desc.bindings[0].slot, samplers.NearestRepeat->GetHandle()),
+				nvrhi::BindingSetItem::Sampler(desc.bindings[1].slot, samplers.NearestClamp->GetHandle()),
+				nvrhi::BindingSetItem::Sampler(desc.bindings[2].slot, samplers.NearestMirrorRepeat->GetHandle()),
+				nvrhi::BindingSetItem::Sampler(desc.bindings[3].slot, samplers.LinearRepeat->GetHandle()),
+				nvrhi::BindingSetItem::Sampler(desc.bindings[4].slot, samplers.LinearClamp->GetHandle()),
+				nvrhi::BindingSetItem::Sampler(desc.bindings[5].slot, samplers.LinearMirrorRepeat->GetHandle()),
+			};
+
+			auto device = Renderer::GetGraphicsDevice();
+			return device->createBindingSet(set, layout);
+		}
+
+	}
 
 	Shader::Shader()
 	{
@@ -18,6 +52,21 @@ namespace Shark {
 		m_Name = m_Info.SourcePath.stem().string();
 		InitializeFromCompiler();
 		CreateBindingLayout();
+
+		// #TODO #Renderer bad implementation because d3d11...
+		for (const auto& bindingName : m_Compiler->GetRequestedBindingSets())
+		{
+			if (bindingName == "samplers")
+			{
+				m_RequestedBindingSets[3] = utils::CreateSamplerBindingSet(GetBindingLayout(3));
+				SK_CORE_VERIFY(m_RequestedBindingSets[3]);
+				continue;
+			}
+
+			SK_CORE_ASSERT(false, "Invalid bind '{}'", bindingName);
+		}
+
+		m_LayoutMode = m_Compiler->GetLayoutMode();
 	}
 
 	Shader::~Shader()
@@ -61,6 +110,8 @@ namespace Shark {
 
 	void Shader::CreateBindingLayout()
 	{
+		m_LayoutMapping.fill(-1);
+
 		auto deviceManager = Application::Get().GetDeviceManager();
 		auto device = deviceManager->GetDevice();
 
@@ -142,9 +193,14 @@ namespace Shark {
 	//// Shader Library
 	//////////////////////////////////////////////////////////////////////////
 
-	Ref<Shader> ShaderLibrary::Load(const std::filesystem::path& filepath, bool forceCompile, bool disableOptimization)
+	Ref<Shader> ShaderLibrary::Load(const std::filesystem::path& filepath, const LoadArgs& options)
 	{
-		auto compiler = ShaderCompiler::Load(filepath, { .Force = forceCompile, .Optimize = !disableOptimization, .GenerateDebugInfo = true });
+		CompilerOptions compilerOptions;
+		compilerOptions.Force = options.ForceCompile.value_or(m_DefaultOptions.ForceCompile);
+		compilerOptions.Optimize = options.Optimize.value_or(m_DefaultOptions.Optimize);
+		compilerOptions.GenerateDebugInfo = options.GenerateDebugInfo.value_or(m_DefaultOptions.GenerateDebugInfo);
+
+		auto compiler = ShaderCompiler::Load(filepath, compilerOptions);
 		if (!compiler)
 			return nullptr;
 

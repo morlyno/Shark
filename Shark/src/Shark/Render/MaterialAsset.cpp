@@ -11,27 +11,30 @@ namespace Shark {
 	 //=//  PBR Material                                          //=//
 	//=//========================================================//=//
 
-	static std::string s_AlbedoMapName = "u_AlbedoMap";
-	static std::string s_NormalMapName = "u_NormalMap";
-	static std::string s_MetalnessMapName = "u_MetalnessMap";
-	static std::string s_RoughnessMapName = "u_RoughnessMap";
-	static std::string s_MaterialUniformsName = "u_MaterialUniforms";
-	static std::string s_AlbedoUniformName = "u_MaterialUniforms.Albedo";
-	static std::string s_MetalnessUniformName = "u_MaterialUniforms.Metalness";
-	static std::string s_RoughnessUniformName = "u_MaterialUniforms.Roughness";
-	static std::string s_UsingNormalMapUniformName = "u_MaterialUniforms.UsingNormalMap";
+	static const std::string s_AlbedoMapName = "u_AlbedoMap";
+	static const std::string s_NormalMapName = "u_NormalMap";
+	static const std::string s_MetalnessMapName = "u_MetalnessMap";
+	static const std::string s_RoughnessMapName = "u_RoughnessMap";
+	static const std::string s_MaterialUniformsName = "u_MaterialUniforms";
+	static const std::string s_AlbedoUniformName = "u_MaterialUniforms.Albedo";
+	static const std::string s_MetalnessUniformName = "u_MaterialUniforms.Metalness";
+	static const std::string s_RoughnessUniformName = "u_MaterialUniforms.Roughness";
+	static const std::string s_UsingNormalMapUniformName = "u_MaterialUniforms.UsingNormalMap";
 
 
 	PBRMaterial::PBRMaterial(const std::string& name, bool setDefault)
 	{
 		auto shader = Renderer::GetShaderLibrary()->Get("SharkPBR");
-		m_Material = Material::Create(shader);
+		m_Material = Material::Create(shader, name);
 		
 		Memory::WriteZero(m_Uniforms);
 		Memory::WriteZero(m_ActiveState);
 
 		if (setDefault)
 			SetDefaults();
+
+		// #TODO #Renderer replace either with combined textures or samplers
+		m_Material->Set("u_LinearClamp", Renderer::GetLinearClampSampler());
 	}
 
 	PBRMaterial::~PBRMaterial()
@@ -55,10 +58,10 @@ namespace Shark {
 	{
 		if (AsyncLoadResult result = AssetManager::GetAssetAsync<Texture2D>(m_AlbedoMap); result.Ready)
 			m_Material->Set(s_AlbedoMapName, result.Asset);
-		
+
 		if (AsyncLoadResult result = AssetManager::GetAssetAsync<Texture2D>(m_NormalMap); result.Ready)
 			m_Material->Set(s_NormalMapName, result.Asset);
-		
+
 		if (AsyncLoadResult result = AssetManager::GetAssetAsync<Texture2D>(m_MetalnessMap); result.Ready)
 			m_Material->Set(s_MetalnessMapName, result.Asset);
 
@@ -70,6 +73,9 @@ namespace Shark {
 			m_ActiveState = m_Uniforms;
 			m_Material->Set(s_MaterialUniformsName, Buffer::FromValue(m_ActiveState));
 		}
+
+		SK_CORE_ASSERT(m_Material->Validate());
+		m_Material->Prepare();
 	}
 
 	AssetHandle PBRMaterial::GetAlbedoMap()

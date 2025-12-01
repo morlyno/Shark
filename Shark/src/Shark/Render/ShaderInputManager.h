@@ -93,16 +93,6 @@ namespace Shark {
 		BindingSetInput() = default;
 	};
 
-	// Helper to deside how Graphics-/ComputePasses and Materials should share the binding layout
-	enum class LayoutShareMode
-	{
-		PassOnly,
-		MaterialOnly,
-		PassAndMaterial,
-
-		Default = PassAndMaterial
-	};
-
 	struct ShaderInputManagerSpecification
 	{
 		Ref<Shader> Shader;

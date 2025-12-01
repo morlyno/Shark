@@ -1,33 +1,37 @@
-#pragma stage : Vertex
-
-// set 0 => Material
-// set 1+ => RenderPass
-
-#include "Bindings/Buffers.hlsli"
 
 struct VertexInput
 {
-    [[vk::location(0)]] float3 Position : Position;
-    [[vk::location(1)]] float3 Normal : Normal;
-    [[vk::location(2)]] float3 Tangent : Tangent;
-    [[vk::location(3)]] float3 Bitangent : Bitangent;
-    [[vk::location(4)]] float2 Texcoord : Texcoord;
+    float3 Position : Position;
+    float3 Normal : Normal;
+    float3 Tangent : Tangent;
+    float3 Bitangent : Bitangent;
+    float2 Texcoord : Texcoord;
 };
 
-struct VertexOutput
+struct VertexToPixel
 {
-    [[vk::location(0)]] float3 WorldPosition : WorldPosition;
-    [[vk::location(1)]] float3 Normal : Normal;
-    [[vk::location(2)]] float2 Texcoord : Texcoord;
-    [[vk::location(3)]] float3x3 WorldNormals : WorldNormals;
-    [[vk::location(6)]] float3 ViewPosition : ViewPosition;
-    [[vk::location(7)]] int ID : ID;
+    float3 WorldPosition : WorldPosition;
+    float3 Normal : Normal;
+    float2 Texcoord : Texcoord;
+    float3x3 WorldNormals : WorldNormals;
+    float3 ViewPosition : ViewPosition;
+    nointerpolation int ID : ID;
     float4 Position : SV_POSITION;
 };
 
-VertexOutput main(VertexInput Input)
+struct PixelOutput
 {
-    VertexOutput Output;
+    float4 Color : SV_Target0;
+    int ID : SV_Target1;
+};
+
+#pragma stage : Vertex
+
+#include "Core/Bindings/Buffers.hlslh"
+
+VertexToPixel main(VertexInput Input)
+{
+    VertexToPixel Output;
     
     float4 pos = mul(u_MeshData.Transform, float4(Input.Position, 1.0f));
     Output.Position = mul(u_Camera.ViewProjection, pos);
@@ -46,30 +50,14 @@ VertexOutput main(VertexInput Input)
 
 #pragma stage : Pixel
 
-#include "Bindings/PBRMaterial.hlsli"
-#include "Bindings/Buffers.hlsli"
+#include "Core/Bindings/PBRMaterial.hlslh"
+#include "Core/Bindings/Buffers.hlslh"
 
 uniform TextureCube u_IrradianceMap : register(t0, space2);
 uniform TextureCube u_RadianceMap : register(t1, space2);
 uniform Texture2D u_BRDFLUTTexture : register(t2, space2);
 
 uniform SamplerState u_EnvironmentSampler : register(s0, space2);
-
-struct PixelInput
-{
-    [[vk::location(0)]] float3 WorldPosition : WorldPosition;
-    [[vk::location(1)]] float3 Normal : Normal;
-    [[vk::location(2)]] float2 Texcoord : Texcoord;
-    [[vk::location(3)]] float3x3 WorldNormals : WorldNormals;
-    [[vk::location(6)]] float3 ViewPosition : ViewPosition;
-    [[vk::location(7)]] int ID : ID;
-};
-
-struct PixelOutput
-{
-    float4 Color : SV_Target0;
-    int ID : SV_Target1;
-};
 
 struct Params
 {
@@ -162,7 +150,7 @@ float4 ToLinear(float4 sRGB)
     return lerp(higher, lower, cutoff);
 }
 
-PixelOutput main(PixelInput Input)
+PixelOutput main(VertexToPixel Input)
 {
     float4 albedoTexColor = u_AlbedoMap.Sample(u_AlbedoSampler, Input.Texcoord);
     m_Params.Albedo = albedoTexColor.rgb * ToLinear(float4(u_MaterialUniforms.Albedo, 1.0f)).rgb;

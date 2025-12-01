@@ -1,3 +1,4 @@
+#pragma layout : renderpass
 
 #pragma stage : vertex
 
@@ -17,18 +18,19 @@ VertexOutput main(float3 Position : Position, float2 TexCoord : TexCoord)
 
 #pragma stage : pixel
 
-#include "HLSLCommon.hlslh"
-#include "JumpFlood/JumpFloodCommon.hlsl"
-
-[[vk::binding(0, 1), vk::combinedImageSampler]] uniform Texture2D u_Texture;
-[[vk::binding(0, 1), vk::combinedImageSampler]] uniform SamplerState u_Sampler;
+#include "JumpFloodCommon.hlslh"
+#include "Core/Texture.hlslh"
+#include "Core/Samplers.hlslh"
 
 struct OutlineSettings
 {
     float3 Color;
     float PixelWidth;
+    float2 TexelSize;
 };
-[[vk::binding(1, 1)]] ConstantBuffer<OutlineSettings> u_Settings;
+
+ConstantBuffer<OutlineSettings> u_Settings : register(b1, space1);
+Texture2D u_Texture : register(t0, space1);
 
 float ScreenDistanceFromPixels(float pixels, float2 texelSize)
 {
@@ -37,12 +39,10 @@ float ScreenDistanceFromPixels(float pixels, float2 texelSize)
 
 float4 main(float2 TexCoord : TexCoord) : SV_Target
 {
-    float4 pixel = u_Texture.Sample(u_Sampler, TexCoord);
+    float4 pixel = u_Texture.Sample(u_LinearClamp, TexCoord);
     
-    float2 texelSize = GetTexelSize(u_Texture);
-    
-    float fadeoutStart = ScreenDistanceFromPixels(u_Settings.PixelWidth - 3, texelSize);
-    float maxDist = ScreenDistanceFromPixels(u_Settings.PixelWidth, texelSize);
+    float fadeoutStart = ScreenDistanceFromPixels(u_Settings.PixelWidth - 3, u_Settings.TexelSize);
+    float maxDist = ScreenDistanceFromPixels(u_Settings.PixelWidth, u_Settings.TexelSize);
     
     float4 result;
     result.xyz = u_Settings.Color;

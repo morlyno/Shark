@@ -1,21 +1,17 @@
 #pragma once
 
+#include "Shark/Core/Base.h"
+#include "Shark/Render/ShaderReflection.h"
+
 #include <nvrhi/nvrhi.h>
 #include <shaderc/shaderc.h>
 
 namespace Shark {
 
-	enum class ShaderLanguage
-	{
-		None = 0,
-		HLSL, GLSL
-	};
-
 	struct ShaderInfo
 	{
 		uint64_t ShaderID = 0;
 		std::filesystem::path SourcePath;
-		ShaderLanguage Language = ShaderLanguage::None;
 	};
 
 	struct ShaderSourceInfo

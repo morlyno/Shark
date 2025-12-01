@@ -6,6 +6,12 @@
 
 namespace Shark {
 
+#if 1
+	#define SK_LOG_INPUT(_item, _name, _arrayIndex) SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{} => {}", m_Specification.DebugName, _name, _arrayIndex, fmt::ptr(_item.Raw()));
+#else
+	#define SK_LOG_INPUT(_item, _name, _arrayIndex) (void)0
+#endif
+
 	namespace utils {
 
 		static bool IsImageType(RenderInputType type)
@@ -52,8 +58,18 @@ namespace Shark {
 		m_InputSetItems.resize((size_t)(m_Specification.EndSet - m_Specification.StartSet + 1));
 		m_BackedSets.resize(reflection.BindingLayouts.size());
 
+		const auto& preBackedSets = m_Specification.Shader->GetRequestedBindingSets();
+
 		for (uint32_t set = m_Specification.StartSet; set <= m_Specification.EndSet; set++)
 		{
+			if (preBackedSets.contains(set))
+			{
+				nvrhi::BindingSetHandle bindingSet = preBackedSets.at(set);
+				m_BackedSets[set - m_Specification.StartSet] = bindingSet;
+				m_PendingSets.set(set, false);
+				continue;
+			}
+
 			const auto& layout = reflection.BindingLayouts[set];
 			for (const auto& [name, inputInfo] : layout.InputInfos)
 			{
@@ -90,8 +106,11 @@ namespace Shark {
 		for (uint32_t inputSetIndex = 0; inputSetIndex < m_InputSetItems.size(); inputSetIndex++)
 		{
 			const uint32_t set = inputSetIndex + m_Specification.StartSet;
-			if (!m_PendingSets.test(set))
+			if (!m_PendingSets.test(set) || !m_Specification.Shader->HasLayout(set))
+			{
+				m_PendingSets.reset(set);
 				continue;
+			}
 
 			const auto& inputSet = m_InputSetItems[inputSetIndex];
 
@@ -214,7 +233,18 @@ namespace Shark {
 
 	void ShaderInputManager::Update()
 	{
-		SK_NOT_IMPLEMENTED();
+		// #TODO #Renderer better update method
+
+		const auto& preBackedSets = m_Specification.Shader->GetRequestedBindingSets();
+		for (uint32_t set = m_Specification.StartSet; set <= m_Specification.EndSet; set++)
+		{
+			if (preBackedSets.contains(set) || !m_Specification.Shader->HasLayout(set))
+				continue;
+
+			m_PendingSets.set(set);
+		}
+
+		Bake();
 	}
 
 	namespace utils {
@@ -351,6 +381,7 @@ namespace Shark {
 			input.Set(constantBuffer, arrayIndex);
 			m_PendingSets.set(inputInfo->Set);
 			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
+			SK_LOG_INPUT(constantBuffer, name, arrayIndex);
 		}
 		else
 		{
@@ -367,6 +398,7 @@ namespace Shark {
 			input.Set(storageBuffer, arrayIndex);
 			m_PendingSets.set(inputInfo->Set);
 			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
+			SK_LOG_INPUT(storageBuffer, name, arrayIndex);
 		}
 		else
 		{
@@ -383,6 +415,7 @@ namespace Shark {
 			input.Set(viewable, arrayIndex);
 			m_PendingSets.set(inputInfo->Set);
 			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
+			SK_LOG_INPUT(viewable, name, arrayIndex);
 		}
 		else
 		{
@@ -399,6 +432,7 @@ namespace Shark {
 			input.Set(image, arrayIndex);
 			m_PendingSets.set(inputInfo->Set);
 			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
+			SK_LOG_INPUT(image, name, arrayIndex);
 		}
 		else
 		{
@@ -415,6 +449,7 @@ namespace Shark {
 			input.Set(imageView, arrayIndex);
 			m_PendingSets.set(inputInfo->Set);
 			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
+			SK_LOG_INPUT(imageView, name, arrayIndex);
 		}
 		else
 		{
@@ -431,6 +466,7 @@ namespace Shark {
 			input.Set(texture, arrayIndex);
 			m_PendingSets.set(inputInfo->Set);
 			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
+			SK_LOG_INPUT(texture, name, arrayIndex);
 		}
 		else
 		{
@@ -447,6 +483,7 @@ namespace Shark {
 			input.Set(textureCube, arrayIndex);
 			m_PendingSets.set(inputInfo->Set);
 			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
+			SK_LOG_INPUT(textureCube, name, arrayIndex);
 		}
 		else
 		{
@@ -463,6 +500,7 @@ namespace Shark {
 			input.Set(sampler, arrayIndex);
 			m_PendingSets.set(inputInfo->Set);
 			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
+			SK_LOG_INPUT(sampler, name, arrayIndex);
 		}
 		else
 		{

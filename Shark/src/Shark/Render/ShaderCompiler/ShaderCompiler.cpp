@@ -6,7 +6,6 @@
 #include "Shark/Utils/String.h"
 
 #include "Shark/Render/Renderer.h"
-#include "Shark/Render/ShaderCompiler/GLSLIncluder.h"
 #include "Shark/Render/ShaderCompiler/ShaderPreprocessor.h"
 
 #include <atlcomcli.h>
@@ -29,28 +28,17 @@ namespace Shark {
 
 	namespace utils {
 
-		static ShaderLanguage ShaderLanguageFromFileExtension(const std::string extension)
+		static LPCWSTR ShaderStageToMakro(nvrhi::ShaderType stage)
 		{
-			if (String::Compare(extension, ".hlsl", String::Case::Ignore))
-				return ShaderLanguage::HLSL;
-
-			if (String::Compare(extension, ".glsl", String::Case::Ignore))
-				return ShaderLanguage::GLSL;
-
-			SK_CORE_ASSERT(false, "Unkown Shader Extension");
-			return ShaderLanguage::None;
-		}
-
-		static shaderc_source_language GetShaderCSourceLanguage(ShaderLanguage language)
-		{
-			switch (language)
+			switch (stage)
 			{
-				case ShaderLanguage::HLSL: return shaderc_source_language_hlsl;
-				case ShaderLanguage::GLSL: return shaderc_source_language_glsl;
+				case nvrhi::ShaderType::Vertex: return L"__VERTEX_STAGE__";
+				case nvrhi::ShaderType::Pixel: return L"__PIXEL_STAGE__";
+				case nvrhi::ShaderType::Compute: return L"__COMPUTE_STAGE__";
 			}
 
-			SK_CORE_ASSERT(false, "Unkown ShaderLanguage");
-			return (shaderc_source_language)0;
+			SK_CORE_ASSERT(false, "Unknown ShaderType");
+			return L"__UNKNOWN_STAGE__";
 		}
 
 	}
@@ -58,9 +46,8 @@ namespace Shark {
 	ShaderCompiler::ShaderCompiler(const std::filesystem::path& sourcePath, const CompilerOptions& options)
 		: m_Options(options)
 	{
-		m_Info.SourcePath = FileSystem::Relative(sourcePath);
-		m_Info.Language = utils::ShaderLanguageFromFileExtension(m_Info.SourcePath.extension().string());
-		m_Info.ShaderID = Hash::GenerateFNV(m_Info.SourcePath.string());
+		m_Info.SourcePath = FileSystem::Relative(std::filesystem::canonical(sourcePath)).generic_wstring();
+		m_Info.ShaderID = Hash::GenerateFNV(m_Info.SourcePath.generic_string());
 	}
 
 	Ref<ShaderCompiler> ShaderCompiler::Load(const std::filesystem::path& sourcePath, const CompilerOptions& options)
@@ -73,17 +60,13 @@ namespace Shark {
 
 	bool ShaderCompiler::Reload()
 	{
-		m_SourceInfo.clear();
-		m_SpirvBinary.clear();
+		ClearState();
+		SetupDXC();
 
-		m_Source = FileSystem::ReadString(m_Info.SourcePath);
-		if (m_Source.empty())
+		if (!Preprocess())
 			return false;
-
-		Preprocess();
 		
 		auto& shaderCache = Renderer::GetShaderCache();
-		shaderCache.UpdateOptions(m_Info, m_Options);
 
 		for (const auto& [stage, sourceInfo] : m_SourceInfo)
 		{
@@ -113,7 +96,7 @@ namespace Shark {
 		bool reflectionLoaded = false;
 		if (m_CompiledStages == nvrhi::ShaderType::None)
 		{
-			reflectionLoaded = shaderCache.LoadReflection(m_Info.ShaderID, m_Reflection);
+			reflectionLoaded = shaderCache.LoadReflection(m_Info.ShaderID, m_Reflection, m_RequestedBindingSets, m_LayoutMode);
 		}
 
 		if (!reflectionLoaded)
@@ -128,14 +111,16 @@ namespace Shark {
 			shaderCache.CacheStage(m_SourceInfo.at(stage), binary, m_D3D11Compiler.GetBinary(stage));
 		}
 
-		shaderCache.CacheReflection(m_Info.ShaderID, m_Reflection);
+		shaderCache.CacheReflection(m_Info.ShaderID, m_Reflection, m_RequestedBindingSets, m_LayoutMode);
 		return true;
 	}
 
 	void ShaderCompiler::ClearState()
 	{
-		m_Source = {};
-		m_SourceInfo.clear();
+		//m_Source = {};
+		//m_SourceInfo.clear();
+		m_IncludeHandler = nullptr;
+		m_Preprocessor = {};
 		m_SpirvBinary.clear();
 		m_CompiledStages = nvrhi::ShaderType::None;
 		m_Reflection = {};
@@ -150,8 +135,79 @@ namespace Shark {
 		return Buffer::FromArray(m_SpirvBinary.at(stage));
 	}
 
-	void ShaderCompiler::Preprocess()
+	void ShaderCompiler::SetupDXC()
 	{
+		if (!DxcInstances::Compiler)
+		{
+			DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&DxcInstances::Compiler));
+			DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&DxcInstances::Utils));
+			DxcInstances::Utils->CreateDefaultIncludeHandler(&DxcInstances::IncludeHandler);
+		}
+	}
+
+	bool ShaderCompiler::Preprocess()
+	{
+		m_Preprocessor.PreprocessFile(m_Info.SourcePath);
+
+		if (!m_Preprocessor.Errors.empty())
+		{
+			SK_CORE_ERROR_TAG("ShaderCompiler", "Failed to preprocess file '{}'\n{}", m_Info.SourcePath, fmt::join(m_Preprocessor.Errors, "\n"));
+			return false;
+		}
+
+		m_IncludeHandler = Scope<HLSLIncludeHandler>::Create(&m_Preprocessor, DxcInstances::Utils);
+
+		for (nvrhi::ShaderType stage : m_Preprocessor.Stages)
+		{
+			CComPtr<IDxcBlobEncoding> sourceBlob;
+			DxcInstances::Utils->CreateBlob(m_Preprocessor.Source.data(), static_cast<UINT32>(m_Preprocessor.Source.size()), CP_UTF8, &sourceBlob);
+
+			const wchar_t* version = s_ShaderTypeMappings.at(stage).DXC;
+			std::wstring filename = m_Info.SourcePath.stem().wstring();
+
+			std::vector<LPCWSTR> arguments = {
+				filename.c_str(),
+
+				L"-P",
+				L"-I Resources/Shaders/",
+				L"-I Resources/Shaders/EnvMap",
+				L"-D", utils::ShaderStageToMakro(stage)
+			};
+
+
+			DxcBuffer buffer = {};
+			buffer.Encoding = 0;
+			buffer.Ptr = sourceBlob->GetBufferPointer();
+			buffer.Size = sourceBlob->GetBufferSize();
+
+
+			CComPtr<IDxcResult> result = nullptr;
+			HRESULT hResult = DxcInstances::Compiler->Compile(&buffer, arguments.data(), static_cast<UINT32>(arguments.size()),
+															  m_IncludeHandler.Raw(), IID_PPV_ARGS(&result));
+
+
+			result->GetStatus(&hResult);
+			if (FAILED(hResult))
+			{
+				CComPtr<IDxcBlobEncoding> errorBlob;
+				hResult = result->GetErrorBuffer(&errorBlob);
+				std::string errorMessage = (const char*)errorBlob->GetBufferPointer();
+				SK_CORE_ERROR_TAG("ShaderCompiler", "Failed to preprocessor source by DXC!\n{}", errorMessage);
+				return false;
+			}
+
+			CComPtr<IDxcBlob> code;
+			result->GetResult(&code);
+
+			const std::string shaderSource = { static_cast<const char*>(code->GetBufferPointer()), code->GetBufferSize() };
+			m_SourceInfo[stage].HashCode = Hash::GenerateFNV(shaderSource);
+			m_SourceInfo[stage].Stage = stage;
+			m_SourceInfo[stage].ShaderID = m_Preprocessor.ShaderID;
+			m_SourceInfo[stage].Source = std::move(shaderSource);
+		}
+		return true;
+
+#if 0
 		PreProcessorResult result;
 
 		switch (m_Info.Language)
@@ -181,16 +237,12 @@ namespace Shark {
 				.Source = std::move(source)
 			};
 		}
+#endif
 	}
 
 	bool ShaderCompiler::CompileStage(nvrhi::ShaderType stage)
 	{
-		std::string errorMessage;
-		switch (m_Info.Language)
-		{
-			case ShaderLanguage::HLSL: errorMessage = HLSLCompileStage(stage); break;
-			case ShaderLanguage::GLSL: errorMessage = GLSLCompileStage(stage); break;
-		}
+		std::string errorMessage = HLSLCompileStage(stage);
 
 		if (!errorMessage.empty())
 		{
@@ -206,37 +258,41 @@ namespace Shark {
 	std::string ShaderCompiler::HLSLCompileStage(nvrhi::ShaderType stage)
 	{
 		const ShaderSourceInfo& sourceInfo = m_SourceInfo.at(stage);
+		const std::string& shaderSource = sourceInfo.Source;
 
-		if (!DxcInstances::Compiler)
-		{
-			DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&DxcInstances::Compiler));
-			DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&DxcInstances::Utils));
-			DxcInstances::Utils->CreateDefaultIncludeHandler(&DxcInstances::IncludeHandler);
-		}
-
-		using ATL::CComPtr;
-
-		CComPtr<IDxcBlobEncoding> sourceBlob;
-		DxcInstances::Utils->CreateBlob(sourceInfo.Source.data(), (UINT32)sourceInfo.Source.size(), DXC_CP_ACP, &sourceBlob);
-
+		// 
+		// #TODO #Renderer #Investigate dxc -fspv-preserve-bindings bug
+		// 
+		// dxc has a bug were -fspv-preserve-bindings don't work.
+		// it looks like it is caused by image query operations(?).
+		// the only occasion where this effect caused issues where avoided.
+		// 
+		// Solution 1:
+		//  dxc bug is resolved
+		// 
+		// Solution 2:
+		//  user the cli interface
+		// 
 
 		const wchar_t* version = s_ShaderTypeMappings.at(stage).DXC;
 		std::wstring filename = m_Info.SourcePath.stem().wstring();
 
 		std::vector<LPCWSTR> arguments = {
 			filename.c_str(),
+			L"-E", L"main",
+			L"-T", version,
 
 			L"-I Resources/Shaders/",
 			L"-I Resources/Shaders/EnvMap",
 
-			L"-E", L"main",
-			L"-T", version,
-			L"-spirv",
+			L"-D", L"__HLSL__",
+			L"-D", utils::ShaderStageToMakro(stage),
 
+			L"-spirv",
 			L"-fspv-reflect",
 			L"-fspv-target-env=vulkan1.2",
-			//L"-fspv-preserve-bindings",
-			L"-fspv-preserve-interface"
+			L"-fspv-preserve-bindings",
+			L"-fspv-preserve-interface",
 		};
 
 		if (m_Options.GenerateDebugInfo)
@@ -248,14 +304,16 @@ namespace Shark {
 		if (m_Options.Optimize)
 			arguments.emplace_back(DXC_ARG_OPTIMIZATION_LEVEL3);
 
+
+
 		DxcBuffer buffer = {};
-		buffer.Encoding = DXC_CP_ACP;
-		buffer.Ptr = sourceBlob->GetBufferPointer();
-		buffer.Size = sourceBlob->GetBufferSize();
+		buffer.Encoding = CP_UTF8;
+		buffer.Ptr = shaderSource.data();
+		buffer.Size = shaderSource.size();
 
 		CComPtr<IDxcResult> result = nullptr;
-		HRESULT hResult = DxcInstances::Compiler->Compile(&buffer, arguments.data(), (UINT32)arguments.size(),
-														  DxcInstances::IncludeHandler, IID_PPV_ARGS(&result));
+		HRESULT hResult = DxcInstances::Compiler->Compile(&buffer, arguments.data(), arguments.size(),
+														  m_IncludeHandler.Raw(), IID_PPV_ARGS(&result));
 
 		result->GetStatus(&hResult);
 		if (FAILED(hResult))
@@ -274,55 +332,20 @@ namespace Shark {
 		return {};
 	}
 
-	std::string ShaderCompiler::GLSLCompileStage(nvrhi::ShaderType stage)
-	{
-		const ShaderSourceInfo& sourceInfo = m_SourceInfo.at(stage);
-
-		shaderc::Compiler compiler;
-		shaderc::CompileOptions shadercOptions;
-
-		shadercOptions.SetSourceLanguage(utils::GetShaderCSourceLanguage(m_Info.Language));
-		shadercOptions.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3);
-		shadercOptions.SetGenerateDebugInfo();
-
-		if (m_Options.Optimize)
-			shadercOptions.SetOptimizationLevel(shaderc_optimization_level_performance);
-
-		shadercOptions.SetIncluder(std::make_unique<FileIncluder>());
-
-		std::string name = fmt::format("{}{}", m_Info.SourcePath.stem().string(), s_ShaderTypeMappings.at(stage).Extension);
-
-		const shaderc::PreprocessedSourceCompilationResult preprocessedSourceResult = compiler.PreprocessGlsl(sourceInfo.Source, s_ShaderTypeMappings.at(stage).ShaderC, name.c_str(), shadercOptions);
-		if (preprocessedSourceResult.GetCompilationStatus() != shaderc_compilation_status_success)
-			return preprocessedSourceResult.GetErrorMessage();
-
-		std::string preprocessedSource = std::string(preprocessedSourceResult.cbegin(), preprocessedSourceResult.cend());
-		const shaderc::SpvCompilationResult compiledModule = compiler.CompileGlslToSpv(preprocessedSource, s_ShaderTypeMappings.at(stage).ShaderC, name.c_str(), shadercOptions);
-		//utils::EraseExtensions(preprocessedSource);
-
-		if (compiledModule.GetCompilationStatus() != shaderc_compilation_status_success)
-		{
-			return compiledModule.GetErrorMessage();
-		}
-
-		m_SpirvBinary[stage] = { compiledModule.begin(), compiledModule.end() };
-		return {};
-	}
-
 	void ShaderCompiler::Reflect()
 	{
 		for (const auto& [stage, binary] : m_SpirvBinary)
 			ReflectStage(stage);
 		
-		BuildCombinedImageSampler();
 		MapBindings();
+		ProcessCompilerInstructions();
 	}
 
 	void ShaderCompiler::ReflectStage(nvrhi::ShaderType stage)
 	{
 		const auto& spirvBinary = m_SpirvBinary.at(stage);
-		spirv_cross::Compiler compiler(spirvBinary.data(), spirvBinary.size());
-		spirv_cross::ShaderResources shaderResources = compiler.get_shader_resources(compiler.get_active_interface_variables());
+		const spirv_cross::Compiler compiler(spirvBinary.data(), spirvBinary.size());
+		const spirv_cross::ShaderResources shaderResources = compiler.get_shader_resources();
 
 #if 0
 	#define CHECK_BINDING(_binding, _typeStr)\
@@ -674,54 +697,112 @@ namespace Shark {
 
 	}
 
-	void ShaderCompiler::BuildCombinedImageSampler()
+	void ShaderCompiler::ProcessCompilerInstructions()
 	{
-		for (const auto& [imageName, samplerName] : m_CombinedImageSampler)
+		for (const auto& pragma : m_Preprocessor.CompilerInstructions)
 		{
-			ShaderInputInfo* imageInfo = FindInputInfo(imageName);
-			ShaderInputInfo* samplerInfo = FindInputInfo(samplerName);
-
-			if (!imageInfo || !samplerInfo)
+			switch (pragma.Instruction)
 			{
-				std::string errorMessage;
-				if (!imageInfo)   errorMessage += fmt::format("\n - Image input '{}' not found", imageName);
-				if (!samplerInfo) errorMessage += fmt::format("\n - Sampler input '{}' not found", samplerName);
+				case CompilerInstruction::Type::Combine:
+				{
+					SK_CORE_VERIFY(pragma.Arguments.size() == 2);
+					BuildCombinedImageSampler(pragma.Arguments[0], pragma.Arguments[1]);
+					break;
+				}
+				case CompilerInstruction::Type::Bind:
+				{
+					SK_CORE_VERIFY(pragma.Arguments.size() == 1);
+					m_RequestedBindingSets.emplace_back(pragma.Arguments[0]);
 
-				SK_CORE_WARN_TAG("ShaderCompiler", "Failed to build combined image sampler!{}", errorMessage);
-				continue;
+					if (pragma.Arguments[0] == "samplers")
+					{
+						if (m_Reflection.BindingLayouts.size() < 4)
+						{
+							SK_CORE_ERROR_TAG("ShaderCompiler", "Samplers where requested with bind but the layout at set 3 doesn't exists!");
+							continue;
+						}
+
+						size_t inputs = m_Reflection.BindingLayouts[3].InputInfos.size();
+						if (inputs < 6)
+						{
+							SK_CORE_ERROR_TAG("ShaderCompiler", "Samplers where requested but the layout has only {} inputs.", inputs);
+							SK_CORE_ERROR_TAG("ShaderCompiler", "I don't know the exact reason but removing 'Image queries' could help.", inputs);
+							SK_CORE_ERROR_TAG("ShaderCompiler", "Image queries => u_Texture.GetDimensions()", inputs);
+						}
+
+						SK_CORE_ASSERT(m_Reflection.BindingLayouts[3].InputInfos.size() == 6);
+					}
+
+					break;
+				}
+				case CompilerInstruction::Type::Layout:
+				{
+					SK_CORE_VERIFY(pragma.Arguments.size() == 1);
+
+					const auto& arg = pragma.Arguments[0];
+					if (String::Compare(arg, "renderpass", String::Case::Ignore))
+						m_LayoutMode = LayoutShareMode::PassOnly;
+					else if (String::Compare(arg, "material", String::Case::Ignore))
+						m_LayoutMode = LayoutShareMode::MaterialOnly;
+					else if (String::Compare(arg, "share", String::Case::Ignore))
+						m_LayoutMode = LayoutShareMode::PassAndMaterial;
+					else if (String::Compare(arg, "default", String::Case::Ignore))
+						m_LayoutMode = LayoutShareMode::Default;
+					else
+					{
+						SK_CORE_WARN_TAG("ShaderCompiler", "Failed to parse Layout mode '{}'. Arguments are 'renderpass', 'material', 'share', 'default'.", arg);
+						m_LayoutMode = LayoutShareMode::Default;
+					}
+				}
 			}
-
-			if (imageInfo->Set != samplerInfo->Set)
-			{
-				SK_CORE_WARN_TAG("ShaderCompiler", "Failed to build combined image sampler because Image and Sampler are in different sets!\n"
-								 " - Image '{}' {}\n - Sampler '{}' {}", 
-								 imageInfo->Name, imageInfo->Set,
-								 samplerInfo->Name, samplerInfo->Set);
-				continue;
-			}
-
-			auto& layout = m_Reflection.BindingLayouts[imageInfo->Set];
-			auto& image = layout.Images.at(imageInfo->Slot);
-			auto& sampler = layout.Samplers.at(imageInfo->Slot);
-
-			auto& sampledImage = layout.SampledImages[imageInfo->Slot];
-			sampledImage.Name = image.Name;
-			sampledImage.SeparateImage = image;
-			sampledImage.SeparateSampler = sampler;
-
-			ShaderInputInfo info = {
-				.Name = imageInfo->Name,
-				.Set = imageInfo->Set,
-				.Slot = imageInfo->Slot,
-				.Count = imageInfo->Count,
-				.GraphicsType = GraphicsResourceType::ShaderResourceView,
-				.Type = ShaderInputType::Texture
-			};
-			
-			layout.InputInfos.erase(imageInfo->Name);
-			layout.InputInfos.erase(samplerInfo->Name);
-			layout.InputInfos[info.Name] = info;
 		}
+	}
+
+	void ShaderCompiler::BuildCombinedImageSampler(const std::string& imageName, const std::string& samplerName)
+	{
+		ShaderInputInfo* imageInfo = FindInputInfo(imageName);
+		ShaderInputInfo* samplerInfo = FindInputInfo(samplerName);
+
+		if (!imageInfo || !samplerInfo)
+		{
+			std::string errorMessage;
+			if (!imageInfo)   errorMessage += fmt::format("\n - Image input '{}' not found", imageName);
+			if (!samplerInfo) errorMessage += fmt::format("\n - Sampler input '{}' not found", samplerName);
+
+			SK_CORE_WARN_TAG("ShaderCompiler", "Failed to build combined image sampler!{}", errorMessage);
+			return;
+		}
+
+		if (imageInfo->Set != samplerInfo->Set)
+		{
+			SK_CORE_WARN_TAG("ShaderCompiler", "Failed to build combined image sampler because Image and Sampler are in different sets!\n"
+							 " - Image '{}' {}\n - Sampler '{}' {}",
+							 imageInfo->Name, imageInfo->Set,
+							 samplerInfo->Name, samplerInfo->Set);
+			return;
+		}
+
+		auto& layout = m_Reflection.BindingLayouts[imageInfo->Set];
+		auto& image = layout.Images.at(imageInfo->Slot);
+		auto& sampler = layout.Samplers.at(imageInfo->Slot);
+
+		auto& sampledImage = layout.SampledImages[imageInfo->Slot];
+		sampledImage.Name = image.Name;
+		sampledImage.SeparateImage = image;
+		sampledImage.SeparateSampler = sampler;
+
+		ShaderInputInfo info = {
+			.Name = imageInfo->Name,
+			.Set = imageInfo->Set,
+			.Slot = imageInfo->Slot,
+			.Count = imageInfo->Count,
+			.GraphicsType = GraphicsResourceType::ShaderResourceView,
+			.Type = ShaderInputType::Texture
+		};
+
+		layout.InputInfos.erase(imageInfo->Name);
+		layout.InputInfos.erase(samplerInfo->Name);
+		layout.InputInfos[info.Name] = info;
 	}
 
 	ShaderInputInfo* ShaderCompiler::FindInputInfo(const std::string& name)

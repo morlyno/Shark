@@ -1,6 +1,6 @@
 #pragma stage : compute
 
-#include "EnvMapCommon.hlsl"
+#include "EnvMapCommon.hlslh"
 
 static const uint SampleCount = 1024;
 static const float InvSampleCount = 1.0f / float(SampleCount);

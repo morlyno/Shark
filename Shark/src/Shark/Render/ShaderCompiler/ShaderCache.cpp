@@ -40,8 +40,6 @@ namespace Shark {
 				out << YAML::Key << code.first << YAML::Value << code.second;
 			out << YAML::EndMap;
 			out << YAML::Key << "SourcePath" << YAML::Value << entry.SourcePath;
-			out << YAML::Key << "Option.ForceCompile" << YAML::Value << entry.ForceCompile;
-			out << YAML::Key << "Option.GenerateDebugInfo" << YAML::Value << entry.GenerateDebugInfo;
 			out << YAML::EndMap;
 		}
 
@@ -70,8 +68,6 @@ namespace Shark {
 
 			DeserializeProperty(entryNode, "ID", key.ShaderID);
 			DeserializeProperty(entryNode, "SourcePath", entry.SourcePath);
-			DeserializeProperty(entryNode, "Option.ForceCompile", entry.ForceCompile, ShaderCacheOption::Ignore);
-			DeserializeProperty(entryNode, "Option.GenerateDebugInfo", entry.GenerateDebugInfo, ShaderCacheOption::Ignore);
 
 			for (auto codeNode : entryNode["HashCodes"])
 			{
@@ -83,19 +79,6 @@ namespace Shark {
 			m_CacheRegistry[key] = entry;
 		}
 
-	}
-
-	void ShaderCache::UpdateOptions(const ShaderInfo& info, CompilerOptions& options)
-	{
-		if (!m_CacheRegistry.contains({ info.ShaderID }))
-			return;
-
-		auto& entry = m_CacheRegistry.at({ info.ShaderID });
-		if (entry.ForceCompile != ShaderCacheOption::Ignore)
-			options.Force = entry.ForceCompile == ShaderCacheOption::True;
-
-		if (entry.GenerateDebugInfo != ShaderCacheOption::Ignore)
-			options.GenerateDebugInfo = entry.GenerateDebugInfo == ShaderCacheOption::True;
 	}
 
 	ShaderCacheEntry& ShaderCache::GetEntry(const ShaderInfo& info)
@@ -164,7 +147,7 @@ namespace Shark {
 #endif
 	}
 
-	bool ShaderCache::LoadReflection(uint64_t shaderID, ShaderReflection& reflectionData)
+	bool ShaderCache::LoadReflection(uint64_t shaderID, ShaderReflection& outReflectionData, std::vector<std::string>& outRequestedBindingSets, LayoutShareMode& outShareMode)
 	{
 		const std::string cacheFile = fmt::format("Cache/Shaders/Reflection/{}.yaml", shaderID);
 		std::string fileData = FileSystem::ReadString(cacheFile);
@@ -178,8 +161,10 @@ namespace Shark {
 		YAML::Node reflectionNode = rootNode["ShaderReflection"];
 
 		bool anyFailed = false;
-		anyFailed |= !DeserializeProperty(reflectionNode, "BindingLayouts", reflectionData.BindingLayouts);
-		anyFailed |= !DeserializeProperty(reflectionNode, "PushConstant", reflectionData.PushConstant);
+		anyFailed |= !DeserializeProperty(reflectionNode, "BindingLayouts", outReflectionData.BindingLayouts);
+		anyFailed |= !DeserializeProperty(reflectionNode, "PushConstant", outReflectionData.PushConstant);
+		anyFailed |= !DeserializeProperty(reflectionNode, "RequestedBindingSets", outRequestedBindingSets);
+		anyFailed |= !DeserializeProperty(reflectionNode, "LayoutShareMode", outShareMode);
 		return !anyFailed;
 	}
 
@@ -200,7 +185,7 @@ namespace Shark {
 		SaveRegistry();
 	}
 
-	void ShaderCache::CacheReflection(uint64_t shaderID, const ShaderReflection& reflectionData)
+	void ShaderCache::CacheReflection(uint64_t shaderID, const ShaderReflection& reflectionData, std::span<const std::string> requestedBindingSets, LayoutShareMode layoutMode)
 	{
 		YAML::Emitter out;
 		out << YAML::BeginMap;
@@ -208,6 +193,8 @@ namespace Shark {
 		out << YAML::BeginMap;
 		out << YAML::Key << "BindingLayouts" << YAML::Value << reflectionData.BindingLayouts;
 		out << YAML::Key << "PushConstant" << YAML::Value << reflectionData.PushConstant;
+		out << YAML::Key << "RequestedBindingSets" << YAML::Value << requestedBindingSets;
+		out << YAML::Key << "LayoutShareMode" << YAML::Value << layoutMode;
 		out << YAML::EndMap;
 		out << YAML::EndMap;
 

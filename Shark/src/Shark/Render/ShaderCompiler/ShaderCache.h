@@ -23,18 +23,11 @@ namespace Shark {
 		auto operator<=>(const ShaderCacheKey& other) const = default;
 	};
 
-	enum class ShaderCacheOption : uint8_t
-	{
-		Ignore, True, False
-	};
-
 	struct ShaderCacheEntry
 	{
 		std::vector<std::pair<nvrhi::ShaderType, uint64_t>> Hashes;
 
 		std::filesystem::path SourcePath;
-		ShaderCacheOption ForceCompile = ShaderCacheOption::Ignore;
-		ShaderCacheOption GenerateDebugInfo = ShaderCacheOption::Ignore;
 	};
 
 	class ShaderCache
@@ -45,17 +38,16 @@ namespace Shark {
 		void SaveRegistry();
 		void LoadRegistry();
 
-		void UpdateOptions(const ShaderInfo& info, CompilerOptions& options);
 		ShaderCacheEntry& GetEntry(const ShaderInfo& info);
 
 		ShaderCacheState GetCacheState(const ShaderSourceInfo& info);
 		bool LoadBinary(const ShaderSourceInfo& info, std::vector<uint32_t>& outBinary, Buffer* outD3D11Binary = nullptr);
 		bool LoadSPIRV(const ShaderSourceInfo& info, std::vector<uint32_t>& outBinary);
 		bool LoadD3D11(const ShaderSourceInfo& info, Buffer& outBinary);
-		bool LoadReflection(uint64_t shaderID, ShaderReflection& reflectionData);
+		bool LoadReflection(uint64_t shaderID, ShaderReflection& reflectionData, std::vector<std::string>& requestedBindingSets, LayoutShareMode& outShareMode);
 
 		void CacheStage(const ShaderSourceInfo& info, std::span<const uint32_t> spirvBinary, const Buffer d3d11Binary = {});
-		void CacheReflection(uint64_t shaderID, const ShaderReflection& reflectionData);
+		void CacheReflection(uint64_t shaderID, const ShaderReflection& reflectionData, std::span<const std::string> requestedBindingSets, LayoutShareMode layoutMode);
 
 		ShaderCacheState GetD3D11CacheSyncState(const ShaderSourceInfo& info);
 	private:

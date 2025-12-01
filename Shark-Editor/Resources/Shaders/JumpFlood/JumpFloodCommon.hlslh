@@ -1,3 +1,4 @@
+#pragma once
 
 void BoundsCheck(inout float2 xy, float2 uv)
 {

@@ -22,6 +22,8 @@ namespace Shark {
 
 	void GpuBuffer::Upload(const Buffer data)
 	{
+		m_LocalStorage.Write(data);
+
 		Ref instance = this;
 		Renderer::Submit([instance, storage = m_LocalStorage]()
 		{
