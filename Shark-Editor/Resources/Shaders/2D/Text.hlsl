@@ -5,7 +5,7 @@ struct Camera
     matrix ViewProjection;
 };
 
-[[vk::binding(0, 1)]] ConstantBuffer<Camera> u_Camera;
+ConstantBuffer<Camera> u_Camera : register(b0, space1);
 
 struct VSIN
 {
@@ -34,9 +34,10 @@ VSOUT main(VSIN vsin)
 }
 
 #pragma stage : Pixel
+#pragma combine : g_FontAtlas, g_Sampler;
 
-[[vk::binding(1, 0)]][[vk::combinedImageSampler]] Texture2D g_FontAtlas;
-[[vk::binding(1, 0)]][[vk::combinedImageSampler]] SamplerState g_Sampler;
+Texture2D g_FontAtlas : register(t0, space0);
+SamplerState g_Sampler : register(s0, space0);
 
 struct PSIN
 {

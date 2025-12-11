@@ -91,10 +91,10 @@ namespace Shark {
 		shaderLibrary->Load("Resources/Shaders/Composite.hlsl");
 
 		// 2D
-		shaderLibrary->Load("Resources/Shaders/Renderer2D_Quad.hlsl");
-		shaderLibrary->Load("Resources/Shaders/2D/Renderer2D_Circle.hlsl");
-		shaderLibrary->Load("Resources/Shaders/2D/Renderer2D_Line.hlsl");
-		shaderLibrary->Load("Resources/Shaders/2D/Renderer2D_Text.hlsl");
+		shaderLibrary->Load("Resources/Shaders/2D/Quad.hlsl");
+		shaderLibrary->Load("Resources/Shaders/2D/Circle.hlsl");
+		shaderLibrary->Load("Resources/Shaders/2D/Line.hlsl");
+		shaderLibrary->Load("Resources/Shaders/2D/Text.hlsl");
 
 		// Jump Flood
 		shaderLibrary->Load("Resources/Shaders/JumpFlood/SelectedGeometry.hlsl");
@@ -536,6 +536,37 @@ namespace Shark {
 			commandList->setGraphicsState(graphicsState);
 			commandList->setPushConstants(temp.As<const void>(), temp.Size);
 			commandList->drawIndexed(drawArgs);
+			temp.Release();
+		});
+	}
+
+	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, const nvrhi::DrawArguments& drawArguments, Buffer pushConstant)
+	{
+		Renderer::Submit([=, temp = Buffer::Copy(pushConstant)]() mutable
+		{
+			nvrhi::GraphicsState graphicsState = commandBuffer->GetGraphicsState();
+
+			graphicsState.pipeline = pipeline->GetHandle();
+
+			nvrhi::VertexBufferBinding vbufBinding;
+			vbufBinding.buffer = vertexBuffer->GetHandle();
+			vbufBinding.slot = 0;
+			vbufBinding.offset = 0;
+			graphicsState.vertexBuffers[0] = vbufBinding;
+
+			if (material)
+			{
+				utils::BindShaderInputManager(graphicsState, material->GetInputManager());
+			}
+
+			graphicsState.indexBuffer.buffer = indexBuffer->GetHandle();
+			graphicsState.indexBuffer.format = nvrhi::Format::R32_UINT;
+			graphicsState.indexBuffer.offset = 0;
+
+			auto commandList = commandBuffer->GetHandle();
+			commandList->setGraphicsState(graphicsState);
+			commandList->setPushConstants(temp.As<const void>(), temp.Size);
+			commandList->drawIndexed(drawArguments);
 			temp.Release();
 		});
 	}

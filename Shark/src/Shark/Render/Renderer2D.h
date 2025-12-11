@@ -119,9 +119,8 @@ namespace Shark {
 		void AssureLineVertexDataSize();
 		void AssureTextVertexDataSize(uint32_t glyphCount);
 
-		void BeginQaudBatch();
-		uint32_t AddTexture(QuadBatch* batch, Ref<Texture2D> texture);
-		void PrepareMaterial(Ref<Material> material, const QuadBatch& batch);
+		uint32_t AddTexture(Ref<Texture2D> texture);
+		Ref<Material> PrepareMaterial(uint32_t batchindex, const QuadBatch& batch);
 		void ResizeQuadIndexBuffer(uint32_t indexCount);
 
 	public:
@@ -226,13 +225,14 @@ namespace Shark {
 		// Quad
 		Ref<RenderPass> m_QuadPass;
 		Ref<Pipeline> m_QuadPipeline;
-		Ref<Material> m_QuadMaterial;
 		Ref<VertexBuffer> m_QuadVertexBuffer;
 		Ref<IndexBuffer> m_QuadIndexBuffer;
 		Buffer m_QuadVertexData;
 		std::vector<QuadBatch> m_QuadBatches;
 		QuadBatch* m_QuadBatch;
 		uint32_t m_QuadIndexCount = 0;
+
+		std::vector<Ref<Material>> m_Materials;
 
 		// Circle
 		Ref<RenderPass> m_CirclePass;

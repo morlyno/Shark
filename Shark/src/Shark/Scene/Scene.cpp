@@ -542,9 +542,6 @@ namespace Shark {
 
 		renderer->EndScene();
 
-		// #Renderer #Disabled 2D renderer not implemented
-		return;
-
 		// Renderer 2D
 		Ref<Renderer2D> renderer2D = renderer->GetRenderer2D();
 		renderer2D->BeginScene(camera.Projection * camera.View);

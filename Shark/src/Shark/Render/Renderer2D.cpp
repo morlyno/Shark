@@ -95,7 +95,7 @@ namespace Shark {
 		// Quad
 		{
 			PipelineSpecification quadPipelineSpecs;
-			quadPipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Quad");
+			quadPipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("Quad");
 			quadPipelineSpecs.Layout = quadVertexLayout;
 			quadPipelineSpecs.DebugName = "Renderer2D-Quad";
 			quadPipelineSpecs.DepthEnabled = m_Specifications.UseDepthTesting;
@@ -110,8 +110,6 @@ namespace Shark {
 			m_QuadPass->SetInput("u_Camera", m_CBCamera);
 			SK_CORE_VERIFY(m_QuadPass->Validate());
 			m_QuadPass->Bake();
-
-			m_QuadMaterial = Material::Create(quadPipelineSpecs.Shader, "Renderer2D - Quad");
 
 			m_QuadVertexBuffer = VertexBuffer::Create(DefaultQuadVertices * sizeof(QuadVertex));
 
@@ -135,7 +133,7 @@ namespace Shark {
 		// Circle
 		{
 			PipelineSpecification pipelineSpec;
-			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Circle");
+			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Circle");
 			pipelineSpec.Layout = circleVertexLayout;
 			pipelineSpec.DebugName = "Renderer2D-Circle";
 			pipelineSpec.DepthEnabled = m_Specifications.UseDepthTesting;
@@ -159,7 +157,7 @@ namespace Shark {
 		// Line
 		{
 			PipelineSpecification pipelineSpecs;
-			pipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Line");
+			pipelineSpecs.Shader = Renderer::GetShaderLibrary()->Get("Line");
 			pipelineSpecs.Layout = lineVertexLayout;
 			pipelineSpecs.DebugName = "Renderer2D-Line";
 			pipelineSpecs.Primitve = PrimitiveType::Line;
@@ -185,7 +183,7 @@ namespace Shark {
 		// Text
 		{
 			PipelineSpecification pipelineSpec;
-			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Renderer2D_Text");
+			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("Text");
 			pipelineSpec.Layout = {
 				{ VertexDataType::Float3, "Position" },
 				{ VertexDataType::Float4, "Color" },
@@ -257,19 +255,12 @@ namespace Shark {
 		m_ViewProj = viewProj;
 		m_CBCamera->Upload(Buffer::FromValue(m_ViewProj));
 
-		// Quad
 		m_QuadBatches.clear();
 		m_QuadIndexCount = 0;
 		m_QuadBatch = &m_QuadBatches.emplace_back(0);
-		
-		// Circle
 		m_CircleIndexCount = 0;
 		m_CircleVertexCount = 0;
-
-		// Line
 		m_LineVertexCount = 0;
-
-		// Text
 		m_TextIndexCount = 0;
 		m_TextVertexCount = 0;
 
@@ -356,12 +347,9 @@ namespace Shark {
 	{
 		SK_CORE_VERIFY(m_Active);
 
-		if (m_QuadBatch->Textures.size() > MaxTextureSlots)
-			BeginQaudBatch();
+		uint32_t textureSlot = AddTexture(texture ? texture : Renderer::GetWhiteTexture());
 
 		auto& batch = *m_QuadBatch;
-		uint32_t textureSlot = AddTexture(&batch, texture ? texture : Renderer::GetWhiteTexture());
-
 		AssureQuadVertexDataSize();
 
 		QuadVertex* memory = m_QuadVertexData.Offset<QuadVertex>(batch.VertexOffset + batch.VertexCount);
@@ -653,32 +641,36 @@ namespace Shark {
 		if (m_TextVertexBuffer->GetByteSize() < m_LineVertexData.Size)
 			m_TextVertexBuffer->Resize(m_LineVertexData.Size);
 
-		if (false && m_QuadIndexCount)
+		if (m_QuadIndexCount)
 		{
-			Renderer::BeginEventMarker(m_CommandBuffer, "Quads");
 			m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.QuadPassQuery);
-			m_QuadVertexBuffer->Upload(m_QuadVertexData);
-
+			Renderer::WriteBuffer(m_CommandBuffer, m_QuadVertexBuffer, m_QuadVertexData);
 			Renderer::BeginRenderPass(m_CommandBuffer, m_QuadPass);
-			Renderer::BeginBatch(m_CommandBuffer, m_QuadPipeline, m_QuadVertexBuffer, m_QuadIndexBuffer);
+
+			uint32_t batchIndex = 0;
 			uint32_t indexOffset = 0;
+			uint32_t vertexOffset = 0;
 			for (const auto& batch : m_QuadBatches)
 			{
-				PrepareMaterial(m_QuadMaterial, batch);
-				Renderer::RenderBatch(m_CommandBuffer, m_QuadMaterial, batch.IndexCount, indexOffset);
-				indexOffset += batch.IndexCount;
-				m_Statistics.DrawCalls++;
-			}
-			Renderer::EndBatch(m_CommandBuffer);
-			Renderer::EndRenderPass(m_CommandBuffer, m_QuadPass);
+				auto material = PrepareMaterial(batchIndex, batch);
+				SK_CORE_VERIFY(material);
 
+				nvrhi::DrawArguments drawArgs;
+				drawArgs.vertexCount = batch.IndexCount;
+				drawArgs.startIndexLocation = indexOffset;
+				Renderer::RenderGeometry(m_CommandBuffer, m_QuadPipeline, material, m_QuadVertexBuffer, m_QuadIndexBuffer, drawArgs);
+
+				indexOffset += batch.IndexCount;
+				vertexOffset += batch.VertexCount;
+				m_Statistics.DrawCalls++;
+				batchIndex++;
+			}
+			Renderer::EndRenderPass(m_CommandBuffer, m_QuadPass);
 			m_CommandBuffer->EndTimerQuery(m_TimestampQueries.QuadPassQuery);
-			Renderer::EndEventMarker(m_CommandBuffer);
 		}
 
 		if (m_CircleIndexCount)
 		{
-			m_CommandBuffer->BeginMarker("Circles");
 			m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.CirclePassQuery);
 			Renderer::WriteBuffer(m_CommandBuffer, m_CircleVertexBuffer, m_CircleVertexData);
 
@@ -688,12 +680,10 @@ namespace Shark {
 
 			m_Statistics.DrawCalls++;
 			m_CommandBuffer->EndTimerQuery(m_TimestampQueries.CirclePassQuery);
-			m_CommandBuffer->EndMarker();
 		}
 
 		if (m_LineVertexCount)
 		{
-			m_CommandBuffer->BeginMarker("Lines");
 			m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.LinePassQuery);
 			Renderer::WriteBuffer(m_CommandBuffer, m_LineVertexBuffer, m_LineVertexData);
 
@@ -703,12 +693,12 @@ namespace Shark {
 
 			m_Statistics.DrawCalls++;
 			m_CommandBuffer->EndTimerQuery(m_TimestampQueries.LinePassQuery);
-			m_CommandBuffer->EndMarker();
 		}
 
 		if (m_TextIndexCount)
 		{
-			m_CommandBuffer->BeginMarker("Texts");
+			m_TextMaterial->Prepare();
+
 			m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.TextPassQuery);
 			Renderer::WriteBuffer(m_CommandBuffer, m_TextVertexBuffer, m_TextVertexData);
 
@@ -718,7 +708,6 @@ namespace Shark {
 
 			m_Statistics.DrawCalls++;
 			m_CommandBuffer->EndTimerQuery(m_TimestampQueries.TextPassQuery);
-			m_CommandBuffer->EndMarker();
 		}
 
 		m_CommandBuffer->EndTimerQuery(m_TimestampQueries.GeometryPassQuery);
@@ -727,7 +716,10 @@ namespace Shark {
 	void Renderer2D::AssureQuadVertexDataSize()
 	{
 		if (m_QuadBatch->VertexOffset + m_QuadBatch->VertexCount >= m_QuadVertexData.Count<QuadVertex>())
+		{
 			m_QuadVertexData.Resize(m_QuadVertexData.Size * 2);
+			Allocator::SetMemoryDescription(m_QuadVertexData.Data, "QuadVertexData");
+		}
 	}
 
 	void Renderer2D::AssureCircleVertexDataSize()
@@ -748,17 +740,12 @@ namespace Shark {
 			m_TextVertexData.Resize(std::max<uint64_t>(m_TextVertexData.Size * 2, m_TextVertexCount + glyphCount * sizeof TextVertex * 4));
 	}
 
-	void Renderer2D::BeginQaudBatch()
-	{
-		m_QuadBatch = &m_QuadBatches.emplace_back(m_QuadBatch->VertexOffset + m_QuadBatch->VertexCount);
-	}
-
-	uint32_t Renderer2D::AddTexture(QuadBatch* batch, Ref<Texture2D> texture)
+	uint32_t Renderer2D::AddTexture(Ref<Texture2D> texture)
 	{
 		SK_CORE_VERIFY(texture);
 
 		uint32_t index = 0;
-		for (const auto& tex : batch->Textures)
+		for (const auto& tex : m_QuadBatch->Textures)
 		{
 			if (tex == texture)
 				return index;
@@ -766,15 +753,27 @@ namespace Shark {
 			index++;
 		}
 
-		SK_CORE_ASSERT(batch->Textures.size() == index);
-		SK_CORE_ASSERT(batch->Textures.size() < 16);
-		batch->Textures.push_back(texture);
+		if (index >= MaxTextureSlots)
+		{
+			m_QuadBatch = &m_QuadBatches.emplace_back(m_QuadBatch->VertexOffset + m_QuadBatch->VertexCount);
+		}
+
+		SK_CORE_ASSERT(m_QuadBatch->Textures.size() == index);
+		SK_CORE_ASSERT(m_QuadBatch->Textures.size() < 16);
+		m_QuadBatch->Textures.push_back(texture);
 		m_Statistics.TextureCount++;
 		return index;
 	}
 
-	void Renderer2D::PrepareMaterial(Ref<Material> material, const QuadBatch& batch)
+	Ref<Material> Renderer2D::PrepareMaterial(uint32_t batchIndex, const QuadBatch& batch)
 	{
+		if (batchIndex >= m_Materials.size())
+		{
+			m_Materials.push_back(Material::Create(m_QuadPipeline->GetSpecification().Shader, fmt::format("Renderer2D - Quad-{}", batchIndex)));
+		}
+
+		auto material = m_Materials[batchIndex];
+
 		for (uint32_t arrayIndex = 0; arrayIndex < MaxTextureSlots; arrayIndex++)
 		{
 			if (arrayIndex < batch.Textures.size() && batch.Textures[arrayIndex])
@@ -782,6 +781,9 @@ namespace Shark {
 			else
 				material->Set("u_Textures", Renderer::GetWhiteTexture(), arrayIndex);
 		}
+
+		material->Prepare();
+		return material;
 	}
 
 	void Renderer2D::ResizeQuadIndexBuffer(uint32_t indexCount)
