@@ -167,6 +167,7 @@ namespace Shark {
 
 		void ParentEntity(Entity entity, Entity parent);
 		void UnparentEntity(Entity entity);
+		Entity GetRootEntity(Entity entity) const;
 
 		const std::unordered_map<UUID, Entity>& GetEntityUUIDMap() const { return m_EntityUUIDMap; }
 

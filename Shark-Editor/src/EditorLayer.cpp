@@ -39,6 +39,7 @@
 
 #include <glm/gtc/type_ptr.hpp>
 #include "Shark/Debug/enttDebug.h"
+#include "Shark/Core/Memory.h"
 
 namespace Shark {
 
@@ -143,12 +144,14 @@ namespace Shark {
 		debugRendererSpec.UseDepthTesting = true;
 		m_DebugRenderer = Ref<Renderer2D>::Create(m_SceneRenderer->GetTargetFramebuffer(), debugRendererSpec);
 
-#if TODO // #Renderer #Disabled reading from images is not yet supported
-		// Readable image for Mouse Picking
-		ImageSpecification imageSpecs = m_SceneRenderer->GetIDImage()->GetSpecification();
-		imageSpecs.Type = ImageType::Storage;
-		m_MousePickingImage = Image2D::Create(imageSpecs);
-#endif
+		auto idImage = m_SceneRenderer->GetIDImage();
+		StagingImageSpecification stagingSpec;
+		stagingSpec.Width = idImage->GetWidth();
+		stagingSpec.Height = idImage->GetHeight();
+		stagingSpec.Format = ImageFormat::RED32SI;
+		stagingSpec.CpuAccess = nvrhi::CpuAccessMode::Read;
+		m_MousePickingImage = StagingImage2D::Create(stagingSpec);
+		m_CopyCommandBuffer = RenderCommandBuffer::Create("MousePicking - Copy");
 
 		// Load Project
 		if (!m_StartupProject.empty())
@@ -197,7 +200,7 @@ namespace Shark {
 				m_ActiveScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
 				m_SceneRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
 				m_DebugRenderer->Resize(m_ViewportWidth, m_ViewportHeight);
-				//m_MousePickingImage->Resize(m_ViewportWidth, m_ViewportHeight); // #Renderer #Disabled
+				m_MousePickingImage->Resize(m_ViewportWidth, m_ViewportHeight);
 				m_EditorCamera.Resize((float)m_ViewportWidth, (float)m_ViewportHeight);
 				m_NeedsResize = false;
 			}
@@ -500,8 +503,7 @@ namespace Shark {
 			UI_DrawMenuBar();
 
 		UI_Viewport();
-		// #Renderer #Disabled #moro mouse picking
-		//UI_MousePicking();
+		UI_MousePicking();
 
 		UI_ToolBar();
 
@@ -1288,9 +1290,6 @@ namespace Shark {
 
 	bool EditorLayer::UI_MousePicking()
 	{
-		// #Renderer #Disabled mouse picking is not yet supported
-		return false;
-#if TODO
 		SK_PROFILE_FUNCTION();
 
 		if (ImGuizmo::IsUsing())
@@ -1298,61 +1297,55 @@ namespace Shark {
 
 		auto [mx, my] = ImGui::GetMousePos();
 		auto [wx, wy] = m_ViewportPos;
-		int x = (int)(mx - wx);
-		int y = (int)(my - wy);
+		const int x = static_cast<int>(mx - wx);
+		const int y = static_cast<int>(my - wy);
 
 		const auto& specs = m_MousePickingImage->GetSpecification();
-		int width = (int)specs.Width;
-		int height = (int)specs.Height;
-		if (x >= 0 && x < (int)width && y >= 0 && y < (int)height)
+		const int width = static_cast<int>(specs.Width);
+		const int height = static_cast<int>(specs.Height);
+		if (x >= 0 && x < width && y >= 0 && y < height)
 		{
 			const bool selectEntity = ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !Input::IsKeyDown(KeyCode::LeftAlt) && m_ViewportHovered;
 
 			if (selectEntity)
 			{
-				Renderer::CopyImage(m_SceneRenderer->GetIDImage(), m_MousePickingImage);
+				m_CopyCommandBuffer->Begin();
+				Renderer::CopySlice(m_CopyCommandBuffer, m_SceneRenderer->GetIDImage(), ImageSlice::Zero(), m_MousePickingImage, ImageSlice::Zero());
+				m_CopyCommandBuffer->End();
+				m_CopyCommandBuffer->Execute();
 
 				Renderer::Submit([this, x, y]()
 				{
-					uint32_t hoverdEntity = (uint32_t)-1;
-					// #Renderer #Disabled Image2D::RT_ReadPixel is not implemented and this is not on the render thread
-					if (!m_MousePickingImage->RT_ReadPixel(x, y, hoverdEntity))
-						return;
+					uint32_t hoveredEntity;
+					m_MousePickingImage->RT_ReadPixel(x, y, Buffer::FromValue(hoveredEntity));
 
-					if (hoverdEntity == (uint32_t)-1)
+					Entity entity = { (entt::entity)hoveredEntity, m_ActiveScene };
+					if (!entity)
 					{
 						SelectionManager::DeselectAll(m_EditorScene->GetID());
 						return;
 					}
 
-					Entity entity = { (entt::entity)hoverdEntity, m_ActiveScene };
-					if (entity)
+					if (Input::IsKeyDown(KeyCode::LeftShift))
 					{
-						if (Input::IsKeyDown(KeyCode::LeftShift))
-						{
-							while (entity.HasParent())
-							{
-								entity = entity.Parent();
-							}
-						}
+						entity = m_EditorScene->GetRootEntity(entity);
+					}
 
-						if (Input::IsKeyDown(KeyCode::LeftControl))
-						{
-							UUID entityID = entity.GetUUID();
-							const bool isSelected = SelectionManager::IsSelected(m_EditorScene->GetID(), entityID);
-							SelectionManager::Toggle(m_EditorScene->GetID(), entityID, !isSelected);
-						}
-						else
-						{
-							SelectionManager::DeselectAll(m_EditorScene->GetID());
-							SelectionManager::Select(m_EditorScene->GetID(), entity.GetUUID());
-						}
+					if (Input::IsKeyDown(KeyCode::LeftControl))
+					{
+						UUID entityID = entity.GetUUID();
+						const bool isSelected = SelectionManager::IsSelected(m_EditorScene->GetID(), entityID);
+						SelectionManager::Toggle(m_EditorScene->GetID(), entityID, !isSelected);
+					}
+					else
+					{
+						SelectionManager::DeselectAll(m_EditorScene->GetID());
+						SelectionManager::Select(m_EditorScene->GetID(), entity.GetUUID());
 					}
 				});
 			}
 		}
 		return true;
-#endif
 	}
 
 	void EditorLayer::UI_OpenProjectModal()

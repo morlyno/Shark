@@ -71,6 +71,10 @@ namespace Shark {
 		void writeTexture(nvrhi::ITexture* dest, uint32_t arraySlice, uint32_t mipLevel, const void* data, size_t rowPitch, size_t depthPitch = 0);
 		void writeBuffer(nvrhi::IBuffer* b, const void* data, size_t dataSize, uint64_t destOffsetBytes = 0);
 
+		void copyTexture(nvrhi::ITexture* dest, const nvrhi::TextureSlice& destSlice, nvrhi::ITexture* src, const nvrhi::TextureSlice& srcSlice);
+		void copyTexture(nvrhi::IStagingTexture* dest, const nvrhi::TextureSlice& destSlice, nvrhi::ITexture* src, const nvrhi::TextureSlice& srcSlice);
+		void copyTexture(nvrhi::ITexture* dest, const nvrhi::TextureSlice& destSlice, nvrhi::IStagingTexture* src, const nvrhi::TextureSlice& srcSlice);
+
 	private:
 		DeviceManager* m_DeviceManager;
 		nvrhi::CommandListHandle m_CommandList;

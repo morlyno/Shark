@@ -18,4 +18,9 @@ namespace Shark {
 		memset(destination, 0, byteSize);
 	}
 
+	void Memory::Read(void* memory, size_t byteOffset, void* destination, uint64_t byteCount)
+	{
+		memcpy(destination, static_cast<byte*>(memory) + byteOffset, byteCount);
+	}
+
 }

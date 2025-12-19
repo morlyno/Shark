@@ -385,10 +385,10 @@ namespace Shark {
 		mainFBSpecification.DebugName = "Geometry";
 		mainFBSpecification.Width = specification.Width;
 		mainFBSpecification.Height = specification.Height;
-		mainFBSpecification.Attachments = { ImageFormat::RGBA32F, ImageFormat::RED32SI };
+		mainFBSpecification.Attachments = { ImageFormat::RGBA32F, ImageFormat::RED32UI };
 		mainFBSpecification.DepthAttachment = ImageFormat::Depth32;
 		mainFBSpecification.ClearColor = m_ClearColor;
-		mainFBSpecification.IndipendendClearColor[1] = { -1.0f, -1.0f, -1.0f, -1.0f };
+		mainFBSpecification.IndipendendClearColor[1] = std::numeric_limits<uint32_t>::max();
 
 		if (specification.IsSwapchainTarget)
 		{
@@ -411,7 +411,6 @@ namespace Shark {
 		{
 			PipelineSpecification specification;
 			specification.Shader = Renderer::GetShaderLibrary()->Get("SharkPBR");
-			//specification.Shader = Renderer::GetShaderLibrary()->Get("Simple");
 			specification.Layout = layout;
 			specification.DebugName = "PBR";
 			specification.WireFrame = false;

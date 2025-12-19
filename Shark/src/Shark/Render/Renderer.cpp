@@ -74,16 +74,17 @@ namespace Shark {
 			s_Data->m_Samplers.LinearMirrorRepeat  = Sampler::Create({ .Filter = FilterMode::Linear,  .Address = AddressMode::MirrorRepeat });
 		}
 
-		Log::EnabledTags()["ShaderCompiler"].Level = LogLevel::Warn;
 		Timer loadShadersTimer;
-
 		SK_CORE_INFO_TAG("Renderer", "Loading Shaders...");
 
 		auto shaderLibrary = GetShaderLibrary();
-		shaderLibrary->SetCompilerOptions({ .ForceCompile = false, .Optimize = true, .GenerateDebugInfo = true });
+		shaderLibrary->SetCompilerOptions({
+			.ForceCompile = false,
+			.Optimize = true,
+			.GenerateDebugInfo = true
+		});
 
 		// 3D
-		shaderLibrary->Load("Resources/Shaders/Simple.hlsl");
 		shaderLibrary->Load("Resources/Shaders/SharkPBR.hlsl");
 		shaderLibrary->Load("Resources/Shaders/Skybox.hlsl");
 		shaderLibrary->Load("Resources/Shaders/BRDF_LUT.hlsl");
@@ -108,13 +109,12 @@ namespace Shark {
 		shaderLibrary->Load("Resources/Shaders/EnvMap/EnvMipFilter.hlsl");
 
 		// Commands
-		shaderLibrary->Load("resources/Shaders/Commands/CmdBlitImage.hlsl", { .ForceCompile = true, .Optimize = false });
+		shaderLibrary->Load("resources/Shaders/Commands/CmdBlitImage.hlsl");
 		shaderLibrary->Load("resources/Shaders/Commands/CmdBlitImageArray.hlsl");
 		shaderLibrary->Load("Resources/Shaders/Commands/LinearSample.hlsl");
 		shaderLibrary->Load("Resources/Shaders/Commands/LinearSampleArray.hlsl");
 
 		shaderLibrary->Load("Resources/Shaders/ImGui.hlsl");
-		s_Data->m_ShaderCache.SaveRegistry();
 
 		SK_CORE_INFO_TAG("Renderer", "Finished loading shaders in {}", loadShadersTimer.Elapsed());
 
@@ -317,9 +317,9 @@ namespace Shark {
 			const auto& clearColor = framebuffer->GetClearColor(i);
 
 			if (nvrhi::getFormatInfo(attachment.texture->getDesc().format).kind == nvrhi::FormatKind::Integer)
-				commandList->clearTextureUInt(attachment.texture, attachment.subresources, (uint32_t)clearColor.a);
+				commandList->clearTextureUInt(attachment.texture, attachment.subresources, clearColor.UInt);
 			else
-				commandList->clearTextureFloat(attachment.texture, attachment.subresources, clearColor);
+				commandList->clearTextureFloat(attachment.texture, attachment.subresources, clearColor.Float);
 		}
 	}
 
@@ -628,12 +628,7 @@ namespace Shark {
 		});
 	}
 
-	void Renderer::CopyImage(Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
-	{
-		//s_RendererAPI->CopyImage(sourceImage, destinationImage);
-	}
-
-	void Renderer::CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
+	static void CopyImageGeneric(Ref<RenderCommandBuffer> commandBuffer, auto sourceImage, auto destinationImage)
 	{
 		Renderer::Submit([commandBuffer, sourceImage, destinationImage]()
 		{
@@ -641,9 +636,9 @@ namespace Shark {
 			SK_CORE_TRACE_TAG("Renderer", "CopyImage '{}' -> '{}'", sourceImage->GetSpecification().DebugName, destinationImage->GetSpecification().DebugName);
 
 			auto commandList = commandBuffer->GetHandle();
-			
-			nvrhi::ITexture* srcTex = sourceImage->GetHandle();
-			nvrhi::ITexture* dstTex = destinationImage->GetHandle();
+
+			auto srcTex = sourceImage->GetHandle();
+			auto dstTex = destinationImage->GetHandle();
 
 			nvrhi::TextureSlice slice;
 
@@ -657,8 +652,17 @@ namespace Shark {
 					commandList->copyTexture(dstTex, slice, srcTex, slice);
 				}
 			}
-
 		});
+	}
+
+	void Renderer::CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
+	{
+		CopyImageGeneric(commandBuffer, sourceImage, destinationImage);
+	}
+
+	void Renderer::CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<StagingImage2D> destinationImage)
+	{
+		CopyImageGeneric(commandBuffer, sourceImage, destinationImage);
 	}
 
 	void Renderer::CopyMip(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, uint32_t sourceMip, Ref<Image2D> destinationImage, uint32_t destinationMip)
@@ -684,6 +688,25 @@ namespace Shark {
 				commandList->copyTexture(dstTex, dstSlice,
 										 srcTex, srcSlice);
 			}
+		});
+	}
+
+	void Renderer::CopySlice(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, const ImageSlice& sourceSlice, Ref<StagingImage2D> destinationImage, const ImageSlice& destinationSlice)
+	{
+		Renderer::Submit([commandBuffer, sourceImage, sourceSlice, destinationImage, destinationSlice]()
+		{
+			SK_PROFILE_SCOPED("Renderer - CopySlice");
+			SK_CORE_TRACE_TAG("Renderer", "CopySlice '{}':(Mip:{}, Level: {}) -> '{}':(Mip:{}, Level: {})", sourceImage->GetSpecification().DebugName, sourceSlice.Mip, sourceSlice.Layer, destinationImage->GetSpecification().DebugName, destinationSlice.Mip, destinationSlice.Layer);
+
+			auto commandList = commandBuffer->GetHandle();
+
+			auto srcSlice = nvrhi::TextureSlice().setMipLevel(sourceSlice.Mip).setArraySlice(sourceSlice.Layer);
+			auto dstSlice = nvrhi::TextureSlice().setMipLevel(destinationSlice.Mip).setArraySlice(destinationSlice.Layer);
+
+			nvrhi::ITexture* srcTex = sourceImage->GetHandle();
+			nvrhi::IStagingTexture* dstTex = destinationImage->GetHandle();
+
+			commandList->copyTexture(dstTex, dstSlice, srcTex, srcSlice);
 		});
 	}
 

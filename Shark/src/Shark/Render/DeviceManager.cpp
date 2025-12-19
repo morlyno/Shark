@@ -85,4 +85,19 @@ namespace Shark {
 		m_CommandList->writeBuffer(b, data, dataSize, destOffsetBytes);
 	}
 
+	void CommandList::copyTexture(nvrhi::ITexture* dest, const nvrhi::TextureSlice& destSlice, nvrhi::ITexture* src, const nvrhi::TextureSlice& srcSlice)
+	{
+		m_CommandList->copyTexture(dest, destSlice, src, srcSlice);
+	}
+
+	void CommandList::copyTexture(nvrhi::IStagingTexture* dest, const nvrhi::TextureSlice& destSlice, nvrhi::ITexture* src, const nvrhi::TextureSlice& srcSlice)
+	{
+		m_CommandList->copyTexture(dest, destSlice, src, srcSlice);
+	}
+
+	void CommandList::copyTexture(nvrhi::ITexture* dest, const nvrhi::TextureSlice& destSlice, nvrhi::IStagingTexture* src, const nvrhi::TextureSlice& srcSlice)
+	{
+		m_CommandList->copyTexture(dest, destSlice, src, srcSlice);
+	}
+
 }

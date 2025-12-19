@@ -2,12 +2,32 @@
 #include "Image.h"
 #include "Shark/Core/Application.h"
 #include "Renderer.h"
+#include "Shark/Core/Memory.h"
 
 namespace Shark {
+
+	namespace utils {
+
+		nvrhi::ResourceStates GetDefaultResourceState(nvrhi::Format format, ImageUsage usage)
+		{
+			switch (usage)
+			{
+				case ImageUsage::Texture: return nvrhi::ResourceStates::ShaderResource;
+				case ImageUsage::Storage: return nvrhi::ResourceStates::UnorderedAccess;
+				case ImageUsage::Attachment: return nvrhi::getFormatInfo(format).hasDepth ? nvrhi::ResourceStates::DepthWrite : nvrhi::ResourceStates::RenderTarget;
+			}
+
+			SK_CORE_ASSERT(false, "Unknown ImageUsage");
+			return nvrhi::ResourceStates::Unknown;
+		}
+
+	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	////// Image2D Implementation /////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////////
+
+#pragma region Image2D
 
 	Image2D::Image2D()
 	{
@@ -110,12 +130,6 @@ namespace Shark {
 
 	void Image2D::InvalidateFromState(const RT_State& state)
 	{
-		// reading from images is only used for mouse picking currently
-		// #Renderer #Investigate #TODO Staging Textures
-		SK_CORE_VERIFY(state.Usage != ImageUsage::HostRead,
-					   "HostRead (Stagin) Images are not implemented because it is not a normal texture in nvrhi."
-					   "I am not sure how to handle this in Image at the moment.");
-
 		auto textureDesc = nvrhi::TextureDesc()
 			.setWidth(state.Width)
 			.setHeight(state.Height)
@@ -123,7 +137,8 @@ namespace Shark {
 			.setMipLevels(state.MipLevels)
 			.setFormat(ImageUtils::ConvertImageFormat(state.Format))
 			.setDebugName(state.DebugName);
-
+		
+		textureDesc.enableAutomaticStateTracking(utils::GetDefaultResourceState(textureDesc.format, state.Usage));
 		textureDesc.isRenderTarget = state.Usage == ImageUsage::Attachment;
 		textureDesc.isUAV = state.Usage == ImageUsage::Storage;
 		textureDesc.isTypeless = ImageUtils::IsDepthFormat(state.Format);
@@ -133,20 +148,6 @@ namespace Shark {
 		else if (state.Layers > 1)
 			textureDesc.dimension = nvrhi::TextureDimension::Texture2DArray;
 
-		auto cpuAccess = nvrhi::CpuAccessMode::None;
-
-		if (state.Usage == ImageUsage::Attachment)
-		{
-			textureDesc.keepInitialState = true;
-			textureDesc.initialState = nvrhi::getFormatInfo(textureDesc.format).hasDepth ?
-				nvrhi::ResourceStates::DepthWrite : nvrhi::ResourceStates::RenderTarget;
-		}
-		else if (state.Usage == ImageUsage::Texture)
-		{
-			textureDesc.keepInitialState = true;
-			textureDesc.initialState = nvrhi::ResourceStates::ShaderResource;
-		}
-
 		auto device = Renderer::GetGraphicsDevice();
 		m_ImageHandle = device->createTexture(textureDesc);
 		m_ViewInfo.Handle = m_ImageHandle;
@@ -154,9 +155,184 @@ namespace Shark {
 		SK_CORE_TRACE_TAG("Renderer", "Image Invalidated from state. '{}' {} ({}:{})", m_ImageHandle->getDesc().debugName, fmt::ptr(m_ImageHandle.Get()), state.Width, state.Height);
 	}
 
+#pragma endregion
+
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	////// Image View Implementation //////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////////
+
+#pragma region StagingImage2D
+
+	MappedImageMemory::MappedImageMemory(MappedImageMemory&& other)
+	{
+		Texture = other.Texture;
+		Memory = other.Memory;
+		RowPitch = other.RowPitch;
+		other.Texture = nullptr;
+		other.Memory = {};
+		other.RowPitch = 0;
+	}
+
+	MappedImageMemory::~MappedImageMemory()
+	{
+		auto device = Renderer::GetGraphicsDevice();
+
+		device->unmapStagingTexture(Texture);
+	}
+
+	StagingImage2D::StagingImage2D(const StagingImageSpecification& specification)
+		: m_Specification(specification)
+	{
+		if (m_Specification.MipLevels == 0)
+			m_Specification.MipLevels = ImageUtils::CalcMipLevels(m_Specification.Width, m_Specification.Height);
+
+		InvalidateFromState(m_Specification);
+	}
+
+	StagingImage2D::StagingImage2D(Ref<Image2D> templateImage, nvrhi::CpuAccessMode cpuAccess)
+	{
+		const auto& specification = templateImage->GetSpecification();
+		m_Specification.Width = specification.Width;
+		m_Specification.Height = specification.Height;
+		m_Specification.Format = specification.Format;
+		m_Specification.Layers = specification.Layers;
+		m_Specification.MipLevels = specification.MipLevels;
+		m_Specification.CpuAccess = cpuAccess;
+		m_Specification.DebugName = fmt::format("{}:{}", specification.DebugName, cpuAccess);
+		InvalidateFromState(m_Specification);
+	}
+
+	StagingImage2D::~StagingImage2D()
+	{
+	}
+
+	void StagingImage2D::Resize(uint32_t width, uint32_t height)
+	{
+		if (m_Specification.Width == width && m_Specification.Height == height)
+			return;
+
+		SK_CORE_VERIFY(m_Specification.MipLevels == 1);
+		m_Specification.Width = width;
+		m_Specification.Height = height;
+
+		Ref instance = this;
+		Renderer::Submit([instance, state = RT_State{ m_Specification }]()
+		{
+			instance->InvalidateFromState(state);
+		});
+	}
+
+	void StagingImage2D::Resize(uint32_t width, uint32_t height, uint32_t mipLevels)
+	{
+		if (m_Specification.Width == width && m_Specification.Height == height && m_Specification.MipLevels == mipLevels)
+			return;
+
+		if (mipLevels == 0)
+			mipLevels = ImageUtils::CalcMipLevels(width, height);
+
+		m_Specification.Width = width;
+		m_Specification.Height = height;
+		m_Specification.MipLevels = mipLevels;
+
+		Ref instance = this;
+		Renderer::Submit([instance, state = RT_State{ m_Specification }]()
+		{
+			instance->InvalidateFromState(state);
+		});
+	}
+
+	MappedImageMemory StagingImage2D::RT_OpenReadable()
+	{
+		auto device = Renderer::GetGraphicsDevice();
+
+		nvrhi::TextureSlice slice;
+		slice.mipLevel = 0;
+		slice.arraySlice = 0;
+
+		MappedImageMemory mapped;
+		mapped.Texture = m_Handle;
+		mapped.Memory.Data = device->mapStagingTexture(m_Handle, slice, nvrhi::CpuAccessMode::Read, &mapped.RowPitch);
+		mapped.Memory.Size = mapped.RowPitch * m_Specification.Height;
+		return mapped;
+	}
+
+	void StagingImage2D::RT_OpenReadableBuffer(Buffer& outMemory)
+	{
+		auto device = Renderer::GetGraphicsDevice();
+
+		nvrhi::TextureSlice slice;
+		slice.mipLevel = 0;
+		slice.arraySlice = 0;
+
+		uint64_t rowPitch;
+		void* memory = device->mapStagingTexture(m_Handle, slice, nvrhi::CpuAccessMode::Read, &rowPitch);
+
+		outMemory = { memory, m_Specification.Height * rowPitch };
+	}
+
+	void StagingImage2D::RT_CloseReadableBuffer()
+	{
+		auto device = Renderer::GetGraphicsDevice();
+
+		device->unmapStagingTexture(m_Handle);
+	}
+
+	void StagingImage2D::RT_ReadPixel(uint32_t x, uint32_t y, Buffer outPixel)
+	{
+		const uint32_t pixelSize = GetPixelSize();
+		SK_CORE_VERIFY(outPixel.Size == pixelSize);
+
+		auto device = Renderer::GetGraphicsDevice();
+
+		nvrhi::TextureSlice slice;
+		slice.mipLevel = 0;
+		slice.arraySlice = 0;
+
+		uint64_t rowPitch;
+		void* memory = device->mapStagingTexture(m_Handle, slice, nvrhi::CpuAccessMode::Read, &rowPitch);
+
+		const uint64_t pixelPitch = rowPitch / pixelSize;
+		Memory::Read(memory, (y * pixelPitch + x) * pixelSize, outPixel.Data, pixelSize);
+
+		device->unmapStagingTexture(m_Handle);
+	}
+
+	uint32_t StagingImage2D::GetPixelSize() const
+	{
+		return ImageUtils::GetFormatBPP(m_Specification.Format);
+	}
+
+	void StagingImage2D::InvalidateFromState(const RT_State& state)
+	{
+		auto textureDesc = nvrhi::TextureDesc()
+			.setWidth(state.Width)
+			.setHeight(state.Height)
+			.setArraySize(state.Layers)
+			.setMipLevels(state.MipLevels)
+			.setFormat(ImageUtils::ConvertImageFormat(state.Format))
+			.setDebugName(state.DebugName);
+
+		//textureDesc.enableAutomaticStateTracking();
+		textureDesc.isTypeless = ImageUtils::IsDepthFormat(state.Format);
+
+		if (state.IsCube)
+			textureDesc.dimension = nvrhi::TextureDimension::TextureCube;
+		else if (state.Layers > 1)
+			textureDesc.dimension = nvrhi::TextureDimension::Texture2DArray;
+
+		auto device = Renderer::GetGraphicsDevice();
+		m_Handle = device->createStagingTexture(textureDesc, state.CpuAccess);
+
+		SK_CORE_TRACE_TAG("Renderer", "StagingImage Invalidated from state. '{}' {} ({}:{})", m_Handle->getDesc().debugName, fmt::ptr(m_Handle.Get()), state.Width, state.Height);
+	}
+
+#pragma endregion
+
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	////// Image View Implementation //////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////
+
+#pragma region ImageView
 
 	ImageView::ImageView(Ref<Image2D> image, const ImageViewSpecification& specification, bool initOnRT)
 		: m_Image(image), m_Specification(specification)
@@ -199,6 +375,8 @@ namespace Shark {
 		SK_CORE_TRACE_TAG("Renderer", "ImageView invalidated from state.");
 	}
 
+#pragma endregion
+
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	////// Image Utilities ////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////////
@@ -221,10 +399,11 @@ namespace Shark {
 				case ImageFormat::RGBA16F: return nvrhi::Format::RGBA16_FLOAT;
 				case ImageFormat::RGBA32F: return nvrhi::Format::RGBA32_FLOAT;
 				case ImageFormat::RED32SI: return nvrhi::Format::R32_SINT;
+				case ImageFormat::RED32UI: return nvrhi::Format::R32_SINT;
 				case ImageFormat::Depth32: return nvrhi::Format::D32;
 				case ImageFormat::Depth24UNormStencil8UINT: return nvrhi::Format::D24S8;
 			}
-			SK_CORE_ASSERT(false, "Unknown ImageFormat");
+			SK_CORE_VERIFY(false, "Unknown ImageFormat");
 			return nvrhi::Format::UNKNOWN;
 		}
 

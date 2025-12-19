@@ -18,6 +18,14 @@ namespace Shark {
 
 		template<typename T>
 		static void WriteZero(T& destination);
+
+		static void Read(void* memory, uint64_t byteOffset, void* destination, uint64_t byteCount);
+
+		template<typename T>
+		static void Read(void* memory, uint64_t byteOffset, T& destination);
+
+		template<typename T>
+		static T Read(void* memory, uint64_t byteOffset);
 	};
 
 }
@@ -36,4 +44,18 @@ template<typename T>
 void Shark::Memory::WriteZero(T& destination)
 {
 	WriteZero(&destination, sizeof(T));
+}
+
+template<typename T>
+void Shark::Memory::Read(void* memory, uint64_t byteOffset, T& destination)
+{
+	Read(memory, byteOffset, &destination, sizeof(T));
+}
+
+template<typename T>
+T Shark::Memory::Read(void* memory, uint64_t byteOffset)
+{
+	T value;
+	Read(memory, byteOffset, &value, sizeof(T));
+	return value;
 }

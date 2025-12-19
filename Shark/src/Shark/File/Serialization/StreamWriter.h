@@ -7,6 +7,7 @@ namespace Shark {
 	public:
 		virtual ~StreamWriter() = default;
 
+		virtual void Flush() = 0;
 		virtual bool IsStreamGood() const = 0;
 		virtual uint64_t GetStreamPosition() = 0;
 		virtual void SetStreamPosition(uint64_t position) = 0;

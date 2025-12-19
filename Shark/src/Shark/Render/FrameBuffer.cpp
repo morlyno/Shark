@@ -35,9 +35,9 @@ namespace Shark {
 			}
 
 			m_ColorImages.push_back(nextImage);
-			glm::vec4 col = m_Specification.IndipendendClearColor.contains(attachmentIndex) ?
-							m_Specification.IndipendendClearColor.at(attachmentIndex) : m_Specification.ClearColor;
-			m_ClearColors.push_back({ col.x, col.y, col.z, col.w });
+			auto col = m_Specification.IndipendendClearColor.contains(attachmentIndex) ?
+					   m_Specification.IndipendendClearColor.at(attachmentIndex) : m_Specification.ClearColor;
+			m_ClearColors.push_back(col);
 
 			framebufferDesc.addColorAttachment(nextImage->GetHandle());
 		}

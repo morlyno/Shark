@@ -1151,6 +1151,13 @@ namespace Shark {
 		entity.SetParent({});
 	}
 
+	Entity Scene::GetRootEntity(Entity entity) const
+	{
+		while (entity.HasParent())
+			entity = entity.Parent();
+		return entity;
+	}
+
 	std::vector<Entity> Scene::GetEntitiesSorted()
 	{
 		std::vector<Entity> entities;

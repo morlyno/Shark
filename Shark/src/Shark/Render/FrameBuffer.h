@@ -4,6 +4,19 @@
 
 namespace Shark {
 
+	struct ClearColorValue
+	{
+		nvrhi::Color Float;
+		uint32_t UInt;
+
+		ClearColorValue() = default;
+		ClearColorValue(nvrhi::Color c) : Float(c) {}
+		ClearColorValue(glm::vec4 c) : Float(c.r, c.g, c.b, c.a) {}
+		ClearColorValue(float f0, float f1, float f2, float f3) : Float(f0, f1, f2, f3) {}
+		ClearColorValue(uint32_t u) : UInt(u) {}
+
+	};
+
 	enum class FrameBufferLoadOp
 	{
 		Inherit, Load, Clear
@@ -24,7 +37,7 @@ namespace Shark {
 		std::vector<FrameBufferAttachment> Attachments;
 		ImageFormat DepthAttachment = ImageFormat::None;
 
-		glm::vec4 ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
+		ClearColorValue ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 		float ClearDepthValue = 1.0f;
 		uint32_t ClearStencilValue = 0;
 		bool ClearColorOnLoad = true;
@@ -34,7 +47,7 @@ namespace Shark {
 
 		Ref<Image2D> ExistingDepthImage;
 		std::map<uint32_t, Ref<Image2D>> ExistingImages;
-		std::map<uint32_t, glm::vec4> IndipendendClearColor;
+		std::map<uint32_t, ClearColorValue> IndipendendClearColor;
 
 		std::string DebugName;
 	};
@@ -59,7 +72,7 @@ namespace Shark {
 		const FrameBufferSpecification& GetSpecification() const { return m_Specification; }
 
 		uint32_t GetAttachmentCount() const { return (uint32_t)m_ColorImages.size(); }
-		const nvrhi::Color& GetClearColor(uint32_t index) const { return m_ClearColors[index]; }
+		const ClearColorValue& GetClearColor(uint32_t index) const { return m_ClearColors[index]; }
 
 	public:
 		FrameBuffer(const FrameBufferSpecification& specification);
@@ -78,7 +91,7 @@ namespace Shark {
 
 		Ref<Image2D> m_DepthImage;
 		nvrhi::static_vector<Ref<Image2D>, nvrhi::c_MaxRenderTargets> m_ColorImages;
-		nvrhi::static_vector<nvrhi::Color, nvrhi::c_MaxRenderTargets > m_ClearColors;
+		nvrhi::static_vector<ClearColorValue, nvrhi::c_MaxRenderTargets > m_ClearColors;
 
 		nvrhi::FramebufferHandle m_FramebufferHandle;
 		nvrhi::Viewport m_Viewport;

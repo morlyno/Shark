@@ -29,6 +29,7 @@ namespace Shark {
 		FileStreamWriter(const FileStreamWriter&) = delete;
 		~FileStreamWriter();
 
+		virtual void Flush() override { m_Stream.flush(); }
 		virtual bool IsStreamGood() const override { return m_Stream.good(); }
 		virtual uint64_t GetStreamPosition() override { return m_Stream.tellp(); }
 		virtual void SetStreamPosition(uint64_t position) override { m_Stream.seekp(position); }

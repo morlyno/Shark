@@ -2,6 +2,7 @@
 
 #include "Shark/Asset/Asset.h"
 #include "Shark/Render/Image.h"
+#include "Shark/Render/RenderCommandBuffer.h"
 
 namespace Shark {
 
@@ -23,7 +24,7 @@ namespace Shark {
 		void SetThumbnail(AssetHandle assetHandle, Ref<Image2D> thumbnail);
 
 	private:
-		void WriteThumbnailToDisc(AssetHandle handle, Ref<Image2D> image, uint64_t lastWriteTime);
+		static void WriteThumbnailToDisc(AssetHandle handle, Ref<StagingImage2D> thumbnail, uint64_t lastWriteTime);
 		bool LoadThumbnailFromDisc(AssetHandle handle);
 		uint64_t ReadTimestampFromCache(AssetHandle handle);
 		bool LoadFromCacheAllowed();
@@ -36,6 +37,8 @@ namespace Shark {
 		};
 
 		std::unordered_map<AssetHandle, ThumbnailImage> m_Thumbnails;
+		Ref<StagingImage2D> m_ReadableImage;
+		Ref<RenderCommandBuffer> m_CommandBuffer;
 
 		struct ThumbnailFileHeader
 		{

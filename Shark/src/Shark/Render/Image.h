@@ -55,6 +55,7 @@ namespace Shark {
 		RGBA32F,
 
 		RED32SI,
+		RED32UI,
 
 		Depth32,
 		Depth24UNormStencil8UINT
@@ -73,7 +74,6 @@ namespace Shark {
 		Texture,
 		Attachment,
 		Storage,
-		HostRead
 	};
 
 	struct ImageSpecification
@@ -108,7 +108,6 @@ namespace Shark {
 
 		void Submit_UploadData(const Buffer buffer);
 		void RT_UploadData(const Buffer buffer);
-		//void RT_CopyToHostBuffer(Buffer& buffer);
 
 		ImageSpecification& GetSpecification() { return m_Specification; }
 		const ImageSpecification& GetSpecification() const { return m_Specification; }
@@ -132,7 +131,74 @@ namespace Shark {
 		nvrhi::TextureHandle m_ImageHandle;
 		ViewInfo m_ViewInfo;
 	};
-	
+
+	//////////////////////////////////////////////////////////////////////////
+	//// StagingImage2D
+	//////////////////////////////////////////////////////////////////////////
+
+	struct StagingImageSpecification
+	{
+		uint32_t Width = 0, Height = 0;
+		ImageFormat Format = ImageFormat::RGBA;
+		uint32_t Layers = 1;
+		uint32_t MipLevels = 1; // 0 == MaxLeves
+
+		nvrhi::CpuAccessMode CpuAccess = nvrhi::CpuAccessMode::None;
+		bool IsCube = false;
+
+		std::string DebugName;
+	};
+
+	struct MappedImageMemory
+	{
+		nvrhi::IStagingTexture* Texture = nullptr;
+		Buffer Memory = {};
+		uint64_t RowPitch = 0;
+
+		MappedImageMemory() = default;
+		MappedImageMemory(MappedImageMemory&& other);
+		MappedImageMemory(const MappedImageMemory&) = delete;
+		MappedImageMemory& operator=(const MappedImageMemory&) = delete;
+		~MappedImageMemory();
+	};
+
+	class StagingImage2D : public RefCount
+	{
+	public:
+		static Ref<StagingImage2D> Create(const StagingImageSpecification& specification) { return Ref<StagingImage2D>::Create(specification); }
+		static Ref<StagingImage2D> Create(Ref<Image2D> templateImage, nvrhi::CpuAccessMode cpuAccess) { return Ref<StagingImage2D>::Create(templateImage, cpuAccess); }
+
+		void Resize(uint32_t width, uint32_t height);
+		void Resize(uint32_t width, uint32_t height, uint32_t mipLevels);
+
+		MappedImageMemory RT_OpenReadable();
+
+		void RT_OpenReadableBuffer(Buffer& outMemory);
+		void RT_CloseReadableBuffer();
+
+		void RT_ReadPixel(uint32_t x, uint32_t y, Buffer outPixel);
+
+		uint32_t GetWidth() const { return m_Specification.Width; }
+		uint32_t GetHeight() const { return m_Specification.Height; }
+
+		nvrhi::StagingTextureHandle GetHandle() const { return m_Handle; }
+		const StagingImageSpecification& GetSpecification() const { return m_Specification; }
+		uint32_t GetPixelSize() const;
+
+	public:
+		StagingImage2D(const StagingImageSpecification& specification);
+		StagingImage2D(Ref<Image2D> templateImage, nvrhi::CpuAccessMode cpuAccess);
+		~StagingImage2D();
+
+	private:
+		using RT_State = StagingImageSpecification;
+		void InvalidateFromState(const RT_State& state);
+
+	private:
+		StagingImageSpecification m_Specification;
+		nvrhi::StagingTextureHandle m_Handle;
+	};
+
 	//////////////////////////////////////////////////////////////////////////
 	//// ImageView
 	//////////////////////////////////////////////////////////////////////////
