@@ -26,7 +26,8 @@ RWTexture2DArray<float4> o_Mips[NUM_LODS] : register(u0);
 
 groupshared float4 s_ReductionData[GROUP_SIZE][GROUP_SIZE];
 
-[numthreads(16, 16, 1)]void main(
+[numthreads(16, 16, 1)]
+void main(
     uint2 groupIdx : SV_GroupID,
     uint2 globalIdx : SV_DispatchThreadID,
     uint2 threadIdx : SV_GroupThreadID)
@@ -35,8 +36,7 @@ groupshared float4 s_ReductionData[GROUP_SIZE][GROUP_SIZE];
     u_Source.GetDimensions(texWidth, texHeight);
 
     float4 value = u_Source.mips[0][min(globalIdx.xy, uint2(texWidth - 1, texHeight - 1))];
-
-
+    
     [unroll]
     for (uint level = 1; level <= NUM_LODS; level++)
     {

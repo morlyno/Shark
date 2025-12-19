@@ -1,3 +1,4 @@
+#pragma layout : renderpass
 #pragma stage : compute
 
 #include "Core/Texture.hlslh"

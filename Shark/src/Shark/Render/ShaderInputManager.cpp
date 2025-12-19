@@ -431,7 +431,23 @@ namespace Shark {
 			BindingSetInput& input = m_InputSetItems[inputInfo->Set - m_Specification.StartSet].at(inputInfo->GetGraphicsBinding());
 			input.Set(image, arrayIndex);
 			m_PendingSets.set(inputInfo->Set);
-			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
+			SK_LOG_INPUT(image, name, arrayIndex);
+		}
+		else
+		{
+			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+		}
+	}
+
+	void ShaderInputManager::SetInput(const std::string& name, Ref<Image2D> image, const nvrhi::TextureSubresourceSet& subresource, uint32_t arrayIndex)
+	{
+		const ShaderInputInfo* inputInfo = GetInputInfo(name);
+		if (inputInfo)
+		{
+			BindingSetInput& input = m_InputSetItems[inputInfo->Set - m_Specification.StartSet].at(inputInfo->GetGraphicsBinding());
+			input.Set(image, arrayIndex);
+			input.Set(subresource, arrayIndex);
+			m_PendingSets.set(inputInfo->Set);
 			SK_LOG_INPUT(image, name, arrayIndex);
 		}
 		else

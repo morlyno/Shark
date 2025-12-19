@@ -4,7 +4,7 @@
 namespace Shark {
 
 	RenderPass::RenderPass(const RenderPassSpecification& specification)
-		: m_Specification(specification), m_InputManager({ .Shader = specification.Shader, .DebugName = specification.DebugName })
+		: m_Specification(specification)
 	{
 		const auto layoutMode = m_Specification.Shader->GetLayoutMode();
 		if (layoutMode == LayoutShareMode::MaterialOnly)

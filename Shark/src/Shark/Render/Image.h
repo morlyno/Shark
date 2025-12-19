@@ -11,6 +11,14 @@ namespace Shark {
 	//// Viewable & ViewInfo 
 	//////////////////////////////////////////////////////////////////////////
 
+	struct ImageSlice
+	{
+		uint32_t Mip;
+		uint32_t Layer;
+
+		static ImageSlice Zero() { return ImageSlice{ 0, 0 }; }
+	};
+
 	struct ViewInfo
 	{
 		nvrhi::TextureHandle Handle;

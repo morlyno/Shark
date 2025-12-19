@@ -6,13 +6,14 @@ namespace Shark {
 	ComputePass::ComputePass(const ComputePassSpecification& specification)
 		: m_Specification(specification)
 	{
-		if (m_Specification.ShareMode == LayoutShareMode::MaterialOnly)
+		const auto layoutMode = m_Specification.ComputeShader->GetLayoutMode();
+		if (layoutMode == LayoutShareMode::MaterialOnly)
 			return;
 
 		ShaderInputManagerSpecification inputManagerSpec;
 		inputManagerSpec.Shader = m_Specification.ComputeShader;
 		inputManagerSpec.DebugName = m_Specification.DebugName;
-		if (m_Specification.ShareMode == LayoutShareMode::PassOnly)
+		if (layoutMode == LayoutShareMode::PassOnly)
 			inputManagerSpec.StartSet = 0;
 
 		m_InputManager = ShaderInputManager(inputManagerSpec);
@@ -20,11 +21,6 @@ namespace Shark {
 
 	ComputePass::ComputePass(Ref<Shader> computeShader, const std::string& debugName)
 		: ComputePass({ .ComputeShader = computeShader, .DebugName = debugName })
-	{
-	}
-
-	ComputePass::ComputePass(Ref<Shader> computeShader, LayoutShareMode shareMode, const std::string& debugName)
-		: ComputePass({ .ComputeShader = computeShader, .ShareMode = shareMode, .DebugName = debugName })
 	{
 	}
 
@@ -56,6 +52,11 @@ namespace Shark {
 	void ComputePass::SetInput(const std::string& name, Ref<Image2D> image, uint32_t arrayIndex)
 	{
 		m_InputManager.SetInput(name, image, arrayIndex);
+	}
+
+	void ComputePass::SetInput(const std::string& name, Ref<Image2D> image, const nvrhi::TextureSubresourceSet& subresource, uint32_t arrayIndex)
+	{
+		m_InputManager.SetInput(name, image, subresource, arrayIndex);
 	}
 
 	void ComputePass::SetInput(const std::string& name, Ref<Texture2D> image, uint32_t arrayIndex)

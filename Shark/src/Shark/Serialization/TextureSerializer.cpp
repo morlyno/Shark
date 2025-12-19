@@ -65,6 +65,7 @@ namespace Shark {
 		if (utils::ShouldBeSharkTexture(metadata.FilePath))
 		{
 			TextureSpecification specification;
+			specification.DebugName = FileSystem::GetStemString(metadata.FilePath);
 			AssetHandle sourceHandle;
 			Buffer imageData;
 
@@ -81,8 +82,9 @@ namespace Shark {
 		{
 			Buffer imageData;
 			TextureSpecification specification;
-			const auto filesystemPath = Project::GetEditorAssetManager()->GetFilesystemPath(metadata);
+			specification.DebugName = FileSystem::GetStemString(metadata.FilePath);
 
+			const auto filesystemPath = Project::GetEditorAssetManager()->GetFilesystemPath(metadata);
 			LoadImageData(filesystemPath, specification, imageData);
 			texture = Texture2D::Create(specification, imageData);
 			texture->SetFilepath(filesystemPath);

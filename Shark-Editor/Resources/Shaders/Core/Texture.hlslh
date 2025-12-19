@@ -7,6 +7,13 @@ uint2 TextureSize(Texture2D texture)
 	return size;
 }
 
+uint3 TextureSize(Texture2DArray texture)
+{
+	uint3 size;
+	texture.GetDimensions(size.x, size.y, size.z);
+	return size;
+}
+
 uint2 TextureSize(RWTexture2D<float2> texture)
 {
 	uint2 size;

@@ -54,6 +54,16 @@ namespace Shark {
 		uint32_t MaxAnisotropy;
 	};
 
+	struct BlitImageParams
+	{
+		ImageSlice SourceBaseSlice = { 0, 0 };
+		ImageSlice DestinationBaseSlice = { 0, 0 };
+		uint32_t LayerCount = 1;
+
+		std::optional<glm::uvec2> SourceMin, SourceMax;
+		std::optional<glm::uvec2> DestinationMin, DestinationMax;
+	};
+
 	class Renderer
 	{
 	public:
@@ -99,8 +109,8 @@ namespace Shark {
 		static void BeginComputePass(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePass> computePass);
 		static void EndComputePass(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePass> computePass);
 
-		static void Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, const glm::vec3& workGroups, const Buffer pushConstantData = {});
-		static void Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, Ref<Material> material, const glm::vec3& workGroups, const Buffer pushConstantData = {});
+		static void Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, const glm::uvec3& workGroups, const Buffer pushConstantData = {});
+		static void Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, Ref<Material> material, const glm::uvec3& workGroups, const Buffer pushConstantData = {});
 
 		static void RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Buffer pushConstantsData = {});
 
@@ -120,7 +130,8 @@ namespace Shark {
 		static void CopyImage(Ref<Image2D> sourceImage, Ref<Image2D> destinationImage);
 		static void CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage);
 		static void CopyMip(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, uint32_t sourceMip, Ref<Image2D> destinationImage, uint32_t destinationMip);
-		static void BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage);
+		static void BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage, uint32_t mipSlice, FilterMode filterMode);
+		static void BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage, const BlitImageParams& params, FilterMode filterMode);
 
 		static void GenerateMips(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> image);
 

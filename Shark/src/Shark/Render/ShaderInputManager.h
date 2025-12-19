@@ -119,6 +119,7 @@ namespace Shark {
 		void SetInput(const std::string& name, Ref<StorageBuffer> storageBuffer, uint32_t arrayIndex = 0);
 		void SetInput(const std::string& name, Ref<ViewableResource> viewable, uint32_t arrayIndex = 0);
 		void SetInput(const std::string& name, Ref<Image2D> image, uint32_t arrayIndex = 0);
+		void SetInput(const std::string& name, Ref<Image2D> image, const nvrhi::TextureSubresourceSet& subresource, uint32_t arrayIndex = 0);
 		void SetInput(const std::string& name, Ref<ImageView> imageView, uint32_t arrayIndex = 0);
 		void SetInput(const std::string& name, Ref<Texture2D> texture, uint32_t arrayIndex = 0);
 		void SetInput(const std::string& name, Ref<TextureCube> textureCube, uint32_t arrayIndex = 0);

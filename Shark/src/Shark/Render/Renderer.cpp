@@ -108,7 +108,8 @@ namespace Shark {
 		shaderLibrary->Load("Resources/Shaders/EnvMap/EnvMipFilter.hlsl");
 
 		// Commands
-		//shaderLibrary->Load("resources/Shaders/Commands/BlitImage.glsl");
+		shaderLibrary->Load("resources/Shaders/Commands/CmdBlitImage.hlsl", { .ForceCompile = true, .Optimize = false });
+		shaderLibrary->Load("resources/Shaders/Commands/CmdBlitImageArray.hlsl");
 		shaderLibrary->Load("Resources/Shaders/Commands/LinearSample.hlsl");
 		shaderLibrary->Load("Resources/Shaders/Commands/LinearSampleArray.hlsl");
 
@@ -446,7 +447,7 @@ namespace Shark {
 		});
 	}
 
-	void Renderer::Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, const glm::vec3& workGroups, const Buffer pushConstantData)
+	void Renderer::Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, const glm::uvec3& workGroups, const Buffer pushConstantData)
 	{
 		Renderer::Submit([commandBuffer, pipeline, workGroups, temp = Buffer::Copy(pushConstantData)]() mutable
 		{
@@ -466,7 +467,7 @@ namespace Shark {
 		});
 	}
 
-	void Renderer::Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, Ref<Material> material, const glm::vec3& workGroups, const Buffer pushConstantData)
+	void Renderer::Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, Ref<Material> material, const glm::uvec3& workGroups, const Buffer pushConstantData)
 	{
 		Renderer::Submit([commandBuffer, pipeline, material, workGroups, temp = Buffer::Copy(pushConstantData)]() mutable
 		{
@@ -686,9 +687,60 @@ namespace Shark {
 		});
 	}
 
-	void Renderer::BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
+	void Renderer::BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage, const BlitImageParams& params, FilterMode filterMode)
 	{
-		//s_RendererAPI->BlitImage(commandBuffer, sourceImage, destinationImage);
+		SK_CORE_VERIFY(destinationImage->GetSpecification().Usage == ImageUsage::Storage);
+
+		auto shader = GetShaderLibrary()->Get(params.LayerCount == 1 ? "CmdBlitImage" : "CmdBlitImageArray");
+
+		auto pipeline = ComputePipeline::Create(shader, "Cmd - Blit");
+		auto pass = ComputePass::Create(shader, "Cmd - Blit");
+
+		pass->SetInput("u_Input", sourceImage, nvrhi::TextureSubresourceSet(params.SourceBaseSlice.Mip, 1, params.SourceBaseSlice.Layer, params.LayerCount));
+		pass->SetInput("o_Output", destinationImage, nvrhi::TextureSubresourceSet(params.DestinationBaseSlice.Mip, 1, params.DestinationBaseSlice.Layer, params.LayerCount));
+		pass->SetInput("u_Sampler", filterMode == FilterMode::Linear ? s_Data->m_Samplers.LinearClamp : s_Data->m_Samplers.NearestClamp);
+		SK_CORE_VERIFY(pass->Validate());
+		pass->Bake();
+
+		struct BlitParams
+		{
+			glm::vec2 src0;
+			glm::vec2 src1;
+			glm::vec2 dst0;
+			glm::vec2 dst1;
+		} push;
+
+		push.src0 = params.SourceMin.value_or(glm::uvec2(0, 0));
+		push.src1 = params.SourceMax.value_or(glm::uvec2(sourceImage->GetWidth(), sourceImage->GetHeight()));
+		push.dst0 = params.DestinationMin.value_or(glm::uvec2(0, 0));
+		push.dst1 = params.DestinationMax.value_or(glm::uvec2(destinationImage->GetWidth(), destinationImage->GetHeight()));
+
+		glm::uvec2 destinationSize = push.dst1 - push.dst0;
+
+		const glm::uvec3 workGroups = {
+			(destinationSize.x + 7) / 8,
+			(destinationSize.y + 7) / 8,
+			params.LayerCount
+		};
+
+		BeginComputePass(commandBuffer, pass);
+		Dispatch(commandBuffer, pipeline, workGroups, { &push, sizeof(push) });
+		EndComputePass(commandBuffer, pass);
+	}
+
+	void Renderer::BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage, uint32_t mipSlice, FilterMode filterMode)
+	{
+		BlitImageParams params;
+		params.DestinationBaseSlice.Mip = mipSlice;
+		params.DestinationBaseSlice.Layer = 0;
+		params.LayerCount = destinationImage->GetSpecification().Layers;
+		params.SourceBaseSlice.Mip = mipSlice;
+		params.SourceBaseSlice.Layer = 0;
+		params.SourceMin = glm::uvec2(0.0f);
+		params.SourceMax = glm::uvec2(sourceImage->GetWidth(), sourceImage->GetHeight());
+		params.DestinationMin = glm::uvec2(0.0f);
+		params.DestinationMax = glm::uvec2(destinationImage->GetWidth(), destinationImage->GetHeight());
+		BlitImage(commandBuffer, sourceImage, destinationImage, params, filterMode);
 	}
 
 	static void GenerateMipsForLayer(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, Ref<Image2D> targetImage, uint32_t layer)
@@ -860,7 +912,7 @@ namespace Shark {
 
 		{
 			auto pipeline = ComputePipeline::Create(equirectToCubeShader);
-			auto pass = ComputePass::Create(equirectToCubeShader, LayoutShareMode::PassOnly, "EquirectangularToCube");
+			auto pass = ComputePass::Create(equirectToCubeShader, "EquirectangularToCube");
 			pass->SetInput("u_Equirect", equirectangular);
 			pass->SetInput("u_Sampler", Renderer::GetLinearClampSampler());
 			pass->SetInput("o_CubeMap", unfiltered);
@@ -906,7 +958,7 @@ namespace Shark {
 
 		{
 			auto pipeline = ComputePipeline::Create(irradianceShader);
-			auto pass = ComputePass::Create(irradianceShader, LayoutShareMode::PassOnly, "EnvIrradiance");
+			auto pass = ComputePass::Create(irradianceShader, "EnvIrradiance");
 			pass->SetInput("o_Irradiance", irradianceMap);
 			pass->SetInput("u_Radiance", filtered);
 			pass->SetInput("u_Sampler", GetLinearClampSampler());
@@ -1083,7 +1135,7 @@ namespace Shark {
 
 
 		auto pipeline = ComputePipeline::Create(shader, "BRDF_LUT");
-		auto pass = ComputePass::Create(shader, LayoutShareMode::PassOnly, "BRDF_LUT");
+		auto pass = ComputePass::Create(shader, "BRDF_LUT");
 		pass->SetInput("o_LUT", image);
 		SK_CORE_VERIFY(pass->Validate());
 		pass->Bake();
