@@ -1750,6 +1750,7 @@ namespace Shark {
 
 		m_EditorCamera.SetFlyView({ 40.0f, 25.0f, -40.0f }, 10.0f, -45.0f);
 		Application::Get().SubmitToMainThread([this]() { UpdateWindowTitle(); });
+		return true;
 	}
 
 	bool EditorLayer::LoadScene(const std::filesystem::path& filePath)

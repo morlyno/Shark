@@ -2,7 +2,7 @@
 #include "GpuBuffer.h"
 
 #include "Shark/Core/Application.h"
-#include "Renderer.h"
+#include "Shark/Render/Renderer.h"
 
 namespace Shark {
 
@@ -45,7 +45,7 @@ namespace Shark {
 
 	void GpuBuffer::InvalidateFromState(const RT_State& state)
 	{
-		m_Desc.setByteSize(m_ByteSize);
+		m_Desc.setByteSize(state.ByteSize);
 
 		auto device = Application::Get().GetDeviceManager()->GetDevice();
 		m_BufferHandle = device->createBuffer(m_Desc);

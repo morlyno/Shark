@@ -130,9 +130,9 @@ namespace Shark {
 	void Texture2D::InvalidateFromState(Ref<Image2D> image, const RT_State& state)
 	{
 		auto samplerDesc = nvrhi::SamplerDesc()
-			.setMaxAnisotropy(m_Specification.MaxAnisotropy)
-			.setAllFilters(m_Specification.Filter == FilterMode::Linear)
-			.setAllAddressModes(utils::ConvertAddressMode(m_Specification.Address));
+			.setMaxAnisotropy(state.MaxAnisotropy)
+			.setAllFilters(state.Filter == FilterMode::Linear)
+			.setAllAddressModes(utils::ConvertAddressMode(state.Address));
 
 		auto device = Application::Get().GetDeviceManager()->GetDevice();
 		m_ViewInfo.TextureSampler = device->createSampler(samplerDesc);
