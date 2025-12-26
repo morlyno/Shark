@@ -1015,6 +1015,9 @@ namespace Shark {
 
 	void Renderer::ShaderReloaded(Ref<Shader> shader)
 	{
+		SK_NOT_IMPLEMENTED();
+		// #Renderer #Disabled reload/recompile shader
+#if TODO
 		auto& dependencies = s_Data->m_ShaderDependencies[shader->GetHash()];
 
 		if (dependencies.Materials.empty() && dependencies.RenderPasses.empty())
@@ -1036,17 +1039,21 @@ namespace Shark {
 			SK_CORE_VERIFY(renderPass->Validate());
 			renderPass->Bake();
 		}
-
+#endif
 	}
 
 	void Renderer::AcknowledgeShaderDependency(Ref<Shader> shader, Weak<Material> material)
 	{
+#if TODO
 		s_Data->m_ShaderDependencies[shader->GetHash()].Materials.push_back(material);
+#endif
 	}
 
 	void Renderer::AcknowledgeShaderDependency(Ref<Shader> shader, Weak<RenderPass> renderPass)
 	{
+#if TODO
 		s_Data->m_ShaderDependencies[shader->GetHash()].RenderPasses.push_back(renderPass);
+#endif
 	}
 
 	void Renderer::ReportLiveObejcts()

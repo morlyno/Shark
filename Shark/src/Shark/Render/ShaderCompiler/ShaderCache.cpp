@@ -1,22 +1,33 @@
 #include "skpch.h"
 #include "ShaderCache.h"
 
+#include "Shark/Core/Memory.h"
 #include "Shark/File/FileSystem.h"
 #include "Shark/Serialization/YAML.h"
 #include "Shark/Serialization/YAML/ShaderReflection.h"
+#include "Shark/Utils/std.h"
+
+#include <magic_enum.hpp>
 
 namespace Shark {
 
 	namespace utils {
 
-		static std::string GetSPIRVCacheFile(const ShaderSourceInfo& info)
+		static uint64_t HashFileContent(const std::filesystem::path& filepath)
 		{
-			return fmt::format("Cache/Shaders/SPIRV/{}{}", info.ShaderID, s_ShaderTypeMappings.at(info.Stage).Extension);
-		}
+			std::ifstream stream(filepath);
 
-		static std::string GetD3D11CacheFile(const ShaderSourceInfo& info)
-		{
-			return fmt::format("Cache/Shaders/D3D11/{}{}", info.ShaderID, s_ShaderTypeMappings.at(info.Stage).Extension);
+			constexpr const uint64_t bufferSize{ 1 << 10 };
+			char buffer[bufferSize];
+
+			uint64_t hash = Hash::FNVBase;
+			while (stream.good())
+			{
+				stream.read(buffer, bufferSize);
+				Hash::AppendFNV(hash, buffer, stream.gcount());
+			}
+
+			return hash;
 		}
 
 	}
@@ -33,13 +44,28 @@ namespace Shark {
 		for (const auto& [key, entry] : m_CacheRegistry)
 		{
 			out << YAML::BeginMap;
-			out << YAML::Key << "ID" << YAML::Value << key.ShaderID;
-			out << YAML::Key << "HashCodes" << YAML::Value;
+			out << YAML::Key << "ID" << YAML::Value << entry.Info.ShaderID;
+			out << YAML::Key << "SourcePath" << YAML::Value << entry.Info.SourcePath;
+			out << YAML::Key << "Hash" << YAML::Value << entry.FileHash;
+
+			out << YAML::Key << "Stages" << YAML::Value;
 			out << YAML::BeginMap;
-			for (const auto& code : entry.Hashes)
-				out << YAML::Key << code.first << YAML::Value << code.second;
+			for (const auto& stage : entry.Stages)
+				out << YAML::Key << stage.Stage << YAML::Value << stage.HashCode;
 			out << YAML::EndMap;
-			out << YAML::Key << "SourcePath" << YAML::Value << entry.SourcePath;
+
+			out << YAML::Key << "Includes" << YAML::Value;
+			out << YAML::BeginSeq;
+			for (const auto& include : entry.Includes)
+			{
+				out << YAML::BeginMap;
+				out << YAML::Key << "Info.ID" << include.Info.ShaderID;
+				out << YAML::Key << "Info.Path" << include.Info.SourcePath;
+				out << YAML::Key << "Hash" << include.HashCode;
+				out << YAML::EndMap;
+			}
+			out << YAML::EndSeq;
+
 			out << YAML::EndMap;
 		}
 
@@ -55,102 +81,123 @@ namespace Shark {
 		if (fileData.empty())
 			return;
 
-		YAML::Node rootNode = YAML::Load(fileData);
+		auto rootNode = YAML::Load(fileData);
 		if (!rootNode)
 			return;
 
-		YAML::Node cacheNode = rootNode["ShaderCache"];
-
+		auto cacheNode = rootNode["ShaderCache"];
 		for (auto entryNode : cacheNode)
 		{
-			ShaderCacheKey key;
 			ShaderCacheEntry entry;
 
-			DeserializeProperty(entryNode, "ID", key.ShaderID);
-			DeserializeProperty(entryNode, "SourcePath", entry.SourcePath);
+			bool anyFailed = false;
+			anyFailed |= !DeserializeProperty(entryNode, "ID", entry.Info.ShaderID);
+			anyFailed |= !DeserializeProperty(entryNode, "SourcePath", entry.Info.SourcePath);
+			anyFailed |= !DeserializeProperty(entryNode, "Hash", entry.FileHash);
 
-			for (auto codeNode : entryNode["HashCodes"])
+			if (anyFailed)
+				continue;
+
+			for (auto stage : entryNode["Stages"])
 			{
-				auto key = codeNode.first.as<nvrhi::ShaderType>();
-				auto hash = codeNode.second.as<uint64_t>();
-				entry.Hashes.emplace_back(key, hash);
+				StageInfo info;
+				anyFailed |= !YAML::DeserializeProperty(stage.first, info.Stage);
+				anyFailed |= !YAML::DeserializeProperty(stage.second, info.HashCode);
+
+				if (anyFailed)
+					continue;
+
+				entry.Stages.push_back(info);
 			}
 
-			m_CacheRegistry[key] = entry;
+			m_CacheRegistry[entry.Info.ShaderID] = entry;
 		}
 
 	}
 
-	ShaderCacheEntry& ShaderCache::GetEntry(const ShaderInfo& info)
+	bool ShaderCache::ShaderUpToDate(const ShaderInfo& info) const
 	{
-		return m_CacheRegistry[{ info.ShaderID }];
-	}
-
-	ShaderCacheState ShaderCache::GetCacheState(const ShaderSourceInfo& info)
-	{
-		if (!m_CacheRegistry.contains({ info.ShaderID }) || !FileSystem::Exists(utils::GetSPIRVCacheFile(info)))
-			return ShaderCacheState::Missing;
-
-		uint64_t hashCode = GetHash(info);
-		if (hashCode == info.HashCode)
-		{
-#if SK_WITH_DX11 && false
-			auto syncState = GetD3D11CacheSyncState(info);
-			if (syncState != ShaderCacheState::UpToDate)
-				return ShaderCacheState::OutOfDate;
-#endif
-			return ShaderCacheState::UpToDate;
-		}
-		return ShaderCacheState::OutOfDate;
-	}
-
-	bool ShaderCache::LoadBinary(const ShaderSourceInfo& info, std::vector<uint32_t>& outBinary, Buffer* outD3D11Binary)
-	{
-		if (!LoadSPIRV(info, outBinary))
+		if (!m_CacheRegistry.contains(info.ShaderID))
 			return false;
 
-		if (outD3D11Binary)
-			return LoadD3D11(info, *outD3D11Binary);
+		const auto& entry = m_CacheRegistry.at(info.ShaderID);
+
+		if (entry.FileHash != utils::HashFileContent(info.SourcePath))
+			return false;
+
+		for (const auto& include : entry.Includes)
+			if (include.HashCode != utils::HashFileContent(include.Info.SourcePath))
+				return false;
 
 		return true;
 	}
 
-	bool ShaderCache::LoadSPIRV(const ShaderSourceInfo& info, std::vector<uint32_t>& outBinary)
+	CacheStatus ShaderCache::GetCacheStatus(const ShaderInfo& info, const StageInfo& stageInfo) const
 	{
-		auto state = GetCacheState(info);
-		if (state == ShaderCacheState::Missing)
+		if (!m_CacheRegistry.contains(info.ShaderID))
+			return CacheStatus::Missing;
+
+		const std::string cacheFile = fmt::format("Cache/Shaders/spirv/{}.{}", info.ShaderID, s_ShaderTypeMappings.at(stageInfo.Stage).Extension);
+		if (!FileSystem::Exists(cacheFile))
+			CacheStatus::Missing;
+
+		const auto& entry = m_CacheRegistry.at(info.ShaderID);
+		return entry.FileHash == stageInfo.HashCode ? CacheStatus::OK : CacheStatus::OutOfDate;
+	}
+
+	CacheStatus ShaderCache::GetCacheStatus(const ShaderInfo& info, nvrhi::ShaderType stage, nvrhi::GraphicsAPI platform) const
+	{
+		const std::string spirvCacheFile = fmt::format("Cache/Shaders/spirv/{}.{}", info.ShaderID, s_ShaderTypeMappings.at(stage).Extension);
+		const std::string d3d11CacheFile = fmt::format("Cache/Shaders/{}/{}.{}", magic_enum::enum_name(platform), info.ShaderID, s_ShaderTypeMappings.at(stage).Extension);
+
+		if (!FileSystem::Exists(d3d11CacheFile))
+			return CacheStatus::Missing;
+
+		if (!FileSystem::Exists(spirvCacheFile))
+			return CacheStatus::OutOfDate;
+
+		const uint64_t spirvTime = FileSystem::GetLastWriteTime(spirvCacheFile);
+		const uint64_t d3d11Time = FileSystem::GetLastWriteTime(d3d11CacheFile);
+
+		if (d3d11Time < spirvTime)
+			return CacheStatus::OutOfDate;
+		return CacheStatus::OK;
+	}
+
+	bool ShaderCache::LoadStageInfo(const ShaderInfo& info, std::vector<StageInfo>& outStageInfo) const
+	{
+		if (!m_CacheRegistry.contains(info.ShaderID))
 			return false;
 
-		const std::string cacheFile = utils::GetSPIRVCacheFile(info);
+		const auto& entry = m_CacheRegistry.at(info.ShaderID);
+		outStageInfo = entry.Stages;
+		return true;
+	}
 
-		Buffer binary = FileSystem::ReadBinary(cacheFile);
+	bool ShaderCache::LoadSpirv(const ShaderInfo& info, nvrhi::ShaderType stage, std::vector<uint32_t>& outBinary) const
+	{
+		const std::string cacheFile = fmt::format("Cache/Shaders/spirv/{}.{}", info.ShaderID, s_ShaderTypeMappings.at(stage).Extension);
+
+		ScopedBuffer binary = FileSystem::ReadBinary(cacheFile);
 		if (!binary)
 			return false;
 
-		binary.CopyTo(outBinary);
-		binary.Release();
-		return true;
+		Memory::Write(outBinary, binary);
+		return !outBinary.empty();
 	}
 
-	bool ShaderCache::LoadD3D11(const ShaderSourceInfo& info, Buffer& outBinary)
+	bool ShaderCache::LoadBinary(const ShaderInfo& info, nvrhi::ShaderType stage, nvrhi::GraphicsAPI platform, Buffer& outBinary) const
 	{
-#if SK_WITH_DX11
-		const std::string cacheFile = utils::GetD3D11CacheFile(info);
-
-		if (!FileSystem::Exists(cacheFile))
-			return false;
+		const std::string cacheFile = fmt::format("Cache/Shaders/{}/{}.{}", magic_enum::enum_name(platform), info.ShaderID, s_ShaderTypeMappings.at(stage).Extension);
 
 		outBinary = FileSystem::ReadBinary(cacheFile);
 		return outBinary;
-#else
-		return true;
-#endif
 	}
 
-	bool ShaderCache::LoadReflection(uint64_t shaderID, ShaderReflection& outReflectionData, std::vector<std::string>& outRequestedBindingSets, LayoutShareMode& outShareMode)
+	bool ShaderCache::LoadReflection(const ShaderInfo& info, ShaderReflection& outReflection, std::vector<std::string>& outRequestedBindingSets, LayoutShareMode& outShareMode) const
 	{
-		const std::string cacheFile = fmt::format("Cache/Shaders/Reflection/{}.yaml", shaderID);
-		std::string fileData = FileSystem::ReadString(cacheFile);
+		const std::string cacheFile = fmt::format("Cache/Shaders/Reflection/{}.yaml", info.ShaderID);
+		const std::string fileData = FileSystem::ReadString(cacheFile);
 		if (fileData.empty())
 			return false;
 
@@ -161,100 +208,61 @@ namespace Shark {
 		YAML::Node reflectionNode = rootNode["ShaderReflection"];
 
 		bool anyFailed = false;
-		anyFailed |= !DeserializeProperty(reflectionNode, "BindingLayouts", outReflectionData.BindingLayouts);
-		anyFailed |= !DeserializeProperty(reflectionNode, "PushConstant", outReflectionData.PushConstant);
+		anyFailed |= !DeserializeProperty(reflectionNode, "BindingLayouts", outReflection.BindingLayouts);
+		anyFailed |= !DeserializeProperty(reflectionNode, "PushConstant", outReflection.PushConstant);
 		anyFailed |= !DeserializeProperty(reflectionNode, "RequestedBindingSets", outRequestedBindingSets);
 		anyFailed |= !DeserializeProperty(reflectionNode, "LayoutShareMode", outShareMode);
 		return !anyFailed;
 	}
 
-	void ShaderCache::CacheStage(const ShaderSourceInfo& info, std::span<const uint32_t> spirvBinary, const Buffer d3d11Binary)
+	void ShaderCache::SaveShaderInfo(const ShaderInfo& info, std::span<const StageInfo> stages, std::span<const std::filesystem::path> includes)
 	{
-		const std::string cacheFile = utils::GetSPIRVCacheFile(info);
-		FileSystem::WriteBinary(cacheFile, Buffer::FromArray(spirvBinary));
-		SetHash(m_CacheRegistry[{ info.ShaderID }], info.Stage, info.HashCode);
+		auto& entry = m_CacheRegistry[info.ShaderID];
+		entry.Info = info;
+		entry.FileHash = utils::HashFileContent(info.SourcePath);
+		entry.Stages = { stages.begin(), stages.end() };
 
-#if SK_WITH_DX11
-		if (d3d11Binary)
+		entry.Includes = includes | std::views::transform([](const auto& path)
 		{
-			const std::string cacheFile = utils::GetD3D11CacheFile(info);
-			FileSystem::WriteBinary(cacheFile, d3d11Binary);
-		}
-#endif
-
-		SaveRegistry();
+			return ShaderInclude{
+				.Info = {
+					.ShaderID = Hash::GenerateFNV(path.generic_string()),
+					.SourcePath = path
+				},
+				.HashCode = utils::HashFileContent(path)
+			};
+		}) | std::ranges::to<std::vector<ShaderInclude>>();
 	}
 
-	void ShaderCache::CacheReflection(uint64_t shaderID, const ShaderReflection& reflectionData, std::span<const std::string> requestedBindingSets, LayoutShareMode layoutMode)
+	void ShaderCache::SaveReflection(const ShaderInfo& info, const ShaderReflection& relfection, std::span<const std::string> requestedBindingSets, LayoutShareMode layoutMode)
 	{
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "ShaderReflection" << YAML::Value;
 		out << YAML::BeginMap;
-		out << YAML::Key << "BindingLayouts" << YAML::Value << reflectionData.BindingLayouts;
-		out << YAML::Key << "PushConstant" << YAML::Value << reflectionData.PushConstant;
+		out << YAML::Key << "BindingLayouts" << YAML::Value << relfection.BindingLayouts;
+		out << YAML::Key << "PushConstant" << YAML::Value << relfection.PushConstant;
 		out << YAML::Key << "RequestedBindingSets" << YAML::Value << requestedBindingSets;
 		out << YAML::Key << "LayoutShareMode" << YAML::Value << layoutMode;
 		out << YAML::EndMap;
 		out << YAML::EndMap;
 
-		const std::string cacheFile = fmt::format("Cache/Shaders/Reflection/{}.yaml", shaderID);
+		const std::string cacheFile = fmt::format("Cache/Shaders/Reflection/{}.yaml", info.ShaderID);
 		FileSystem::WriteString(cacheFile, out.c_str());
 	}
 
-	uint64_t ShaderCache::GetHash(const ShaderSourceInfo& info) const
+	void ShaderCache::SaveSpirv(const ShaderInfo& info, nvrhi::ShaderType stage, std::span<const uint32_t> binary)
 	{
-		if (m_CacheRegistry.contains({ info.ShaderID }))
-		{
-			const auto& entry = m_CacheRegistry.at({ info.ShaderID });
-			const auto hash = std::ranges::find(entry.Hashes, info.Stage, &std::pair<nvrhi::ShaderType, uint64_t>::first);
-			if (hash != entry.Hashes.end())
-				return hash->second;
-		}
-		return 0;
+		const std::string cacheFile = fmt::format("Cache/Shaders/spirv/{}.{}", info.ShaderID, s_ShaderTypeMappings.at(stage).Extension);
+
+		FileSystem::WriteBinary(cacheFile, Buffer::FromArray(binary));
 	}
 
-	void ShaderCache::SetHash(ShaderCacheEntry& entry, nvrhi::ShaderType stage, uint64_t hashCode)
+	void ShaderCache::SaveBinary(const ShaderInfo& info, nvrhi::ShaderType stage, nvrhi::GraphicsAPI platform, const Buffer binary)
 	{
-		auto hash = std::ranges::find(entry.Hashes, stage, &std::pair<nvrhi::ShaderType, uint64_t>::first);
-		if (hash != entry.Hashes.end())
-		{
-			hash->second = hashCode;
-			return;
-		}
+		const std::string cacheFile = fmt::format("Cache/Shaders/{}/{}.{}", magic_enum::enum_name(platform), info.ShaderID, s_ShaderTypeMappings.at(stage).Extension);
 
-		entry.Hashes.emplace_back(stage, hashCode);
+		FileSystem::WriteBinary(cacheFile, binary);
 	}
-
-#if SK_WITH_DX11
-
-	ShaderCacheState ShaderCache::GetD3D11CacheSyncState(const ShaderSourceInfo& info)
-	{
-		const std::string spirvCacheFile = utils::GetSPIRVCacheFile(info);
-		const std::string d3d11CacheFile = utils::GetD3D11CacheFile(info);
-
-		if (!FileSystem::Exists(d3d11CacheFile))
-			return ShaderCacheState::Missing;
-
-		ShaderCacheState spirvState = GetCacheState(info);
-		if (spirvState == ShaderCacheState::Missing)
-			return ShaderCacheState::OutOfDate;
-
-		const uint64_t spirvTime = FileSystem::GetLastWriteTime(spirvCacheFile);
-		const uint64_t d3d11Time = FileSystem::GetLastWriteTime(d3d11CacheFile);
-
-		if (d3d11Time < spirvTime)
-			return ShaderCacheState::OutOfDate;
-		return ShaderCacheState::UpToDate;
-	}
-
-#else
-
-	ShaderCacheState ShaderCache::GetD3D11CacheSyncState(const ShaderSourceInfo& info)
-	{
-		return ShaderCacheState::UpToDate;
-	}
-
-#endif
 
 }

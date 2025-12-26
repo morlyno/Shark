@@ -3,28 +3,23 @@
 
 #include "Shark/Core/Memory.h"
 #include "Shark/File/FileSystem.h"
-#include "Shark/Utils/String.h"
 
 #include "Shark/Render/Renderer.h"
-#include "Shark/Render/ShaderCompiler/ShaderPreprocessor.h"
+#include "Shark/Render/ShaderCompiler/ShaderCache.h"
+#include "Shark/Render/ShaderCompiler/DirectX11ShaderCompiler.h"
 
-#include <atlcomcli.h>
-#include <dxc/dxcapi.h>
-#include <shaderc/shaderc.hpp>
+#include "Shark/Utils/String.h"
+#include "Shark/Utils/std.h"
+
 #include <spirv_cross/spirv_cross.hpp>
-
-#if SK_WITH_DX11
-	#include <d3dcompiler.h>
-#endif
 
 namespace Shark {
 
-	struct DxcInstances
-	{
-		inline static ATL::CComPtr<IDxcCompiler3> Compiler = nullptr;
-		inline static ATL::CComPtr<IDxcUtils> Utils = nullptr;
-		inline static ATL::CComPtr<IDxcIncludeHandler> IncludeHandler = nullptr;
-	};
+	namespace DxcInstances {
+		ATL::CComPtr<IDxcCompiler3> g_Compiler = nullptr;
+		ATL::CComPtr<IDxcUtils> g_Utils = nullptr;
+		ATL::CComPtr<IDxcIncludeHandler> g_IncludeHandler = nullptr;
+	}
 
 	namespace utils {
 
@@ -41,6 +36,16 @@ namespace Shark {
 			return L"__UNKNOWN_STAGE__";
 		}
 
+		static void SetupDXC()
+		{
+			if (!DxcInstances::g_Compiler)
+			{
+				DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&DxcInstances::g_Compiler));
+				DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&DxcInstances::g_Utils));
+				DxcInstances::g_Utils->CreateDefaultIncludeHandler(&DxcInstances::g_IncludeHandler);
+			}
+		}
+
 	}
 
 	ShaderCompiler::ShaderCompiler(const std::filesystem::path& sourcePath, const CompilerOptions& options)
@@ -48,196 +53,210 @@ namespace Shark {
 	{
 		m_Info.SourcePath = FileSystem::Relative(std::filesystem::canonical(sourcePath)).generic_wstring();
 		m_Info.ShaderID = Hash::GenerateFNV(m_Info.SourcePath.generic_string());
+
+		m_PlatformCompilers.push_back(Scope<D3D11::ShaderCompiler>::Create(options));
 	}
 
-	Ref<ShaderCompiler> ShaderCompiler::Load(const std::filesystem::path& sourcePath, const CompilerOptions& options)
+	/*Ref<ShaderCompiler> ShaderCompiler::Load(const std::filesystem::path& sourcePath, const CompilerOptions& options)
 	{
 		auto compiler = Ref<ShaderCompiler>::Create(sourcePath, options);
 		if (!compiler->Reload())
 			return nullptr;
 		return compiler;
-	}
+	}*/
 
 	bool ShaderCompiler::Reload()
 	{
-		ClearState();
-		SetupDXC();
+		utils::SetupDXC();
 
-		if (!Preprocess())
-			return false;
-		
 		auto& shaderCache = Renderer::GetShaderCache();
+		m_Result = Scope<CompilerResult>::Create();
 
-		for (const auto& [stage, sourceInfo] : m_SourceInfo)
+		std::vector<StageInfo> stageInfo;
+		m_Options.Force = m_Options.Force || !shaderCache.LoadStageInfo(m_Info, stageInfo);
+
+		//////////////////////////////////////////////////////////////////////////
+		//// Try load from cache
+		//////////////////////////////////////////////////////////////////////////
+
+		if (!m_Options.Force && shaderCache.ShaderUpToDate(m_Info))
 		{
-			auto cacheState = shaderCache.GetCacheState(sourceInfo);
-			if (!m_Options.Force && cacheState == ShaderCacheState::UpToDate &&
-				shaderCache.LoadBinary(sourceInfo, m_SpirvBinary[stage]))
+			for (const auto& info : stageInfo)
 			{
-				SK_CORE_INFO_TAG("ShaderCompiler", "Loaded {} shader '{}' from cache", stage, m_Info.SourcePath);
-				continue;
+				std::vector<uint32_t> binary;
+				if (shaderCache.LoadSpirv(m_Info, info.Stage, binary))
+				{
+					m_Result->SpirvBinary[info.Stage] = std::move(binary);
+					SK_CORE_INFO_TAG("ShaderCompiler", "Loaded {} shader '{}' from cache", info.Stage, m_Info.SourcePath);
+				}
+			}
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		//// Preprocess and Compile
+		//////////////////////////////////////////////////////////////////////////
+
+		// Preprocess source if necessary
+		if (m_Options.Force || stageInfo.size() != m_Result->SpirvBinary.size())
+		{
+			bool success = Preprocess(m_Options.Force);
+			SK_CORE_VERIFY(success);
+		}
+
+		// Compile missing stages
+		for (const auto& [stage, result] : m_PreprocessedResult)
+		{
+			CacheStatus status = shaderCache.GetCacheStatus(m_Info, result.Info);
+			if (!m_Options.Force && status == CacheStatus::OK)
+			{
+				std::vector<uint32_t> binary;
+				if (shaderCache.LoadSpirv(m_Info, stage, binary))
+				{
+					m_Result->SpirvBinary[stage] = std::move(binary);
+					SK_CORE_INFO_TAG("ShaderCompiler", "Loaded {} shader '{}' from cache after preprocess", stage, m_Info.SourcePath);
+					continue;
+				}
 			}
 
-			if (!CompileStage(stage) && cacheState == ShaderCacheState::OutOfDate)
+			if (!CompileStage(stage) && status == CacheStatus::OutOfDate)
 			{
 				SK_CORE_WARN_TAG("ShaderCompiler", "Loading older shader version from cache");
-				shaderCache.LoadBinary(sourceInfo, m_SpirvBinary[stage]);
+				shaderCache.LoadSpirv(m_Info, stage, m_Result->SpirvBinary[stage]);
 			}
 
-			if (!m_SpirvBinary.contains(stage) || m_SpirvBinary.at(stage).empty())
+			if (!m_Result->SpirvBinary.contains(stage) || m_Result->SpirvBinary.at(stage).empty())
 			{
 				// At this point the compilation of this stage failed and the cache is missing.
 				SK_CORE_ERROR_TAG("ShaderCompiler", "Compiling shader '{}' failed!", m_Info.SourcePath.filename());
-				SK_CORE_VERIFY(false, "Compiling shader '{}' failed!", m_Info.SourcePath.filename());
+				SK_DEBUG_BREAK_CONDITIONAL(BREAK_ON_FAILED_COMPILATION);
+				m_Result->SpirvBinary.erase(stage);
 				return false;
 			}
+
+			shaderCache.SaveSpirv(m_Info, stage, m_Result->SpirvBinary.at(stage));
 		}
 
+		if (m_CompiledStages != nvrhi::ShaderType::None)
+		{
+			auto stages = m_PreprocessedResult | std::views::values | std::views::transform(&PreprocessedResult::Info) | std::ranges::to<std::vector>();
+			auto includes = m_Preprocessor.Includes | std::views::transform(&IncludeData::Filepath) | std::ranges::to<std::vector>();
+			shaderCache.SaveShaderInfo(m_Info, stages, includes);
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		//// Reflection
+		//////////////////////////////////////////////////////////////////////////
+		
 		bool reflectionLoaded = false;
 		if (m_CompiledStages == nvrhi::ShaderType::None)
 		{
-			reflectionLoaded = shaderCache.LoadReflection(m_Info.ShaderID, m_Reflection, m_RequestedBindingSets, m_LayoutMode);
+			reflectionLoaded = shaderCache.LoadReflection(m_Info, m_Result->Reflection, m_Result->RequestedBindingSets, m_Result->LayoutMode);
 		}
 
 		if (!reflectionLoaded)
+		{
 			Reflect();
 
-		m_D3D11Compiler.SetContext(m_Info, m_Options);
-		m_D3D11Compiler.CompileOrLoad(*this, shaderCache);
-
-		for (const auto& [stage, binary] : m_SpirvBinary)
-		{
-			shaderCache.GetEntry(m_Info).SourcePath = m_Info.SourcePath;
-			shaderCache.CacheStage(m_SourceInfo.at(stage), binary, m_D3D11Compiler.GetBinary(stage));
+			shaderCache.SaveReflection(m_Info, m_Result->Reflection, m_Result->RequestedBindingSets, m_Result->LayoutMode);
 		}
 
-		shaderCache.CacheReflection(m_Info.ShaderID, m_Reflection, m_RequestedBindingSets, m_LayoutMode);
+		//////////////////////////////////////////////////////////////////////////
+		//// Compile platform specific binaries
+		//////////////////////////////////////////////////////////////////////////
+
+		bool anyFailed = false;
+		for (auto& compiler : m_PlatformCompilers)
+		{
+			anyFailed = !compiler->Reload(m_Info, m_CompiledStages, *m_Result);
+		}
+
+		if (anyFailed)
+		{
+			auto deviceManager = Renderer::GetDeviceManager();
+			if (!m_Result->PlatformBinary.contains(deviceManager->GetGraphicsAPI()))
+				return false;
+
+			SK_CORE_WARN_TAG("ShaderCompiler", "A platform compiler failed but the binary for the current graphics api is present, execution can continue");
+		}
+
 		return true;
 	}
 
-	void ShaderCompiler::ClearState()
+	void ShaderCompiler::GetResult(Scope<CompilerResult>& result)
 	{
-		//m_Source = {};
-		//m_SourceInfo.clear();
-		m_IncludeHandler = nullptr;
-		m_Preprocessor = {};
-		m_SpirvBinary.clear();
-		m_CompiledStages = nvrhi::ShaderType::None;
-		m_Reflection = {};
-
-		m_D3D11Compiler.ClearState();
+		result = std::move(m_Result);
 	}
 
-	Buffer ShaderCompiler::GetBinary(nvrhi::ShaderType stage, nvrhi::GraphicsAPI api) const
-	{
-		if (api == nvrhi::GraphicsAPI::D3D11)
-			return m_D3D11Compiler.GetBinary(stage);
-		return Buffer::FromArray(m_SpirvBinary.at(stage));
-	}
-
-	void ShaderCompiler::SetupDXC()
-	{
-		if (!DxcInstances::Compiler)
-		{
-			DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&DxcInstances::Compiler));
-			DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&DxcInstances::Utils));
-			DxcInstances::Utils->CreateDefaultIncludeHandler(&DxcInstances::IncludeHandler);
-		}
-	}
-
-	bool ShaderCompiler::Preprocess()
+	bool ShaderCompiler::Preprocess(bool processAll)
 	{
 		m_Preprocessor.PreprocessFile(m_Info.SourcePath);
-
 		if (!m_Preprocessor.Errors.empty())
 		{
 			SK_CORE_ERROR_TAG("ShaderCompiler", "Failed to preprocess file '{}'\n{}", m_Info.SourcePath, fmt::join(m_Preprocessor.Errors, "\n"));
 			return false;
 		}
 
-		m_IncludeHandler = Scope<HLSLIncludeHandler>::Create(&m_Preprocessor, DxcInstances::Utils);
+		m_IncludeHandler = std::make_shared<HLSLIncludeHandler>(&m_Preprocessor, DxcInstances::g_Utils);
 
-		for (nvrhi::ShaderType stage : m_Preprocessor.Stages)
+		for (auto& stage : m_Preprocessor.Stages)
 		{
-			CComPtr<IDxcBlobEncoding> sourceBlob;
-			DxcInstances::Utils->CreateBlob(m_Preprocessor.Source.data(), static_cast<UINT32>(m_Preprocessor.Source.size()), CP_UTF8, &sourceBlob);
+			if (!processAll && m_Result->SpirvBinary.contains(stage))
+				continue;
 
-			const wchar_t* version = s_ShaderTypeMappings.at(stage).DXC;
-			std::wstring filename = m_Info.SourcePath.stem().wstring();
-
-			std::vector<LPCWSTR> arguments = {
-				filename.c_str(),
-
-				L"-P",
-				L"-I Resources/Shaders/",
-				L"-I Resources/Shaders/EnvMap",
-				L"-D", utils::ShaderStageToMakro(stage)
-			};
-
-
-			DxcBuffer buffer = {};
-			buffer.Encoding = 0;
-			buffer.Ptr = sourceBlob->GetBufferPointer();
-			buffer.Size = sourceBlob->GetBufferSize();
-
-
-			CComPtr<IDxcResult> result = nullptr;
-			HRESULT hResult = DxcInstances::Compiler->Compile(&buffer, arguments.data(), static_cast<UINT32>(arguments.size()),
-															  m_IncludeHandler.Raw(), IID_PPV_ARGS(&result));
-
-
-			result->GetStatus(&hResult);
-			if (FAILED(hResult))
-			{
-				CComPtr<IDxcBlobEncoding> errorBlob;
-				hResult = result->GetErrorBuffer(&errorBlob);
-				std::string errorMessage = (const char*)errorBlob->GetBufferPointer();
-				SK_CORE_ERROR_TAG("ShaderCompiler", "Failed to preprocessor source by DXC!\n{}", errorMessage);
-				return false;
-			}
-
-			CComPtr<IDxcBlob> code;
-			result->GetResult(&code);
-
-			const std::string shaderSource = { static_cast<const char*>(code->GetBufferPointer()), code->GetBufferSize() };
-			m_SourceInfo[stage].HashCode = Hash::GenerateFNV(shaderSource);
-			m_SourceInfo[stage].Stage = stage;
-			m_SourceInfo[stage].ShaderID = m_Preprocessor.ShaderID;
-			m_SourceInfo[stage].Source = std::move(shaderSource);
+			bool success = PreprocessStage(stage);
+			SK_CORE_VERIFY(success);
 		}
+
 		return true;
+	}
 
-#if 0
-		PreProcessorResult result;
+	bool ShaderCompiler::PreprocessStage(nvrhi::ShaderType stage)
+	{
+		CComPtr<IDxcBlobEncoding> sourceBlob;
+		DxcInstances::g_Utils->CreateBlob(m_Preprocessor.Source.data(), static_cast<UINT32>(m_Preprocessor.Source.size()), CP_UTF8, &sourceBlob);
 
-		switch (m_Info.Language)
+		const wchar_t* version = s_ShaderTypeMappings.at(stage).DXC;
+		std::wstring filename = m_Info.SourcePath.stem().wstring();
+
+		std::vector<LPCWSTR> arguments = {
+			filename.c_str(),
+
+			L"-P",
+			L"-I Resources/Shaders/",
+			L"-I Resources/Shaders/EnvMap",
+			L"-D", utils::ShaderStageToMakro(stage)
+		};
+
+
+		DxcBuffer buffer = {};
+		buffer.Encoding = 0;
+		buffer.Ptr = sourceBlob->GetBufferPointer();
+		buffer.Size = sourceBlob->GetBufferSize();
+
+
+		CComPtr<IDxcResult> result = nullptr;
+		HRESULT hResult = DxcInstances::g_Compiler->Compile(&buffer, arguments.data(), static_cast<UINT32>(arguments.size()),
+															m_IncludeHandler.get(), IID_PPV_ARGS(&result));
+
+
+		result->GetStatus(&hResult);
+		if (FAILED(hResult))
 		{
-			case ShaderLanguage::HLSL:
-			{
-				HLSLPreprocessor preprocessor;
-				preprocessor.Preprocess(m_Source);
-				result = std::move(preprocessor.PreProcessedResult);
-				m_CombinedImageSampler = std::move(preprocessor.CombinedImageSamplers);
-				break;
-			}
-			case ShaderLanguage::GLSL:
-			{
-				GLSLPreprocssor preprocessor;
-				result = preprocessor.Preprocess(m_Source);
-				break;
-			}
+			CComPtr<IDxcBlobEncoding> errorBlob;
+			hResult = result->GetErrorBuffer(&errorBlob);
+			std::string errorMessage = (const char*)errorBlob->GetBufferPointer();
+			SK_CORE_ERROR_TAG("ShaderCompiler", "Failed to preprocessor source by DXC!\n{}", errorMessage);
+			return false;
 		}
 
-		for (auto& [stage, source] : result)
-		{
-			m_SourceInfo[stage] = {
-				.Stage = stage,
-				.HashCode = Hash::GenerateFNV(source),
-				.ShaderID = m_Info.ShaderID,
-				.Source = std::move(source)
-			};
-		}
-#endif
+		CComPtr<IDxcBlob> code;
+		result->GetResult(&code);
+
+		auto& processed = m_PreprocessedResult[stage];
+		processed.Source = { static_cast<const char*>(code->GetBufferPointer()), code->GetBufferSize() };
+		processed.Info.HashCode = Hash::GenerateFNV(processed.Source);
+		processed.Info.Stage = stage;
+		return true;
 	}
 
 	bool ShaderCompiler::CompileStage(nvrhi::ShaderType stage)
@@ -257,8 +276,7 @@ namespace Shark {
 
 	std::string ShaderCompiler::HLSLCompileStage(nvrhi::ShaderType stage)
 	{
-		const ShaderSourceInfo& sourceInfo = m_SourceInfo.at(stage);
-		const std::string& shaderSource = sourceInfo.Source;
+		const std::string& shaderSource = m_PreprocessedResult.at(stage).Source;
 
 		// 
 		// #TODO #Renderer #Investigate dxc -fspv-preserve-bindings bug
@@ -312,8 +330,8 @@ namespace Shark {
 		buffer.Size = shaderSource.size();
 
 		CComPtr<IDxcResult> result = nullptr;
-		HRESULT hResult = DxcInstances::Compiler->Compile(&buffer, arguments.data(), arguments.size(),
-														  m_IncludeHandler.Raw(), IID_PPV_ARGS(&result));
+		HRESULT hResult = DxcInstances::g_Compiler->Compile(&buffer, arguments.data(), static_cast<UINT32>(arguments.size()),
+															m_IncludeHandler.get(), IID_PPV_ARGS(&result));
 
 		result->GetStatus(&hResult);
 		if (FAILED(hResult))
@@ -326,7 +344,7 @@ namespace Shark {
 		CComPtr<IDxcBlob> code;
 		result->GetResult(&code);
 
-		auto& spirvBinary = m_SpirvBinary[stage];
+		auto& spirvBinary = m_Result->SpirvBinary[stage];
 		Memory::Write(spirvBinary, code->GetBufferPointer(), code->GetBufferSize());
 
 		return {};
@@ -334,29 +352,124 @@ namespace Shark {
 
 	void ShaderCompiler::Reflect()
 	{
-		for (const auto& [stage, binary] : m_SpirvBinary)
+		for (const auto& [stage, binary] : m_Result->SpirvBinary)
 			ReflectStage(stage);
-		
-		MapBindings();
-		ProcessCompilerInstructions();
+
+		//////////////////////////////////////////////////////////////////////////
+		//// Map Bindings
+		//////////////////////////////////////////////////////////////////////////
+
+		D3D11BindingSetOffsets bindingOffsets = {};
+
+		if (m_Result->Reflection.PushConstant && !m_Result->Reflection.BindingLayouts.empty())
+		{
+			auto& layout = m_Result->Reflection.BindingLayouts[0];
+			const uint32_t min = layout.ConstantBuffers.empty() ? 0 : std::ranges::min(layout.ConstantBuffers | std::views::values | std::views::transform(&ShaderResource::Buffer::Slot));
+
+			if (min == 0)
+			{
+				bindingOffsets.ConstantBuffer = 1;
+				layout.BindingOffsets.ConstantBuffer = 1;
+			}
+		}
+
+		for (uint32_t set = 1; set < m_Result->Reflection.BindingLayouts.size(); set++)
+		{
+			auto& layout = m_Result->Reflection.BindingLayouts[set - 1];
+			
+			const int maxCBSlot      = layout.ConstantBuffers.empty() ? -1 : std::ranges::max(layout.ConstantBuffers | std::views::values | std::views::transform(&ShaderResource::Buffer::Slot));
+			const int maxSBSlot      = layout.StorageBuffers.empty()  ? -1 : std::ranges::max(layout.StorageBuffers  | std::views::values | std::views::transform(&ShaderResource::Buffer::Slot));
+			const int maxImageSlot   = layout.Images.empty()          ? -1 : std::ranges::max(layout.Images          | std::views::values | std::views::transform(&ShaderResource::Image::Slot));
+			const int maxSImageSlot  = layout.StorageImages.empty()   ? -1 : std::ranges::max(layout.StorageImages   | std::views::values | std::views::transform(&ShaderResource::Image::Slot));
+			const int maxSamplerSlot = layout.Samplers.empty()        ? -1 : std::ranges::max(layout.Samplers        | std::views::values | std::views::transform(&ShaderResource::Sampler::Slot));
+			
+			bindingOffsets.ConstantBuffer  += maxCBSlot + 1;
+			bindingOffsets.ShaderResource  += std::max(maxSBSlot, maxImageSlot) + 1;
+			bindingOffsets.UnorderedAccess += maxSImageSlot + 1;
+			bindingOffsets.Sampler         += maxSamplerSlot + 1;
+
+			m_Result->Reflection.BindingLayouts[set].BindingOffsets = bindingOffsets;
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		//// Process Compiler Instructions
+		//////////////////////////////////////////////////////////////////////////
+
+		for (const auto& pragma : m_Preprocessor.CompilerInstructions)
+		{
+			switch (pragma.Instruction)
+			{
+				case CompilerInstruction::Type::Combine:
+				{
+					SK_CORE_VERIFY(pragma.Arguments.size() == 2);
+					BuildCombinedImageSampler(pragma.Arguments[0], pragma.Arguments[1]);
+					break;
+				}
+				case CompilerInstruction::Type::Bind:
+				{
+					SK_CORE_VERIFY(pragma.Arguments.size() == 1);
+					m_Result->RequestedBindingSets.emplace_back(pragma.Arguments[0]);
+
+					if (pragma.Arguments[0] == "samplers")
+					{
+						if (m_Result->Reflection.BindingLayouts.size() < 4)
+						{
+							SK_CORE_ERROR_TAG("ShaderCompiler", "Samplers where requested with bind but the layout at set 3 doesn't exists!");
+							continue;
+						}
+
+						size_t inputs = m_Result->Reflection.BindingLayouts[3].InputInfos.size();
+						if (inputs < 6)
+						{
+							SK_CORE_ERROR_TAG("ShaderCompiler", "Samplers where requested but the layout has only {} inputs.", inputs);
+							SK_CORE_ERROR_TAG("ShaderCompiler", "I don't know the exact reason but removing 'Image queries' could help.", inputs);
+							SK_CORE_ERROR_TAG("ShaderCompiler", "Image queries => u_Texture.GetDimensions()", inputs);
+						}
+
+						SK_CORE_ASSERT(m_Result->Reflection.BindingLayouts[3].InputInfos.size() == 6);
+					}
+
+					break;
+				}
+				case CompilerInstruction::Type::Layout:
+				{
+					SK_CORE_VERIFY(pragma.Arguments.size() == 1);
+
+					const auto& arg = pragma.Arguments[0];
+					if (String::Compare(arg, "renderpass", String::Case::Ignore))
+						m_Result->LayoutMode = LayoutShareMode::PassOnly;
+					else if (String::Compare(arg, "material", String::Case::Ignore))
+						m_Result->LayoutMode = LayoutShareMode::MaterialOnly;
+					else if (String::Compare(arg, "share", String::Case::Ignore))
+						m_Result->LayoutMode = LayoutShareMode::PassAndMaterial;
+					else if (String::Compare(arg, "default", String::Case::Ignore))
+						m_Result->LayoutMode = LayoutShareMode::Default;
+					else
+					{
+						SK_CORE_WARN_TAG("ShaderCompiler", "Failed to parse Layout mode '{}'. Arguments are 'renderpass', 'material', 'share', 'default'.", arg);
+						m_Result->LayoutMode = LayoutShareMode::Default;
+					}
+				}
+			}
+		}
 	}
 
 	void ShaderCompiler::ReflectStage(nvrhi::ShaderType stage)
 	{
-		const auto& spirvBinary = m_SpirvBinary.at(stage);
+		const auto& spirvBinary = m_Result->SpirvBinary.at(stage);
 		const spirv_cross::Compiler compiler(spirvBinary.data(), spirvBinary.size());
 		const spirv_cross::ShaderResources shaderResources = compiler.get_shader_resources();
 
 #if 0
-	#define CHECK_BINDING(_binding, _typeStr)\
-		if (m_ShaderResources.contains(_binding))\
-		{\
-			auto* item = m_ShaderResources.at(_binding);\
-			SK_CORE_ERROR_TAG("ShaderCompiler", "Duplicate Binding {}[{}] in set {}: {}, {}", _typeStr, _binding.Slot, _binding.Set, item->Name, name);\
-			SK_CORE_VERIFY(false, "Duplicate Binding {}[{}] in set {}: {}, {}", _typeStr, _binding.Slot, _binding.Set, item->Name, name);\
-		}
+#define CHECK_BINDING(_binding, _typeStr)\
+	if (m_ShaderResources.contains(_binding))\
+	{\
+		auto* item = m_ShaderResources.at(_binding);\
+		SK_CORE_ERROR_TAG("ShaderCompiler", "Duplicate Binding {}[{}] in set {}: {}, {}", _typeStr, _binding.Slot, _binding.Set, item->Name, name);\
+		SK_CORE_VERIFY(false, "Duplicate Binding {}[{}] in set {}: {}, {}", _typeStr, _binding.Slot, _binding.Set, item->Name, name);\
+	}
 #else
-	#define CHECK_BINDING(...)
+#define CHECK_BINDING(...)
 #endif
 
 #define LOG_REFLECTION(_set, _slot, _register, _name, _type) SK_CORE_INFO_TAG("ShaderCompiler", " - {} [{} {}{}] {}", _name, _set, _register, _slot, _type)
@@ -370,9 +483,9 @@ namespace Shark {
 			const auto& name = compiler.get_name(pushConstant.id);
 			SK_CORE_VERIFY(!name.empty());
 
-			if (!m_Reflection.PushConstant)
+			if (!m_Result->Reflection.PushConstant)
 			{
-				m_Reflection.PushConstant = ShaderResource::PushConstant{
+				m_Result->Reflection.PushConstant = ShaderResource::PushConstant{
 					//.Slot = 0,
 					.StructSize = (uint32_t)compiler.get_declared_struct_size(type),
 					.Stage = stage
@@ -380,15 +493,13 @@ namespace Shark {
 			}
 			else
 			{
-				m_Reflection.PushConstant->Stage |= stage;
-				SK_CORE_VERIFY(m_Reflection.PushConstant->StructSize == (uint32_t)compiler.get_declared_struct_size(type));
+				m_Result->Reflection.PushConstant->Stage |= stage;
+				SK_CORE_VERIFY(m_Result->Reflection.PushConstant->StructSize == (uint32_t)compiler.get_declared_struct_size(type));
 			}
 
 			SK_CORE_INFO_TAG("ShaderCompiler", " - {} PushConstant", name);
-			//m_ShaderResources[m_ReflectionData.PushConstant.Binding] = &m_ReflectionData.PushConstant;
-			//m_SpirvCrossIDs[{ ~0u, 0, GraphicsResourceType::ConstantBuffer }] = pushConstant.id;
 		}
-		
+
 		for (const auto& constantBuffer : shaderResources.uniform_buffers)
 		{
 			const auto& type = compiler.get_type(constantBuffer.type_id);
@@ -400,10 +511,10 @@ namespace Shark {
 			const uint32_t slot = compiler.get_decoration(constantBuffer.id, spv::DecorationBinding);
 			const GraphicsBinding binding = { set, slot, GraphicsResourceType::ConstantBuffer };
 
-			if (set >= m_Reflection.BindingLayouts.size())
-				m_Reflection.BindingLayouts.resize(set + 1);
+			if (set >= m_Result->Reflection.BindingLayouts.size())
+				m_Result->Reflection.BindingLayouts.resize(set + 1);
 
-			auto& layout = m_Reflection.BindingLayouts[set];
+			auto& layout = m_Result->Reflection.BindingLayouts[set];
 			CHECK_BINDING(binding, "b");
 
 			if (layout.ConstantBuffers.contains(slot))
@@ -434,8 +545,6 @@ namespace Shark {
 			};
 
 			LOG_REFLECTION(set, slot, "b", name, "ConstantBuffer");
-			//m_ShaderResources[binding] = &buffer;
-			//m_SpirvCrossIDs[binding] = constantBuffer.id;
 		}
 
 		for (const auto& storageBuffer : shaderResources.storage_buffers)
@@ -449,10 +558,10 @@ namespace Shark {
 			const uint32_t slot = compiler.get_decoration(storageBuffer.id, spv::DecorationBinding);
 			const GraphicsBinding binding = { set, slot, GraphicsResourceType::ShaderResourceView };
 
-			if (set >= m_Reflection.BindingLayouts.size())
-				m_Reflection.BindingLayouts.resize(set + 1);
+			if (set >= m_Result->Reflection.BindingLayouts.size())
+				m_Result->Reflection.BindingLayouts.resize(set + 1);
 
-			auto& layout = m_Reflection.BindingLayouts[set];
+			auto& layout = m_Result->Reflection.BindingLayouts[set];
 			CHECK_BINDING(binding, "t");
 
 			if (layout.StorageBuffers.contains(slot))
@@ -483,8 +592,6 @@ namespace Shark {
 			};
 
 			LOG_REFLECTION(set, slot, "t", name, "StorageBuffer");
-			//m_ShaderResources[binding] = &buffer;
-			//m_SpirvCrossIDs[binding] = storageBuffer.id;
 		}
 
 		for (const auto& resource : shaderResources.separate_images)
@@ -497,10 +604,10 @@ namespace Shark {
 			const uint32_t slot = compiler.get_decoration(resource.id, spv::DecorationBinding);
 			const GraphicsBinding binding = { set, slot, GraphicsResourceType::ShaderResourceView };
 
-			if (set >= m_Reflection.BindingLayouts.size())
-				m_Reflection.BindingLayouts.resize(set + 1);
+			if (set >= m_Result->Reflection.BindingLayouts.size())
+				m_Result->Reflection.BindingLayouts.resize(set + 1);
 
-			auto& layout = m_Reflection.BindingLayouts[set];
+			auto& layout = m_Result->Reflection.BindingLayouts[set];
 			CHECK_BINDING(binding, "t");
 
 			if (layout.Images.contains(slot))
@@ -544,8 +651,6 @@ namespace Shark {
 			};
 
 			LOG_REFLECTION(set, slot, "t", name, "SeparateImage");
-			//m_ShaderResources[binding] = &image;
-			//m_SpirvCrossIDs[binding] = resource.id;
 		}
 
 		for (const auto& resource : shaderResources.storage_images)
@@ -558,10 +663,10 @@ namespace Shark {
 			const uint32_t slot = compiler.get_decoration(resource.id, spv::DecorationBinding);
 			const GraphicsBinding binding = { set, slot, GraphicsResourceType::UnorderedAccessView };
 
-			if (set >= m_Reflection.BindingLayouts.size())
-				m_Reflection.BindingLayouts.resize(set + 1);
+			if (set >= m_Result->Reflection.BindingLayouts.size())
+				m_Result->Reflection.BindingLayouts.resize(set + 1);
 
-			auto& layout = m_Reflection.BindingLayouts[set];
+			auto& layout = m_Result->Reflection.BindingLayouts[set];
 			CHECK_BINDING(binding, "u");
 
 			if (layout.StorageImages.contains(slot))
@@ -605,8 +710,6 @@ namespace Shark {
 			};
 
 			LOG_REFLECTION(set, slot, "u", name, "StorageImage");
-			//m_ShaderResources[binding] = &storageImage;
-			//m_SpirvCrossIDs[binding] = resource.id;
 		}
 
 		for (const auto& resource : shaderResources.separate_samplers)
@@ -619,10 +722,10 @@ namespace Shark {
 			const uint32_t slot = compiler.get_decoration(resource.id, spv::DecorationBinding);
 			const GraphicsBinding binding = { set, slot, GraphicsResourceType::Sampler };
 
-			if (set >= m_Reflection.BindingLayouts.size())
-				m_Reflection.BindingLayouts.resize(set + 1);
+			if (set >= m_Result->Reflection.BindingLayouts.size())
+				m_Result->Reflection.BindingLayouts.resize(set + 1);
 
-			auto& layout = m_Reflection.BindingLayouts[set];
+			auto& layout = m_Result->Reflection.BindingLayouts[set];
 			CHECK_BINDING(binding, "s");
 
 			if (layout.Samplers.contains(slot))
@@ -654,108 +757,8 @@ namespace Shark {
 			};
 
 			LOG_REFLECTION(set, slot, "s", name, "Sampler");
-			//m_ShaderResources[binding] = &sampler;
-			//m_SpirvCrossIDs[binding] = resource.id;
 		}
-
 #undef CHECK_BINDING
-	}
-
-	void ShaderCompiler::MapBindings()
-	{
-		D3D11BindingSetOffsets bindingOffsets = {};
-
-		if (m_Reflection.PushConstant && !m_Reflection.BindingLayouts.empty())
-		{
-			auto& layout = m_Reflection.BindingLayouts[0];
-			const uint32_t min = layout.ConstantBuffers.empty() ? 0 : std::ranges::min(layout.ConstantBuffers | std::views::values | std::views::transform(&ShaderResource::Buffer::Slot));
-
-			if (min == 0)
-			{
-				bindingOffsets.ConstantBuffer = 1;
-				layout.BindingOffsets.ConstantBuffer = 1;
-			}
-		}
-
-		for (uint32_t set = 1; set < m_Reflection.BindingLayouts.size(); set++)
-		{
-			auto& layout = m_Reflection.BindingLayouts[set - 1];
-
-			const int maxCBSlot      = layout.ConstantBuffers.empty() ? -1 : std::ranges::max(layout.ConstantBuffers | std::views::values | std::views::transform(&ShaderResource::Buffer::Slot));
-			const int maxSBSlot      = layout.StorageBuffers.empty()  ? -1 : std::ranges::max(layout.StorageBuffers  | std::views::values | std::views::transform(&ShaderResource::Buffer::Slot));
-			const int maxImageSlot   = layout.Images.empty()          ? -1 : std::ranges::max(layout.Images          | std::views::values | std::views::transform(&ShaderResource::Image::Slot));
-			const int maxSImageSlot  = layout.StorageImages.empty()   ? -1 : std::ranges::max(layout.StorageImages   | std::views::values | std::views::transform(&ShaderResource::Image::Slot));
-			const int maxSamplerSlot = layout.Samplers.empty()        ? -1 : std::ranges::max(layout.Samplers        | std::views::values | std::views::transform(&ShaderResource::Sampler::Slot));
-
-			bindingOffsets.ConstantBuffer  += maxCBSlot + 1;
-			bindingOffsets.ShaderResource  += std::max(maxSBSlot, maxImageSlot) + 1;
-			bindingOffsets.UnorderedAccess += maxSImageSlot + 1;
-			bindingOffsets.Sampler         += maxSamplerSlot + 1;
-
-			m_Reflection.BindingLayouts[set].BindingOffsets = bindingOffsets;
-		}
-
-	}
-
-	void ShaderCompiler::ProcessCompilerInstructions()
-	{
-		for (const auto& pragma : m_Preprocessor.CompilerInstructions)
-		{
-			switch (pragma.Instruction)
-			{
-				case CompilerInstruction::Type::Combine:
-				{
-					SK_CORE_VERIFY(pragma.Arguments.size() == 2);
-					BuildCombinedImageSampler(pragma.Arguments[0], pragma.Arguments[1]);
-					break;
-				}
-				case CompilerInstruction::Type::Bind:
-				{
-					SK_CORE_VERIFY(pragma.Arguments.size() == 1);
-					m_RequestedBindingSets.emplace_back(pragma.Arguments[0]);
-
-					if (pragma.Arguments[0] == "samplers")
-					{
-						if (m_Reflection.BindingLayouts.size() < 4)
-						{
-							SK_CORE_ERROR_TAG("ShaderCompiler", "Samplers where requested with bind but the layout at set 3 doesn't exists!");
-							continue;
-						}
-
-						size_t inputs = m_Reflection.BindingLayouts[3].InputInfos.size();
-						if (inputs < 6)
-						{
-							SK_CORE_ERROR_TAG("ShaderCompiler", "Samplers where requested but the layout has only {} inputs.", inputs);
-							SK_CORE_ERROR_TAG("ShaderCompiler", "I don't know the exact reason but removing 'Image queries' could help.", inputs);
-							SK_CORE_ERROR_TAG("ShaderCompiler", "Image queries => u_Texture.GetDimensions()", inputs);
-						}
-
-						SK_CORE_ASSERT(m_Reflection.BindingLayouts[3].InputInfos.size() == 6);
-					}
-
-					break;
-				}
-				case CompilerInstruction::Type::Layout:
-				{
-					SK_CORE_VERIFY(pragma.Arguments.size() == 1);
-
-					const auto& arg = pragma.Arguments[0];
-					if (String::Compare(arg, "renderpass", String::Case::Ignore))
-						m_LayoutMode = LayoutShareMode::PassOnly;
-					else if (String::Compare(arg, "material", String::Case::Ignore))
-						m_LayoutMode = LayoutShareMode::MaterialOnly;
-					else if (String::Compare(arg, "share", String::Case::Ignore))
-						m_LayoutMode = LayoutShareMode::PassAndMaterial;
-					else if (String::Compare(arg, "default", String::Case::Ignore))
-						m_LayoutMode = LayoutShareMode::Default;
-					else
-					{
-						SK_CORE_WARN_TAG("ShaderCompiler", "Failed to parse Layout mode '{}'. Arguments are 'renderpass', 'material', 'share', 'default'.", arg);
-						m_LayoutMode = LayoutShareMode::Default;
-					}
-				}
-			}
-		}
 	}
 
 	void ShaderCompiler::BuildCombinedImageSampler(const std::string& imageName, const std::string& samplerName)
@@ -782,7 +785,7 @@ namespace Shark {
 			return;
 		}
 
-		auto& layout = m_Reflection.BindingLayouts[imageInfo->Set];
+		auto& layout = m_Result->Reflection.BindingLayouts[imageInfo->Set];
 		auto& image = layout.Images.at(imageInfo->Slot);
 		auto& sampler = layout.Samplers.at(imageInfo->Slot);
 
@@ -805,9 +808,9 @@ namespace Shark {
 		layout.InputInfos[info.Name] = info;
 	}
 
-	ShaderInputInfo* ShaderCompiler::FindInputInfo(const std::string& name)
+	Shark::ShaderInputInfo* ShaderCompiler::FindInputInfo(const std::string& name)
 	{
-		for (auto& layout : m_Reflection.BindingLayouts)
+		for (auto& layout : m_Result->Reflection.BindingLayouts)
 		{
 			if (!layout.InputInfos.contains(name))
 				continue;

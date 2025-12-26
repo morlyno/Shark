@@ -2,8 +2,8 @@
 #include "Shader.h"
 
 #include "Shark/Core/Application.h"
+#include "Shark/Render/Renderer.h"
 #include "Shark/Render/ShaderCompiler/ShaderCompiler.h"
-#include "Renderer.h"
 
 namespace Shark {
 
@@ -40,21 +40,16 @@ namespace Shark {
 
 	}
 
-	Shader::Shader()
+	Shader::Shader(Scope<CompilerResult> result, const std::string& name)
+		: m_Name(name)
 	{
+		m_ReflectionData = result->Reflection;
+		m_LayoutMode = result->LayoutMode;
 
-	}
-
-	Shader::Shader(Ref<ShaderCompiler> compiler)
-	{
-		m_Compiler = compiler;
-		m_Info = compiler->GetInfo();
-		m_Name = m_Info.SourcePath.stem().string();
-		InitializeFromCompiler();
 		CreateBindingLayout();
 
 		// #TODO #Renderer bad implementation because d3d11...
-		for (const auto& bindingName : m_Compiler->GetRequestedBindingSets())
+		for (const auto& bindingName : result->RequestedBindingSets)
 		{
 			if (bindingName == "samplers")
 			{
@@ -66,19 +61,24 @@ namespace Shark {
 			SK_CORE_ASSERT(false, "Invalid bind '{}'", bindingName);
 		}
 
-		m_LayoutMode = m_Compiler->GetLayoutMode();
+		auto deviceManager = Application::Get().GetDeviceManager();
+		auto device = deviceManager->GetDevice();
+
+		const auto& platformBinary = result->PlatformBinary.at(deviceManager->GetGraphicsAPI());
+
+		for (const auto& [stage, binary] : platformBinary)
+		{
+			auto shaderDesc = nvrhi::ShaderDesc()
+				.setShaderType(stage)
+				.setDebugName(m_Name);
+
+			nvrhi::ShaderHandle shader = device->createShader(shaderDesc, binary.Data, binary.Size);
+			m_ShaderHandles[stage] = shader;
+		}
 	}
 
 	Shader::~Shader()
 	{
-
-	}
-
-	bool Shader::Reload(bool forceCompile, bool disableOptimization)
-	{
-		// #Renderer #TODO Shader::Reload
-		SK_NOT_IMPLEMENTED();
-		return false;
 	}
 
 	nvrhi::ShaderHandle Shader::GetHandle(nvrhi::ShaderType stage) const
@@ -86,26 +86,6 @@ namespace Shark {
 		if (m_ShaderHandles.contains(stage))
 			return m_ShaderHandles.at(stage);
 		return nullptr;
-	}
-
-	void Shader::InitializeFromCompiler()
-	{
-		auto deviceManager = Application::Get().GetDeviceManager();
-		auto device = deviceManager->GetDevice();
-
-		auto shaderStages = { nvrhi::ShaderType::Vertex, nvrhi::ShaderType::Pixel, nvrhi::ShaderType::Compute };
-		for (auto stage : shaderStages | std::views::filter([this](auto stage) { return m_Compiler->HasStage(stage); }))
-		{
-			auto shaderDesc = nvrhi::ShaderDesc()
-				.setShaderType(stage)
-				.setDebugName(m_Name);
-
-			const Buffer binary = m_Compiler->GetBinary(stage, deviceManager->GetGraphicsAPI());
-			nvrhi::ShaderHandle shader = device->createShader(shaderDesc, binary.Data, binary.Size);
-			m_ShaderHandles[stage] = shader;
-		}
-
-		m_ReflectionData = m_Compiler->GetReflectionData();
 	}
 
 	void Shader::CreateBindingLayout()
@@ -173,7 +153,7 @@ namespace Shark {
 
 			nvrhi::BindingLayoutHandle bindingLayout = device->createBindingLayout(layoutDesc);
 			m_BindingLayouts.push_back(bindingLayout);
-			m_LayoutMapping[set] = m_BindingLayouts.size() - 1;
+			m_LayoutMapping[set] = static_cast<int>(m_BindingLayouts.size()) - 1;
 		}
 
 		if (m_BindingLayouts.empty() && m_ReflectionData.PushConstant)
@@ -200,11 +180,14 @@ namespace Shark {
 		compilerOptions.Optimize = options.Optimize.value_or(m_DefaultOptions.Optimize);
 		compilerOptions.GenerateDebugInfo = options.GenerateDebugInfo.value_or(m_DefaultOptions.GenerateDebugInfo);
 
-		auto compiler = ShaderCompiler::Load(filepath, compilerOptions);
-		if (!compiler)
+		ShaderCompiler compiler(filepath, compilerOptions);
+		if (!compiler.Reload())
 			return nullptr;
 
-		auto shader = Shader::Create(compiler);
+		Scope<CompilerResult> result;
+		compiler.GetResult(result);
+
+		auto shader = Shader::Create(std::move(result), compiler.GetName());
 
 		SK_CORE_VERIFY(!Exists(shader->GetName()));
 		m_ShaderMap[shader->GetName()] = shader;

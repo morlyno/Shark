@@ -2,26 +2,20 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Render/ShaderReflection.h"
-#include "Shark/Render/ShaderCompiler/ShaderCompiler.h"
+#include "Shark/Render/ShaderCompiler/Common.h"
 
 #include <nvrhi/nvrhi.h>
-#include <utility>
 
 namespace Shark {
 
 	class Shader : public RefCount
 	{
 	public:
-		static Ref<Shader> Create() { return Ref<Shader>::Create(); }
-		static Ref<Shader> Create(Ref<ShaderCompiler> compiler) { return Ref<Shader>::Create(compiler); }
-
-		bool Reload(bool forceCompile = false, bool disableOptimization = false);
+		static Ref<Shader> Create(Scope<CompilerResult> result, const std::string& name) { return Ref<Shader>::Create(std::move(result), name); }
 
 		nvrhi::ShaderHandle GetHandle(nvrhi::ShaderType stage) const;
 
-		uint64_t GetHash() const { return m_Info.ShaderID; }
 		const std::string& GetName() const { return m_Name; }
-		const std::filesystem::path& GetFilePath() const { return m_Info.SourcePath; }
 
 		bool HasLayout(uint32_t set) const { return m_LayoutMapping[set] != -1; }
 		nvrhi::IBindingLayout* GetBindingLayout(uint32_t set) const { return m_BindingLayouts[m_LayoutMapping[set]]; }
@@ -34,20 +28,14 @@ namespace Shark {
 		LayoutShareMode GetLayoutMode() const { return m_LayoutMode; }
 
 	public:
-		Shader();
-		Shader(Ref<ShaderCompiler> compiler);
+		Shader(Scope<CompilerResult> result, const std::string& name);
 		~Shader();
 
 	private:
-		void InitializeFromCompiler();
 		void CreateBindingLayout();
 
 	private:
-		// #Renderer #TODO remove this
-		Ref<ShaderCompiler> m_Compiler;
-
-		ShaderInfo m_Info;
-		std::string m_Name;
+		const std::string m_Name;
 
 		ShaderReflection m_ReflectionData;
 		std::map<nvrhi::ShaderType, nvrhi::ShaderHandle> m_ShaderHandles;

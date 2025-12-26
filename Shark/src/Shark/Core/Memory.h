@@ -10,11 +10,14 @@ namespace Shark {
 	public:
 		static void Write(void* destination, void* source, uint64_t byteSize);
 		static void Write(void* destination, const Buffer source);
+		static void Write(Buffer& destination, void* source, uint64_t byteSize);
 		static void WriteZero(void* destination, uint64_t byteSize);
 
 		// This will resize the vector if the size is not enough
 		template<typename T>
 		static void Write(std::vector<T>& destination, void* source, uint64_t byteSize);
+		template<typename T>
+		static void Write(std::vector<T>& destination, const Buffer source);
 
 		template<typename T>
 		static void WriteZero(T& destination);
@@ -38,6 +41,16 @@ void Shark::Memory::Write(std::vector<T>& destination, void* source, uint64_t by
 		destination.resize(count);
 
 	Write(destination.data(), source, byteSize);
+}
+
+template<typename T>
+void Shark::Memory::Write(std::vector<T>& destination, const Buffer source)
+{
+	const uint64_t count = (source.Size + sizeof(T) - 1) / sizeof(T);
+	if (destination.size() < count)
+		destination.resize(count);
+
+	Write(destination.data(), source);
 }
 
 template<typename T>

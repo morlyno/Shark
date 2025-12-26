@@ -1,75 +1,51 @@
 #pragma once
 
-#include "Shark/Core/Base.h"
-#include "Shark/Core/Buffer.h"
-#include "Shark/Core/Hash.h"
-#include "Shark/Render/ShaderReflection.h"
-#include "Shark/Render/ShaderCompiler/Common.h"
-
-#include <nvrhi/nvrhi.h>
+#include <Shark/Render/ShaderCompiler/Common.h>
+#include <span>
 
 namespace Shark {
 
-	class ShaderCompiler;
-
-	enum class ShaderCacheState
+	struct ShaderInclude
 	{
-		UpToDate, OutOfDate, Missing
-	};
-
-	struct ShaderCacheKey
-	{
-		uint64_t ShaderID;
-		auto operator<=>(const ShaderCacheKey& other) const = default;
+		ShaderInfo Info;
+		uint64_t HashCode;
 	};
 
 	struct ShaderCacheEntry
 	{
-		std::vector<std::pair<nvrhi::ShaderType, uint64_t>> Hashes;
+		ShaderInfo Info;
+		uint64_t FileHash = 0;
+		std::vector<StageInfo> Stages;
+		std::vector<ShaderInclude> Includes;
+	};
 
-		std::filesystem::path SourcePath;
+	enum class CacheStatus
+	{
+		OK, OutOfDate, Missing
 	};
 
 	class ShaderCache
 	{
 	public:
-		ShaderCache() = default;
-
 		void SaveRegistry();
 		void LoadRegistry();
 
-		ShaderCacheEntry& GetEntry(const ShaderInfo& info);
+		bool ShaderUpToDate(const ShaderInfo& info) const;
+		CacheStatus GetCacheStatus(const ShaderInfo& info, const StageInfo& stageInfo) const;
+		CacheStatus GetCacheStatus(const ShaderInfo& info, nvrhi::ShaderType stage, nvrhi::GraphicsAPI platform) const;
 
-		ShaderCacheState GetCacheState(const ShaderSourceInfo& info);
-		bool LoadBinary(const ShaderSourceInfo& info, std::vector<uint32_t>& outBinary, Buffer* outD3D11Binary = nullptr);
-		bool LoadSPIRV(const ShaderSourceInfo& info, std::vector<uint32_t>& outBinary);
-		bool LoadD3D11(const ShaderSourceInfo& info, Buffer& outBinary);
-		bool LoadReflection(uint64_t shaderID, ShaderReflection& reflectionData, std::vector<std::string>& requestedBindingSets, LayoutShareMode& outShareMode);
+		bool LoadStageInfo(const ShaderInfo& info, std::vector<StageInfo>& outStageInfo) const;
+		bool LoadSpirv(const ShaderInfo& info, nvrhi::ShaderType stage, std::vector<uint32_t>& outBinary) const;
+		bool LoadBinary(const ShaderInfo& info, nvrhi::ShaderType stage, nvrhi::GraphicsAPI platform, Buffer& outBinary) const;
+		bool LoadReflection(const ShaderInfo& info, ShaderReflection& outReflection, std::vector<std::string>& outRequestedBindingSets, LayoutShareMode& outShareMode) const;
 
-		void CacheStage(const ShaderSourceInfo& info, std::span<const uint32_t> spirvBinary, const Buffer d3d11Binary = {});
-		void CacheReflection(uint64_t shaderID, const ShaderReflection& reflectionData, std::span<const std::string> requestedBindingSets, LayoutShareMode layoutMode);
+		void SaveShaderInfo(const ShaderInfo& info, std::span<const StageInfo> stages, std::span<const std::filesystem::path> includes);
+		void SaveReflection(const ShaderInfo& info, const ShaderReflection& relfection, std::span<const std::string> requestedBindingSets, LayoutShareMode layoutMode);
+		void SaveSpirv(const ShaderInfo& info, nvrhi::ShaderType stage, std::span<const uint32_t> binary);
+		void SaveBinary(const ShaderInfo& info, nvrhi::ShaderType stage, nvrhi::GraphicsAPI platform, const Buffer binary);
 
-		ShaderCacheState GetD3D11CacheSyncState(const ShaderSourceInfo& info);
 	private:
-		uint64_t GetHash(const ShaderSourceInfo& info) const;
-		void SetHash(ShaderCacheEntry& entry, nvrhi::ShaderType stage, uint64_t hashCode);
-	private:
-		std::map<ShaderCacheKey, ShaderCacheEntry> m_CacheRegistry;
-	};
-
-}
-
-namespace std {
-
-	template<>
-	struct hash<Shark::ShaderCacheKey>
-	{
-		uint64_t operator()(const Shark::ShaderCacheKey& key)
-		{
-			uint64_t seed = Shark::Hash::FNVBase;
-			Shark::Hash::AppendFNV(seed, key.ShaderID);
-			return seed;
-		}
+		std::unordered_map<uint64_t, ShaderCacheEntry> m_CacheRegistry;
 	};
 
 }

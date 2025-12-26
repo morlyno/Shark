@@ -267,21 +267,53 @@ struct convert<_Type>                                                \
 	Node LoadFile(const std::filesystem::path& filename);
 	Node LoadFile(const char* filename);
 
+	template<typename T>
+	void Read(const YAML::Node& node, std::string_view key, T& outResult)
+	{
+		try
+		{
+			outResult = node[key].as<T>();
+		}
+		catch (const YAML::BadConversion& exception)
+		{
+			SK_CORE_ERROR_TAG("Serialization", "Conversion failed '{}'\n\t{}", key, exception.what());
+			throw;
+		}
+		catch (const YAML::InvalidNode& exception)
+		{
+			SK_CORE_ERROR_TAG("Serialization", "Invalid node '{}'\n\t{}", key, exception.what());
+			throw;
+		}
+	}
+
+	template<typename T>
+	void Read(const YAML::Node& node, T& outResult)
+	{
+		try
+		{
+			outResult = node.as<T>();
+		}
+		catch (const YAML::BadConversion& exception)
+		{
+			SK_CORE_ERROR_TAG("Serialization", "Conversion failed\n\t{}", exception.what());
+			throw;
+		}
+		catch (const YAML::InvalidNode& exception)
+		{
+			SK_CORE_ERROR_TAG("Serialization", "Invalid node\n\t{}", exception.what());
+			throw;
+		}
+	}
+
 	template<typename TValue>
 	bool DeserializeProperty(const YAML::Node& node, std::string_view name, TValue& outValue)
 	{
 		try
 		{
-			outValue = node[name].as<std::decay_t<TValue>>();
+			Read(node, name, outValue);
 		}
-		catch (const YAML::BadConversion& exception)
+		catch ([[maybe_unused]] const YAML::Exception& e)
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Failed to deserialize property '{}'!\n\tError: {}", name, exception.what());
-			return false;
-		}
-		catch (const YAML::InvalidNode& exception)
-		{
-			SK_CORE_ERROR_TAG("Serialization", "Failed to deserialize property '{}'!\n\tError: {}", name, exception.what());
 			return false;
 		}
 		return true;
@@ -292,40 +324,28 @@ struct convert<_Type>                                                \
 	{
 		try
 		{
-			outValue = node[name].as<std::decay_t<TValue>>();
+			Read(node, name, outValue);
 		}
-		catch (const YAML::BadConversion& exception)
+		catch ([[maybe_unused]] const YAML::Exception& e)
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Failed to deserialize property '{}'!\n\tError: {}", name, exception.what());
-			outValue = std::forward<TDefault>(defaultArg);
-			return false;
-		}
-		catch (const YAML::InvalidNode& exception)
-		{
-			SK_CORE_ERROR_TAG("Serialization", "Failed to deserialize property '{}'!\n\tError: {}", name, exception.what());
 			outValue = std::forward<TDefault>(defaultArg);
 			return false;
 		}
 		return true;
 	}
 
-	template<typename T>
-	void Read(const YAML::Node& node, std::string_view key, T& outResult)
+	template<typename TValue>
+	bool DeserializeProperty(const YAML::Node& node, TValue& outValue)
 	{
 		try
 		{
-			outResult = node[key].as<T>();
+			Read(node, outValue);
 		}
-		catch (const YAML::BadConversion& execption)
+		catch ([[maybe_unused]] const YAML::Exception& e)
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Conversion failed '{}'\n\t{}", key, execption.what());
-			throw;
+			return false;
 		}
-		catch (const YAML::InvalidNode& exception)
-		{
-			SK_CORE_ERROR_TAG("Serialization", "Invalid node '{}'\n\t{}", key, exception.what());
-			throw;
-		}
+		return true;
 	}
 
 }

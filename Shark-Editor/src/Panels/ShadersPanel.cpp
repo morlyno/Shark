@@ -31,7 +31,11 @@ namespace Shark {
 			{
 				const ShaderLibrary::ShadersMap& shaders = library->GetShadersMap();
 				for (const auto& [key, shader] : shaders)
-					shader->Reload(true, m_DisableOptimization);
+				{
+					SK_NOT_IMPLEMENTED();
+					// #Renderer #Disabled reload shader
+					//shader->Reload(true, m_DisableOptimization);
+				}
 			}
 
 			UI::Widgets::Search(m_SearchBuffer);
@@ -55,7 +59,9 @@ namespace Shark {
 					ImGui::TableSetColumnIndex(1);
 					if (ImGui::Button("Reload"))
 					{
-						shader->Reload(true, m_DisableOptimization);
+						SK_NOT_IMPLEMENTED();
+						// #Renderer #Disabled reload shader
+						//shader->Reload(true, m_DisableOptimization);
 					}
 				}
 				ImGui::EndTable();
