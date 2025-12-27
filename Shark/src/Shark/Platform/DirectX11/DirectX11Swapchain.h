@@ -19,6 +19,7 @@ namespace Shark {
 		virtual void Present(bool vSync) override;
 		virtual void Resize(uint32_t width, uint32_t height) override;
 
+		virtual const nvrhi::FramebufferInfo& GetFramebufferInfo() const override { return m_FramebufferInfo; };
 		virtual nvrhi::IFramebuffer* GetCurrentFramebuffer() override { return m_Framebuffer; }
 
 	private:
@@ -37,6 +38,7 @@ namespace Shark {
 		nvrhi::RefCountPtr<ID3D11Texture2D> m_D3D11BackBuffer;
 		nvrhi::TextureHandle m_SwapchainTexture;
 		nvrhi::FramebufferHandle m_Framebuffer;
+		nvrhi::FramebufferInfo m_FramebufferInfo;
 	};
 
 }

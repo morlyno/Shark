@@ -9,8 +9,10 @@
 
 namespace Shark {
 
-	bool ImGuiRenderer::Initialize()
+	bool ImGuiRenderer::Initialize(Ref<SwapChain> swapchain)
 	{
+		m_Swapchain = swapchain;
+
 		ImGuiIO& io = ImGui::GetIO();
 		io.BackendRendererName = "Shark NVRHI";
 		io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
@@ -69,12 +71,15 @@ namespace Shark {
 			};
 			m_BindingLayout = device->createBindingLayout(layoutDesc);
 
-			m_BasePSODesc.primType = nvrhi::PrimitiveType::TriangleList;
-			m_BasePSODesc.inputLayout = m_ShaderAttribLayout;
-			m_BasePSODesc.VS = m_VertexShader;
-			m_BasePSODesc.PS = m_PixelShader;
-			m_BasePSODesc.renderState = renderState;
-			m_BasePSODesc.bindingLayouts = { m_BindingLayout };
+			nvrhi::GraphicsPipelineDesc pipelineDesc;
+			pipelineDesc.primType = nvrhi::PrimitiveType::TriangleList;
+			pipelineDesc.inputLayout = m_ShaderAttribLayout;
+			pipelineDesc.VS = m_VertexShader;
+			pipelineDesc.PS = m_PixelShader;
+			pipelineDesc.renderState = renderState;
+			pipelineDesc.bindingLayouts = { m_BindingLayout };
+
+			m_Pipeline = device->createGraphicsPipeline(pipelineDesc, swapchain->GetFramebufferInfo());
 		}
 
 		{
@@ -88,37 +93,46 @@ namespace Shark {
 		return true;
 	}
 
-	bool ImGuiRenderer::Render(ImGuiViewport* viewport, nvrhi::GraphicsPipelineHandle pipeline, nvrhi::FramebufferHandle framebuffer)
+	void ImGuiRenderer::DestroyTextures()
+	{
+		// Destroy all textures
+		for (ImTextureData* tex : ImGui::GetPlatformIO().Textures)
+			if (tex->RefCount == 1)
+				DestroyTexture(tex);
+	}
+
+	bool ImGuiRenderer::Render(ImGuiViewport* viewport)
 	{
 		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("ImGui Render");
 
-		ImDrawData* drawData = viewport->DrawData;
-		const auto& io = ImGui::GetIO();
+		const ImDrawData* drawData = viewport->DrawData;
 
-		m_CommandBuffer->RT_Begin();
-		auto commandList = m_CommandBuffer->GetHandle();
+		m_CommandBuffer->Begin();
 
-		nvrhi::utils::ClearColorAttachment(commandList, framebuffer, 0, { 1.0f, 0.0f, 0.0f, 1.0f });
+		Renderer::Submit([commandBuffer = m_CommandBuffer, swapchain = m_Swapchain]()
+		{
+			auto commandList = commandBuffer->GetHandle();
+			nvrhi::utils::ClearColorAttachment(commandList, swapchain->GetCurrentFramebuffer(), 0, { 1.0f, 0.0f, 0.0f, 1.0f });
+		});
 
 		if (drawData->Textures)
 			for (ImTextureData* texture : *drawData->Textures)
-				UpdateTexture(commandList, texture);
+				UpdateTexture(m_CommandBuffer, texture);
 
-		if (!UpdateGeometry(commandList))
+		if (!UpdateGeometry(m_CommandBuffer, drawData))
 		{
-			m_CommandBuffer->RT_End();
+			m_CommandBuffer->End();
 			return false;
 		}
-
-		// handle DPI scaling
-		drawData->ScaleClipRects(io.DisplayFramebufferScale);
 
 		struct PushConstants
 		{
 			glm::vec2 Translation;
 			glm::vec2 Scale;
-		} pushConstants;
+		};
+
+		PushConstants pushConstants;
 		pushConstants.Scale.x = 2.0f / drawData->DisplaySize.x;
 		pushConstants.Scale.y = 2.0f / drawData->DisplaySize.y;
 		pushConstants.Translation.x = -1.0f - drawData->DisplayPos.x * pushConstants.Scale.x;
@@ -126,14 +140,11 @@ namespace Shark {
 
 		// set up graphics state
 		nvrhi::GraphicsState drawState;
+		
+		drawState.pipeline = m_Pipeline;
 
-		drawState.framebuffer = framebuffer;
-		assert(drawState.framebuffer);
-
-		drawState.pipeline = pipeline;
-
-		drawState.viewport.viewports.push_back(nvrhi::Viewport(io.DisplaySize.x * io.DisplayFramebufferScale.x,
-															   io.DisplaySize.y * io.DisplayFramebufferScale.y));
+		drawState.viewport.viewports.push_back(nvrhi::Viewport(drawData->DisplaySize.x * drawData->FramebufferScale.x,
+															   drawData->DisplaySize.y * drawData->FramebufferScale.y));
 		drawState.viewport.scissorRects.resize(1);  // updated below
 
 		nvrhi::VertexBufferBinding vbufBinding;
@@ -149,79 +160,73 @@ namespace Shark {
 		// render command lists
 		int vtxOffset = 0;
 		int idxOffset = 0;
+		const ImVec2 clipOffset = drawData->DisplayPos;
+		const ImVec2 clipScale = drawData->FramebufferScale;
 		for (int n = 0; n < drawData->CmdListsCount; n++)
 		{
 			const ImDrawList* cmdList = drawData->CmdLists[n];
 			for (int i = 0; i < cmdList->CmdBuffer.Size; i++)
 			{
 				const ImDrawCmd* pCmd = &cmdList->CmdBuffer[i];
+				SK_CORE_VERIFY(pCmd->UserCallback == nullptr, "UserCallback not supported at the moment");
 
-				if (pCmd->UserCallback)
+				drawState.viewport.scissorRects[0] = nvrhi::Rect(static_cast<int>((pCmd->ClipRect.x - clipOffset.x) * clipScale.x),
+																 static_cast<int>((pCmd->ClipRect.z - clipOffset.x) * clipScale.x),
+																 static_cast<int>((pCmd->ClipRect.y - clipOffset.y) * clipScale.y),
+																 static_cast<int>((pCmd->ClipRect.w - clipOffset.y) * clipScale.y));
+
+				const auto& clipRect = drawState.viewport.scissorRects[0];
+				if (clipRect.maxX <= clipRect.minX || clipRect.maxY <= clipRect.minY)
+					continue;
+
+#if 0
+				Ref<ViewableResource> texture;
+				texture.Attach(reinterpret_cast<ViewableResource*>(pCmd->GetTexID()));
+#endif
+
+				Ref<ViewableResource> texture = reinterpret_cast<ViewableResource*>(pCmd->GetTexID());
+
+				nvrhi::DrawArguments drawArguments;
+				drawArguments.vertexCount = pCmd->ElemCount;
+				drawArguments.startIndexLocation = pCmd->IdxOffset + idxOffset;
+				drawArguments.startVertexLocation = pCmd->VtxOffset + vtxOffset;
+
+				ImGuiRenderer* instance = this;
+				Renderer::Submit([instance, commandBuffer = m_CommandBuffer, swapchain = m_Swapchain, tex = texture, drawState, drawArguments, pushConstants]() mutable
 				{
-					pCmd->UserCallback(cmdList, pCmd);
-				}
-				else {
-					Ref<ViewableResource> texture;
-					texture.Attach(reinterpret_cast<ViewableResource*>(pCmd->GetTexID()));
+					SK_PROFILE_SCOPED("ImGui - Draw cmd");
 
-					drawState.bindings = { GetBindingSet(texture) };
-					assert(drawState.bindings[0]);
+					drawState.framebuffer = swapchain->GetCurrentFramebuffer();
+					drawState.bindings = { instance->GetBindingSet(tex) };
 
-					drawState.viewport.scissorRects[0] = nvrhi::Rect(int(pCmd->ClipRect.x),
-																	 int(pCmd->ClipRect.z),
-																	 int(pCmd->ClipRect.y),
-																	 int(pCmd->ClipRect.w));
-
-					nvrhi::DrawArguments drawArguments;
-					drawArguments.vertexCount = pCmd->ElemCount;
-					drawArguments.startIndexLocation = idxOffset;
-					drawArguments.startVertexLocation = vtxOffset;
-
+					auto commandList = commandBuffer->GetHandle();
 					commandList->setGraphicsState(drawState);
 					commandList->setPushConstants(&pushConstants, sizeof(PushConstants));
 					commandList->drawIndexed(drawArguments);
+				});
 
-					if (m_FontTextures.contains(texture.Raw()))
-						texture.Detach();
-				}
+#if 0
+				if (dynamic_cast<ImGuiTexture*>(texture.Raw()))
+					texture.Detach();
+#endif
 
-				idxOffset += pCmd->ElemCount;
 			}
 
+			idxOffset += cmdList->IdxBuffer.Size;
 			vtxOffset += cmdList->VtxBuffer.Size;
 		}
 
-		m_CommandBuffer->RT_End();
-		m_CommandBuffer->RT_Execute();
-
+		m_CommandBuffer->End();
+		m_CommandBuffer->Execute();
 		return true;
 	}
 
-	bool ImGuiRenderer::RenderToSwapchain(ImGuiViewport* viewport, Ref<SwapChain> swapchain)
+	bool ImGuiRenderer::ReallocateBuffer(nvrhi::BufferHandle& buffer, uint64_t requiredSize, uint64_t reallocateSize, bool isIndexBuffer)
 	{
-		nvrhi::FramebufferHandle framebuffer = swapchain->GetCurrentFramebuffer();
-		nvrhi::GraphicsPipelineHandle pipeline = m_PipelineCache[swapchain.Raw()];
-		if (!pipeline)
-		{
-			auto device = Application::Get().GetDeviceManager()->GetDevice();
-			pipeline = device->createGraphicsPipeline(m_BasePSODesc, framebuffer);
-			m_PipelineCache[swapchain.Raw()] = pipeline;
-		}
-
-		return Render(viewport, pipeline, framebuffer);
-	}
-
-	void ImGuiRenderer::OnDestroySwapchain(Ref<SwapChain> swapchain)
-	{
-		m_PipelineCache.erase(swapchain.Raw());
-	}
-
-	bool ImGuiRenderer::ReallocateBuffer(nvrhi::BufferHandle& buffer, size_t requiredSize, size_t reallocateSize, bool isIndexBuffer)
-	{
-		if (buffer == nullptr || size_t(buffer->getDesc().byteSize) < requiredSize)
+		if (buffer == nullptr || buffer->getDesc().byteSize < requiredSize)
 		{
 			nvrhi::BufferDesc desc;
-			desc.byteSize = uint32_t(reallocateSize);
+			desc.byteSize = reallocateSize;
 			desc.structStride = 0;
 			desc.debugName = isIndexBuffer ? "ImGui index buffer" : "ImGui vertex buffer";
 			desc.canHaveUAVs = false;
@@ -244,7 +249,7 @@ namespace Shark {
 		return true;
 	}
 
-	void ImGuiRenderer::UpdateTexture(nvrhi::CommandListHandle commandList, ImTextureData* texture)
+	void ImGuiRenderer::UpdateTexture(Ref<RenderCommandBuffer> commandBuffer, ImTextureData* texture)
 	{
 		auto device = Application::Get().GetDeviceManager()->GetDevice();
 
@@ -253,14 +258,14 @@ namespace Shark {
 			auto textureDesc = nvrhi::TextureDesc()
 				.setWidth(texture->Width)
 				.setHeight(texture->Height)
-				.setFormat(nvrhi::Format::RGBA8_UNORM);
+				.setFormat(nvrhi::Format::RGBA8_UNORM)
+				.setDebugName(fmt::format("ImGui Texture {}", texture->UniqueID));
 
 			auto textureHandle = device->createTexture(textureDesc);
 
 			auto tex = Ref<ImGuiTexture>::Create();
 			tex->View.Handle = textureHandle;
 			tex->View.TextureSampler = m_FontSampler;
-			m_FontTextures.emplace(tex.Raw());
 
 			texture->BackendUserData = tex.Detach();
 			texture->SetTexID(reinterpret_cast<ImTextureID>(texture->BackendUserData));
@@ -268,26 +273,37 @@ namespace Shark {
 		}
 		else if (texture->Status == ImTextureStatus_WantDestroy)
 		{
-			Ref<ImGuiTexture> tex;
-			tex.Attach(static_cast<ImGuiTexture*>(texture->BackendUserData));
-
-			m_FontTextures.erase(tex.Raw());
-			texture->SetTexID(ImTextureID_Invalid);
-			texture->SetStatus(ImTextureStatus_Destroyed);
-			texture->BackendUserData = nullptr;
+			DestroyTexture(texture);
 		}
 		else if (texture->Status == ImTextureStatus_WantUpdates)
 		{
-			auto tex = static_cast<ImGuiTexture*>(texture->BackendUserData);
-			const auto& viewInfo = tex->GetViewInfo();
+			Ref<ImGuiTexture> tex = static_cast<ImGuiTexture*>(texture->BackendUserData);
 
-			commandList->beginTrackingTextureState(viewInfo.Handle, nvrhi::AllSubresources, nvrhi::ResourceStates::Common);
-			commandList->writeTexture(viewInfo.Handle, 0, 0, texture->Pixels, texture->Width * 4);
-			commandList->setPermanentTextureState(viewInfo.Handle, nvrhi::ResourceStates::ShaderResource);
-			commandList->commitBarriers();
+			Renderer::Submit([commandBuffer, tex, temp = Buffer::Copy(texture->Pixels, texture->GetSizeInBytes()), pitch = texture->GetPitch()]() mutable
+			{
+				auto commandList = commandBuffer->GetHandle();
+				const auto& viewInfo = tex->GetViewInfo();
+
+				commandList->beginTrackingTextureState(viewInfo.Handle, nvrhi::AllSubresources, nvrhi::ResourceStates::Common);
+				commandList->writeTexture(viewInfo.Handle, 0, 0, temp.As<const void>(), pitch);
+				commandList->setPermanentTextureState(viewInfo.Handle, nvrhi::ResourceStates::ShaderResource);
+				commandList->commitBarriers();
+
+				temp.Release();
+			});
 
 			texture->SetStatus(ImTextureStatus_OK);
 		}
+	}
+
+	void ImGuiRenderer::DestroyTexture(ImTextureData* texture)
+	{
+		Ref<ImGuiTexture> tex;
+		tex.Attach(static_cast<ImGuiTexture*>(texture->BackendUserData));
+
+		texture->SetTexID(ImTextureID_Invalid);
+		texture->SetStatus(ImTextureStatus_Destroyed);
+		texture->BackendUserData = nullptr;
 	}
 
 	nvrhi::IBindingSet* ImGuiRenderer::GetBindingSet(Ref<ViewableResource> viewable)
@@ -315,10 +331,8 @@ namespace Shark {
 		return binding;
 	}
 
-	bool ImGuiRenderer::UpdateGeometry(nvrhi::ICommandList* commandList)
+	bool ImGuiRenderer::UpdateGeometry(Ref<RenderCommandBuffer> commandBuffer, const ImDrawData* drawData)
 	{
-		ImDrawData* drawData = ImGui::GetDrawData();
-
 		// create/resize vertex and index buffers if needed
 		if (!ReallocateBuffer(m_VertexBuffer,
 							  drawData->TotalVtxCount * sizeof(ImDrawVert),
@@ -336,12 +350,16 @@ namespace Shark {
 			return false;
 		}
 
-		m_VertexBufferData.resize(m_VertexBuffer->getDesc().byteSize / sizeof(ImDrawVert));
-		m_IndexBufferData.resize(m_IndexBuffer->getDesc().byteSize / sizeof(ImDrawIdx));
+		uint32_t index = Renderer::GetCurrentFrameIndex() % 2;
+		auto& vertexBufferData = m_VertexBufferData[index];
+		auto& indexBufferData = m_IndexBufferData[index];
+
+		vertexBufferData.resize(m_VertexBuffer->getDesc().byteSize / sizeof(ImDrawVert));
+		indexBufferData.resize(m_IndexBuffer->getDesc().byteSize / sizeof(ImDrawIdx));
 
 		// copy and convert all vertices into a single contiguous buffer
-		ImDrawVert* vtxDst = &m_VertexBufferData[0];
-		ImDrawIdx* idxDst = &m_IndexBufferData[0];
+		ImDrawVert* vtxDst = &vertexBufferData[0];
+		ImDrawIdx* idxDst = &indexBufferData[0];
 
 		for (int n = 0; n < drawData->CmdListsCount; n++)
 		{
@@ -354,8 +372,18 @@ namespace Shark {
 			idxDst += cmdList->IdxBuffer.Size;
 		}
 
-		commandList->writeBuffer(m_VertexBuffer, &m_VertexBufferData[0], m_VertexBuffer->getDesc().byteSize);
-		commandList->writeBuffer(m_IndexBuffer, &m_IndexBufferData[0], m_IndexBuffer->getDesc().byteSize);
+		ImGuiRenderer* instance = this;
+		Renderer::Submit([instance, commandBuffer, vertexBuffer = m_VertexBuffer, indexBuffer = m_IndexBuffer]()
+		{
+			auto commandList = commandBuffer->GetHandle();
+
+			uint32_t index = Renderer::RT_GetCurrentFrameIndex() % 2;
+			auto& vertexBufferData = instance->m_VertexBufferData[index];
+			auto& indexBufferData = instance->m_IndexBufferData[index];
+
+			commandList->writeBuffer(vertexBuffer, &vertexBufferData[0], vertexBuffer->getDesc().byteSize);
+			commandList->writeBuffer(indexBuffer, &indexBufferData[0], indexBuffer->getDesc().byteSize);
+		});
 
 		return true;
 	}

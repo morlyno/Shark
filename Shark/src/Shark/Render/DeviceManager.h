@@ -24,7 +24,7 @@ namespace Shark {
 	class DeviceManager
 	{
 	public:
-		static DeviceManager* Create(nvrhi::GraphicsAPI api);
+		static Scope<DeviceManager> Create(nvrhi::GraphicsAPI api);
 		bool CreateDevice(const DeviceSpecification& specification);
 
 		virtual nvrhi::IDevice* GetDevice() const = 0;
@@ -43,6 +43,9 @@ namespace Shark {
 		virtual void Unlock() = 0;
 
 		virtual CommandList* GetCommandList(nvrhi::CommandQueue queue) = 0;
+
+	public:
+		virtual ~DeviceManager() = default;
 
 	protected:
 		virtual bool CreateDeviceInternal() = 0;

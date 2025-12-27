@@ -173,7 +173,7 @@ namespace Shark {
 
 		if (changed)
 		{
-			m_Texture->Submit_Invalidate();
+			m_Texture->Invalidate();
 			
 			m_CommandBuffer->Begin();
 			Renderer::CopyMip(m_CommandBuffer, m_BackupTexture->GetImage(), 0, m_Texture->GetImage(), 0);
@@ -199,7 +199,7 @@ namespace Shark {
 				backupSpec.Filter != specification.Filter || backupSpec.Address != specification.Address || backupSpec.MaxAnisotropy != specification.MaxAnisotropy)
 			{
 				specification = backupSpec;
-				m_Texture->Submit_Invalidate();
+				m_Texture->Invalidate();
 				
 				m_CommandBuffer->Begin();
 				Renderer::CopyImage(m_CommandBuffer, m_BackupTexture->GetImage(), m_Texture->GetImage());

@@ -12,6 +12,8 @@ namespace Shark {
 		: m_Specification(specification)
 	{
 		CreateSwapchain();
+
+		m_FramebufferInfo = m_Framebuffer->getFramebufferInfo();
 	}
 
 	DirectX11SwapChain::~DirectX11SwapChain()
@@ -120,6 +122,7 @@ namespace Shark {
 	{
 		ReleaseRenderTarget();
 
+		SK_CORE_WARN_TAG("Renderer", "Resizing Swapchain ({}, {})", m_Specification.Width, m_Specification.Height);
 		const HRESULT hResult = m_Swapchain->ResizeBuffers(m_Specification.BufferCount,
 														   m_Specification.Width,
 														   m_Specification.Height,
@@ -134,6 +137,8 @@ namespace Shark {
 		}
 
 		CreateRenderTarget();
+
+		SK_CORE_VERIFY(m_FramebufferInfo == m_Framebuffer->getFramebufferInfo());
 	}
 
 }

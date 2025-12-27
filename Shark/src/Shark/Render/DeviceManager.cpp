@@ -9,12 +9,12 @@
 
 namespace Shark {
 
-	DeviceManager* DeviceManager::Create(nvrhi::GraphicsAPI api)
+	Scope<DeviceManager> DeviceManager::Create(nvrhi::GraphicsAPI api)
 	{
 		switch (api)
 		{
 #if SK_WITH_DX11
-			case nvrhi::GraphicsAPI::D3D11: return sknew DirectX11DeviceManager();
+			case nvrhi::GraphicsAPI::D3D11: return Scope<DirectX11DeviceManager>::Create();
 #endif
 
 #if SK_WITH_DX12

@@ -124,16 +124,17 @@ namespace Shark {
 
 			AssetManager::SyncWithAssetThread();
 
-			ProcessEvents();
 			ExecuteMainThreadQueue();
+			ProcessEvents();
+
+			{
+				Timer waitAndRenderTimer;
+				Renderer::WaitAndRender();
+				waitAndRenderTime = waitAndRenderTimer.Elapsed();
+			}
 
 			if (!m_Minimized)
 			{
-				{
-					Timer waitAndRenderTimer;
-					Renderer::WaitAndRender();
-					waitAndRenderTime = waitAndRenderTimer.Elapsed();
-				}
 				Renderer::BeginFrame();
 
 				for (auto& layer : m_LayerStack)

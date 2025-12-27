@@ -24,42 +24,39 @@ namespace Shark {
 	class ImGuiRenderer
 	{
 	public:
-		bool Initialize();
-		bool Render(ImGuiViewport* viewport, nvrhi::GraphicsPipelineHandle pipeline, nvrhi::FramebufferHandle framebuffer);
-		bool RenderToSwapchain(ImGuiViewport* viewport, Ref<SwapChain> swapchain);
+		bool Initialize(Ref<SwapChain> swapchain);
+		void DestroyTextures();
+		bool Render(ImGuiViewport* viewport);
 
-		void OnDestroySwapchain(Ref<SwapChain> swapchain);
-
+		Ref<SwapChain> GetSwapchain() const { return m_Swapchain; }
 	private:
-		bool ReallocateBuffer(nvrhi::BufferHandle& buffer, size_t requiredSize, size_t reallocateSize, bool isIndexBuffer);
-		void UpdateTexture(nvrhi::CommandListHandle commandList, ImTextureData* texture);
-
+		bool ReallocateBuffer(nvrhi::BufferHandle& buffer, uint64_t requiredSize, uint64_t reallocateSize, bool isIndexBuffer);
+		void UpdateTexture(Ref<RenderCommandBuffer> commandBuffer, ImTextureData* texture);
+		void DestroyTexture(ImTextureData* texture);
 
 		nvrhi::IBindingSet* GetBindingSet(Ref<ViewableResource> viewable);
-		bool UpdateGeometry(nvrhi::ICommandList* commandList);
+		bool UpdateGeometry(Ref<RenderCommandBuffer> commandBuffer, const ImDrawData* drawData);
 	private:
 		Ref<RenderCommandBuffer> m_CommandBuffer;
+		Ref<SwapChain> m_Swapchain;
 
 		nvrhi::ShaderHandle m_VertexShader;
 		nvrhi::ShaderHandle m_PixelShader;
 		nvrhi::InputLayoutHandle m_ShaderAttribLayout;
 
 		nvrhi::TextureHandle m_FontTexture;
-		std::unordered_set<const ViewableResource*> m_FontTextures;
 		nvrhi::SamplerHandle m_FontSampler;
 
 		nvrhi::BufferHandle m_VertexBuffer;
 		nvrhi::BufferHandle m_IndexBuffer;
 
 		nvrhi::BindingLayoutHandle m_BindingLayout;
-		nvrhi::GraphicsPipelineDesc m_BasePSODesc;
+		nvrhi::GraphicsPipelineHandle m_Pipeline;
 
 		std::unordered_map<ViewInfo, nvrhi::BindingSetHandle> m_BindingsCache;
 
-		std::vector<ImDrawVert> m_VertexBufferData;
-		std::vector<ImDrawIdx> m_IndexBufferData;
-
-		std::unordered_map<SwapChain*, nvrhi::GraphicsPipelineHandle> m_PipelineCache;
+		std::array<std::vector<ImDrawVert>, 2> m_VertexBufferData;
+		std::array<std::vector<ImDrawIdx>, 2> m_IndexBufferData;
 	};
 
 }

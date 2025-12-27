@@ -95,16 +95,15 @@ namespace Shark {
 		static Ref<Image2D> Create() { return Ref<Image2D>::Create(); }
 		static Ref<Image2D> Create(const ImageSpecification& specification) { return Ref<Image2D>::Create(specification); }
 
-		void Release(); // #Renderer #Investigate Remove Release
-		void Submit_Invalidate();
+		void Invalidate();
 		void RT_Invalidate();
 		void Resize(uint32_t width, uint32_t height);
 		void Resize(uint32_t width, uint32_t height, uint32_t mipLevels);
 
 		uint32_t GetWidth() const { return m_Specification.Width; }
 		uint32_t GetHeight() const { return m_Specification.Height; }
-		float GetAspectRatio() const { return (float)m_Specification.Width / m_Specification.Height; }
-		float GetVerticalAspectRatio() const { return (float)m_Specification.Height / m_Specification.Width; }
+		float GetAspectRatio() const { return static_cast<float>(m_Specification.Width) / static_cast<float>(m_Specification.Height); }
+		float GetVerticalAspectRatio() const { return static_cast<float>(m_Specification.Height) / static_cast<float>(m_Specification.Width); }
 
 		void Submit_UploadData(const Buffer buffer);
 		void RT_UploadData(const Buffer buffer);

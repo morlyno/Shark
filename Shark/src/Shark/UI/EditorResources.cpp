@@ -118,18 +118,22 @@ namespace Shark {
 			TextureSpecification specification;
 			specification.GenerateMips = false;
 
+			specification.DebugName = "Window close icon";
 			textureData = TextureImporter::ToBufferFromMemory(Buffer::FromArray(g_WindowCloseIcon), specification.Format, specification.Width, specification.Height);
 			WindowCloseIcon = Texture2D::Create(specification, textureData);
 			textureData.Release();
 
+			specification.DebugName = "Window minimize icon";
 			textureData = TextureImporter::ToBufferFromMemory(Buffer::FromArray(g_WindowMinimizeIcon), specification.Format, specification.Width, specification.Height);
 			WindowMinimizeIcon = Texture2D::Create(specification, textureData);
 			textureData.Release();
 
+			specification.DebugName = "Window maximize icon";
 			textureData = TextureImporter::ToBufferFromMemory(Buffer::FromArray(g_WindowMaximizeIcon), specification.Format, specification.Width, specification.Height);
 			WindowMaximizeIcon = Texture2D::Create(specification, textureData);
 			textureData.Release();
 
+			specification.DebugName = "Window restore icon";
 			textureData = TextureImporter::ToBufferFromMemory(Buffer::FromArray(g_WindowRestoreIcon), specification.Format, specification.Width, specification.Height);
 			WindowRestoreIcon = Texture2D::Create(specification, textureData);
 			textureData.Release();
@@ -189,7 +193,7 @@ namespace Shark {
 		TextureSpecification& specification = icon->GetSpecification();
 		imageData = TextureImporter::ToBufferFromFile(filepath, specification.Format, specification.Width, specification.Height);
 
-		icon->Submit_Invalidate();
+		icon->Invalidate();
 	}
 
 	void EditorResources::ReloadIcons()

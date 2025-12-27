@@ -70,7 +70,7 @@ namespace Shark {
 		ImGuiLayer& GetImGuiLayer() { return *m_ImGuiLayer; }
 		const ImGuiLayer& GetImGuiLayer() const { return *m_ImGuiLayer; }
 
-		DeviceManager* GetDeviceManager() { return m_DeviceManager; }
+		DeviceManager* GetDeviceManager() { return m_DeviceManager.Raw(); }
 		ScriptHost& GetScriptHost() { return m_ScriptHost; }
 
 		const ApplicationSpecification& GetSpecification() const { return m_Specification; }
@@ -119,7 +119,7 @@ namespace Shark {
 		ImGuiLayer* m_ImGuiLayer;
 		LayerStack m_LayerStack;
 
-		DeviceManager* m_DeviceManager;
+		Scope<DeviceManager> m_DeviceManager;
 		ScriptHost m_ScriptHost;
 
 		std::mutex m_MainThreadMutex;

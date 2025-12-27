@@ -4,6 +4,7 @@
 #include "Shark/Core/Application.h"
 #include "Shark/Core/Hash.h"
 #include "Shark/Asset/AssetManager.h"
+#include "Shark/UI/ImGui/ImGuiRenderer.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -41,7 +42,16 @@ namespace Shark::UI {
 
 		static ImTextureID GetTextureID(Ref<ViewableResource> viewable)
 		{
-			return reinterpret_cast<ImTextureID>(viewable.Detach());
+			// #Investigate ImGui doesn't render the first frame
+			// 
+			// Because of this the ref count can't be decreased by the ImGuiRenderer
+			// to get around this, don't detach here
+			
+			// return reinterpret_cast<ImTextureID>(viewable.Detach());
+
+			auto layer = static_cast<ImGuiLayer*>(ImGui::GetIO().UserData);
+			layer->AddViewable(viewable);
+			return reinterpret_cast<ImTextureID>(viewable.Raw());
 		}
 
 	}
@@ -379,15 +389,15 @@ namespace Shark::UI {
 		auto* drawList = ImGui::GetWindowDrawList();
 		if (ImGui::IsItemActive())
 		{
-			drawList->AddImage(utils::GetTextureID(imagePressed.Detach()), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintPressed);
+			drawList->AddImage(utils::GetTextureID(imagePressed), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintPressed);
 		}
 		else if (ImGui::IsItemHovered())
 		{
-			drawList->AddImage(utils::GetTextureID(imageHovered.Detach()), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintHovered);
+			drawList->AddImage(utils::GetTextureID(imageHovered), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintHovered);
 		}
 		else
 		{
-			drawList->AddImage(utils::GetTextureID(imageNormal.Detach()), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintNormal);
+			drawList->AddImage(utils::GetTextureID(imageNormal), rectMin, rectMax, ImVec2(0, 0), ImVec2(1, 1), tintNormal);
 		}
 	}
 
@@ -452,7 +462,7 @@ namespace Shark::UI {
 		if (window->SkipItems)
 			return;
 
-		window->DrawList->AddImage(utils::GetTextureID(image.Detach()), rect.Min, rect.Max, uv0, uv1, ImGui::GetColorU32(tint_col));
+		window->DrawList->AddImage(utils::GetTextureID(image), rect.Min, rect.Max, uv0, uv1, ImGui::GetColorU32(tint_col));
 	}
 
 	void DrawImage(Ref<ImageView> image, const ImRect& rect, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col)
@@ -461,7 +471,7 @@ namespace Shark::UI {
 		if (window->SkipItems)
 			return;
 
-		window->DrawList->AddImage(utils::GetTextureID(image.Detach()), rect.Min, rect.Max, uv0, uv1, ImGui::GetColorU32(tint_col));
+		window->DrawList->AddImage(utils::GetTextureID(image), rect.Min, rect.Max, uv0, uv1, ImGui::GetColorU32(tint_col));
 	}
 
 	void DrawImage(Ref<Texture2D> texture, const ImRect& rect, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col)
@@ -475,7 +485,7 @@ namespace Shark::UI {
 		if (window->SkipItems)
 			return;
 
-		ImGui::ImageWithBg(utils::GetTextureID(texture.Detach()), size, args.UV0, args.UV1, args.BackgroundColor, args.TintColor);
+		ImGui::ImageWithBg(utils::GetTextureID(texture), size, args.UV0, args.UV1, args.BackgroundColor, args.TintColor);
 	}
 
 	void Image(Ref<ImageView> imageView, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col)

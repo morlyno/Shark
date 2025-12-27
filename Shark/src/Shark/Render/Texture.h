@@ -28,6 +28,7 @@ namespace Shark {
 	{
 		uint32_t Width = 0, Height = 0;
 		ImageFormat Format = ImageFormat::RGBA;
+
 		bool GenerateMips = true;
 		bool Storage = false;
 
@@ -46,8 +47,7 @@ namespace Shark {
 		static Ref<Texture2D> Create(const TextureSpecification& specification, const std::filesystem::path& filepath) { return Ref<Texture2D>::Create(specification, filepath); }
 
 	public:
-		//void Release(); // #Renderer #Investigate Remove Release
-		void Submit_Invalidate();
+		void Invalidate();
 		void RT_Invalidate();
 
 		Ref<Image2D> GetImage() const { return m_Image; }

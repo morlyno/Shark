@@ -40,18 +40,7 @@ namespace Shark {
 		RT_Invalidate();
 	}
 
-	void Image2D::Release()
-	{
-		Ref instance = this;
-		Renderer::Submit([instance]()
-		{
-			instance->m_ImageHandle = nullptr;
-			instance->m_ViewInfo = {};
-		});
-
-	}
-
-	void Image2D::Submit_Invalidate()
+	void Image2D::Invalidate()
 	{
 		if (m_Specification.MipLevels == 0)
 			m_Specification.MipLevels = ImageUtils::CalcMipLevels(m_Specification.Width, m_Specification.Height);

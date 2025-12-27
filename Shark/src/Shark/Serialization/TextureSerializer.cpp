@@ -111,6 +111,7 @@ namespace Shark {
 		if (utils::ShouldBeSharkTexture(filepath))
 		{
 			TextureSpecification specification;
+			specification.DebugName = FileSystem::GetStemString(filepath);
 			AssetHandle sourceHandle;
 			Buffer imageData;
 
@@ -127,6 +128,7 @@ namespace Shark {
 		{
 			Buffer imageData;
 			TextureSpecification specification;
+			specification.DebugName = FileSystem::GetStemString(filepath);
 
 			LoadImageData(filepath, specification, imageData);
 			texture = Texture2D::Create(specification, imageData);
@@ -218,6 +220,7 @@ namespace Shark {
 		if (!outBuffer)
 		{
 			outBuffer = TextureImporter::ToBufferFromFile("Resources/Textures/ErrorTexture.png", outSpecification.Format, outSpecification.Width, outSpecification.Height);
+			outSpecification.DebugName += " - Fallback";
 			SK_CORE_VERIFY(outBuffer.Data, "Failed to load error texture as fallback");
 			// NOTE(moro): it's ok to continue if the error texture failed to load
 			//             but THIS SHOULD NEVER HAPPEN!

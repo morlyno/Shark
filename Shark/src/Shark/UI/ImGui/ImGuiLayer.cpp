@@ -100,7 +100,7 @@ namespace Shark {
 		ImGui_ImplWin32_Init(window.GetHandle());
 
 		m_Renderer = Scope<ImGuiRenderer>::Create();
-		m_Renderer->Initialize();
+		m_Renderer->Initialize(window.GetSwapChain());
 
 		ImGuiPlatformIO& platformIO = ImGui::GetPlatformIO();
 		platformIO.Renderer_CreateWindow = &Callbacks::CreateWindow;
@@ -119,9 +119,10 @@ namespace Shark {
 
 	void ImGuiLayer::OnDetach()
 	{
-		m_Renderer = nullptr;
 		ImGui_ImplWin32_Shutdown();
-		ImGui::GetIO().UserData = nullptr;
+		ImGui::DestroyPlatformWindows();
+		m_Renderer->DestroyTextures();
+		m_Renderer = nullptr;
 		ImGui::DestroyContext();
 	}
 
@@ -153,13 +154,15 @@ namespace Shark {
 		ImGui::Render();
 
 		Ref<SwapChain> swapchain = Application::Get().GetWindow().GetSwapChain();
-		m_Renderer->RenderToSwapchain(ImGui::GetMainViewport(), swapchain);
+		m_Renderer->Render(ImGui::GetMainViewport());
 
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 		{
 			ImGui::UpdatePlatformWindows();
 			ImGui::RenderPlatformWindowsDefault();
 		}
+
+		m_Viewables.clear();
 	}
 
 	ImGuiLayer::ImGuiLayer()
@@ -177,7 +180,9 @@ namespace Shark {
 		specification.Window = hwnd;
 		auto swapchain = SwapChain::Create(specification);
 
-		viewport->RendererUserData = swapchain.Detach();
+		auto renderer = sknew ImGuiRenderer();
+		renderer->Initialize(swapchain);
+		viewport->RendererUserData = renderer;
 	}
 
 	void ImGuiLayer::DestroyWindow(ImGuiViewport* viewport)
@@ -186,31 +191,30 @@ namespace Shark {
 		if (!viewport->RendererUserData)
 			return;
 
-		Ref<SwapChain> swapchain;
-		swapchain.Attach((SwapChain*)viewport->RendererUserData);
-
-		m_Renderer->OnDestroySwapchain(swapchain);
+		auto renderer = static_cast<ImGuiRenderer*>(viewport->RendererUserData);
+		skdelete renderer;
 		viewport->RendererUserData = nullptr;
 	}
 
 	void ImGuiLayer::SetWindowSize(ImGuiViewport* viewport, ImVec2 size)
 	{
-		Ref<SwapChain> swapchain = (SwapChain*)viewport->RendererUserData;
+		auto renderer = static_cast<ImGuiRenderer*>(viewport->RendererUserData);
 
+		auto swapchain = renderer->GetSwapchain();
 		swapchain->Resize((uint32_t)size.x, (uint32_t)size.y);
 	}
 
 	void ImGuiLayer::RenderWindow(ImGuiViewport* viewport, void*)
 	{
-		Ref<SwapChain> swapchain = (SwapChain*)viewport->RendererUserData;
-
-		m_Renderer->RenderToSwapchain(viewport, swapchain);
+		auto renderer = static_cast<ImGuiRenderer*>(viewport->RendererUserData);
+		renderer->Render(viewport);
 	}
 
 	void ImGuiLayer::SwapBuffers(ImGuiViewport* viewport, void*)
 	{
-		Ref<SwapChain> swapchain = (SwapChain*)viewport->RendererUserData;
+		auto renderer = static_cast<ImGuiRenderer*>(viewport->RendererUserData);
 
+		auto swapchain = renderer->GetSwapchain();
 		swapchain->Present(false);
 	}
 

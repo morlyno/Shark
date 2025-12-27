@@ -64,7 +64,7 @@ namespace Shark {
 		m_ImageData.Release();
 	}
 
-	void Texture2D::Submit_Invalidate()
+	void Texture2D::Invalidate()
 	{
 		ImageSpecification& specification = m_Image->GetSpecification();
 		specification.Width = m_Specification.Width;
@@ -74,7 +74,7 @@ namespace Shark {
 		specification.Usage = m_Specification.Storage ? ImageUsage::Storage : ImageUsage::Texture;
 		specification.DebugName = m_Specification.DebugName;
 
-		m_Image->Submit_Invalidate();
+		m_Image->Invalidate();
 
 		if (m_ImageData)
 		{

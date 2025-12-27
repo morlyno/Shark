@@ -492,21 +492,6 @@ namespace Shark {
 		Renderer::RenderGeometry(commandBuffer, pipeline, material, s_Data->m_QuadVertexBuffer, s_Data->m_QuadIndexBuffer, s_Data->m_QuadIndexBuffer->GetCount(), pushConstantsData);
 	}
 
-	void Renderer::BeginBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer)
-	{
-		//s_RendererAPI->BeginBatch(renderCommandBuffer, pipeline, vertexBuffer, indexBuffer);
-	}
-
-	void Renderer::RenderBatch(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Material> material, uint32_t indexCount, uint32_t startIndex)
-	{
-		//s_RendererAPI->RenderBatch(renderCommandBuffer, material, indexCount, startIndex);
-	}
-
-	void Renderer::EndBatch(Ref<RenderCommandBuffer> renderCommandBuffer)
-	{
-		//s_RendererAPI->EndBatch(renderCommandBuffer);
-	}
-
 	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, Buffer pushConstant)
 	{
 		Renderer::Submit([=, temp = Buffer::Copy(pushConstant)]() mutable

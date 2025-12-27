@@ -418,6 +418,28 @@ namespace Shark {
 				}
 				break;
 			}
+
+			case KeyCode::T:
+			{
+				Entity container = m_ActiveScene->CreateEntity("Quad-Container");
+
+				for (uint32_t y = 0; y < 100; y++)
+				{
+					for (uint32_t x = 0; x < 100; x++)
+					{
+						auto quad = m_ActiveScene->CreateChildEntity(container, fmt::format("Quad {}:{}", x, y));
+
+						auto& transform = quad.Transform();
+						transform.Translation.xy = { x, y };
+						transform.Scale.xy = { 0.5f, 0.5f };
+
+						auto& spriteComp = quad.AddComponent<SpriteRendererComponent>();
+						spriteComp.Color.r = static_cast<float>(x) / 100.0f;
+						spriteComp.Color.g = static_cast<float>(y) / 100.0f;
+						spriteComp.Color.b = 0.0f;
+					}
+				}
+			}
 		}
 
 		return false;
@@ -617,11 +639,7 @@ namespace Shark {
 		{
 			if (ImGui::InvisibleButton("Close", ImVec2(buttonWidth, buttonHeight)))
 			{
-				Application::Get().SubmitToMainThread([]()
-				{
-					Window& window = Application::Get().GetWindow();
-					window.KillWindow();
-				});
+				Application::Get().CloseApplication();
 			}
 
 			UI::DrawImageButton(EditorResources::WindowCloseIcon, buttonColN, buttonColH, buttonColP);
@@ -671,7 +689,7 @@ namespace Shark {
 		if (Application::Get().GetSpecification().CustomTitlebar)
 		{
 			UI::ScopedColor menubarColor(ImGuiCol_MenuBarBg, 0);
-			const ImRect menubarRect = { ImGui::GetCursorPos(), { ImGui::GetContentRegionAvail().x + ImGui::GetCursorScreenPos().x, ImGui::GetFrameHeightWithSpacing() } };
+			const ImRect menubarRect = UI::RectFromSize(ImGui::GetCursorScreenPos(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeightWithSpacing() });
 
 			ImGui::BeginGroup();
 			if (UI::BeginMenubar(menubarRect))

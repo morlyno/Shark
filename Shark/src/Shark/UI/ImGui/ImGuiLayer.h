@@ -2,6 +2,7 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Layer/Layer.h"
+#include "Shark/Render/Image.h"
 
 #include <imgui.h>
 
@@ -33,6 +34,8 @@ namespace Shark {
 		bool BlocksKeyboardEvents() const { return m_BlockEvents && ImGui::GetIO().WantCaptureKeyboard; }
 		void BlockEvents(bool block) { m_BlockEvents = block; }
 
+		void AddViewable(Ref<ViewableResource> viewable) { m_Viewables.push_back(viewable); }
+
 	private:
 		ImGuiLayer();
 
@@ -48,6 +51,7 @@ namespace Shark {
 		ImGuiID m_MainViewportID;
 		bool m_BlockEvents = false;
 
+		std::vector<Ref<ViewableResource>> m_Viewables;
 	};
 
 }
