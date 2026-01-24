@@ -6,12 +6,6 @@
 
 namespace Shark {
 
-#if 1
-	#define SK_LOG_INPUT(_item, _name, _arrayIndex) SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{} => {}", m_Specification.DebugName, _name, _arrayIndex, fmt::ptr(_item.Raw()));
-#else
-	#define SK_LOG_INPUT(_item, _name, _arrayIndex) (void)0
-#endif
-
 	namespace utils {
 
 		static bool IsImageType(RenderInputType type)
@@ -32,7 +26,94 @@ namespace Shark {
 			return false;
 		}
 
+		static std::string_view GetInputName(Ref<ConstantBuffer> input)
+		{
+			if (!input)
+				return "<null>";
+
+			return input->GetDebugName();
+		}
+
+		static std::string_view GetInputName(Ref<StorageBuffer> input)
+		{
+			if (!input)
+				return "<null>";
+
+			return input->GetDebugName();
+		}
+
+		static std::string_view GetInputName(Ref<Sampler> input)
+		{
+			if (!input)
+				return "<null>";
+
+			const auto& specification = input->GetSpecification();
+			switch (specification.Address)
+			{
+				case AddressMode::Repeat: return specification.Filter == FilterMode::Linear ? "Linear-Repeat" : "Point-Repeat";
+				case AddressMode::ClampToEdge: return specification.Filter == FilterMode::Linear ? "Linear-ClampToEdge" : "Point-ClampToEdge";
+				case AddressMode::MirrorRepeat: return specification.Filter == FilterMode::Linear ? "Linear-MirrorRepeat" : "Point-MirrorRepeat";
+			}
+
+			return "<Sampler>";
+		}
+
+		static std::string_view GetInputName(Ref<Image2D> input)
+		{
+			if (!input)
+				return "<null>";
+
+			return input->GetSpecification().DebugName;
+		}
+
+		static std::string_view GetInputName(Ref<ImageView> input)
+		{
+			if (!input)
+				return "<null>";
+
+			return input->GetImage()->GetSpecification().DebugName;
+		}
+
+		static std::string_view GetInputName(Ref<Texture2D> input)
+		{
+			if (!input)
+				return "<null>";
+
+			return input->GetSpecification().DebugName;
+		}
+
+		static std::string_view GetInputName(Ref<TextureCube> input)
+		{
+			if (!input)
+				return "<null>";
+
+			return input->GetSpecification().DebugName;
+		}
+
+		static std::string_view GetInputName(Ref<ViewableResource> input)
+		{
+			if (!input)
+				return "<null>";
+
+			if (auto i = input.AsSafe<Image2D>())
+				return GetInputName(i);
+
+			if (auto i = input.AsSafe<Texture2D>())
+				return GetInputName(i);
+
+			if (auto i = input.AsSafe<ImageView>())
+				return GetInputName(i);
+
+			return "<Viewable>";
+		}
+
 	}
+	
+#if 1
+	#define SK_LOG_INPUT(_item, _name, _arrayIndex) SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{} => {}:'{}'", m_Specification.DebugName, _name, _arrayIndex, fmt::ptr(_item.Raw()), utils::GetInputName(_item));
+#else
+	#define SK_LOG_INPUT(_item, _name, _arrayIndex) (void)0
+#endif
 
 	ShaderInputManager::ShaderInputManager()
 	{

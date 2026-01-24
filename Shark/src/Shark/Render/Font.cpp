@@ -30,7 +30,7 @@ namespace Shark {
 		textureSpecification.Format = F;
 		textureSpecification.Width = bitmap.width;
 		textureSpecification.Height = bitmap.height;
-		textureSpecification.GenerateMips = false;
+		textureSpecification.HasMips = false;
 
 		return Texture2D::Create(textureSpecification, Buffer{ (void*)bitmap.pixels, bitmap.width * bitmap.height * N * sizeof(T) });
 	}

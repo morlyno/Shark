@@ -116,7 +116,7 @@ namespace Shark {
 		{
 			Buffer textureData;
 			TextureSpecification specification;
-			specification.GenerateMips = false;
+			specification.HasMips = false;
 
 			specification.DebugName = "Window close icon";
 			textureData = TextureImporter::ToBufferFromMemory(Buffer::FromArray(g_WindowCloseIcon), specification.Format, specification.Width, specification.Height);
@@ -143,7 +143,7 @@ namespace Shark {
 			TextureSpecification{
 				.Width = 1, .Height = 1,
 				.Format = ImageFormat::RGBA,
-				.GenerateMips = false,
+				.HasMips = false,
 				.DebugName = "Logo Placeholder"
 			},
 			Buffer::FromValue(0xF01414FF)

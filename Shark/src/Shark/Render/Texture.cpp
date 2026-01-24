@@ -70,7 +70,7 @@ namespace Shark {
 		specification.Width = m_Specification.Width;
 		specification.Height = m_Specification.Height;
 		specification.Format = m_Specification.Format;
-		specification.MipLevels = m_Specification.GenerateMips ? 0 : 1;
+		specification.MipLevels = m_Specification.HasMips ? 0 : 1;
 		specification.Usage = m_Specification.Storage ? ImageUsage::Storage : ImageUsage::Texture;
 		specification.DebugName = m_Specification.DebugName;
 
@@ -84,9 +84,6 @@ namespace Shark {
 				buffer.Release();
 			});
 			m_ImageData = {};
-
-			if (m_Specification.GenerateMips)
-				Renderer::GenerateMips(m_Image);
 		}
 
 		Ref instance = this;
@@ -102,7 +99,7 @@ namespace Shark {
 		specification.Width = m_Specification.Width;
 		specification.Height = m_Specification.Height;
 		specification.Format = m_Specification.Format;
-		specification.MipLevels = m_Specification.GenerateMips ? 0 : 1;
+		specification.MipLevels = m_Specification.HasMips ? 0 : 1;
 		specification.Usage = m_Specification.Storage ? ImageUsage::Storage : ImageUsage::Texture;
 		specification.DebugName = m_Specification.DebugName;
 
@@ -112,16 +109,6 @@ namespace Shark {
 		{
 			m_Image->RT_UploadData(m_ImageData);
 			m_ImageData.Release();
-
-			if (m_Specification.GenerateMips)
-			{
-				// #Renderer #TODO RT_GenerateMips is not implemented
-				Application::Get().SubmitToMainThread([image = m_Image]()
-				{
-					Renderer::GenerateMips(image);
-				});
-				//Renderer::RT_GenerateMips(m_Image);
-			}
 		}
 
 		InvalidateFromState(m_Image, RT_State(m_Specification));
@@ -154,7 +141,7 @@ namespace Shark {
 		imageSpec.Format = m_Specification.Format;
 		imageSpec.Layers = 6;
 		imageSpec.IsCube = true;
-		imageSpec.MipLevels = m_Specification.GenerateMips ? 0 : 1;
+		imageSpec.MipLevels = m_Specification.HasMips ? 0 : 1;
 		imageSpec.Usage = m_Specification.Storage ? ImageUsage::Storage : ImageUsage::Texture;
 		imageSpec.DebugName = m_Specification.DebugName;
 		m_Image->RT_Invalidate();
@@ -163,10 +150,6 @@ namespace Shark {
 		{
 			m_Image->RT_UploadData(m_ImageData);
 			m_ImageData.Release();
-
-			// #Renderer #Disabled Texture2D GenerateMips
-			if (m_Specification.GenerateMips && false)
-				Renderer::RT_GenerateMips(m_Image);
 		}
 
 		auto samplerDesc = nvrhi::SamplerDesc()

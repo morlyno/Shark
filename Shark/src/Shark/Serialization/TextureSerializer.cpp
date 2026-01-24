@@ -2,6 +2,8 @@
 #include "TextureSerializer.h"
 
 #include "Shark/Asset/AssetManager.h"
+
+#include "Shark/Render/Renderer.h"
 #include "Shark/Render/Texture.h"
 
 #include "Shark/File/FileSystem.h"
@@ -10,8 +12,6 @@
 #include "Shark/Serialization/Import/TextureImporter.h"
 
 #include "Shark/Debug/Profiler.h"
-
-#include <yaml-cpp/yaml.h>
 
 #define SK_SERIALIZATION_ERROR(...) SK_CORE_ERROR_TAG("Serialization", __VA_ARGS__); SK_DEBUG_BREAK();
 
@@ -36,7 +36,7 @@ namespace Shark {
 
 		if (metadata.FilePath.extension() != ".sktex")
 		{
-			SK_CORE_ERROR_TAG("Serialization", "[Texture] Serializing a non shark texture is not allowed! Please convert into the texture into one.");
+			SK_CORE_ERROR_TAG("Serialization", "[Texture] Serializing a non shark texture is not allowed! Please convert the texture into one.");
 			return false;
 		}
 
@@ -91,14 +91,14 @@ namespace Shark {
 			imageData.Release();
 		}
 
-		if (texture)
+		if (texture->GetSpecification().HasMips)
 		{
-			asset = texture;
-			asset->Handle = metadata.Handle;
-			return true;
+			Renderer::GenerateMips(texture->GetImage());
 		}
 
-		return false;
+		asset = texture;
+		asset->Handle = metadata.Handle;
+		return true;
 	}
 
 	Ref<Texture2D> TextureSerializer::TryLoad(const std::filesystem::path& filepath, bool useFallback)
@@ -136,6 +136,11 @@ namespace Shark {
 			imageData.Release();
 		}
 
+		if (texture->GetSpecification().HasMips)
+		{
+			Renderer::GenerateMips(texture->GetImage());
+		}
+
 		return texture;
 	}
 
@@ -150,11 +155,11 @@ namespace Shark {
 		out << YAML::BeginMap;
 		out << YAML::Key << "Texture" << YAML::Value;
 		out << YAML::BeginMap;
-		SK_SERIALIZE_PROPERTY(out, "Source", texture->GetSourceTextureHandle());
-		SK_SERIALIZE_PROPERTY(out, "GenerateMips", specification.GenerateMips);
-		SK_SERIALIZE_PROPERTY(out, "Filter", specification.Filter);
-		SK_SERIALIZE_PROPERTY(out, "Address", specification.Address);
-		SK_SERIALIZE_PROPERTY(out, "MaxAnisotropy", specification.MaxAnisotropy);
+		out << YAML::Key << "Source" << YAML::Value << texture->GetSourceTextureHandle();
+		out << YAML::Key << "GenerateMips" << YAML::Value << specification.HasMips;
+		out << YAML::Key << "Filter" << YAML::Value << specification.Filter;
+		out << YAML::Key << "Address" << YAML::Value << specification.Address;
+		out << YAML::Key << "MaxAnisotropy" << YAML::Value << specification.MaxAnisotropy;
 		out << YAML::EndMap;
 		out << YAML::EndMap;
 
@@ -202,12 +207,12 @@ namespace Shark {
 			}
 		}
 
-		DeserializeProperty(textureNode, "GenerateMips", outSpecification.GenerateMips, false);
+		DeserializeProperty(textureNode, "GenerateMips", outSpecification.HasMips, true);
 		DeserializeProperty(textureNode, "Filter", outSpecification.Filter, FilterMode::Linear);
 		DeserializeProperty(textureNode, "Address", outSpecification.Address, AddressMode::Repeat);
 		DeserializeProperty(textureNode, "MaxAnisotropy", outSpecification.MaxAnisotropy, 0);
 
-		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Generate Mips {}", outSpecification.GenerateMips);
+		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Generate Mips {}", outSpecification.HasMips);
 		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Filter {}", outSpecification.Filter);
 		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Address {}", outSpecification.Address);
 		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Max Anisotropy {}", outSpecification.MaxAnisotropy);

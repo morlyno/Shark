@@ -1,10 +1,9 @@
 #pragma stage : compute
 
 #include "EnvMapCommon.hlslh"
+#include "Core/Samplers.hlslh"
 
 static const uint SampleCount = 1024;
-static const float InvSampleCount = 1.0f / float(SampleCount);
-static const int MipLevelCount = 1;
 
 struct Uniforms
 {
@@ -16,7 +15,6 @@ ConstantBuffer<Uniforms> u_Push : register(b0);
 
 RWTexture2DArray<float4> o_Filtered : register(u0, space0);
 TextureCube<float4> u_Unfiltered : register(t0, space1);
-SamplerState u_Sampler : register(s0, space1);
 
 [numthreads(32, 32, 1)]
 void main(uint3 dispatchID : SV_DispatchThreadID)
@@ -54,7 +52,7 @@ void main(uint3 dispatchID : SV_DispatchThreadID)
             float ws = 1.0f / (SampleCount * pdf);
             float mipLevel = max(0.5f * log2(ws / wt) + 1.0f, 0.0f);
             
-            color += u_Unfiltered.SampleLevel(u_Sampler, Li, mipLevel).rgb * cosLi;
+            color += u_Unfiltered.SampleLevel(u_LinearClamp, Li, mipLevel).rgb * cosLi;
             weight += cosLi;
         }
     }

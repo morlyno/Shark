@@ -372,9 +372,14 @@ namespace Shark {
 
 	namespace ImageUtils {
 
-		uint32_t CalcMipLevels(uint32_t widht, uint32_t height)
+		uint32_t CalcMipLevels(uint32_t width, uint32_t height)
 		{
-			return (uint32_t)glm::floor(glm::log2((float)glm::max(widht, height))) + 1;
+			return (uint32_t)glm::floor(glm::log2((float)glm::max(width, height))) + 1;
+		}
+
+		glm::uvec2 CalcMipSize(uint32_t fullWidth, uint32_t fullHeight, uint32_t mip)
+		{
+			return { fullWidth >> mip, fullHeight >> mip };
 		}
 
 		nvrhi::Format ConvertImageFormat(ImageFormat format)

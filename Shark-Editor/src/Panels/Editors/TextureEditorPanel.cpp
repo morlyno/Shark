@@ -149,11 +149,11 @@ namespace Shark {
 		changed |= UI::ControlCombo("Format", spec.Format);
 
 		nativeTextureTooltip();
-		bool genMipsChanged = UI::Control("Generate Mipmap", spec.GenerateMips);
+		bool genMipsChanged = UI::Control("Generate Mipmap", spec.HasMips);
 		nativeTextureTooltip();
 
 		{
-			UI::ScopedDisabled disabled(!spec.GenerateMips);
+			UI::ScopedDisabled disabled(!spec.HasMips);
 			UI::ControlSlider("Mip", m_MipIndex, 0, (uint32_t)m_PerMipView.size() - 1);
 			nativeTextureTooltip();
 		}
@@ -195,7 +195,7 @@ namespace Shark {
 			auto& specification = m_Texture->GetSpecification();
 			const auto& backupSpec = m_BackupTexture->GetSpecification();
 			
-			if (backupSpec.Format != specification.Format || backupSpec.GenerateMips != specification.GenerateMips ||
+			if (backupSpec.Format != specification.Format || backupSpec.HasMips != specification.HasMips ||
 				backupSpec.Filter != specification.Filter || backupSpec.Address != specification.Address || backupSpec.MaxAnisotropy != specification.MaxAnisotropy)
 			{
 				specification = backupSpec;

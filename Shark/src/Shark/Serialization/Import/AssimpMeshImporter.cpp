@@ -336,6 +336,7 @@ namespace Shark {
 
 		if (auto aiTexEmbedded = scene->GetEmbeddedTexture(path.C_Str()))
 		{
+			specification.DebugName = aiTexEmbedded->mFilename.C_Str();
 			specification.Width = aiTexEmbedded->mWidth;
 			specification.Height = aiTexEmbedded->mHeight;
 			Buffer imageData = Buffer{ aiTexEmbedded->pcData, aiTexEmbedded->mWidth * aiTexEmbedded->mHeight * sizeof(aiTexel) };
@@ -343,13 +344,15 @@ namespace Shark {
 			{
 				imageData = TextureImporter::ToBufferFromMemory(Buffer(aiTexEmbedded->pcData, aiTexEmbedded->mWidth), specification.Format, specification.Width, specification.Height);
 			}
-			// TODO(moro): race-condition! This line can be called from both the main thread and the asset thread!
-			AssetHandle handle = AssetManager::CreateMemoryOnlyRendererAsset<Texture2D>(specification, imageData);
+
+			Ref<Texture2D> texture = Texture2D::Create(specification, imageData);
+			Renderer::GenerateMips(texture->GetImage());
 
 			if (specification.Height == 0)
 				imageData.Release();
 
-			return handle;
+			// TODO(moro): race-condition! This line can be called from both the main thread and the asset thread!
+			return AssetManager::AddMemoryAsset(texture);
 		}
 
 		if (sRGB)
@@ -357,7 +360,12 @@ namespace Shark {
 			// TODO(moro): find a way to do this through the asset system
 			const auto texturePath = m_Filepath.parent_path() / path.C_Str();
 			ScopedBuffer imageData = TextureImporter::ToBufferFromFile(texturePath, specification.Format, specification.Width, specification.Height);
-			return AssetManager::CreateMemoryOnlyRendererAsset<Texture2D>(specification, imageData);
+
+			Ref<Texture2D> texture = Texture2D::Create(specification, imageData);
+			Renderer::GenerateMips(texture->GetImage());
+
+			return AssetManager::AddMemoryAsset(texture);
+			//return AssetManager::CreateMemoryOnlyRendererAsset<Texture2D>(specification, imageData);
 		}
 
 		const auto texturePath = m_Filepath.parent_path() / path.C_Str();

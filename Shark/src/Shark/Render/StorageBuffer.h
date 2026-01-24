@@ -15,6 +15,8 @@ namespace Shark {
 		void Resize(uint32_t newCount);
 		uint32_t GetCount() const { return m_Count; }
 
+		const std::string& GetDebugName() const { return m_DebugName; }
+
 	public:
 		StorageBuffer(uint32_t structSize, uint32_t count, const std::string& debugName);
 		~StorageBuffer();

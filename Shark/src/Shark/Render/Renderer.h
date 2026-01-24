@@ -130,10 +130,8 @@ namespace Shark {
 		static void BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage, uint32_t mipSlice, FilterMode filterMode);
 		static void BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage, const BlitImageParams& params, FilterMode filterMode);
 
-		static void GenerateMips(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> image);
-
 		static void GenerateMips(Ref<Image2D> image);
-		static void RT_GenerateMips(Ref<Image2D> image);
+		static void GenerateMips(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> image);
 
 		static std::pair<Ref<TextureCube>, Ref<TextureCube>> CreateEnvironmentMap(const std::filesystem::path& filepath);
 		static std::pair<Ref<TextureCube>, Ref<TextureCube>> RT_CreateEnvironmentMap(const std::filesystem::path& filepath);

@@ -29,7 +29,7 @@ namespace Shark {
 		uint32_t Width = 0, Height = 0;
 		ImageFormat Format = ImageFormat::RGBA;
 
-		bool GenerateMips = true;
+		bool HasMips = true;
 		bool Storage = false;
 
 		float MaxAnisotropy = 1.0f;

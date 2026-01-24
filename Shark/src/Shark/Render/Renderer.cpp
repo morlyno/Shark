@@ -168,7 +168,7 @@ namespace Shark {
 			spec.Format = ImageFormat::RGBA;
 			spec.Width = 1;
 			spec.Height = 1;
-			spec.GenerateMips = false;
+			spec.HasMips = false;
 
 			spec.DebugName = "White Texture";
 			s_Data->m_WhiteTexture = Texture2D::Create(spec, Buffer::FromValue(0xFFFFFFFF));
@@ -833,6 +833,15 @@ namespace Shark {
 		return format;
 	}
 
+	void Renderer::GenerateMips(Ref<Image2D> image)
+	{
+		auto commandBuffer = RenderCommandBuffer::Create(fmt::format("GenerateMips '{}'", image->GetSpecification().DebugName));
+		commandBuffer->Begin();
+		GenerateMips(commandBuffer, image);
+		commandBuffer->End();
+		commandBuffer->Execute();
+	}
+
 	void Renderer::GenerateMips(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> targetImage)
 	{
 		SK_PROFILE_SCOPED("Renderer - GenerateMips");
@@ -844,6 +853,7 @@ namespace Shark {
 			ImageSpecification specification = targetImage->GetSpecification();
 			specification.Usage = ImageUsage::Storage;
 			specification.Format = ConvertToWritableFormat(specification.Format);
+			specification.DebugName = fmt::format("TEMP - GenerateMips - '{}'", targetImage->GetSpecification().DebugName);
 			generationImage = Image2D::Create(specification);
 			CopyMip(commandBuffer, targetImage, 0, generationImage, 0);
 		}
@@ -868,20 +878,6 @@ namespace Shark {
 		}
 	}
 
-	void Renderer::GenerateMips(Ref<Image2D> image)
-	{
-		auto commandBuffer = RenderCommandBuffer::Create("GenerateMips Commands");
-		commandBuffer->Begin();
-		GenerateMips(commandBuffer, image);
-		commandBuffer->End();
-		commandBuffer->Execute();
-	}
-
-	void Renderer::RT_GenerateMips(Ref<Image2D> image)
-	{
-		//SK_NOT_IMPLEMENTED();
-	}
-
 	std::pair<Ref<TextureCube>, Ref<TextureCube>> Renderer::CreateEnvironmentMap(const std::filesystem::path& filepath)
 	{
 		SK_PROFILE_SCOPED("Renderer - CreateEnvironmentMap");
@@ -889,7 +885,7 @@ namespace Shark {
 		const uint32_t cubemapSize = Renderer::GetConfig().EnvironmentMapResolution;
 		const uint32_t irradianceMapSize = 32;
 
-		Ref<Texture2D> equirectangular = Texture2D::Create({ .GenerateMips = false }, filepath);
+		Ref<Texture2D> equirectangular = Texture2D::Create({ .HasMips = false }, filepath);
 		SK_CORE_VERIFY(equirectangular->GetSpecification().Format == ImageFormat::RGBA32F, "Environment Texture is not HDR!");
 
 		const uint32_t mipCount = ImageUtils::CalcMipLevels(cubemapSize, cubemapSize);
@@ -898,7 +894,7 @@ namespace Shark {
 		cubemapSpec.Format = ImageFormat::RGBA32F;
 		cubemapSpec.Width = cubemapSize;
 		cubemapSpec.Height = cubemapSize;
-		cubemapSpec.GenerateMips = true;
+		cubemapSpec.HasMips = true;
 		cubemapSpec.Storage = true;
 
 		cubemapSpec.DebugName = fmt::format("EnvironmentMap Unfiltered {}", filepath);
@@ -922,7 +918,6 @@ namespace Shark {
 			auto pipeline = ComputePipeline::Create(equirectToCubeShader);
 			auto pass = ComputePass::Create(equirectToCubeShader, "EquirectangularToCube");
 			pass->SetInput("u_Equirect", equirectangular);
-			pass->SetInput("u_Sampler", Renderer::GetLinearClampSampler());
 			pass->SetInput("o_CubeMap", unfiltered);
 			SK_CORE_VERIFY(pass->Validate());
 			pass->Bake();
@@ -938,7 +933,6 @@ namespace Shark {
 			auto pipeline = ComputePipeline::Create(mipFilterShader);
 			auto pass = ComputePass::Create(mipFilterShader, "EnvMipFilter");
 			pass->SetInput("u_Unfiltered", unfiltered);
-			pass->SetInput("u_Sampler", Renderer::GetLinearClampSampler());
 			SK_CORE_VERIFY(pass->Validate());
 			pass->Bake();
 
@@ -969,7 +963,6 @@ namespace Shark {
 			auto pass = ComputePass::Create(irradianceShader, "EnvIrradiance");
 			pass->SetInput("o_Irradiance", irradianceMap);
 			pass->SetInput("u_Radiance", filtered);
-			pass->SetInput("u_Sampler", GetLinearClampSampler());
 			SK_CORE_VERIFY(pass->Validate());
 			pass->Bake();
 

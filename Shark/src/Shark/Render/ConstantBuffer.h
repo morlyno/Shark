@@ -13,6 +13,8 @@ namespace Shark {
 	public:
 		static Ref<ConstantBuffer> Create(uint64_t byteSize, const std::string& debugName = {}) { return Ref<ConstantBuffer>::Create(byteSize, debugName); }
 
+		const std::string& GetDebugName() const { return m_DebugName; }
+
 	public:
 		ConstantBuffer(uint64_t byteSize, const std::string& debugName);
 		~ConstantBuffer();
