@@ -10,7 +10,6 @@ project "Shark"
     pchheader "skpch.h"
     pchsource "src/skpch.cpp"
 
-
     files {
         "src/**.h",
         "src/**.cpp",
@@ -26,6 +25,8 @@ project "Shark"
         "dependencies/tracy/common/*.hpp",
         "dependencies/tracy/client/*.hpp",
         "dependencies/tracy/TracyClient.cpp",
+
+        "dependencies/glm/util/glm.natvis"
     }
 
     includedirs {

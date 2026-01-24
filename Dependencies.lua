@@ -59,7 +59,7 @@ Dependencies = {
     DXCompiler = {
         LibName = "dxcompiler",
         DebugLibName = "dxcompilerd",
-        LibraryDir = "%{VULKAN_SDK}/lib/"
+        LibraryDir = "%{VULKAN_SDK}/lib"
     },
     SPIRV_Cross = {
         LibName = "spirv-cross-core",
