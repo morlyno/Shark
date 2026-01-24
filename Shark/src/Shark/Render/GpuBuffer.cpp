@@ -3,6 +3,7 @@
 
 #include "Shark/Core/Application.h"
 #include "Shark/Render/Renderer.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
@@ -33,6 +34,8 @@ namespace Shark {
 
 	void GpuBuffer::RT_Upload(const Buffer data)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto deviceManager = Application::Get().GetDeviceManager();
 		auto commandList = deviceManager->GetCommandList(nvrhi::CommandQueue::Copy);
 

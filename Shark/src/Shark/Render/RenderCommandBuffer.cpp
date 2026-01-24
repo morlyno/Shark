@@ -68,28 +68,36 @@ namespace Shark {
 
 	void RenderCommandBuffer::RT_Begin()
 	{
+		SK_PROFILE_FUNCTION();
+
 		Application::Get().GetDeviceManager()->LockCommandList(m_CommandList);
 
+		SK_CORE_TRACE_TAG("Renderer", "CommandBuffer open '{}'", m_Name);
 		m_CommandList->open();
 		m_CommandList->beginMarker(m_Name.c_str());
-		RT_BeginTimerQuery(m_TimerQuery);
+		//RT_BeginTimerQuery(m_TimerQuery);
 	}
 
 	void RenderCommandBuffer::RT_End()
 	{
+		SK_PROFILE_FUNCTION();
+
 		uint32_t poolIndex = Renderer::RT_GetCurrentFrameIndex() % m_TimerQueryPools.size();
 		auto& pool = m_TimerQueryPools[poolIndex];
 		
-		RT_EndTimerQuery(m_TimerQuery);
+		//RT_EndTimerQuery(m_TimerQuery);
 		m_CommandList->endMarker();
 		m_CommandList->close();
+		SK_CORE_TRACE_TAG("Renderer", "CommandBuffer close '{}'", m_Name);
 
 		Application::Get().GetDeviceManager()->UnlockCommandList(m_CommandList);
 	}
 
 	void RenderCommandBuffer::RT_Execute()
 	{
+		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("CommandBuffer Execute");
+		SK_CORE_TRACE_TAG("Renderer", "CommandBuffer Execute '{}'", m_Name);
 
 		auto deviceManager = Application::Get().GetDeviceManager();
 		auto device = deviceManager->GetDevice();

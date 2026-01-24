@@ -197,6 +197,8 @@ namespace Shark {
 
 	void SceneRenderer::PreRender()
 	{
+		SK_PROFILE_FUNCTION();
+
 		// #idear #Renderer check if environment has changed
 		Ref<Environment> environment = m_Scene->GetEnvironment();
 		m_GeometryPass->SetInput("u_IrradianceMap", environment->GetIrradianceMap());
@@ -267,6 +269,8 @@ namespace Shark {
 
 	void SceneRenderer::GeometryPass()
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.GeometryPassQuery);
 		Renderer::BeginEventMarker(m_CommandBuffer, "Geometry Pass");
 
@@ -304,6 +308,8 @@ namespace Shark {
 
 	void SceneRenderer::SkyboxPass()
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.SkyboxPassQuery);
 		Renderer::BeginRenderPass(m_CommandBuffer, m_SkyboxPass);
 		Renderer::RenderCube(m_CommandBuffer, m_SkyboxPipeline, nullptr);
@@ -313,6 +319,8 @@ namespace Shark {
 
 	void SceneRenderer::JumpFloodPass()
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.JumpFloodPassQuery);
 		Renderer::BeginEventMarker(m_CommandBuffer, "JumpFlood");
 
