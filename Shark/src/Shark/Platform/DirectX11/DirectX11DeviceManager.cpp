@@ -16,6 +16,12 @@ namespace Shark {
 				case nvrhi::MessageSeverity::Error: SK_CORE_ERROR_TAG("nvrhi", messageText); break;
 				case nvrhi::MessageSeverity::Fatal: SK_CORE_CRITICAL_TAG("nvrhi", messageText); break;
 			}
+
+			if (severity >= nvrhi::MessageSeverity::Error)
+			{
+				SK_DEBUG_BREAK_CONDITIONAL(s_BREAK_ON_MESSAGE);
+			}
+
 		}
 
 		static MessageCallback& GetInstance()
@@ -43,7 +49,7 @@ namespace Shark {
 			if (adapterIndex == 0)
 				SK_CORE_ERROR_TAG("Renderer", "Cannot find any DXGI adapters!");
 			else
-				SK_CORE_ERROR_TAG("Renderer", "The specified DXGI adapter %d does not exist", adapterIndex);
+				SK_CORE_ERROR_TAG("Renderer", "The specified DXGI adapter {} does not exist", adapterIndex);
 			return false;
 		}
 
@@ -72,41 +78,7 @@ namespace Shark {
 		deviceDesc.context = m_ImmediateContext;
 		m_NvrhiDevice = nvrhi::d3d11::createDevice(deviceDesc);
 
-		if (m_Sepcification.EnableNvrhiValidationLayer)
-		{
-			m_NvrhiDevice = nvrhi::validation::createValidationLayer(m_NvrhiDevice);
-		}
-
-		auto commandListDesc = nvrhi::CommandListParameters()
-			.setEnableImmediateExecution(true)
-			.setQueueType(nvrhi::CommandQueue::Graphics);
-
-		m_CommandList = Scope<CommandList>::Create(this, m_NvrhiDevice->createCommandList(commandListDesc));
 		return true;
-	}
-
-	void DirectX11DeviceManager::LockCommandList(nvrhi::ICommandList* commandList)
-	{
-		if (commandList->getDesc().enableImmediateExecution)
-			m_CommandListSemaphore.acquire();
-	}
-
-	void DirectX11DeviceManager::UnlockCommandList(nvrhi::ICommandList* commandList)
-	{
-		if (commandList->getDesc().enableImmediateExecution)
-			m_CommandListSemaphore.release();
-	}
-
-	void DirectX11DeviceManager::ExecuteCommandList(nvrhi::ICommandList* commandList)
-	{
-		m_NvrhiDevice->executeCommandList(commandList);
-	}
-
-	void DirectX11DeviceManager::ExecuteCommandListLocked(nvrhi::ICommandList* commandList)
-	{
-		m_ExecutionMutex.lock();
-		m_NvrhiDevice->executeCommandList(commandList);
-		m_ExecutionMutex.unlock();
 	}
 
 	HRESULT DirectX11DeviceManager::CreateSwapChain(DXGI_SWAP_CHAIN_DESC* desc, IDXGISwapChain** outSwapChain)

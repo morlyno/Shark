@@ -36,14 +36,11 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		auto deviceManager = Application::Get().GetDeviceManager();
-		auto commandList = deviceManager->GetCommandList(nvrhi::CommandQueue::Copy);
-
-		commandList->open();
-		commandList->writeBuffer(m_BufferHandle, data.As<const void>(), data.Size);
-		commandList->close();
-
-		deviceManager->ExecuteCommandListLocked(commandList);
+		auto deviceManager = Renderer::GetDeviceManager();
+		deviceManager->ExecuteCommand([handle = m_BufferHandle, data](nvrhi::ICommandList* cmd)
+		{
+			cmd->writeBuffer(handle, data.As<const void>(), data.Size);
+		});
 	}
 
 	void GpuBuffer::InvalidateFromState(const RT_State& state)

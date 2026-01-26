@@ -54,15 +54,6 @@ namespace Shark {
 			float Exposure = 1.0f;
 		};
 
-		struct TimestampQueries
-		{
-			QueryID TotalTimeQuery;
-			QueryID GeometryPassQuery;
-			QueryID SkyboxPassQuery;
-			QueryID CompositePassQuery;
-			QueryID JumpFloodPassQuery;
-		};
-
 	public:
 		SceneRenderer(uint32_t width, uint32_t height, const std::string& debugName);
 		SceneRenderer(const SceneRendererSpecification& specification);
@@ -165,7 +156,6 @@ namespace Shark {
 		SceneRendererSpecification m_Specification;
 
 		Statistics m_Statistics;
-		PipelineStatistics m_PipelineStatistics;
 		Options m_Options;
 
 		Ref<ConstantBuffer> m_CBScene;
@@ -179,8 +169,6 @@ namespace Shark {
 
 		Ref<Renderer2D> m_Renderer2D;
 		Ref<RenderCommandBuffer> m_CommandBuffer;
-
-		TimestampQueries m_TimestampQueries;
 
 		glm::mat4 m_ViewProjection;
 		glm::mat4 m_View;

@@ -118,7 +118,6 @@ namespace Shark {
 		PreRender();
 
 		m_CommandBuffer->Begin();
-		m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.TotalTimeQuery);
 
 		SkyboxPass();
 		GeometryPass();
@@ -127,7 +126,7 @@ namespace Shark {
 			JumpFloodPass();
 
 
-		m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.CompositePassQuery);
+		m_CommandBuffer->BeginTimer("CompositePass");
 		Renderer::BeginEventMarker(m_CommandBuffer, "Composite");
 		
 		Renderer::BeginRenderPass(m_CommandBuffer, m_CompositePass);
@@ -135,7 +134,7 @@ namespace Shark {
 		Renderer::EndRenderPass(m_CommandBuffer, m_CompositePass);
 
 		Renderer::EndEventMarker(m_CommandBuffer);
-		m_CommandBuffer->EndTimerQuery(m_TimestampQueries.CompositePassQuery);
+		m_CommandBuffer->EndTimer("CompositePass");
 
 		if (m_Options.JumpFlood)
 		{
@@ -148,16 +147,14 @@ namespace Shark {
 			Renderer::EndEventMarker(m_CommandBuffer);
 		}
 
-		m_CommandBuffer->EndTimerQuery(m_TimestampQueries.TotalTimeQuery);
 		m_CommandBuffer->End();
 		m_CommandBuffer->Execute();
 
-		m_Statistics.GPUTime = m_CommandBuffer->GetGPUExecutionTime(m_TimestampQueries.TotalTimeQuery);
-		m_Statistics.GeometryPass = m_CommandBuffer->GetGPUExecutionTime(m_TimestampQueries.GeometryPassQuery);
-		m_Statistics.SkyboxPass = m_CommandBuffer->GetGPUExecutionTime(m_TimestampQueries.SkyboxPassQuery);
-		m_Statistics.CompositePass = m_CommandBuffer->GetGPUExecutionTime(m_TimestampQueries.CompositePassQuery);
-		m_Statistics.JumpFloodPass = m_CommandBuffer->GetGPUExecutionTime(m_TimestampQueries.JumpFloodPassQuery);
-		m_PipelineStatistics = m_CommandBuffer->GetPipelineStatistics();
+		m_Statistics.GPUTime = m_CommandBuffer->GetGPUExecutionTime();
+		m_Statistics.GeometryPass = m_CommandBuffer->GetGPUExecutionTime("GeometryPass");
+		m_Statistics.SkyboxPass = m_CommandBuffer->GetGPUExecutionTime("SkyboxPass");
+		m_Statistics.CompositePass = m_CommandBuffer->GetGPUExecutionTime("CompositePass");
+		m_Statistics.JumpFloodPass = m_CommandBuffer->GetGPUExecutionTime("JumpFloodPass");
 
 		m_Scene = nullptr;
 	}
@@ -271,7 +268,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.GeometryPassQuery);
+		m_CommandBuffer->BeginTimer("GeometryPass");
 		Renderer::BeginEventMarker(m_CommandBuffer, "Geometry Pass");
 
 		Renderer::BeginRenderPass(m_CommandBuffer, m_GeometryPass);
@@ -303,25 +300,25 @@ namespace Shark {
 
 
 		Renderer::EndEventMarker(m_CommandBuffer);
-		m_CommandBuffer->EndTimerQuery(m_TimestampQueries.GeometryPassQuery);
+		m_CommandBuffer->EndTimer("GeometryPass");
 	}
 
 	void SceneRenderer::SkyboxPass()
 	{
 		SK_PROFILE_FUNCTION();
 
-		m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.SkyboxPassQuery);
+		m_CommandBuffer->BeginTimer("SkyboxPass");
 		Renderer::BeginRenderPass(m_CommandBuffer, m_SkyboxPass);
 		Renderer::RenderCube(m_CommandBuffer, m_SkyboxPipeline, nullptr);
 		Renderer::EndRenderPass(m_CommandBuffer, m_SkyboxPass);
-		m_CommandBuffer->EndTimerQuery(m_TimestampQueries.SkyboxPassQuery);
+		m_CommandBuffer->EndTimer("SkyboxPass");
 	}
 
 	void SceneRenderer::JumpFloodPass()
 	{
 		SK_PROFILE_FUNCTION();
 
-		m_CommandBuffer->BeginTimerQuery(m_TimestampQueries.JumpFloodPassQuery);
+		m_CommandBuffer->BeginTimer("JumpFloodPass");
 		Renderer::BeginEventMarker(m_CommandBuffer, "JumpFlood");
 
 		Renderer::BeginRenderPass(m_CommandBuffer, m_JumpFloodInitPass);
@@ -351,7 +348,7 @@ namespace Shark {
 		vertexOverrides.Release();
 
 		Renderer::EndEventMarker(m_CommandBuffer);
-		m_CommandBuffer->EndTimerQuery(m_TimestampQueries.JumpFloodPassQuery);
+		m_CommandBuffer->EndTimer("JumpFloodPass");
 	}
 
 	void SceneRenderer::Initialize(const SceneRendererSpecification& specification)
@@ -359,12 +356,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		m_Specification = specification;
-		m_CommandBuffer = RenderCommandBuffer::Create(fmt::format("SceneRenderer - {}", specification.DebugName), 5);
-		m_TimestampQueries.TotalTimeQuery = m_CommandBuffer->RegisterTimerQuery();
-		m_TimestampQueries.GeometryPassQuery = m_CommandBuffer->RegisterTimerQuery();
-		m_TimestampQueries.SkyboxPassQuery = m_CommandBuffer->RegisterTimerQuery();
-		m_TimestampQueries.CompositePassQuery = m_CommandBuffer->RegisterTimerQuery();
-		m_TimestampQueries.JumpFloodPassQuery = m_CommandBuffer->RegisterTimerQuery();
+		m_CommandBuffer = RenderCommandBuffer::Create(fmt::format("SceneRenderer - {}", specification.DebugName));
 
 		m_CBScene             = ConstantBuffer::Create(sizeof(CBScene), "Scene");
 		m_CBCamera            = ConstantBuffer::Create(sizeof(CBCamera), "Camera");

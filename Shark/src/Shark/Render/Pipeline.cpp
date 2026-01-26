@@ -70,6 +70,7 @@ namespace Shark {
 				case VertexDataType::Bool: return nvrhi::Format::R32_UINT;
 			}
 			SK_CORE_ASSERT(false, "Unknown VertexDataType");
+			return nvrhi::Format::UNKNOWN;
 		}
 
 	}
@@ -159,7 +160,7 @@ namespace Shark {
 		}
 
 		auto device = Application::Get().GetDeviceManager()->GetDevice();
-		pipelineDesc.inputLayout = device->createInputLayout(attributes.data(), attributes.size(), pipelineDesc.VS);
+		pipelineDesc.inputLayout = device->createInputLayout(attributes.data(), static_cast<uint32_t>(attributes.size()), pipelineDesc.VS);
 
 		m_PipelineHandle = device->createGraphicsPipeline(pipelineDesc, framebufferInfo);
 	}

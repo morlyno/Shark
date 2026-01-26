@@ -149,15 +149,6 @@ namespace Shark {
 		std::array<glm::vec4, MaxCircleVertexPositions> m_CircleVertexPositions;
 
 	private:
-		struct TimestampQueries
-		{
-			QueryID GeometryPassQuery;
-			QueryID QuadPassQuery;
-			QueryID CirclePassQuery;
-			QueryID LinePassQuery;
-			QueryID TextPassQuery;
-		};
-
 		struct QuadVertex
 		{
 			glm::vec3 WorldPosition;
@@ -206,7 +197,6 @@ namespace Shark {
 		Ref<ConstantBuffer> m_CBCamera;
 
 		glm::mat4 m_ViewProj;
-		TimestampQueries m_TimestampQueries;
 
 		struct QuadBatch
 		{

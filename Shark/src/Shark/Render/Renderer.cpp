@@ -776,9 +776,9 @@ namespace Shark {
 		params.LayerCount = destinationImage->GetSpecification().Layers;
 		params.SourceBaseSlice.Mip = mipSlice;
 		params.SourceBaseSlice.Layer = 0;
-		params.SourceMin = glm::uvec2(0.0f);
+		params.SourceMin = glm::uvec2(0);
 		params.SourceMax = glm::uvec2(sourceImage->GetWidth(), sourceImage->GetHeight());
-		params.DestinationMin = glm::uvec2(0.0f);
+		params.DestinationMin = glm::uvec2(0);
 		params.DestinationMax = glm::uvec2(destinationImage->GetWidth(), destinationImage->GetHeight());
 		BlitImage(commandBuffer, sourceImage, destinationImage, params, filterMode);
 	}

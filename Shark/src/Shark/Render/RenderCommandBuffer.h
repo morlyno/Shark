@@ -7,40 +7,10 @@
 
 namespace Shark {
 
-	struct PipelineStatistics
-	{
-		uint64_t InputAssemblerVertices;
-		uint64_t InputAssemblerPrimitives;
-		uint64_t VertexShaderInvocations;
-		uint64_t PixelShaderInvocations;
-		uint64_t ComputeShaderInvocations;
-		uint64_t RasterizerInvocations;
-		uint64_t RasterizerPrimitives;
-	};
-
-	class QueryID
-	{
-	public:
-		QueryID() = default;
-
-		bool IsValid() const { return m_ID != Invalid; }
-
-	private:
-		QueryID(uint32_t id) : m_ID(id) {}
-
-		operator uint32_t() const { return m_ID; }
-		static constexpr uint32_t Invalid = (uint32_t)-1;
-
-	private:
-		uint32_t m_ID = Invalid;
-
-		friend class RenderCommandBuffer;
-	};
-
 	class RenderCommandBuffer : public RefCount
 	{
 	public:
-		static Ref<RenderCommandBuffer> Create(const std::string& name, uint32_t queryCountHint = 0) { return Ref<RenderCommandBuffer>::Create(name, queryCountHint); }
+		static Ref<RenderCommandBuffer> Create(const std::string& name) { return Ref<RenderCommandBuffer>::Create(name); }
 
 	public:
 		void Begin();
@@ -58,20 +28,18 @@ namespace Shark {
 		void BeginMarker(const char* name);
 		void EndMarker();
 
-		QueryID RegisterTimerQuery();
-		void BeginTimerQuery(QueryID queryID);
-		void EndTimerQuery(QueryID queryID);
-		void RT_BeginTimerQuery(QueryID queryID);
-		void RT_EndTimerQuery(QueryID queryID);
+		void BeginTimer(std::string_view timerName);
+		void EndTimer(std::string_view timerName);
+		void RT_BeginTimer(std::string_view timerName);
+		void RT_EndTimer(std::string_view timerName);
 
-		TimeStep GetGPUExecutionTime(QueryID queryID = QueryID(0)) const;
-		TimeStep GetGPUExecutionTime(uint32_t frameIndex, QueryID queryID = QueryID(0)) const;
+		TimeStep GetGPUExecutionTime() const;
+		TimeStep GetGPUExecutionTime(std::string_view timerName) const;
 
 		// #Renderer #Investigate Pipeline Statistics are not supported by nvrhi
-		const PipelineStatistics& GetPipelineStatistics() const { return PipelineStatistics{}; }
 
 	public:
-		RenderCommandBuffer(const std::string& name, uint32_t queryCountHint);
+		RenderCommandBuffer(const std::string& name);
 		~RenderCommandBuffer();
 
 	private:
@@ -80,10 +48,17 @@ namespace Shark {
 		nvrhi::GraphicsState m_GraphicsState;
 		nvrhi::ComputeState m_ComputeState;
 
-		QueryID m_TimerQuery;
-		uint32_t m_NextQueryID = 0;
-		std::vector<std::vector<std::pair<nvrhi::TimerQueryHandle, bool>>> m_TimerQueryPools;
-		std::vector<std::vector<float>> m_GPUExecutionTimes;
+		struct TimerQueries
+		{
+			nvrhi::TimerQueryHandle m_Timer;
+
+			std::map<std::string, std::pair<nvrhi::TimerQueryHandle, bool>, std::ranges::less> m_TimerQuery;
+		};
+
+		std::array<TimerQueries, 3> m_Queries;
+
+		float m_TimerResult[2];
+		std::map<std::string_view, float> m_TimerResults[2];
 	};
 
 }

@@ -1,8 +1,11 @@
 #include "skpch.h"
 #include "Image.h"
+
 #include "Shark/Core/Application.h"
-#include "Renderer.h"
 #include "Shark/Core/Memory.h"
+#include "Shark/Render/Renderer.h"
+
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
@@ -107,14 +110,13 @@ namespace Shark {
 
 	void Image2D::RT_UploadData(const Buffer buffer)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto deviceManager = Application::Get().GetDeviceManager();
-		auto commandList = deviceManager->GetCommandList(nvrhi::CommandQueue::Copy);
-
-		commandList->open();
-		commandList->writeTexture(m_ImageHandle, 0, 0, buffer.As<const void>(), m_Specification.Width * ImageUtils::GetFormatBPP(m_Specification.Format));
-		commandList->close();
-
-		deviceManager->ExecuteCommandListLocked(commandList);
+		deviceManager->ExecuteCommand([this, buffer](nvrhi::ICommandList* cmd)
+		{
+			cmd->writeTexture(m_ImageHandle, 0, 0, buffer.As<const void>(), m_Specification.Width * ImageUtils::GetFormatBPP(m_Specification.Format));
+		});
 	}
 
 	void Image2D::InvalidateFromState(const RT_State& state)
