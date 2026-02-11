@@ -1,10 +1,12 @@
 Project:
   Name: Sandbox
   Assets: Assets
-  StartupScene: 12244781757691949041
+  StartupScene: 13360362835884526046
   ScriptModulePath: Assets/Scripts/Binaries/Sandbox.dll
   Physics:
-    Gravity: [0, -9.81000042]
+    Gravity:
+      - 0
+      - -9.81000042
     VelocityIterations: 8
     PositionIterations: 3
     FixedTimeStep: 0.00400000019
@@ -42,7 +44,7 @@ Project:
       Level: Trace
     - Name: Renderer
       Enabled: true
-      Level: Warn
+      Level: Info
     - Name: Scene
       Enabled: true
       Level: Trace
@@ -51,14 +53,20 @@ Project:
       Level: Info
     - Name: Serialization
       Enabled: true
-      Level: Warn
+      Level: Trace
     - Name: ThumbnailCache
       Enabled: true
-      Level: Warn
+      Level: Trace
     - Name: Timer
-      Enabled: false
+      Enabled: true
       Level: Trace
     - Name: UI
+      Enabled: true
+      Level: Trace
+    - Name: nvrhi
+      Enabled: true
+      Level: Trace
+    - Name: renderer
       Enabled: true
       Level: Trace
     - Name: stbi

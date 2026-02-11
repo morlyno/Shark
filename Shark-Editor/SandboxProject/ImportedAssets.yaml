@@ -35,6 +35,9 @@ ImportedAssets:
   - Handle: 3492957047207113203
     Type: Scene
     FilePath: Scenes/TextTest.skscene
+  - Handle: 13360362835884526046
+    Type: Scene
+    FilePath: Scenes/TwoCubes.skscene
   - Handle: 3721988405384522794
     Type: Texture
     FilePath: MeshSources/Sponza/textures/background.png

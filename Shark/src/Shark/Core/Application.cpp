@@ -30,6 +30,14 @@ namespace Shark {
 		m_Profiler = sknew PerformanceProfiler;
 		m_SecondaryProfiler = sknew PerformanceProfiler;
 
+		m_DeviceManager = DeviceManager::Create(nvrhi::GraphicsAPI::D3D11);
+		m_DeviceManager->CreateDevice(
+			DeviceSpecification{
+				.EnableDebugRuntime = true,
+				.EnableNvrhiValidationLayer = true
+			}
+		);
+
 		Renderer::Init();
 		Renderer::WaitAndRender();
 
@@ -68,6 +76,7 @@ namespace Shark {
 
 		m_Window = nullptr;
 		Renderer::ShutDown();
+		m_DeviceManager = nullptr;
 
 		skdelete m_Profiler;
 		skdelete m_SecondaryProfiler;
@@ -115,16 +124,17 @@ namespace Shark {
 
 			AssetManager::SyncWithAssetThread();
 
-			ProcessEvents();
 			ExecuteMainThreadQueue();
+			ProcessEvents();
+
+			{
+				Timer waitAndRenderTimer;
+				Renderer::WaitAndRender();
+				waitAndRenderTime = waitAndRenderTimer.Elapsed();
+			}
 
 			if (!m_Minimized)
 			{
-				{
-					Timer waitAndRenderTimer;
-					Renderer::WaitAndRender();
-					waitAndRenderTime = waitAndRenderTimer.Elapsed();
-				}
 				Renderer::BeginFrame();
 
 				for (auto& layer : m_LayerStack)

@@ -97,7 +97,8 @@ namespace Shark {
 		uint64_t m_ScriptEngineLastModifiedTime = 0;
 
 		EditorCamera m_EditorCamera;
-		Ref<Image2D> m_MousePickingImage;
+		Ref<StagingImage2D> m_MousePickingImage;
+		Ref<RenderCommandBuffer> m_CopyCommandBuffer;
 
 		Ref<SceneRenderer> m_SceneRenderer;
 		Ref<Renderer2D> m_DebugRenderer;

@@ -6,56 +6,52 @@
 #include "Shark/Render/ConstantBuffer.h"
 #include "Shark/Render/StorageBuffer.h"
 #include "Shark/Render/Texture.h"
-#include "Shark/Render/RendererResource.h"
+#include "Shark/Render/Image.h"
+#include "Shark/Render/ShaderInputManager.h"
 
 namespace Shark {
 
 	struct RenderPassSpecification
 	{
-		Ref<Pipeline> Pipeline;
+		Ref<Shader> Shader;
+		Ref<FrameBuffer> TargetFramebuffer;
 		std::string DebugName;
 	};
 
 	class RenderPass : public RefCount
 	{
 	public:
-		virtual void Bake() = 0;
-		virtual bool Validate() const = 0;
-		virtual void Update() = 0;
+		static Ref<RenderPass> Create(const RenderPassSpecification& specification) { return Ref<RenderPass>::Create(specification); }
 
-		virtual void Set(const std::string& name, Ref<ConstantBuffer> constantBuffer) = 0;
-		virtual void Set(const std::string& name, Ref<StorageBuffer> storageBuffer) = 0;
-		virtual void Set(const std::string& name, Ref<Image2D> image) = 0;
-		virtual void Set(const std::string& name, Ref<Texture2D> texture) = 0;
-		virtual void Set(const std::string& name, Ref<TextureCube> textureCube) = 0;
+		void Bake();
+		bool Validate() const;
+		void Update();
+		void UpdateDescriptors();
 
-		virtual Ref<ConstantBuffer> GetConstantBuffer(const std::string& name) const = 0;
-		virtual Ref<StorageBuffer> GetStorageBuffer(const std::string& name) const = 0;
-		virtual Ref<Image2D> GetImage2D(const std::string& name) const = 0;
-		virtual Ref<Texture2D> GetTexture2D(const std::string& name) const = 0;
-		virtual Ref<TextureCube> GetTextureCube(const std::string& name) const = 0;
+		void SetInput(const std::string& name, Ref<ConstantBuffer> constantBuffer);
+		void SetInput(const std::string& name, Ref<StorageBuffer> storageBuffer);
+		void SetInput(const std::string& name, Ref<Image2D> image, uint32_t arrayIndex = 0);
+		void SetInput(const std::string& name, Ref<Texture2D> image, uint32_t arrayIndex = 0);
+		void SetInput(const std::string& name, Ref<TextureCube> textureCube, uint32_t arrayIndex = 0);
+		void SetInput(const std::string& name, Ref<Sampler> sampler, uint32_t arrayIndex = 0);
 
-		virtual Ref<RendererResource> GetInput(const std::string& name) const = 0;
+		Ref<Image2D> GetOutput(uint32_t index) const;
+		Ref<Image2D> GetDepthOutput() const;
 
-		template<typename T>
-		Ref<T> GetInput(const std::string& name) const
-		{
-			return GetInput(name).As<T>();
-		}
+		Ref<Shader> GetShader() const;
+		Ref<FrameBuffer> GetTargetFramebuffer() const;
+		void SetTargetFramebuffer(Ref<FrameBuffer> targetFramebuffer);
 
-		virtual Ref<Image2D> GetOutput(uint32_t index) const = 0;
-		virtual Ref<Image2D> GetDepthOutput() const = 0;
-
-		virtual Ref<FrameBuffer> GetTargetFramebuffer() const = 0;
-		virtual void SetTargetFramebuffer(Ref<FrameBuffer> targetFramebuffer) = 0;
-
-		virtual Ref<Pipeline> GetPipeline() const = 0;
-		virtual RenderPassSpecification& GetSpecification() = 0;
-		virtual const RenderPassSpecification& GetSpecification() const = 0;
+		const ShaderInputManager& GetInputManager() const { return m_InputManager; }
+		const RenderPassSpecification& GetSpecification() const { return m_Specification; }
 
 	public:
-		static Ref<RenderPass> Create(const RenderPassSpecification& specification);
+		RenderPass(const RenderPassSpecification& specification);
+		~RenderPass();
 
+	private:
+		RenderPassSpecification m_Specification;
+		ShaderInputManager m_InputManager;
 	};
 
 }

@@ -25,3 +25,6 @@
 [submodule "Shark/dependencies/Coral"]
 	path = Shark/dependencies/Coral
 	url = https://github.com/morlyno/Coral.git
+[submodule "Shark/dependencies/NVRHI"]
+	path = Shark/dependencies/NVRHI
+	url = https://github.com/morlyno/NVRHI.git

@@ -96,7 +96,6 @@ namespace Shark {
 		void DrawLine(const glm::vec2& pos0, const glm::vec2& pos1, const glm::vec4& color, int id = -1);
 		void DrawLine(const glm::vec3& pos0, const glm::vec3& pos1, const glm::vec4& color, int id = -1);
 
-
 		void DrawRect(const glm::vec2& position, const glm::vec2& scaling, const glm::vec4& color, int id = -1);
 		void DrawRect(const glm::vec3& position, const glm::vec3& scaling, const glm::vec4& color, int id = -1);
 		void DrawRect(const glm::vec2& position, float rotation,            const glm::vec2& scaling, const glm::vec4& color, int id = -1);
@@ -120,9 +119,8 @@ namespace Shark {
 		void AssureLineVertexDataSize();
 		void AssureTextVertexDataSize(uint32_t glyphCount);
 
-		void BeginQaudBatch();
-		uint32_t AddTexture(QuadBatch* batch, Ref<Texture2D> texture);
-		void PrepareMaterial(Ref<Material> material, const QuadBatch& batch);
+		uint32_t AddTexture(Ref<Texture2D> texture);
+		Ref<Material> PrepareMaterial(uint32_t batchindex, const QuadBatch& batch);
 		void ResizeQuadIndexBuffer(uint32_t indexCount);
 
 	public:
@@ -151,15 +149,6 @@ namespace Shark {
 		std::array<glm::vec4, MaxCircleVertexPositions> m_CircleVertexPositions;
 
 	private:
-		struct TimestampQueries
-		{
-			uint32_t GeometryPassQuery = UINT32_MAX;
-			uint32_t QuadPassQuery = UINT32_MAX;
-			uint32_t CirclePassQuery = UINT32_MAX;
-			uint32_t LinePassQuery = UINT32_MAX;
-			uint32_t TextPassQuery = UINT32_MAX;
-		};
-
 		struct QuadVertex
 		{
 			glm::vec3 WorldPosition;
@@ -208,7 +197,6 @@ namespace Shark {
 		Ref<ConstantBuffer> m_CBCamera;
 
 		glm::mat4 m_ViewProj;
-		TimestampQueries m_TimestampQueries;
 
 		struct QuadBatch
 		{
@@ -226,7 +214,7 @@ namespace Shark {
 
 		// Quad
 		Ref<RenderPass> m_QuadPass;
-		Ref<Material> m_QuadMaterial;
+		Ref<Pipeline> m_QuadPipeline;
 		Ref<VertexBuffer> m_QuadVertexBuffer;
 		Ref<IndexBuffer> m_QuadIndexBuffer;
 		Buffer m_QuadVertexData;
@@ -234,8 +222,11 @@ namespace Shark {
 		QuadBatch* m_QuadBatch;
 		uint32_t m_QuadIndexCount = 0;
 
+		std::vector<Ref<Material>> m_Materials;
+
 		// Circle
 		Ref<RenderPass> m_CirclePass;
+		Ref<Pipeline> m_CirclePipeline;
 		Ref<VertexBuffer> m_CircleVertexBuffer;
 		Ref<IndexBuffer> m_CircleIndexBuffer;
 		Buffer m_CircleVertexData;
@@ -244,12 +235,14 @@ namespace Shark {
 		
 		// Line
 		Ref<RenderPass> m_LinePass;
+		Ref<Pipeline> m_LinePipeline;
 		Ref<VertexBuffer> m_LineVertexBuffer;
 		Buffer m_LineVertexData;
 		uint32_t m_LineVertexCount = 0;
 
 		// Text
 		Ref<RenderPass> m_TextPass;
+		Ref<Pipeline> m_TextPipeline;
 		Ref<Material> m_TextMaterial;
 		Ref<VertexBuffer> m_TextVertexBuffer;
 		Ref<IndexBuffer> m_TextIndexBuffer;
@@ -258,7 +251,6 @@ namespace Shark {
 		uint32_t m_TextVertexCount = 0;
 
 		friend class SceneRenderer;
-
 	};
 
 }

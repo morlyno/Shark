@@ -3,39 +3,62 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Core/TimeStep.h"
 
-namespace Shark {
+#include <nvrhi/nvrhi.h>
 
-	struct PipelineStatistics
-	{
-		uint64_t InputAssemblerVertices;
-		uint64_t InputAssemblerPrimitives;
-		uint64_t VertexShaderInvocations;
-		uint64_t PixelShaderInvocations;
-		uint64_t ComputeShaderInvocations;
-		uint64_t RasterizerInvocations;
-		uint64_t RasterizerPrimitives;
-	};
+namespace Shark {
 
 	class RenderCommandBuffer : public RefCount
 	{
 	public:
-		virtual ~RenderCommandBuffer() = default;
-
-		virtual void Release() = 0;
-
-		virtual void Begin() = 0;
-		virtual void End() = 0;
-		virtual void Execute(bool releaseCommandList = false) = 0;
-
-		virtual uint32_t BeginTimestampQuery() = 0;
-		virtual void EndTimestampQuery(uint32_t queryID) = 0;
-
-		virtual const PipelineStatistics& GetPipelineStatistics() const = 0;
-		virtual TimeStep GetTime(uint32_t queryID) const = 0;
+		static Ref<RenderCommandBuffer> Create(const std::string& name) { return Ref<RenderCommandBuffer>::Create(name); }
 
 	public:
-		static Ref<RenderCommandBuffer> Create(const std::string& name);
+		void Begin();
+		void End();
+		void Execute();
 
+		void RT_Begin();
+		void RT_End();
+		void RT_Execute();
+
+		nvrhi::CommandListHandle GetHandle() const { return m_CommandList; }
+		nvrhi::GraphicsState& GetGraphicsState() { return m_GraphicsState; }
+		nvrhi::ComputeState& GetComputeState() { return m_ComputeState; }
+
+		void BeginMarker(const char* name);
+		void EndMarker();
+
+		void BeginTimer(std::string_view timerName);
+		void EndTimer(std::string_view timerName);
+		void RT_BeginTimer(std::string_view timerName);
+		void RT_EndTimer(std::string_view timerName);
+
+		TimeStep GetGPUExecutionTime() const;
+		TimeStep GetGPUExecutionTime(std::string_view timerName) const;
+
+		// #Renderer #Investigate Pipeline Statistics are not supported by nvrhi
+
+	public:
+		RenderCommandBuffer(const std::string& name);
+		~RenderCommandBuffer();
+
+	private:
+		std::string m_Name;
+		nvrhi::CommandListHandle m_CommandList;
+		nvrhi::GraphicsState m_GraphicsState;
+		nvrhi::ComputeState m_ComputeState;
+
+		struct TimerQueries
+		{
+			nvrhi::TimerQueryHandle m_Timer;
+
+			std::map<std::string, std::pair<nvrhi::TimerQueryHandle, bool>, std::ranges::less> m_TimerQuery;
+		};
+
+		std::array<TimerQueries, 3> m_Queries;
+
+		float m_TimerResult[2];
+		std::map<std::string_view, float> m_TimerResults[2];
 	};
 
 }

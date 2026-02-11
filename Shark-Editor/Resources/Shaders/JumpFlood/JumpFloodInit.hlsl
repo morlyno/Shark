@@ -1,3 +1,4 @@
+#pragma layout : renderpass
 
 #pragma stage : vertex
 
@@ -17,10 +18,10 @@ VertexOutput main(float3 Position : Position, float2 TexCoord : TexCoord)
 
 #pragma stage : pixel
 
-#include "JumpFlood/JumpFloodCommon.hlsl"
+#include "JumpFloodCommon.hlslh"
+#include "Core/Samplers.hlslh"
 
-[[vk::binding(0, 1), vk::combinedImageSampler]] uniform Texture2D u_Texture;
-[[vk::binding(0, 1), vk::combinedImageSampler]] uniform SamplerState u_Sampler;
+uniform Texture2D u_Texture : register(t0, space1);
 
 float4 main(float2 TexCoord : TexCoord) : SV_Target
 {
@@ -28,7 +29,7 @@ float4 main(float2 TexCoord : TexCoord) : SV_Target
     u_Texture.GetDimensions(texelSize.x, texelSize.y);
     texelSize = 1.0f / texelSize;
     
-    float4 color = u_Texture.Sample(u_Sampler, TexCoord);
+    float4 color = u_Texture.Sample(u_LinearClamp, TexCoord);
     
     float4 result;
     result.xy = float2(100.0f, 100.0f);

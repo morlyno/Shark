@@ -179,9 +179,12 @@ namespace Shark {
 			{
 				auto aiMaterial = scene->mMaterials[i];
 				auto materialName = aiMaterial->GetName();
-				auto material = Material::Create(Renderer::GetShaderLibrary()->Get("SharkPBR"), materialName.data);
-				auto materialAsset = Ref<MaterialAsset>::Create(material);
-				meshSource->m_Materials[i] = AssetManager::AddMemoryAsset(materialAsset);
+
+				// #TODO avoid setDefaults=true
+				auto pbrMaterial = PBRMaterial::Create(materialName.data, true, false);
+
+				// #Investigate AssetManager is not thread save
+				meshSource->m_Materials[i] = AssetManager::AddMemoryAsset(pbrMaterial);
 
 				SK_MESH_LOG("  {} (Index = {})", materialName.data, i);
 
@@ -250,9 +253,9 @@ namespace Shark {
 				if (aiMaterial->Get(AI_MATKEY_REFLECTIVITY, metalness) != aiReturn_SUCCESS)
 					metalness = 0.0f;
 
-				materialAsset->SetAlbedoColor(albedoColor);
-				materialAsset->SetMetalness(metalness);
-				materialAsset->SetRoughness(roughness);
+				pbrMaterial->SetAlbedoColor(albedoColor);
+				pbrMaterial->SetMetalness(metalness);
+				pbrMaterial->SetRoughness(roughness);
 
 				aiString aiTexPath;
 				if (aiMaterial->GetTexture(AI_MATKEY_BASE_COLOR_TEXTURE, &aiTexPath) == aiReturn_SUCCESS ||
@@ -261,8 +264,8 @@ namespace Shark {
 					AssetHandle textureHandle = LoadTexture(scene, aiTexPath, true);
 					if (textureHandle != AssetHandle::Invalid)
 					{
-						materialAsset->SetAlbedoMap(textureHandle);
-						materialAsset->SetAlbedoColor(glm::vec3(1.0f));
+						pbrMaterial->SetAlbedoMap(textureHandle);
+						pbrMaterial->SetAlbedoColor(glm::vec3(1.0f));
 					}
 				}
 
@@ -271,8 +274,8 @@ namespace Shark {
 					AssetHandle textureHandle = LoadTexture(scene, aiTexPath, false);
 					if (textureHandle != AssetHandle::Invalid)
 					{
-						materialAsset->SetNormalMap(textureHandle);
-						materialAsset->SetUsingNormalMap(true);
+						pbrMaterial->SetNormalMap(textureHandle);
+						pbrMaterial->SetUsingNormalMap(true);
 					}
 				}
 
@@ -281,8 +284,8 @@ namespace Shark {
 					AssetHandle textureHandle = LoadTexture(scene, aiTexPath, false);
 					if (textureHandle != AssetHandle::Invalid)
 					{
-						materialAsset->SetMetalnessMap(textureHandle);
-						materialAsset->SetMetalness(1.0f);
+						pbrMaterial->SetMetalnessMap(textureHandle);
+						pbrMaterial->SetMetalness(1.0f);
 					}
 				}
 				
@@ -291,10 +294,12 @@ namespace Shark {
 					AssetHandle textureHandle = LoadTexture(scene, aiTexPath, false);
 					if (textureHandle != AssetHandle::Invalid)
 					{
-						materialAsset->SetRoughnessMap(textureHandle);
-						materialAsset->SetRoughness(1.0f);
+						pbrMaterial->SetRoughnessMap(textureHandle);
+						pbrMaterial->SetRoughness(1.0f);
 					}
 				}
+
+				pbrMaterial->MT_Bake();
 			}
 		}
 
@@ -330,11 +335,12 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		TextureSpecification specification;
 		specification.DebugName = path.C_Str();
-		specification.Format = sRGB ? ImageFormat::sRGBA : ImageFormat::RGBA8UNorm;
+		specification.Format = sRGB ? ImageFormat::sRGBA : ImageFormat::RGBA;
 		// TODO(moro): sampler
 
 		if (auto aiTexEmbedded = scene->GetEmbeddedTexture(path.C_Str()))
 		{
+			specification.DebugName = aiTexEmbedded->mFilename.C_Str();
 			specification.Width = aiTexEmbedded->mWidth;
 			specification.Height = aiTexEmbedded->mHeight;
 			Buffer imageData = Buffer{ aiTexEmbedded->pcData, aiTexEmbedded->mWidth * aiTexEmbedded->mHeight * sizeof(aiTexel) };
@@ -342,13 +348,15 @@ namespace Shark {
 			{
 				imageData = TextureImporter::ToBufferFromMemory(Buffer(aiTexEmbedded->pcData, aiTexEmbedded->mWidth), specification.Format, specification.Width, specification.Height);
 			}
-			// TODO(moro): race-condition! This line can be called from both the main thread and the asset thread!
-			AssetHandle handle = AssetManager::CreateMemoryOnlyRendererAsset<Texture2D>(specification, imageData);
+
+			Ref<Texture2D> texture = Texture2D::Create(specification, imageData);
+			Renderer::MT::GenerateMips(texture->GetImage());
 
 			if (specification.Height == 0)
 				imageData.Release();
 
-			return handle;
+			// TODO(moro): race-condition! This line can be called from both the main thread and the asset thread!
+			return AssetManager::AddMemoryAsset(texture);
 		}
 
 		if (sRGB)
@@ -356,7 +364,12 @@ namespace Shark {
 			// TODO(moro): find a way to do this through the asset system
 			const auto texturePath = m_Filepath.parent_path() / path.C_Str();
 			ScopedBuffer imageData = TextureImporter::ToBufferFromFile(texturePath, specification.Format, specification.Width, specification.Height);
-			return AssetManager::CreateMemoryOnlyRendererAsset<Texture2D>(specification, imageData);
+
+			Ref<Texture2D> texture = Texture2D::Create(specification, imageData);
+			Renderer::MT::GenerateMips(texture->GetImage());
+
+			return AssetManager::AddMemoryAsset(texture);
+			//return AssetManager::CreateMemoryOnlyRendererAsset<Texture2D>(specification, imageData);
 		}
 
 		const auto texturePath = m_Filepath.parent_path() / path.C_Str();

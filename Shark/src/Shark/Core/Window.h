@@ -68,6 +68,8 @@ namespace Shark {
 		virtual WindowHandle GetHandle() const = 0;
 		virtual Ref<SwapChain> GetSwapChain() const = 0;
 
+		static Window* GetFromHandle(WindowHandle handle);
+
 	public:
 		static Scope<Window> Create(const WindowSpecification& specification, Ref<EventListener> listener);
 		static Scope<Window> Create(const WindowSpecification& specification, const std::function<void(Event&)>& callback);

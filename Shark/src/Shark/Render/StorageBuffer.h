@@ -1,22 +1,31 @@
 #pragma once
 
-#include "Shark/Render/RendererResource.h"
+#include "Shark/Core/Base.h"
+#include "Shark/Render/GpuBuffer.h"
+
+#include <nvrhi/nvrhi.h>
 
 namespace Shark {
 
-	class StorageBuffer : public RendererResource
+	class StorageBuffer : public GpuBuffer
 	{
 	public:
-		virtual void Release() = 0;
-		virtual void Invalidate() = 0;
+		static Ref<StorageBuffer> Create(uint32_t structSize, uint32_t count, const std::string& debugName = {}) { return Ref<StorageBuffer>::Create(structSize, count, debugName); }
 
-		virtual uint32_t& GetStructSize() = 0;
-		virtual uint32_t& GetCount() = 0;
+		void Resize(uint32_t newCount);
+		uint32_t GetCount() const { return m_Count; }
 
-		virtual void Upload(Buffer buffer) = 0;
+		const std::string& GetDebugName() const { return m_DebugName; }
 
 	public:
-		static Ref<StorageBuffer> Create(uint32_t structSize, uint32_t count);
+		StorageBuffer(uint32_t structSize, uint32_t count, const std::string& debugName);
+		~StorageBuffer();
+
+	private:
+		uint32_t m_StructSize;
+		uint32_t m_Count;
+
+		std::string m_DebugName;
 	};
 
 }

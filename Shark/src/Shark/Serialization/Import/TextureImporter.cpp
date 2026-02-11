@@ -21,13 +21,13 @@ namespace Shark {
 		{
 			buffer.Data = (byte*)stbi_loadf(pathString.c_str(), &width, &height, &channels, 4);
 			buffer.Size = width * height * sizeof(float) * 4;
-			outFormat = ImageFormat::RGBA32Float;
+			outFormat = ImageFormat::RGBA32F;
 		}
 		else
 		{
 			buffer.Data = (byte*)stbi_load(pathString.c_str(), &width, &height, &channels, 4);
 			buffer.Size = width * height * 4;
-			outFormat = isSRGB ? ImageFormat::sRGBA : ImageFormat::RGBA8UNorm;
+			outFormat = isSRGB ? ImageFormat::sRGBA : ImageFormat::RGBA;
 		}
 
 		if (!buffer.Data)
@@ -53,13 +53,13 @@ namespace Shark {
 		{
 			buffer.Data = (byte*)stbi_loadf_from_memory(memory.As<stbi_uc>(), (int)memory.Size, &width, &height, &channels, 4);
 			buffer.Size = width * height * sizeof(float) * 4;
-			outFormat = ImageFormat::RGBA32Float;
+			outFormat = ImageFormat::RGBA32F;
 		}
 		else
 		{
 			buffer.Data = (byte*)stbi_load_from_memory(memory.As<stbi_uc>(), (int)memory.Size, &width, &height, &channels, 4);
 			buffer.Size = width * height * 4;
-			outFormat = ImageFormat::RGBA8UNorm;
+			outFormat = ImageFormat::RGBA;
 		}
 
 		if (!buffer.Data)

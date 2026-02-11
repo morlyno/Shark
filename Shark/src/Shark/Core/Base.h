@@ -29,6 +29,7 @@
 	#define SK_TRACK_MEMORY 1
 	#define SK_ENABLE_ASSERT 1
 	#define SK_ENABLE_VERIFY 1
+	#define SK_ENABLE_VALIDATION 1
 	#define SK_ENABLE_GPU_VALIDATION 1
 	#define SK_ENABLE_PERF 1
 	#define SK_ENABLE_PROFILER 0
@@ -39,9 +40,16 @@
 	#define SK_TRACK_MEMORY 1
 	#define SK_ENABLE_ASSERT 0
 	#define SK_ENABLE_VERIFY 1
+	#define SK_ENABLE_VALIDATION 1
 	#define SK_ENABLE_GPU_VALIDATION 1
 	#define SK_ENABLE_PERF 1
 	#define SK_ENABLE_PROFILER 1
+#endif
+
+#if SK_ENABLE_VALIDATION
+	#define SK_IF_VALIDATION(x) x
+#else
+	#define SK_IF_VALIDATION(...) (void)0
 #endif
 
 #define BIT(x) (1 << x)
@@ -84,7 +92,7 @@ namespace Shark {
 
 }
 
-#include "Shark/Core/Memory.h"
+#include "Shark/Core/Allocator.h"
 #include "Shark/Core/Log.h"
 #include "Shark/Core/Assert.h"
 

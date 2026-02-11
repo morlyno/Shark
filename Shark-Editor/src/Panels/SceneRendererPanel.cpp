@@ -32,20 +32,6 @@ namespace Shark {
 				ImGui::Text(fmt::format(fmt::runtime("Skybox Pass: {}"), stats.SkyboxPass));
 				ImGui::Text(fmt::format(fmt::runtime("Composite Pass: {}"), stats.CompositePass));
 				ImGui::Text(fmt::format(fmt::runtime("Jump Flood Pass: {}"), stats.JumpFloodPass));
-
-				if (ImGui::TreeNodeEx("Pipeline Statistics", UI::DefaultThinHeaderFlags | ImGuiTreeNodeFlags_DefaultOpen))
-				{
-					const auto& pipelineStats = m_Renderer->m_PipelineStatistics;
-					ImGui::Text("Input Assembler Vertices: %llu", pipelineStats.InputAssemblerVertices);
-					ImGui::Text("Input Assembler Primitives: %llu", pipelineStats.InputAssemblerPrimitives);
-					ImGui::Text("Vertex Shader Invocations: %llu", pipelineStats.VertexShaderInvocations);
-					ImGui::Text("Pixel Shader Invocations: %llu", pipelineStats.PixelShaderInvocations);
-					ImGui::Text("Compute Shader Invocations: %llu", pipelineStats.ComputeShaderInvocations);
-					ImGui::Text("Rasterizer Invocations: %llu", pipelineStats.RasterizerInvocations);
-					ImGui::Text("Rasterizer Primitives: %llu", pipelineStats.RasterizerPrimitives);
-					ImGui::TreePop();
-				}
-
 				ImGui::TreePop();
 			}
 

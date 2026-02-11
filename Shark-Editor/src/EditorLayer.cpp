@@ -39,6 +39,7 @@
 
 #include <glm/gtc/type_ptr.hpp>
 #include "Shark/Debug/enttDebug.h"
+#include "Shark/Core/Memory.h"
 
 namespace Shark {
 
@@ -143,10 +144,14 @@ namespace Shark {
 		debugRendererSpec.UseDepthTesting = true;
 		m_DebugRenderer = Ref<Renderer2D>::Create(m_SceneRenderer->GetTargetFramebuffer(), debugRendererSpec);
 
-		// Readable image for Mouse Picking
-		ImageSpecification imageSpecs = m_SceneRenderer->GetIDImage()->GetSpecification();
-		imageSpecs.Type = ImageType::Storage;
-		m_MousePickingImage = Image2D::Create(imageSpecs);
+		auto idImage = m_SceneRenderer->GetIDImage();
+		StagingImageSpecification stagingSpec;
+		stagingSpec.Width = idImage->GetWidth();
+		stagingSpec.Height = idImage->GetHeight();
+		stagingSpec.Format = ImageFormat::RED32SI;
+		stagingSpec.CpuAccess = nvrhi::CpuAccessMode::Read;
+		m_MousePickingImage = StagingImage2D::Create(stagingSpec);
+		m_CopyCommandBuffer = RenderCommandBuffer::Create("MousePicking - Copy");
 
 		// Load Project
 		if (!m_StartupProject.empty())
@@ -413,6 +418,7 @@ namespace Shark {
 				}
 				break;
 			}
+
 		}
 
 		return false;
@@ -612,11 +618,7 @@ namespace Shark {
 		{
 			if (ImGui::InvisibleButton("Close", ImVec2(buttonWidth, buttonHeight)))
 			{
-				Application::Get().SubmitToMainThread([]()
-				{
-					Window& window = Application::Get().GetWindow();
-					window.KillWindow();
-				});
+				Application::Get().CloseApplication();
 			}
 
 			UI::DrawImageButton(EditorResources::WindowCloseIcon, buttonColN, buttonColH, buttonColP);
@@ -666,7 +668,7 @@ namespace Shark {
 		if (Application::Get().GetSpecification().CustomTitlebar)
 		{
 			UI::ScopedColor menubarColor(ImGuiCol_MenuBarBg, 0);
-			const ImRect menubarRect = { ImGui::GetCursorPos(), { ImGui::GetContentRegionAvail().x + ImGui::GetCursorScreenPos().x, ImGui::GetFrameHeightWithSpacing() } };
+			const ImRect menubarRect = UI::RectFromSize(ImGui::GetCursorScreenPos(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeightWithSpacing() });
 
 			ImGui::BeginGroup();
 			if (UI::BeginMenubar(menubarRect))
@@ -952,7 +954,7 @@ namespace Shark {
 		}
 
 		Ref<Image2D> fbImage = m_SceneRenderer->GetFinalPassImage();
-		ImGui::Image((ImTextureID)fbImage->GetViewID(), size);
+		UI::Image(fbImage, size);
 
 		UI_Gizmo();
 		UI_DragDrop();
@@ -1218,31 +1220,31 @@ namespace Shark {
 		{
 			case SceneState::Edit:
 			{
-				if (ImGui::ImageButton("Play", (ImTextureID)EditorResources::PlayIcon->GetViewID(), size))
+				if (UI::ImageButton("Play", EditorResources::PlayIcon, size))
 					OnScenePlay();
 
 				ImGui::SameLine();
 
-				if (ImGui::ImageButton("Simulate", (ImTextureID)EditorResources::SimulateIcon->GetViewID(), size))
+				if (UI::ImageButton("Simulate", EditorResources::SimulateIcon, size))
 					OnSimulationPlay();
 
 				ImGui::SameLine();
 				{
 					UI::ScopedItemFlag disabled(ImGuiItemFlags_Disabled, true);
-					ImGui::ImageButton("Step Disabled", (ImTextureID)EditorResources::StepIcon->GetViewID(), size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, { 0.5f, 0.5f, 0.5f, 1.0f });
+					UI::ImageButton("Step Disabled", EditorResources::StepIcon, size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, { 0.5f, 0.5f, 0.5f, 1.0f });
 				}
 
 				break;
 			}
 			case SceneState::Play:
 			{
-				if (ImGui::ImageButton("Stop", (ImTextureID)EditorResources::StopIcon->GetViewID(), size))
+				if (UI::ImageButton("Stop", EditorResources::StopIcon, size))
 					OnSceneStop();
 
 				ImGui::SameLine();
 
 				Ref<Texture2D> pausePlayIcon = m_ActiveScene->IsPaused() ? EditorResources::PlayIcon : EditorResources::PauseIcon;
-				if (ImGui::ImageButton("PausePlay", (ImTextureID)pausePlayIcon->GetViewID(), size))
+				if (UI::ImageButton("PausePlay", pausePlayIcon, size))
 					m_ActiveScene->SetPaused(!m_ActiveScene->IsPaused());
 
 				ImGui::SameLine();
@@ -1250,7 +1252,7 @@ namespace Shark {
 				{
 					UI::ScopedItemFlag disabled(ImGuiItemFlags_Disabled, !m_ActiveScene->IsPaused());
 					const ImVec4 tintColor = m_ActiveScene->IsPaused() ? ImVec4(1.0f, 1.0f, 1.0f, 1.0f) : ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
-					if (ImGui::ImageButton("Step", (ImTextureID)EditorResources::StepIcon->GetViewID(), size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, tintColor))
+					if (UI::ImageButton("Step", EditorResources::StepIcon, size, { 0, 0 }, { 1, 1 }, { 0, 0, 0, 0 }, tintColor))
 						m_ActiveScene->Step(1);
 				}
 
@@ -1258,13 +1260,13 @@ namespace Shark {
 			}
 			case SceneState::Simulate:
 			{
-				if (ImGui::ImageButton("StopIcon", (ImTextureID)EditorResources::StopIcon->GetViewID(), size))
+				if (UI::ImageButton("StopIcon", EditorResources::StopIcon, size))
 					OnSimulationStop();
 
 				ImGui::SameLine();
 
 				Ref<Texture2D> pausePlayIcon = m_ActiveScene->IsPaused() ? EditorResources::PlayIcon : EditorResources::PauseIcon;
-				if (ImGui::ImageButton("PausePlayIcon", (ImTextureID)pausePlayIcon->GetViewID(), size))
+				if (UI::ImageButton("PausePlayIcon", pausePlayIcon, size))
 					m_ActiveScene->SetPaused(!m_ActiveScene->IsPaused());
 
 				ImGui::SameLine();
@@ -1272,7 +1274,7 @@ namespace Shark {
 				{
 					UI::ScopedItemFlag disabled(ImGuiItemFlags_Disabled, !m_ActiveScene->IsPaused());
 					const ImVec4 tintColor = m_ActiveScene->IsPaused() ? ImVec4(1.0f, 1.0f, 1.0f, 1.0f) : ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
-					if (ImGui::ImageButton("Step", (ImTextureID)EditorResources::StepIcon->GetViewID(), size, {0, 0}, {1, 1}, {0, 0, 0, 0}, tintColor))
+					if (UI::ImageButton("Step", EditorResources::StepIcon, size, {0, 0}, {1, 1}, {0, 0, 0, 0}, tintColor))
 						m_ActiveScene->Step(1);
 				}
 
@@ -1292,54 +1294,50 @@ namespace Shark {
 
 		auto [mx, my] = ImGui::GetMousePos();
 		auto [wx, wy] = m_ViewportPos;
-		int x = (int)(mx - wx);
-		int y = (int)(my - wy);
+		const int x = static_cast<int>(mx - wx);
+		const int y = static_cast<int>(my - wy);
 
 		const auto& specs = m_MousePickingImage->GetSpecification();
-		int width = (int)specs.Width;
-		int height = (int)specs.Height;
-		if (x >= 0 && x < (int)width && y >= 0 && y < (int)height)
+		const int width = static_cast<int>(specs.Width);
+		const int height = static_cast<int>(specs.Height);
+		if (x >= 0 && x < width && y >= 0 && y < height)
 		{
 			const bool selectEntity = ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !Input::IsKeyDown(KeyCode::LeftAlt) && m_ViewportHovered;
 
 			if (selectEntity)
 			{
-				Renderer::CopyImage(m_SceneRenderer->GetIDImage(), m_MousePickingImage);
+				m_CopyCommandBuffer->Begin();
+				Renderer::CopySlice(m_CopyCommandBuffer, m_SceneRenderer->GetIDImage(), ImageSlice::Zero(), m_MousePickingImage, ImageSlice::Zero());
+				m_CopyCommandBuffer->End();
+				m_CopyCommandBuffer->Execute();
 
 				Renderer::Submit([this, x, y]()
 				{
-					uint32_t hoverdEntity = (uint32_t)-1;
-					if (!m_MousePickingImage->RT_ReadPixel(x, y, hoverdEntity))
-						return;
+					uint32_t hoveredEntity;
+					m_MousePickingImage->RT_ReadPixel(x, y, Buffer::FromValue(hoveredEntity));
 
-					if (hoverdEntity == (uint32_t)-1)
+					Entity entity = { (entt::entity)hoveredEntity, m_ActiveScene };
+					if (!entity)
 					{
 						SelectionManager::DeselectAll(m_EditorScene->GetID());
 						return;
 					}
 
-					Entity entity = { (entt::entity)hoverdEntity, m_ActiveScene };
-					if (entity)
+					if (Input::IsKeyDown(KeyCode::LeftShift))
 					{
-						if (Input::IsKeyDown(KeyCode::LeftShift))
-						{
-							while (entity.HasParent())
-							{
-								entity = entity.Parent();
-							}
-						}
+						entity = m_EditorScene->GetRootEntity(entity);
+					}
 
-						if (Input::IsKeyDown(KeyCode::LeftControl))
-						{
-							UUID entityID = entity.GetUUID();
-							const bool isSelected = SelectionManager::IsSelected(m_EditorScene->GetID(), entityID);
-							SelectionManager::Toggle(m_EditorScene->GetID(), entityID, !isSelected);
-						}
-						else
-						{
-							SelectionManager::DeselectAll(m_EditorScene->GetID());
-							SelectionManager::Select(m_EditorScene->GetID(), entity.GetUUID());
-						}
+					if (Input::IsKeyDown(KeyCode::LeftControl))
+					{
+						UUID entityID = entity.GetUUID();
+						const bool isSelected = SelectionManager::IsSelected(m_EditorScene->GetID(), entityID);
+						SelectionManager::Toggle(m_EditorScene->GetID(), entityID, !isSelected);
+					}
+					else
+					{
+						SelectionManager::DeselectAll(m_EditorScene->GetID());
+						SelectionManager::Select(m_EditorScene->GetID(), entity.GetUUID());
 					}
 				});
 			}
@@ -1743,13 +1741,13 @@ namespace Shark {
 		m_EditorScene = scene;
 		m_EditorScene->IsEditorScene(true);
 		m_EditorScene->SetViewportSize(m_ViewportWidth, m_ViewportHeight);
-		m_SceneRenderer->SetScene(m_EditorScene);
 		m_PanelManager->SetContext(m_EditorScene);
 		ScriptEngine::Get().SetCurrentScene(m_EditorScene);
 		m_ActiveScene = m_EditorScene;
 
 		m_EditorCamera.SetFlyView({ 40.0f, 25.0f, -40.0f }, 10.0f, -45.0f);
 		Application::Get().SubmitToMainThread([this]() { UpdateWindowTitle(); });
+		return true;
 	}
 
 	bool EditorLayer::LoadScene(const std::filesystem::path& filePath)
@@ -1783,7 +1781,7 @@ namespace Shark {
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 		SK_CORE_ASSERT(m_ActiveScene == m_EditorScene);
 
-		auto filePath = Platform::SaveFileDialog(L"|*.*|Scene|*.skscene", 2, Project::GetActiveAssetsDirectory(), true);
+		auto filePath = Platform::SaveFileDialog(L"All|*.*|Scene|*.skscene", 2, Project::GetActiveAssetsDirectory(), true);
 		if (filePath.empty())
 			return false;
 
@@ -1866,7 +1864,6 @@ namespace Shark {
 	void EditorLayer::OnSceneStateChanged(Ref<Scene> stateScene)
 	{
 		ScriptEngine::Get().SetCurrentScene(stateScene);
-		m_SceneRenderer->SetScene(stateScene);
 		m_PanelManager->SetContext(stateScene);
 		m_ActiveScene = stateScene;
 	}
@@ -1943,7 +1940,6 @@ namespace Shark {
 		SelectionManager::DeselectAll();
 
 		m_ActiveScene = nullptr;
-		m_SceneRenderer->SetScene(nullptr);
 		m_PanelManager->SetContext(nullptr);
 		ScriptEngine::Get().SetCurrentScene(nullptr);
 		m_EditorScene = nullptr;

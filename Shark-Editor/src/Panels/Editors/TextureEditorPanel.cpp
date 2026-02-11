@@ -149,18 +149,18 @@ namespace Shark {
 		changed |= UI::ControlCombo("Format", spec.Format);
 
 		nativeTextureTooltip();
-		bool genMipsChanged = UI::Control("Generate Mipmap", spec.GenerateMips);
+		bool genMipsChanged = UI::Control("Generate Mipmap", spec.HasMips);
 		nativeTextureTooltip();
 
 		{
-			UI::ScopedDisabled disabled(!spec.GenerateMips);
+			UI::ScopedDisabled disabled(!spec.HasMips);
 			UI::ControlSlider("Mip", m_MipIndex, 0, (uint32_t)m_PerMipView.size() - 1);
 			nativeTextureTooltip();
 		}
 
 		changed |= UI::ControlCombo("Filter", spec.Filter);
 		nativeTextureTooltip();
-		changed |= UI::ControlCombo("Wrap", spec.Wrap);
+		changed |= UI::ControlCombo("Address", spec.Address);
 		nativeTextureTooltip();
 		changed |= UI::Control("Max Anisotropy", spec.MaxAnisotropy, 0.05f, 0, capabilities.MaxAnisotropy);
 		nativeTextureTooltip();
@@ -173,7 +173,7 @@ namespace Shark {
 
 		if (changed)
 		{
-			m_Texture->RT_Invalidate();
+			m_Texture->Invalidate();
 			
 			m_CommandBuffer->Begin();
 			Renderer::CopyMip(m_CommandBuffer, m_BackupTexture->GetImage(), 0, m_Texture->GetImage(), 0);
@@ -195,11 +195,11 @@ namespace Shark {
 			auto& specification = m_Texture->GetSpecification();
 			const auto& backupSpec = m_BackupTexture->GetSpecification();
 			
-			if (backupSpec.Format != specification.Format || backupSpec.GenerateMips != specification.GenerateMips ||
-				backupSpec.Filter != specification.Filter || backupSpec.Wrap != specification.Wrap || backupSpec.MaxAnisotropy != specification.MaxAnisotropy)
+			if (backupSpec.Format != specification.Format || backupSpec.HasMips != specification.HasMips ||
+				backupSpec.Filter != specification.Filter || backupSpec.Address != specification.Address || backupSpec.MaxAnisotropy != specification.MaxAnisotropy)
 			{
 				specification = backupSpec;
-				m_Texture->RT_Invalidate();
+				m_Texture->Invalidate();
 				
 				m_CommandBuffer->Begin();
 				Renderer::CopyImage(m_CommandBuffer, m_BackupTexture->GetImage(), m_Texture->GetImage());
@@ -235,17 +235,9 @@ namespace Shark {
 		Ref<Image2D> image = m_Texture->GetImage();
 		for (uint32_t i = 0; i < mipLevels; i++)
 		{
-			if (!m_PerMipView[i])
-			{
-				ImageViewSpecification specification;
-				specification.Image = image;
-				specification.MipSlice = i;
-				m_PerMipView[i] = ImageView::Create(specification);
-			}
-			else
-			{
-				m_PerMipView[i]->RT_Invalidate();
-			}
+			ImageViewSpecification specification;
+			specification.BaseMip = i;
+			m_PerMipView[i] = ImageView::Create(image, specification);
 		}
 
 		m_MipIndex = glm::clamp(m_MipIndex, 0u, mipLevels - 1);

@@ -8,7 +8,7 @@
 
 namespace Shark {
 
-	enum class PrimitveType : uint16_t
+	enum class PrimitiveType : uint16_t
 	{
 		Triangle, Line, Dot
 	};
@@ -32,6 +32,16 @@ namespace Shark {
 		DecrementWrap
 	};
 
+	enum class FramebufferBlendMode
+	{
+		None = 0,
+
+		OneZero,
+		SrcAlphaOneMinusSrcAlpha,
+
+		Disabled = None,
+	};
+
 	struct PipelineSpecification
 	{
 		bool BackFaceCulling = false;
@@ -40,11 +50,11 @@ namespace Shark {
 		bool DepthEnabled = true;
 		bool WriteDepth = true;
 
-		Ref<FrameBuffer> TargetFrameBuffer;
 		Ref<Shader> Shader;
 
+		FramebufferBlendMode BlendMode = FramebufferBlendMode::SrcAlphaOneMinusSrcAlpha;
 		CompareOperator DepthOperator = CompareOperator::LessEqual;
-		PrimitveType Primitve = PrimitveType::Triangle;
+		PrimitiveType Primitve = PrimitiveType::Triangle;
 
 		bool EnableStencil = false;
 		uint8_t StencilRef = 0xff;
@@ -61,21 +71,23 @@ namespace Shark {
 		std::string DebugName;
 	};
 
+	class RenderCommandBuffer;
+
 	class Pipeline : public RefCount
 	{
 	public:
-		virtual ~Pipeline() = default;
+		static Ref<Pipeline> Create(const PipelineSpecification& specification, const nvrhi::FramebufferInfo& framebufferInfo) { return Ref<Pipeline>::Create(specification, framebufferInfo); }
 
-		virtual void SetPushConstant(Ref<RenderCommandBuffer> commandBuffer, Buffer pushConstantData) = 0;
-		virtual void RT_SetPushConstant(Ref<RenderCommandBuffer> commandBuffer, Buffer pushConstantData) = 0;
-
-		virtual void SetFrameBuffer(Ref<FrameBuffer> frameBuffer) = 0;
-		virtual PipelineSpecification& GetSpecification() = 0;
-		virtual const PipelineSpecification& GetSpecification() const = 0;
+		nvrhi::GraphicsPipelineHandle GetHandle() const { return m_PipelineHandle; }
+		const PipelineSpecification& GetSpecification() const { return m_Specification; }
 
 	public:
-		static Ref<Pipeline> Create(const PipelineSpecification& specs);
+		Pipeline(const PipelineSpecification& specification, const nvrhi::FramebufferInfo& framebufferInfo);
+		~Pipeline();
 
+	private:
+		PipelineSpecification m_Specification;
+		nvrhi::GraphicsPipelineHandle m_PipelineHandle;
 	};
 
 }

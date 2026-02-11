@@ -32,7 +32,7 @@ namespace Shark {
 
 	ThumbnailCache::ThumbnailCache()
 	{
-
+		m_CommandBuffer = RenderCommandBuffer::Create("ThumbnailCache - Copy");
 	}
 
 	ThumbnailCache::~ThumbnailCache()
@@ -142,30 +142,42 @@ namespace Shark {
 		m_Thumbnails[assetHandle] = { thumbnail, lastWriteTime };
 		SK_CORE_TRACE_TAG("ThumbnailCache", "Thumbnail set (Handle={}, Timestamp={})", assetHandle, lastWriteTime);
 
-		Renderer::Submit([=]()
+		if (!m_ReadableImage || m_ReadableImage->GetWidth() != thumbnail->GetWidth() || m_ReadableImage->GetHeight() != thumbnail->GetHeight())
+			m_ReadableImage = StagingImage2D::Create(thumbnail, nvrhi::CpuAccessMode::Read);
+
+		m_CommandBuffer->Begin();
+		Renderer::CopyImage(m_CommandBuffer, thumbnail, m_ReadableImage);
+		m_CommandBuffer->End();
+		m_CommandBuffer->Execute();
+
+		Ref instance = this;
+		Renderer::Submit([instance, assetHandle, thumbnail = m_ReadableImage, lastWriteTime]()
 		{
-			WriteThumbnailToDisc(assetHandle, thumbnail, lastWriteTime);
+			instance->WriteThumbnailToDisc(assetHandle, thumbnail, lastWriteTime);
 		});
 	}
 
-	void ThumbnailCache::WriteThumbnailToDisc(AssetHandle handle, Ref<Image2D> image, uint64_t lastWriteTime)
+	void ThumbnailCache::WriteThumbnailToDisc(AssetHandle handle, Ref<StagingImage2D> thumbnail, uint64_t lastWriteTime)
 	{
 		SK_CORE_INFO_TAG("ThumbnailCache", "Writing Thumbnail to disc (Handle={}, Timestamp={})", handle, lastWriteTime);
 
 		utils::CreateCacheDirectoryIfNeeded();
 		std::filesystem::path cacheFile = utils::GetThumbnailCacheFilepath(handle);
 
-		Buffer imageData;
-		image->RT_CopyToHostBuffer(imageData);
-
 		ThumbnailFileHeader header;
 		header.Timestamp = lastWriteTime;
-		header.Width = image->GetWidth();
-		header.Height = image->GetHeight();
+		header.Width = thumbnail->GetWidth();
+		header.Height = thumbnail->GetHeight();
+
+		Buffer memory;
+		thumbnail->RT_OpenReadableBuffer(memory);
 
 		FileStreamWriter stream(cacheFile);
 		stream.WriteRaw(header);
-		stream.WriteBuffer(imageData);
+		stream.WriteBuffer(memory);
+		stream.Flush();
+
+		thumbnail->RT_CloseReadableBuffer();
 	}
 
 	bool ThumbnailCache::LoadThumbnailFromDisc(AssetHandle handle)
@@ -184,11 +196,12 @@ namespace Shark {
 		stream.ReadBuffer(imageData);
 
 		ImageSpecification specification;
-		specification.Format = ImageFormat::RGBA8UNorm;
+		specification.Format = ImageFormat::RGBA;
 		specification.Width = header.Width;
 		specification.Height = header.Height;
+		specification.DebugName = fmt::format("Thumbnail '{}'", handle);
 		Ref<Image2D> image = Image2D::Create(specification);
-		image->UploadImageData(imageData);
+		image->Submit_UploadData(imageData);
 		m_Thumbnails[handle] = { image, header.Timestamp };
 		imageData.Release();
 

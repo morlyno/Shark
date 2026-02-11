@@ -5,9 +5,9 @@
 
 namespace Shark {
 
-	RenderCommandQueue::RenderCommandQueue()
+	RenderCommandQueue::RenderCommandQueue(uint64_t bufferSize)
 	{
-		m_BufferSize = 1024 * 1024 * 10; // 10mb
+		m_BufferSize = bufferSize;
 		m_Buffer = sknew byte[m_BufferSize];
 		m_BufferPtr = m_Buffer;
 	}
@@ -56,6 +56,7 @@ namespace Shark {
 			uint64_t bufferPtrOffset = m_BufferPtr - m_Buffer;
 
 			uint64_t newSize = m_BufferSize + m_BufferSize / 2;
+			SK_CORE_WARN_TAG("Renderer", "Resizing RenderCommandQueue {} -> {}", m_BufferSize, newSize);
 			byte* newBuffer = sknew byte[newSize];
 			memcpy(newBuffer, m_Buffer, m_BufferSize);
 

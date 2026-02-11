@@ -116,20 +116,24 @@ namespace Shark {
 		{
 			Buffer textureData;
 			TextureSpecification specification;
-			specification.GenerateMips = false;
+			specification.HasMips = false;
 
+			specification.DebugName = "Window close icon";
 			textureData = TextureImporter::ToBufferFromMemory(Buffer::FromArray(g_WindowCloseIcon), specification.Format, specification.Width, specification.Height);
 			WindowCloseIcon = Texture2D::Create(specification, textureData);
 			textureData.Release();
 
+			specification.DebugName = "Window minimize icon";
 			textureData = TextureImporter::ToBufferFromMemory(Buffer::FromArray(g_WindowMinimizeIcon), specification.Format, specification.Width, specification.Height);
 			WindowMinimizeIcon = Texture2D::Create(specification, textureData);
 			textureData.Release();
 
+			specification.DebugName = "Window maximize icon";
 			textureData = TextureImporter::ToBufferFromMemory(Buffer::FromArray(g_WindowMaximizeIcon), specification.Format, specification.Width, specification.Height);
 			WindowMaximizeIcon = Texture2D::Create(specification, textureData);
 			textureData.Release();
 
+			specification.DebugName = "Window restore icon";
 			textureData = TextureImporter::ToBufferFromMemory(Buffer::FromArray(g_WindowRestoreIcon), specification.Format, specification.Width, specification.Height);
 			WindowRestoreIcon = Texture2D::Create(specification, textureData);
 			textureData.Release();
@@ -138,8 +142,8 @@ namespace Shark {
 		Logo = Texture2D::Create(
 			TextureSpecification{
 				.Width = 1, .Height = 1,
-				.Format = ImageFormat::RGBA8UNorm,
-				.GenerateMips = false,
+				.Format = ImageFormat::RGBA,
+				.HasMips = false,
 				.DebugName = "Logo Placeholder"
 			},
 			Buffer::FromValue(0xF01414FF)

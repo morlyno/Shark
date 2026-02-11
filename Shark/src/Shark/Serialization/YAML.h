@@ -83,6 +83,21 @@ namespace YAML {
 		}
 	};
 
+	template<typename T>
+	struct convert<std::optional<T>>
+	{
+		static Node encode(const std::optional<T>& val)
+		{
+			return val ? Node(*val) : Node(YAML::Null);
+		}
+
+		static bool decode(const Node& node, std::optional<T>& outVal)
+		{
+			outVal = node.IsNull() ? std::nullopt : std::optional(node.as<T>());
+			return true;
+		}
+	};
+
 	template<>
 	struct convert<std::filesystem::path>
 	{
@@ -147,13 +162,28 @@ namespace YAML {
 		}
 	};
 
+	template<typename T>
+	struct convert<std::span<const T>>
+	{
+		static Node encode(std::span<const T> span)
+		{
+			Node node(NodeType::Sequence);
+			for (const auto& val : span)
+				node.push_back(val);
+			return node;
+		}
+	};
+
+
 	template<typename TEnum>
 		requires std::is_enum_v<TEnum>
 	struct convert<TEnum>
 	{
+		static_assert(magic_enum::detail::supported<std::decay_t<TEnum>>::value);
 		static Node encode(const TEnum& value)
 		{
-			return Node(magic_enum::enum_name(value));
+			using D = std::decay_t<TEnum>;
+			return Node(fmt::to_string(value));
 		}
 
 		static bool decode(const Node& node, TEnum& value)
@@ -161,12 +191,35 @@ namespace YAML {
 			if (!node.IsScalar())
 				return false;
 
-			std::optional<TEnum> optValue = magic_enum::enum_cast<TEnum>(node.Scalar());
-			if (!optValue.has_value())
-				return false;
+			using D = std::decay_t<TEnum>;
+			if constexpr (magic_enum::detail::subtype_v<D> == magic_enum::detail::enum_subtype::flags)
+			{
+				if (auto optValue = magic_enum::enum_flags_cast<TEnum>(node.Scalar()))
+				{
+					value = optValue.value();
+					return true;
+				}
 
-			value = optValue.value();
-			return true;
+				std::underlying_type_t<TEnum> intValue;
+				if (convert<std::underlying_type_t<TEnum>>::decode(node, intValue))
+				{
+					if (auto optValue = magic_enum::enum_cast<TEnum, magic_enum::detail::enum_subtype::common>(intValue))
+					{
+						value = optValue.value();
+						return true;
+					}
+				}
+
+				return false;
+			}
+
+			if (auto optValue = magic_enum::enum_cast<TEnum>(node.Scalar()))
+			{
+				value = optValue.value();
+				return true;
+			}
+
+			return false;
 		}
 	};
 
@@ -214,16 +267,82 @@ struct convert<_Type>                                                \
 	Node LoadFile(const std::filesystem::path& filename);
 	Node LoadFile(const char* filename);
 
-	template<typename TValue>
-	bool DeserializeProperty(YAML::Node& node, std::string_view name, TValue& outValue)
+	template<typename T>
+	void Read(const YAML::Node& node, std::string_view key, T& outResult)
 	{
 		try
 		{
-			outValue = node[name].as<std::decay_t<TValue>>();
+			outResult = node[key].as<T>();
 		}
 		catch (const YAML::BadConversion& exception)
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Failed to deserialize property '{}'!\n\tError: {}", name, exception.what());
+			SK_CORE_ERROR_TAG("Serialization", "Conversion failed '{}'\n\t{}", key, exception.what());
+			throw;
+		}
+		catch (const YAML::InvalidNode& exception)
+		{
+			SK_CORE_ERROR_TAG("Serialization", "Invalid node '{}'\n\t{}", key, exception.what());
+			throw;
+		}
+	}
+
+	template<typename T>
+	void Read(const YAML::Node& node, T& outResult)
+	{
+		try
+		{
+			outResult = node.as<T>();
+		}
+		catch (const YAML::BadConversion& exception)
+		{
+			SK_CORE_ERROR_TAG("Serialization", "Conversion failed\n\t{}", exception.what());
+			throw;
+		}
+		catch (const YAML::InvalidNode& exception)
+		{
+			SK_CORE_ERROR_TAG("Serialization", "Invalid node\n\t{}", exception.what());
+			throw;
+		}
+	}
+
+	template<typename TValue>
+	bool DeserializeProperty(const YAML::Node& node, std::string_view name, TValue& outValue)
+	{
+		try
+		{
+			Read(node, name, outValue);
+		}
+		catch ([[maybe_unused]] const YAML::Exception& e)
+		{
+			return false;
+		}
+		return true;
+	}
+
+	template<typename TValue, typename TDefault>
+	bool DeserializeProperty(const YAML::Node& node, std::string_view name, TValue& outValue, TDefault&& defaultArg)
+	{
+		try
+		{
+			Read(node, name, outValue);
+		}
+		catch ([[maybe_unused]] const YAML::Exception& e)
+		{
+			outValue = std::forward<TDefault>(defaultArg);
+			return false;
+		}
+		return true;
+	}
+
+	template<typename TValue>
+	bool DeserializeProperty(const YAML::Node& node, TValue& outValue)
+	{
+		try
+		{
+			Read(node, outValue);
+		}
+		catch ([[maybe_unused]] const YAML::Exception& e)
+		{
 			return false;
 		}
 		return true;

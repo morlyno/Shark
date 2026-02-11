@@ -1,0 +1,57 @@
+#pragma once
+
+#include "Camera.hlslh"
+
+ //////////////////////////
+/// ==== Bindings ==== ///
+//
+// space1:
+//  - pc
+//  - b0-b1
+//  - t0-t1
+// 
+
+struct MeshData
+{
+    matrix Transform;
+    int ID;
+    float P0, P1, P2;
+};
+
+struct PointLight
+{
+    float3 Position;
+    float Intensity;
+    float3 Radiance;
+    float Radius;
+    float Falloff;
+    float P0, P1, P2;
+};
+
+struct DirectionalLight
+{
+    float4 Radiance;
+    float3 Direction;
+    float Intensity;
+};
+
+struct Scene
+{
+    uint PointLightCount;
+    uint DirectionalLightCount;
+    float EnvironmentMapIntensity;
+    float P0;
+};
+
+// 
+// Defined in Camera.hlslh
+// 
+// ConstantBuffer<Camera> u_Camera : register(b0, space1);
+// 
+
+[[vk::push_constant]]
+ConstantBuffer<MeshData> u_MeshData;
+
+ConstantBuffer<Scene> u_Scene : register(b1, space1);
+StructuredBuffer<PointLight> u_PointLights : register(t0, space1);
+StructuredBuffer<DirectionalLight> u_DirectionalLights : register(t1, space1);

@@ -2,6 +2,8 @@
 #include "TextureSerializer.h"
 
 #include "Shark/Asset/AssetManager.h"
+
+#include "Shark/Render/Renderer.h"
 #include "Shark/Render/Texture.h"
 
 #include "Shark/File/FileSystem.h"
@@ -10,9 +12,6 @@
 #include "Shark/Serialization/Import/TextureImporter.h"
 
 #include "Shark/Debug/Profiler.h"
-
-#include <stb_image.h>
-#include <yaml-cpp/yaml.h>
 
 #define SK_SERIALIZATION_ERROR(...) SK_CORE_ERROR_TAG("Serialization", __VA_ARGS__); SK_DEBUG_BREAK();
 
@@ -37,7 +36,7 @@ namespace Shark {
 
 		if (metadata.FilePath.extension() != ".sktex")
 		{
-			SK_CORE_ERROR_TAG("Serialization", "[Texture] Serializing a non shark texture is not allowed! Please convert into the texture into one.");
+			SK_CORE_ERROR_TAG("Serialization", "[Texture] Serializing a non shark texture is not allowed! Please convert the texture into one.");
 			return false;
 		}
 
@@ -66,6 +65,7 @@ namespace Shark {
 		if (utils::ShouldBeSharkTexture(metadata.FilePath))
 		{
 			TextureSpecification specification;
+			specification.DebugName = FileSystem::GetStemString(metadata.FilePath);
 			AssetHandle sourceHandle;
 			Buffer imageData;
 
@@ -82,46 +82,65 @@ namespace Shark {
 		{
 			Buffer imageData;
 			TextureSpecification specification;
-			const auto filesystemPath = Project::GetEditorAssetManager()->GetFilesystemPath(metadata);
+			specification.DebugName = FileSystem::GetStemString(metadata.FilePath);
 
+			const auto filesystemPath = Project::GetEditorAssetManager()->GetFilesystemPath(metadata);
 			LoadImageData(filesystemPath, specification, imageData);
 			texture = Texture2D::Create(specification, imageData);
 			texture->SetFilepath(filesystemPath);
 			imageData.Release();
 		}
 
-		if (texture)
+		if (texture->GetSpecification().HasMips)
 		{
-			asset = texture;
-			asset->Handle = metadata.Handle;
-			return true;
+			Renderer::MT::GenerateMips(texture->GetImage());
 		}
 
-		return false;
+		asset = texture;
+		asset->Handle = metadata.Handle;
+		return true;
 	}
 
 	Ref<Texture2D> TextureSerializer::TryLoad(const std::filesystem::path& filepath, bool useFallback)
 	{
 		SK_PROFILE_FUNCTION();
-		Ref<Texture2D> texture = Texture2D::Create();
 
-		AssetHandle sourceHandle;
-		Buffer& imageData = texture->GetBuffer();
-		TextureSpecification& specification = texture->GetSpecification();
+
+		Ref<Texture2D> texture;
 
 		if (utils::ShouldBeSharkTexture(filepath))
 		{
-			const std::string yamlSource = FileSystem::ReadString(filepath);
-			DesrializeFromYAML(yamlSource, specification, sourceHandle, imageData);
-			texture->SetSourceTextureHandle(sourceHandle);
-		}
-		else
-		{
-			LoadImageData(filepath, specification, imageData);
-			texture->SetFilepath(filepath);
+			TextureSpecification specification;
+			specification.DebugName = FileSystem::GetStemString(filepath);
+			AssetHandle sourceHandle;
+			Buffer imageData;
+
+			const std::string fileData = FileSystem::ReadString(filepath);
+			if (DesrializeFromYAML(fileData, specification, sourceHandle, imageData))
+			{
+				texture = Texture2D::Create(specification, imageData);
+				texture->SetSourceTextureHandle(sourceHandle);
+				imageData.Release();
+			}
 		}
 
-		texture->RT_Invalidate();
+		if (!texture)
+		{
+			Buffer imageData;
+			TextureSpecification specification;
+			specification.DebugName = FileSystem::GetStemString(filepath);
+
+			LoadImageData(filepath, specification, imageData);
+			texture = Texture2D::Create(specification, imageData);
+			texture->SetFilepath(filepath);
+			imageData.Release();
+		}
+
+		if (texture->GetSpecification().HasMips)
+		{
+			Renderer::GenerateMips(texture->GetImage());
+		}
+
 		return texture;
 	}
 
@@ -136,11 +155,11 @@ namespace Shark {
 		out << YAML::BeginMap;
 		out << YAML::Key << "Texture" << YAML::Value;
 		out << YAML::BeginMap;
-		SK_SERIALIZE_PROPERTY(out, "Source", texture->GetSourceTextureHandle());
-		SK_SERIALIZE_PROPERTY(out, "GenerateMips", specification.GenerateMips);
-		SK_SERIALIZE_PROPERTY(out, "Filter", specification.Filter);
-		SK_SERIALIZE_PROPERTY(out, "Wrap", specification.Wrap);
-		SK_SERIALIZE_PROPERTY(out, "MaxAnisotropy", specification.MaxAnisotropy);
+		out << YAML::Key << "Source" << YAML::Value << texture->GetSourceTextureHandle();
+		out << YAML::Key << "GenerateMips" << YAML::Value << specification.HasMips;
+		out << YAML::Key << "Filter" << YAML::Value << specification.Filter;
+		out << YAML::Key << "Address" << YAML::Value << specification.Address;
+		out << YAML::Key << "MaxAnisotropy" << YAML::Value << specification.MaxAnisotropy;
 		out << YAML::EndMap;
 		out << YAML::EndMap;
 
@@ -188,14 +207,14 @@ namespace Shark {
 			}
 		}
 
-		SK_DESERIALIZE_PROPERTY(textureNode, "GenerateMips", outSpecification.GenerateMips, false);
-		SK_DESERIALIZE_PROPERTY(textureNode, "Filter", outSpecification.Filter, FilterMode::Linear);
-		SK_DESERIALIZE_PROPERTY(textureNode, "Wrap", outSpecification.Wrap, WrapMode::Repeat);
-		SK_DESERIALIZE_PROPERTY(textureNode, "MaxAnisotropy", outSpecification.MaxAnisotropy, 0);
+		DeserializeProperty(textureNode, "GenerateMips", outSpecification.HasMips, true);
+		DeserializeProperty(textureNode, "Filter", outSpecification.Filter, FilterMode::Linear);
+		DeserializeProperty(textureNode, "Address", outSpecification.Address, AddressMode::Repeat);
+		DeserializeProperty(textureNode, "MaxAnisotropy", outSpecification.MaxAnisotropy, 0);
 
-		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Generate Mips {}", outSpecification.GenerateMips);
+		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Generate Mips {}", outSpecification.HasMips);
 		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Filter {}", outSpecification.Filter);
-		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Wrap {}", outSpecification.Wrap);
+		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Address {}", outSpecification.Address);
 		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Max Anisotropy {}", outSpecification.MaxAnisotropy);
 		return true;
 	}
@@ -206,6 +225,7 @@ namespace Shark {
 		if (!outBuffer)
 		{
 			outBuffer = TextureImporter::ToBufferFromFile("Resources/Textures/ErrorTexture.png", outSpecification.Format, outSpecification.Width, outSpecification.Height);
+			outSpecification.DebugName += " - Fallback";
 			SK_CORE_VERIFY(outBuffer.Data, "Failed to load error texture as fallback");
 			// NOTE(moro): it's ok to continue if the error texture failed to load
 			//             but THIS SHOULD NEVER HAPPEN!

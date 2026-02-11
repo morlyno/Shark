@@ -2,6 +2,11 @@
 VULKAN_SDK = os.getenv("VULKAN_SDK")
 
 Dependencies = {
+    NVHRI = {
+        LibName = "NVRHI",
+        IncludeDir = "%{wks.location}/Shark/dependencies/nvrhi/include"
+    },
+
     spdlog = {
         IncludeDir = "%{wks.location}/Shark/dependencies/spdlog/include"
     },
@@ -54,7 +59,7 @@ Dependencies = {
     DXCompiler = {
         LibName = "dxcompiler",
         DebugLibName = "dxcompilerd",
-        LibraryDir = "%{VULKAN_SDK}/lib/"
+        LibraryDir = "%{VULKAN_SDK}/lib"
     },
     SPIRV_Cross = {
         LibName = "spirv-cross-core",
@@ -99,6 +104,9 @@ Dependencies = {
     },
     dxguid = {
         Windows = { LibName = "dxguid" }
+    },
+    D3DCompiler = {
+        Windows = { LibName = "d3dcompiler" }
     },
     Winmm = {
         Windows = { LibName = "Winmm" }

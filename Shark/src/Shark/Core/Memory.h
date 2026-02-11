@@ -1,141 +1,74 @@
 #pragma once
 
-#include <mutex>
-#include <map>
-#include <unordered_map>
+#include "Shark/Core/Base.h"
+#include "Shark/Core/Buffer.h"
 
 namespace Shark {
 
-	class Allocator;
-
-	namespace Internal {
-
-		template<class T>
-		class UntrackedAllocator
-		{
-		public:
-			using value_type = T;
-
-			constexpr UntrackedAllocator()
-			{
-			};
-
-			template<class U>
-			constexpr UntrackedAllocator(const UntrackedAllocator <U>&) noexcept
-			{
-			}
-
-			[[nodiscard]] T* allocate(std::size_t n)
-			{
-				if (n > std::numeric_limits<std::size_t>::max() / sizeof(T))
-					throw std::bad_array_new_length();
-
-				return (T*)Allocator::AllocateRaw(n * sizeof(T));
-			}
-
-			void deallocate(T* p, std::size_t n) noexcept
-			{
-				Allocator::FreeRaw(p);
-			}
-		};
-
-		template<typename TKey, typename TValue>
-		using UntrackedMapAllocator = UntrackedAllocator<std::pair<const TKey, TValue>>;
-
-	}
-
-	struct MemoryStats
-	{
-		uint64_t TotalAllocated = 0;
-		uint64_t TotalFreed = 0;
-		uint64_t CurrentUsage() const { return TotalAllocated - TotalFreed; }
-	};
-
-	struct Allocation
-	{
-		void* Memory;
-		size_t Size;
-		const char* Descriptor;
-		const char* Module;
-		int Line = -1;
-	};
-
-	struct AllocatorData
-	{
-		using AllocationMap = std::unordered_map<void*, Allocation, std::hash<void*>, std::equal_to<void*>, Internal::UntrackedAllocator<std::pair<void* const, Allocation>>>;
-		using AllocationStatsMap = std::unordered_map<const char*, uint64_t, std::hash<const char*>, std::equal_to<const char*>, Internal::UntrackedAllocator<std::pair<const char* const, uint64_t>>>;
-
-		std::recursive_mutex m_Mutex;
-		AllocationMap m_AllocationMap;
-		AllocationStatsMap m_AllocationStatsMap;
-		MemoryStats m_MemoryStats;
-	};
-
-	class Allocator
+	class Memory
 	{
 	public:
-		static void Init();
-		
-		static void* AllocateRaw(size_t size);
-		static void FreeRaw(void* memory);
+		static void Write(void* destination, void* source, uint64_t byteSize);
+		static void Write(void* destination, const Buffer source);
+		static void Write(Buffer& destination, void* source, uint64_t byteSize);
+		static void WriteZero(void* destination, uint64_t byteSize);
 
-		static void* Allocate(size_t size);
-		static void* Allocate(size_t size, const char* desc);
-		static void* Allocate(size_t size, const char* file, int line);
-		static void Free(void* memory);
+		// This will resize the vector if the size is not enough
+		template<typename T>
+		static void Write(std::vector<T>& destination, void* source, uint64_t byteSize);
+		template<typename T>
+		static void Write(std::vector<T>& destination, const Buffer source);
 
-		static void* Reallocate(void* memory, size_t newSize);
-		static void* Reallocate(void* memory, size_t newSize, const char* desc);
-		static void* Reallocate(void* memory, size_t newSize, const char* file, int line);
+		template<typename T>
+		static void WriteZero(T& destination);
 
-		static void* ModuleAllocate(const char* moduleName, size_t size, const char* descOrFile = s_DefaultDescriptor, int line = -1);
-		static void* ModuleReallocate(const char* moduleName, void* memory, size_t newSize, const char* descOrFile = s_DefaultDescriptor, int line = -1);
-		static void ModuleFree(const char* moduleName, void* memory);
+		static void Read(void* memory, uint64_t byteOffset, void* destination, uint64_t byteCount);
 
-		static const MemoryStats& GetMemoryStats() { return s_Data->m_MemoryStats; }
-		static const AllocatorData::AllocationStatsMap& GetAllocationStatsMap() { return s_Data->m_AllocationStatsMap; }
-		static const AllocatorData::AllocationMap& GetAllocationMap() { return s_Data->m_AllocationMap; }
+		template<typename T>
+		static void Read(void* memory, uint64_t byteOffset, T& destination);
 
-	private:
-		inline static AllocatorData* s_Data = nullptr;
-		inline static const char* s_DefaultDescriptor = "Default";
+		template<typename T>
+		static T Read(void* memory, uint64_t byteOffset);
 	};
 
 }
 
-#if SK_TRACK_MEMORY
+template<typename T>
+void Shark::Memory::Write(std::vector<T>& destination, void* source, uint64_t byteSize)
+{
+	const uint64_t count = (byteSize + sizeof(T) - 1) / sizeof(T);
+	if (destination.size() < count)
+		destination.resize(count);
 
-_NODISCARD _Ret_notnull_ _Post_writable_byte_size_(size) _VCRT_ALLOCATOR
-void* __CRTDECL operator new(size_t size);
+	Write(destination.data(), source, byteSize);
+}
 
-_NODISCARD _Ret_notnull_ _Post_writable_byte_size_(size) _VCRT_ALLOCATOR
-void* __CRTDECL operator new[](size_t size);
+template<typename T>
+void Shark::Memory::Write(std::vector<T>& destination, const Buffer source)
+{
+	const uint64_t count = (source.Size + sizeof(T) - 1) / sizeof(T);
+	if (destination.size() < count)
+		destination.resize(count);
 
-_NODISCARD _Ret_notnull_ _Post_writable_byte_size_(size) _VCRT_ALLOCATOR
-void* __CRTDECL operator new(size_t size, const char* desc);
+	Write(destination.data(), source);
+}
 
-_NODISCARD _Ret_notnull_ _Post_writable_byte_size_(size) _VCRT_ALLOCATOR
-void* __CRTDECL operator new[](size_t size, const char* desc);
+template<typename T>
+void Shark::Memory::WriteZero(T& destination)
+{
+	WriteZero(&destination, sizeof(T));
+}
 
-_NODISCARD _Ret_notnull_ _Post_writable_byte_size_(size) _VCRT_ALLOCATOR
-void* __CRTDECL operator new(size_t size, const char* file, int line);
+template<typename T>
+void Shark::Memory::Read(void* memory, uint64_t byteOffset, T& destination)
+{
+	Read(memory, byteOffset, &destination, sizeof(T));
+}
 
-_NODISCARD _Ret_notnull_ _Post_writable_byte_size_(size) _VCRT_ALLOCATOR
-void* __CRTDECL operator new[](size_t size, const char* file, int line);
-
-void __CRTDECL operator delete(void* memory) noexcept;
-void __CRTDECL operator delete(void* memory, const char* desc) noexcept;
-void __CRTDECL operator delete(void* memory, const char* file, int line) noexcept;
-void __CRTDECL operator delete[](void* memory) noexcept;
-void __CRTDECL operator delete[](void* memory, const char* desc) noexcept;
-void __CRTDECL operator delete[](void* memory, const char* file, int line) noexcept;
-
-#define sknew new(__FILE__, __LINE__)
-#define skdelete delete
-
-#else
-
-#define sknew new
-#define skdelete delete
-
-#endif
+template<typename T>
+T Shark::Memory::Read(void* memory, uint64_t byteOffset)
+{
+	T value;
+	Read(memory, byteOffset, &value, sizeof(T));
+	return value;
+}

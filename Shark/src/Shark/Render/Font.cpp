@@ -30,7 +30,7 @@ namespace Shark {
 		textureSpecification.Format = F;
 		textureSpecification.Width = bitmap.width;
 		textureSpecification.Height = bitmap.height;
-		textureSpecification.GenerateMips = false;
+		textureSpecification.HasMips = false;
 
 		return Texture2D::Create(textureSpecification, Buffer{ (void*)bitmap.pixels, bitmap.width * bitmap.height * N * sizeof(T) });
 	}
@@ -119,7 +119,7 @@ namespace Shark {
 			SK_PROFILE_SCOPED("Create Texture Atlas");
 
 			timer.Reset();
-			m_FontAtlas = CreateTextureAltas<uint8_t, float, 4, ImageFormat::RGBA8UNorm, msdf_atlas::mtsdfGenerator>(m_MSDFData->Glyphs, width, height);
+			m_FontAtlas = CreateTextureAltas<uint8_t, float, 4, ImageFormat::RGBA, msdf_atlas::mtsdfGenerator>(m_MSDFData->Glyphs, width, height);
 			SK_CORE_TRACE_TAG("Font", "Generated Atlas in {}", timer.Elapsed());
 		}
 

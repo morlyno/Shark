@@ -33,10 +33,10 @@ namespace Shark {
 
 	struct VertexElement
 	{
-		std::string Semantic = "";
+		std::string Semantic = {};
 		VertexDataType Type = VertexDataType::None;
 		uint32_t Size = 0;
-		uint32_t Offset = 0;
+		uint32_t Offset = 0;	
 
 		VertexElement(VertexDataType type, const std::string& semantic)
 			: Semantic(semantic), Type(type), Size(GetVertexTypeSize(type))

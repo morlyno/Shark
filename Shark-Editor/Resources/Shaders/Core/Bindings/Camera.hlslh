@@ -1,0 +1,17 @@
+#pragma once
+
+ //////////////////////////
+/// ==== Bindings ==== ///
+//
+// space1:
+//  - b0
+// 
+
+struct Camera
+{
+    matrix ViewProjection;
+    float3 Position;
+    float Padding;
+};
+
+ConstantBuffer<Camera> u_Camera : register(b0, space1);

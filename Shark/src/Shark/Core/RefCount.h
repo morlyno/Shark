@@ -176,6 +176,8 @@ namespace Shark {
 			return !(*this == rhs);
 		}
 
+		auto operator<=>(const Ref<T>& rhs) const { return m_Instance <=> rhs.m_Instance; }
+
 		T* Raw()
 		{
 			return m_Instance;
@@ -184,6 +186,23 @@ namespace Shark {
 		const T* Raw() const
 		{
 			return m_Instance;
+		}
+
+		T* Detach()
+		{
+			T* ptr = m_Instance;
+			m_Instance = nullptr;
+			return ptr;
+		}
+
+		void Attach(T* instance)
+		{
+			if (m_Instance)
+			{
+				Release();
+			}
+
+			m_Instance = instance;
 		}
 
 		Ref Clone() const
@@ -196,6 +215,13 @@ namespace Shark {
 		{
 			SK_CORE_VERIFY(m_Instance ? dynamic_cast<T2*>(m_Instance) : true);
 			return (T2*)m_Instance;
+		}
+
+		template<typename TTo>
+			requires std::is_base_of_v<T, TTo> || std::is_base_of_v<TTo, T>
+		Ref<TTo> AsSafe() const
+		{
+			return dynamic_cast<TTo*>(m_Instance);
 		}
 
 		template<typename... Args>

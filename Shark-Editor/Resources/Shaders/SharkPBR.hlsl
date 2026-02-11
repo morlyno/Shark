@@ -1,49 +1,37 @@
-#pragma stage : Vertex
-
-// set 0 => Material
-// set 1+ => RenderPass
-
-struct Camera
-{
-    matrix ViewProjection;
-    float3 Position;
-    float Padding;
-};
-
-struct MeshData
-{
-    matrix Transform;
-    int ID;
-    float P0, P1, P2;
-};
-
-[[vk::binding(0, 1)]] ConstantBuffer<Camera> u_Camera;
-//[[vk::binding(1, 1)]] ConstantBuffer<MeshData> u_MeshData;
-[[vk::push_constant]] ConstantBuffer<MeshData> u_MeshData;
 
 struct VertexInput
 {
-    [[vk::location(0)]] float3 Position : Position;
-    [[vk::location(1)]] float3 Normal : Normal;
-    [[vk::location(2)]] float3 Tangent : Tangent;
-    [[vk::location(3)]] float3 Bitangent : Bitangent;
-    [[vk::location(4)]] float2 Texcoord : Texcoord;
+    float3 Position : Position;
+    float3 Normal : Normal;
+    float3 Tangent : Tangent;
+    float3 Bitangent : Bitangent;
+    float2 Texcoord : Texcoord;
 };
 
-struct VertexOutput
+struct VertexToPixel
 {
-    [[vk::location(0)]] float3 WorldPosition : WorldPosition;
-    [[vk::location(1)]] float3 Normal : Normal;
-    [[vk::location(2)]] float2 Texcoord : Texcoord;
-    [[vk::location(3)]] float3x3 WorldNormals : WorldNormals;
-    [[vk::location(6)]] float3 ViewPosition : ViewPosition;
-    [[vk::location(7)]] int ID : ID;
+    float3 WorldPosition : WorldPosition;
+    float3 Normal : Normal;
+    float2 Texcoord : Texcoord;
+    float3x3 WorldNormals : WorldNormals;
+    float3 ViewPosition : ViewPosition;
+    nointerpolation int ID : ID;
     float4 Position : SV_POSITION;
 };
 
-VertexOutput main(VertexInput Input)
+struct PixelOutput
 {
-    VertexOutput Output;
+    float4 Color : SV_Target0;
+    int ID : SV_Target1;
+};
+
+#pragma stage : Vertex
+
+#include "Core/Bindings/Buffers.hlslh"
+
+VertexToPixel main(VertexInput Input)
+{
+    VertexToPixel Output;
     
     float4 pos = mul(u_MeshData.Transform, float4(Input.Position, 1.0f));
     Output.Position = mul(u_Camera.ViewProjection, pos);
@@ -62,87 +50,14 @@ VertexOutput main(VertexInput Input)
 
 #pragma stage : Pixel
 
-struct MaterialUniforms
-{
-    float3 Albedo;
-    float Metalness;
-    float Roughness;
-    float AmbientOcclusion;
-    bool UsingNormalMap;
-    float P0;
-};
+#include "Core/Bindings/PBRMaterial.hlslh"
+#include "Core/Bindings/Buffers.hlslh"
 
-struct PointLight
-{
-    float3 Position;
-    float Intensity;
-    float3 Radiance;
-    float Radius;
-    float Falloff;
-    float P0, P1, P2;
-};
+uniform TextureCube u_IrradianceMap : register(t0, space2);
+uniform TextureCube u_RadianceMap : register(t1, space2);
+uniform Texture2D u_BRDFLUTTexture : register(t2, space2);
 
-struct DirectionalLight
-{
-    float4 Radiance;
-    float3 Direction;
-    float Intensity;
-};
-
-struct Scene
-{
-    uint PointLightCount;
-    uint DirectionalLightCount;
-    float EnvironmentMapIntensity;
-    float P0;
-};
-
-[[vk::binding(1, 1)]] ConstantBuffer<Scene> u_Scene;
-[[vk::binding(2, 1)]] StructuredBuffer<PointLight> u_PointLights;
-[[vk::binding(3, 1)]] StructuredBuffer<DirectionalLight> u_DirectionalLights;
-
-#define SAMPLER(_textureName) _ ## _textureName ## _sampler
-
-[[vk::binding(4, 1)]][[vk::combinedImageSampler]] uniform TextureCube u_IrradianceMap;
-[[vk::binding(4, 1)]][[vk::combinedImageSampler]] uniform SamplerState SAMPLER(u_IrradianceMap);
-
-[[vk::binding(5, 1)]][[vk::combinedImageSampler]] uniform TextureCube u_RadianceMap;
-[[vk::binding(5, 1)]][[vk::combinedImageSampler]] uniform SamplerState SAMPLER(u_RadianceMap);
-
-[[vk::binding(6, 1)]][[vk::combinedImageSampler]] uniform Texture2D u_BRDFLUTTexture;
-[[vk::binding(6, 1)]][[vk::combinedImageSampler]] uniform SamplerState SAMPLER(u_BRDFLUTTexture);
-
-
-[[vk::binding(0, 0)]] ConstantBuffer<MaterialUniforms> u_MaterialUniforms;
-
-[[vk::binding(1, 0)]][[vk::combinedImageSampler]] uniform Texture2D u_AlbedoMap;
-[[vk::binding(1, 0)]][[vk::combinedImageSampler]] uniform SamplerState SAMPLER(u_AlbedoMap);
-
-[[vk::binding(2, 0)]][[vk::combinedImageSampler]] uniform Texture2D u_NormalMap;
-[[vk::binding(2, 0)]][[vk::combinedImageSampler]] uniform SamplerState SAMPLER(u_NormalMap);
-
-[[vk::binding(3, 0)]][[vk::combinedImageSampler]] uniform Texture2D u_MetalnessMap;
-[[vk::binding(3, 0)]][[vk::combinedImageSampler]] uniform SamplerState SAMPLER(u_MetalnessMap);
-
-[[vk::binding(4, 0)]][[vk::combinedImageSampler]] uniform Texture2D u_RoughnessMap;
-[[vk::binding(4, 0)]][[vk::combinedImageSampler]] uniform SamplerState SAMPLER(u_RoughnessMap);
-
-
-struct PixelInput
-{
-    [[vk::location(0)]] float3 WorldPosition : WorldPosition;
-    [[vk::location(1)]] float3 Normal : Normal;
-    [[vk::location(2)]] float2 Texcoord : Texcoord;
-    [[vk::location(3)]] float3x3 WorldNormals : WorldNormals;
-    [[vk::location(6)]] float3 ViewPosition : ViewPosition;
-    [[vk::location(7)]] int ID : ID;
-};
-
-struct PixelOutput
-{
-    float4 Color : SV_Target0;
-    int ID : SV_Target1;
-};
+uniform SamplerState u_EnvironmentSampler : register(s0, space2);
 
 struct Params
 {
@@ -194,7 +109,7 @@ float3 FresnelSchlickRoughness(float3 F0, float cosTheta, float roughness)
 
 float3 IBL(float3 F0)
 {
-    float3 irradiance = u_IrradianceMap.Sample(SAMPLER(u_IrradianceMap), m_Params.Normal).rgb;
+    float3 irradiance = u_IrradianceMap.Sample(u_EnvironmentSampler, m_Params.Normal).rgb;
     float3 F = FresnelSchlickRoughness(F0, m_Params.NdotV, m_Params.Roughness);
     
     float3 kd = lerp((float3)1.0 - F, (float3)0.0, m_Params.Metalness);
@@ -203,9 +118,9 @@ float3 IBL(float3 F0)
     uint width, height, radianceTexLevels;
     u_RadianceMap.GetDimensions(0, width, height, radianceTexLevels);
     float3 R = 2.0 * m_Params.NdotV * m_Params.Normal - m_Params.View;
-    float3 specularIrradiance = u_RadianceMap.SampleLevel(SAMPLER(u_RadianceMap), R, m_Params.Roughness * radianceTexLevels);
+    float3 specularIrradiance = u_RadianceMap.SampleLevel(u_EnvironmentSampler, R, m_Params.Roughness * radianceTexLevels);
     
-    float2 specularBRDF = u_BRDFLUTTexture.Sample(SAMPLER(u_BRDFLUTTexture), float2(m_Params.NdotV, m_Params.Roughness)).rg;
+    float2 specularBRDF = u_BRDFLUTTexture.Sample(u_EnvironmentSampler, float2(m_Params.NdotV, m_Params.Roughness)).rg;
     float3 specularIBL = specularIrradiance * (F0 * specularBRDF.x + specularBRDF.y);
     
     return kd * diffuseIBL + specularIBL;
@@ -235,19 +150,19 @@ float4 ToLinear(float4 sRGB)
     return lerp(higher, lower, cutoff);
 }
 
-PixelOutput main(PixelInput Input)
+PixelOutput main(VertexToPixel Input)
 {
-    float4 albedoTexColor = u_AlbedoMap.Sample(SAMPLER(u_AlbedoMap), Input.Texcoord);
+    float4 albedoTexColor = u_AlbedoMap.Sample(u_AlbedoSampler, Input.Texcoord);
     m_Params.Albedo = albedoTexColor.rgb * ToLinear(float4(u_MaterialUniforms.Albedo, 1.0f)).rgb;
     //m_Params.Albedo = albedoTexColor.rgb * u_MaterialUniforms.Albedo;
-    m_Params.Metalness = u_MetalnessMap.Sample(SAMPLER(u_MetalnessMap), Input.Texcoord).b * u_MaterialUniforms.Metalness;
-    m_Params.Roughness = u_RoughnessMap.Sample(SAMPLER(u_RoughnessMap), Input.Texcoord).g * u_MaterialUniforms.Roughness;
+    m_Params.Metalness = u_MetalnessMap.Sample(u_LinearClamp, Input.Texcoord).b * u_MaterialUniforms.Metalness;
+    m_Params.Roughness = u_RoughnessMap.Sample(u_LinearClamp, Input.Texcoord).g * u_MaterialUniforms.Roughness;
     m_Params.Roughness = max(m_Params.Roughness, 0.05);
 
     m_Params.Normal = Input.Normal;
     if (u_MaterialUniforms.UsingNormalMap)
     {
-        m_Params.Normal = normalize(u_NormalMap.Sample(SAMPLER(u_NormalMap), Input.Texcoord).rgb * 2.0 - 1.0);
+        m_Params.Normal = normalize(u_NormalMap.Sample(u_LinearClamp, Input.Texcoord).rgb * 2.0 - 1.0);
         m_Params.Normal = normalize(mul(m_Params.Normal, Input.WorldNormals));
     }
 

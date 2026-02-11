@@ -415,7 +415,7 @@ namespace Shark {
 			}
 			case AssetType::Material:
 			{
-				Ref<MaterialAsset> material = asset.As<MaterialAsset>();
+				auto material = asset.As<PBRMaterial>();
 				if (!DependenciesLoaded(material->GetAlbedoMap(), loadIfNotReady))
 					return false;
 				if (!DependenciesLoaded(material->GetNormalMap(), loadIfNotReady))

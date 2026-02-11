@@ -12,6 +12,8 @@
 #include "Shark/Render/StorageBuffer.h"
 #include "Shark/Render/Environment.h"
 
+#include <set>
+
 namespace Shark {
 
 	class Scene;
@@ -54,30 +56,20 @@ namespace Shark {
 			float Exposure = 1.0f;
 		};
 
-		struct TimestampQueries
-		{
-			uint32_t TotalTimeQuery = (uint32_t)-1;
-			uint32_t GeometryPassQuery = (uint32_t)-1;
-			uint32_t SkyboxPassQuery = (uint32_t)-1;
-			uint32_t CompositePassQuery = (uint32_t)-1;
-			uint32_t JumpFloodPassQuery = (uint32_t)-1;
-		};
-
 	public:
 		SceneRenderer(uint32_t width, uint32_t height, const std::string& debugName);
-		SceneRenderer(Ref<Scene> scene, const SceneRendererSpecification& specification);
+		SceneRenderer(const SceneRendererSpecification& specification);
 		SceneRenderer(Ref<Scene> scene);
 		~SceneRenderer();
 
 		void Resize(uint32_t width, uint32_t height);
 		void SetClearColor(const glm::vec4& clearColor);
 
-		void SetScene(Ref<Scene> scene) { m_Scene = scene; }
-		void BeginScene(const SceneRendererCamera& camera);
+		void BeginScene(Ref<Scene> scene, const SceneRendererCamera& camera);
 		void EndScene();
 
-		void SubmitMesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<MaterialAsset> material, const glm::mat4& transform, int id);
-		void SubmitSelectedMesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<MaterialAsset> material, const glm::mat4& transform);
+		void SubmitMesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<PBRMaterial> material, const glm::mat4& transform, int id);
+		void SubmitSelectedMesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<PBRMaterial> material, const glm::mat4& transform);
 
 		Ref<Renderer2D> GetRenderer2D() const { return m_Renderer2D; }
 		Ref<Image2D> GetFinalPassImage() const { return m_CompositePass->GetOutput(0); }
@@ -141,11 +133,14 @@ namespace Shark {
 		{
 			glm::mat4 Transform;
 			int ID;
+			float P0, P1, P2;
 		};
 
 		struct CBOutlineSettings
 		{
-			glm::vec4 Color;
+			glm::vec3 Color;
+			float PixelWidth;
+			glm::vec2 TexelSize;
 		};
 
 		struct DrawCommand
@@ -153,7 +148,7 @@ namespace Shark {
 			Ref<Mesh> Mesh;
 			Ref<MeshSource> MeshSource;
 			uint32_t SubmeshIndex;
-			Ref<MaterialAsset> Material;
+			Ref<PBRMaterial> Material;
 			glm::mat4 Transform;
 			int ID;
 		};
@@ -163,7 +158,6 @@ namespace Shark {
 		SceneRendererSpecification m_Specification;
 
 		Statistics m_Statistics;
-		PipelineStatistics m_PipelineStatistics;
 		Options m_Options;
 
 		Ref<ConstantBuffer> m_CBScene;
@@ -178,8 +172,6 @@ namespace Shark {
 		Ref<Renderer2D> m_Renderer2D;
 		Ref<RenderCommandBuffer> m_CommandBuffer;
 
-		TimestampQueries m_TimestampQueries;
-
 		glm::mat4 m_ViewProjection;
 		glm::mat4 m_View;
 		glm::mat4 m_Projection;
@@ -187,20 +179,24 @@ namespace Shark {
 
 		std::vector<DrawCommand> m_DrawList;
 		std::vector<DrawCommand> m_SelectedDrawList;
+		std::set<Ref<PBRMaterial>> m_MaterialsToUpdate;
 
 		Ref<RenderPass> m_GeometryPass;
 		Ref<RenderPass> m_SelectedGeometryPass;
 		Ref<RenderPass> m_SkyboxPass;
 		Ref<RenderPass> m_CompositePass;
 
-		Ref<Material> m_SelectedGeometryMaterial;
+		Ref<Pipeline> m_GeometryPipeline;
+		Ref<Pipeline> m_SelectedGeometryPipeline;
+		Ref<Pipeline> m_SkyboxPipeline;
+		Ref<Pipeline> m_CompositePipeline;
 
 		Ref<RenderPass> m_JumpFloodInitPass;
 		Ref<RenderPass> m_JumpFloodPass[2];
 		Ref<RenderPass> m_JumpFloodCompositePass;
-		Ref<Material> m_JumpFloodInitMaterial;
-		Ref<Material> m_JumpFloodPassMaterial[2];
-		Ref<Material> m_JumpFloodCompositeMaterial;
+		Ref<Pipeline> m_JumpFloodInitPipeline;
+		Ref<Pipeline> m_JumpFloodPipeline;
+		Ref<Pipeline> m_JumpFloodCompositePipeline;
 
 		std::vector<Ref<FrameBuffer>> m_TempFramebuffers;
 

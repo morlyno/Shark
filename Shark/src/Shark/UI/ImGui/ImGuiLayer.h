@@ -2,44 +2,56 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Layer/Layer.h"
+#include "Shark/Render/Image.h"
 
 #include <imgui.h>
 
+#undef CreateWindow
+
 namespace Shark {
 
-	class Image2D;
-	class ImageView;
+	class ImGuiRenderer;
 
 	class ImGuiLayer : public Layer
 	{
 	public:
+		static ImGuiLayer* Create() { return sknew ImGuiLayer(); }
+
+		void OnAttach();
+		void OnDetach();
+
+		void OnEvent(Event& event);
+
+		void Begin();
+		void End();
+
+		void SetMainViewportID(ImGuiID mainViewportID) { m_MainViewportID = m_MainViewportID; }
+		ImGuiID GetMainViewportID() const { return m_MainViewportID; }
+
+		TimeStep GetGPUTime() const { return 0.0f; }
+
+		bool BlocksMouseEvents() const { return m_BlockEvents && ImGui::GetIO().WantCaptureMouse; }
+		bool BlocksKeyboardEvents() const { return m_BlockEvents && ImGui::GetIO().WantCaptureKeyboard; }
+		void BlockEvents(bool block) { m_BlockEvents = block; }
+
+		void AddViewable(Ref<ViewableResource> viewable) { m_Viewables.push_back(viewable); }
+
+	private:
 		ImGuiLayer();
 
-		virtual ~ImGuiLayer() = default;
+		friend class Callbacks;
+		void CreateWindow(ImGuiViewport* viewport);
+		void DestroyWindow(ImGuiViewport* viewport);
+		void SetWindowSize(ImGuiViewport* viewport, ImVec2 size);
+		void RenderWindow(ImGuiViewport* viewport, void*);
+		void SwapBuffers(ImGuiViewport* viewport, void*);
+	private:
+		Scope<ImGuiRenderer> m_Renderer;
 
-		virtual void OnAttach() = 0;
-		virtual void OnDetach() = 0;
+		ImGuiID m_MainViewportID;
+		bool m_BlockEvents = false;
 
-		virtual void OnEvent(Event& event) = 0;
-
-		virtual void Begin() = 0;
-		virtual void End() = 0;
-
-		virtual bool InFrame() const = 0;
-		virtual void SetMainViewportID(ImGuiID mainViewportID) = 0;
-		virtual ImGuiID GetMainViewportID() const = 0;
-
-		virtual TimeStep GetGPUTime() const = 0;
-
-		virtual bool BlocksMouseEvents() const = 0;
-		virtual bool BlocksKeyboardEvents() const = 0;
-		virtual void BlockEvents(bool block) = 0;
-
-		virtual void AddImage(Ref<Image2D> image) = 0;
-		virtual void AddImage(Ref<ImageView> view) = 0;
-		virtual void BindFontSampler() = 0;
-
-		static ImGuiLayer* Create();
+		std::vector<Ref<ViewableResource>> m_Viewables;
 	};
 
 }

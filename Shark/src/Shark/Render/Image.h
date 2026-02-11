@@ -3,115 +3,280 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Buffer.h"
 #include "Shark/Render/RendererResource.h"
+#include <nvrhi/nvrhi.h>
 
 namespace Shark {
 
-	class TextureSource;
+	//////////////////////////////////////////////////////////////////////////
+	//// Viewable & ViewInfo 
+	//////////////////////////////////////////////////////////////////////////
+
+	struct ImageSlice
+	{
+		uint32_t Mip;
+		uint32_t Layer;
+
+		static ImageSlice Zero() { return ImageSlice{ 0, 0 }; }
+	};
+
+	struct ViewInfo
+	{
+		nvrhi::TextureHandle Handle;
+		nvrhi::Format Format = nvrhi::Format::UNKNOWN;
+		nvrhi::TextureDimension Dimension = nvrhi::TextureDimension::Unknown;
+		nvrhi::TextureSubresourceSet SubresourceSet = nvrhi::AllSubresources;
+
+		// Optional, only used by Texture and ImGui renderer
+		nvrhi::SamplerHandle TextureSampler;
+
+		bool operator==(const ViewInfo&) const = default;
+	};
+
+	class ViewableResource : public RendererResource
+	{
+	public:
+		virtual const ViewInfo& GetViewInfo() const = 0;
+		virtual bool HasSampler() const = 0;
+
+	};
+
+	//////////////////////////////////////////////////////////////////////////
+	//// Image2D
+	//////////////////////////////////////////////////////////////////////////
 
 	enum class ImageFormat : uint16_t
 	{
 		None = 0,
-		RGBA8UNorm,
-		RGBA16Float,
-		RGBA32Float,
-
+		RGBA,
 		sRGBA,
 
-		R8UNorm,
-		R32SINT,
+		RG16F,
+		RGBA16F,
+		RGBA32F,
 
-		RG16SNorm,
-		RG16Float,
+		RED32SI,
+		RED32UI,
 
 		Depth32,
 		Depth24UNormStencil8UINT
 	};
 
-	enum class ImageType : uint16_t
+	enum class ImageUsage
 	{
 		Texture,
-		TextureCube,
+		Attachment,
 		Storage,
-		Atachment
 	};
 
 	struct ImageSpecification
 	{
-		ImageFormat Format = ImageFormat::RGBA8UNorm;
 		uint32_t Width = 0, Height = 0;
+		ImageFormat Format = ImageFormat::RGBA;
 		uint32_t Layers = 1;
 		uint32_t MipLevels = 1; // 0 == MaxLeves
 
-		ImageType Type = ImageType::Texture;
-		bool CreateSampler = true;
+		ImageUsage Usage = ImageUsage::Texture;
+		bool IsCube = false;
 
 		std::string DebugName;
 	};
 
-	class Image2D : public RendererResource
+	class Image2D : public ViewableResource
 	{
 	public:
-		virtual ~Image2D() = default;
+		static Ref<Image2D> Create() { return Ref<Image2D>::Create(); }
+		static Ref<Image2D> Create(const ImageSpecification& specification) { return Ref<Image2D>::Create(specification); }
 
-		virtual void Release() = 0;
-		virtual void Invalidate() = 0;
-		virtual void RT_Invalidate() = 0;
-		virtual void Resize(uint32_t width, uint32_t height) = 0;
+		void Invalidate();
+		void RT_Invalidate();
+		void Resize(uint32_t width, uint32_t height);
+		void Resize(uint32_t width, uint32_t height, uint32_t mipLevels);
 
-		virtual bool IsValid(bool hasView = true) const = 0;
+		uint32_t GetWidth() const { return m_Specification.Width; }
+		uint32_t GetHeight() const { return m_Specification.Height; }
+		float GetAspectRatio() const { return static_cast<float>(m_Specification.Width) / static_cast<float>(m_Specification.Height); }
+		float GetVerticalAspectRatio() const { return static_cast<float>(m_Specification.Height) / static_cast<float>(m_Specification.Width); }
 
-		virtual uint32_t GetWidth() const = 0;
-		virtual uint32_t GetHeight() const = 0;
-		virtual float GetAspectRatio() const = 0;         // Height to Width
-		virtual float GetVerticalAspectRatio() const = 0; // Width to Height
+		void Submit_UploadData(const Buffer buffer);
+		void RT_UploadData(const Buffer buffer);
 
-		virtual void UploadImageData(Buffer buffer) = 0;
-		virtual void RT_UploadImageData(Buffer buffer) = 0;
+		ImageSpecification& GetSpecification() { return m_Specification; }
+		const ImageSpecification& GetSpecification() const { return m_Specification; }
 
-		virtual bool RT_ReadPixel(uint32_t x, uint32_t y, uint32_t& out_Pixel) = 0;
-		virtual void RT_CopyToHostBuffer(Buffer& buffer) = 0;
-
-		virtual RenderID GetViewID() const = 0;
-		virtual ImageType GetType() const = 0;
-
-		virtual ImageSpecification& GetSpecification() = 0;
-		virtual const ImageSpecification& GetSpecification() const = 0;
+		nvrhi::TextureHandle GetHandle() const { return m_ImageHandle; }
+		virtual nvrhi::ResourceHandle GetResourceHandle() const override { return m_ImageHandle; }
+		virtual const ViewInfo& GetViewInfo() const override { return m_ViewInfo; }
+		virtual bool HasSampler() const override { return false; }
 
 	public:
-		static Ref<Image2D> Create();
-		static Ref<Image2D> Create(const ImageSpecification& specs);
+		Image2D();
+		Image2D(const ImageSpecification& specification);
+
+	private:
+		using RT_State = ImageSpecification;
+		void InvalidateFromState(const RT_State& state);
+
+	private:
+		ImageSpecification m_Specification;
+
+		// === RT ===
+		nvrhi::TextureHandle m_ImageHandle;
+		ViewInfo m_ViewInfo;
 	};
-	
+
+	//////////////////////////////////////////////////////////////////////////
+	//// StagingImage2D
+	//////////////////////////////////////////////////////////////////////////
+
+	struct StagingImageSpecification
+	{
+		uint32_t Width = 0, Height = 0;
+		ImageFormat Format = ImageFormat::RGBA;
+		uint32_t Layers = 1;
+		uint32_t MipLevels = 1; // 0 == MaxLeves
+
+		nvrhi::CpuAccessMode CpuAccess = nvrhi::CpuAccessMode::None;
+		bool IsCube = false;
+
+		std::string DebugName;
+	};
+
+	struct MappedImageMemory
+	{
+		nvrhi::IStagingTexture* Texture = nullptr;
+		Buffer Memory = {};
+		uint64_t RowPitch = 0;
+
+		MappedImageMemory() = default;
+		MappedImageMemory(MappedImageMemory&& other);
+		MappedImageMemory(const MappedImageMemory&) = delete;
+		MappedImageMemory& operator=(const MappedImageMemory&) = delete;
+		~MappedImageMemory();
+	};
+
+	class StagingImage2D : public RefCount
+	{
+	public:
+		static Ref<StagingImage2D> Create(const StagingImageSpecification& specification) { return Ref<StagingImage2D>::Create(specification); }
+		static Ref<StagingImage2D> Create(Ref<Image2D> templateImage, nvrhi::CpuAccessMode cpuAccess) { return Ref<StagingImage2D>::Create(templateImage, cpuAccess); }
+
+		void Resize(uint32_t width, uint32_t height);
+		void Resize(uint32_t width, uint32_t height, uint32_t mipLevels);
+
+		MappedImageMemory RT_OpenReadable();
+
+		void RT_OpenReadableBuffer(Buffer& outMemory);
+		void RT_CloseReadableBuffer();
+
+		void RT_ReadPixel(uint32_t x, uint32_t y, Buffer outPixel);
+
+		uint32_t GetWidth() const { return m_Specification.Width; }
+		uint32_t GetHeight() const { return m_Specification.Height; }
+
+		nvrhi::StagingTextureHandle GetHandle() const { return m_Handle; }
+		const StagingImageSpecification& GetSpecification() const { return m_Specification; }
+		uint32_t GetPixelSize() const;
+
+	public:
+		StagingImage2D(const StagingImageSpecification& specification);
+		StagingImage2D(Ref<Image2D> templateImage, nvrhi::CpuAccessMode cpuAccess);
+		~StagingImage2D();
+
+	private:
+		using RT_State = StagingImageSpecification;
+		void InvalidateFromState(const RT_State& state);
+
+	private:
+		StagingImageSpecification m_Specification;
+		nvrhi::StagingTextureHandle m_Handle;
+	};
+
+	//////////////////////////////////////////////////////////////////////////
+	//// ImageView
+	//////////////////////////////////////////////////////////////////////////
+
 	struct ImageViewSpecification
 	{
-		Ref<Image2D> Image;
-		uint32_t MipSlice = 0;
+		uint32_t BaseMip = 0;
+		uint32_t MipCount = 1;
+		uint32_t BaseLayer = 0;
+		uint32_t LayerCount = 1;
+
+		ImageFormat Format = ImageFormat::None;
+		nvrhi::TextureDimension Dimension = nvrhi::TextureDimension::Unknown;
+
+		static constexpr uint32_t AllMips = (uint32_t)-1;
+		static constexpr uint32_t AllLayers = (uint32_t)-1;
 	};
 
-	class ImageView : public RefCount
+	class ImageView : public ViewableResource
 	{
 	public:
-		virtual void Invalidate() = 0;
-		virtual void RT_Invalidate() = 0;
+		static Ref<ImageView> Create(Ref<Image2D> image, const ImageViewSpecification& specification, bool initOnRT = false) { return Ref<ImageView>::Create(image, specification, initOnRT); }
 
-		virtual ImageViewSpecification& GetSpecification() = 0;
-
-		virtual Ref<Image2D> GetImage() const = 0;
-		virtual RenderID GetViewID() const = 0;
+		bool SupportsStorage() const { return m_StorageSupported; }
+		const ImageViewSpecification& GetSpecification() const { return m_Specification; }
+		virtual nvrhi::ResourceHandle GetResourceHandle() const override { return m_ViewInfo.Handle; }
+		virtual const ViewInfo& GetViewInfo() const override { return m_ViewInfo; }
+		virtual bool HasSampler() const override { return false; }
+		Ref<Image2D> GetImage() const { return m_Image; }
 
 	public:
-		static Ref<ImageView> Create();
-		static Ref<ImageView> Create(const ImageViewSpecification& specification);
-		static Ref<ImageView> Create(Ref<Image2D> image, uint32_t mipSlice);
+		ImageView(Ref<Image2D> image, const ImageViewSpecification& specification, bool initOnRT);
+		~ImageView();
+
+	private:
+		using ViewState = ImageViewSpecification;
+		void InvalidateFromState(Ref<Image2D> image, const ViewState& viewState);
+
+	private:
+		Ref<Image2D> m_Image;
+		ImageViewSpecification m_Specification;
+		bool m_StorageSupported = false;
+
+		// === RT ===
+		ViewInfo m_ViewInfo;
 	};
 
+	//////////////////////////////////////////////////////////////////////////
+	//// Image Utilities
+	//////////////////////////////////////////////////////////////////////////
+	
 	namespace ImageUtils {
 
-		uint32_t CalcMipLevels(uint32_t widht, uint32_t height);
+		uint32_t CalcMipLevels(uint32_t width, uint32_t height);
+		glm::uvec2 CalcMipSize(uint32_t fullWidth, uint32_t fullHeight, uint32_t mip);
+		nvrhi::Format ConvertImageFormat(ImageFormat format);
+		ImageFormat ConvertImageFormat(nvrhi::Format format);
+		ImageFormat ConvertToWritableFormat(ImageFormat format);
+		nvrhi::Format ConvertToWritableFormat(nvrhi::Format format);
+
+		bool IsSRGB(ImageFormat format);
 		bool IsDepthFormat(ImageFormat format);
 		bool IsIntegerBased(ImageFormat format);
+		bool SupportsUAV(ImageFormat format);
 		uint32_t GetFormatBPP(ImageFormat format);
 
 	}
+
+}
+
+namespace std {
+
+	template<>
+	struct hash<Shark::ViewInfo>
+	{
+		static_assert(sizeof(Shark::ViewInfo) == 40);
+		size_t operator()(const Shark::ViewInfo& viewInfo) const
+		{
+			uint64_t hash = Shark::Hash::FNVBase;
+			Shark::Hash::HashCombine(hash, Shark::StandartHash(viewInfo.Handle));
+			Shark::Hash::HashCombine(hash, Shark::StandartHash(viewInfo.Format));
+			Shark::Hash::HashCombine(hash, Shark::StandartHash(viewInfo.Dimension));
+			Shark::Hash::HashCombine(hash, Shark::StandartHash(viewInfo.SubresourceSet));
+			Shark::Hash::HashCombine(hash, Shark::StandartHash(viewInfo.TextureSampler));
+			return hash;
+		}
+	};
 
 }

@@ -1,8 +1,15 @@
 #pragma once
 
 #include <filesystem>
+#include <regex>
 
 namespace Shark::String {
+
+	namespace RegexLiterals {
+
+		inline std::regex operator""_r(const char* str, size_t len) { return std::regex(str, len); }
+
+	}
 
 	enum class Case
 	{
