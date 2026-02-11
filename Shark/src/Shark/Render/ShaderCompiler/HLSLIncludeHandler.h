@@ -1,7 +1,7 @@
 #pragma once
 
-#include <atlcomcli.h>
 #include <dxc/dxcapi.h>
+#include <nvrhi/nvrhi.h>
 
 namespace Shark {
 
@@ -10,7 +10,7 @@ namespace Shark {
 	class HLSLIncludeHandler : public IDxcIncludeHandler
 	{
 	public:
-		HLSLIncludeHandler(ShaderPreprocessor* preprocessor, ATL::CComPtr<IDxcUtils> utils);
+		HLSLIncludeHandler(ShaderPreprocessor* preprocessor, nvrhi::RefCountPtr<IDxcUtils> utils);
 
 		virtual HRESULT STDMETHODCALLTYPE LoadSource(_In_z_ LPCWSTR pFilename, _COM_Outptr_result_maybenull_ IDxcBlob** ppIncludeSource) override;
 
@@ -21,7 +21,7 @@ namespace Shark {
 
 	private:
 		ShaderPreprocessor* m_Preprocessor;
-		ATL::CComPtr<IDxcUtils> m_Utils;
+		nvrhi::RefCountPtr<IDxcUtils> m_Utils;
 	};
 
 }

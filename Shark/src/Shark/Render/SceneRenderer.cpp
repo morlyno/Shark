@@ -81,19 +81,15 @@ namespace Shark {
 			m_JumpFloodPass[1]->GetTargetFramebuffer()->Resize(m_Specification.Width, m_Specification.Height);
 			m_JumpFloodCompositePass->GetTargetFramebuffer()->Resize(m_Specification.Width, m_Specification.Height);
 
-			// #Renderer #Investigate submitting should be handled by the backend, not the user
-			Renderer::Submit([this]()
-			{
 				// Update invalidated binding sets
-				m_GeometryPass->Update();
-				m_SkyboxPass->Update();
-				m_CompositePass->Update();
-				m_SelectedGeometryPass->Update();
-				m_JumpFloodInitPass->Update();
-				m_JumpFloodPass[0]->Update();
-				m_JumpFloodPass[1]->Update();
-				m_JumpFloodCompositePass->Update();
-			});
+			m_GeometryPass->UpdateDescriptors();
+			m_SkyboxPass->UpdateDescriptors();
+			m_CompositePass->UpdateDescriptors();
+			m_SelectedGeometryPass->UpdateDescriptors();
+			m_JumpFloodInitPass->UpdateDescriptors();
+			m_JumpFloodPass[0]->UpdateDescriptors();
+			m_JumpFloodPass[1]->UpdateDescriptors();
+			m_JumpFloodCompositePass->UpdateDescriptors();
 
 
 			m_Renderer2D->Resize(m_Specification.Width, m_Specification.Height);
@@ -126,25 +122,25 @@ namespace Shark {
 			JumpFloodPass();
 
 
+		m_CommandBuffer->BeginMarker("Composite");
 		m_CommandBuffer->BeginTimer("CompositePass");
-		Renderer::BeginEventMarker(m_CommandBuffer, "Composite");
 		
 		Renderer::BeginRenderPass(m_CommandBuffer, m_CompositePass);
 		Renderer::RenderFullScreenQuad(m_CommandBuffer, m_CompositePipeline, nullptr);
 		Renderer::EndRenderPass(m_CommandBuffer, m_CompositePass);
 
-		Renderer::EndEventMarker(m_CommandBuffer);
 		m_CommandBuffer->EndTimer("CompositePass");
+		m_CommandBuffer->EndMarker();
 
 		if (m_Options.JumpFlood)
 		{
-			Renderer::BeginEventMarker(m_CommandBuffer, "JumpFlood-Composite");
+			m_CommandBuffer->BeginMarker("JumpFlood - Composite");
 
 			Renderer::BeginRenderPass(m_CommandBuffer, m_JumpFloodCompositePass);
 			Renderer::RenderFullScreenQuad(m_CommandBuffer, m_JumpFloodCompositePipeline, nullptr);
 			Renderer::EndRenderPass(m_CommandBuffer, m_JumpFloodCompositePass);
 
-			Renderer::EndEventMarker(m_CommandBuffer);
+			m_CommandBuffer->EndMarker();
 		}
 
 		m_CommandBuffer->End();
@@ -164,8 +160,7 @@ namespace Shark {
 		SK_CORE_VERIFY(mesh);
 		SK_CORE_VERIFY(material);
 
-		// set concrete textures in the material
-		material->PrepareAndUpdate();
+		m_MaterialsToUpdate.emplace(material);
 
 		auto& meshData = m_DrawList.emplace_back();
 		meshData.Mesh = mesh;
@@ -181,29 +176,35 @@ namespace Shark {
 		SK_CORE_VERIFY(mesh);
 		SK_CORE_VERIFY(material);
 
-		{
-			auto& drawCommand = m_SelectedDrawList.emplace_back();
-			drawCommand.Mesh = mesh;
-			drawCommand.MeshSource = meshSource;
-			drawCommand.SubmeshIndex = submeshIndex;
-			drawCommand.Material = material;
-			drawCommand.Transform = transform;
-			drawCommand.ID = -1;
-		}
+		m_MaterialsToUpdate.emplace(material);
+
+		auto& drawCommand = m_SelectedDrawList.emplace_back();
+		drawCommand.Mesh = mesh;
+		drawCommand.MeshSource = meshSource;
+		drawCommand.SubmeshIndex = submeshIndex;
+		drawCommand.Material = material;
+		drawCommand.Transform = transform;
+		drawCommand.ID = -1;
 	}
 
 	void SceneRenderer::PreRender()
 	{
 		SK_PROFILE_FUNCTION();
 
+		for (Ref<PBRMaterial> material : m_MaterialsToUpdate)
+		{
+			material->Update();
+		}
+		m_MaterialsToUpdate.clear();
+
 		// #idear #Renderer check if environment has changed
 		Ref<Environment> environment = m_Scene->GetEnvironment();
 		m_GeometryPass->SetInput("u_IrradianceMap", environment->GetIrradianceMap());
 		m_GeometryPass->SetInput("u_RadianceMap", environment->GetRadianceMap());
-		m_GeometryPass->Bake();
+		m_GeometryPass->Update();
 
 		m_SkyboxPass->SetInput("u_EnvironmentMap", environment->GetRadianceMap());
-		m_SkyboxPass->Bake();
+		m_SkyboxPass->Update();
 
 		CBScene sceneData;
 		sceneData.EnvironmentMapIntensity = m_Scene->GetEnvironmentIntesity();
@@ -268,18 +269,16 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		m_CommandBuffer->BeginMarker("Geometry Pass");
 		m_CommandBuffer->BeginTimer("GeometryPass");
-		Renderer::BeginEventMarker(m_CommandBuffer, "Geometry Pass");
 
 		Renderer::BeginRenderPass(m_CommandBuffer, m_GeometryPass);
 		for (const auto& mesh : m_DrawList)
 		{
-			mesh.Material->PrepareAndUpdate();
-
 			MeshPushConstant pcMesh;
 			pcMesh.Transform = mesh.Transform;
 			pcMesh.ID = mesh.ID;
-			Renderer::RenderSubmeshWithMaterial(m_CommandBuffer, m_GeometryPipeline, mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, mesh.Material->GetMaterial(), Buffer::FromValue(pcMesh));
+			Renderer::RenderSubmesh(m_CommandBuffer, m_GeometryPipeline, mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, mesh.Material->GetMaterial(), Buffer::FromValue(pcMesh));
 
 			m_Statistics.DrawCalls++;
 			m_Statistics.VertexCount += mesh.MeshSource->GetSubmeshes()[mesh.SubmeshIndex].VertexCount;
@@ -290,7 +289,7 @@ namespace Shark {
 		Renderer::BeginRenderPass(m_CommandBuffer, m_SelectedGeometryPass);
 		for (const auto& mesh : m_SelectedDrawList)
 		{
-			Renderer::RenderSubmeshWithMaterial(m_CommandBuffer, m_SelectedGeometryPipeline, mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, nullptr, Buffer::FromValue(mesh.Transform));
+			Renderer::RenderSubmesh(m_CommandBuffer, m_SelectedGeometryPipeline, mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, nullptr, Buffer::FromValue(mesh.Transform));
 
 			m_Statistics.DrawCalls++;
 			m_Statistics.VertexCount += mesh.MeshSource->GetSubmeshes()[mesh.SubmeshIndex].VertexCount;
@@ -299,8 +298,8 @@ namespace Shark {
 		Renderer::EndRenderPass(m_CommandBuffer, m_SelectedGeometryPass);
 
 
-		Renderer::EndEventMarker(m_CommandBuffer);
 		m_CommandBuffer->EndTimer("GeometryPass");
+		m_CommandBuffer->EndMarker();
 	}
 
 	void SceneRenderer::SkyboxPass()
@@ -318,8 +317,8 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		m_CommandBuffer->BeginMarker("FumpFood");
 		m_CommandBuffer->BeginTimer("JumpFloodPass");
-		Renderer::BeginEventMarker(m_CommandBuffer, "JumpFlood");
 
 		Renderer::BeginRenderPass(m_CommandBuffer, m_JumpFloodInitPass);
 		Renderer::RenderFullScreenQuad(m_CommandBuffer, m_JumpFloodInitPipeline, nullptr);
@@ -347,8 +346,8 @@ namespace Shark {
 
 		vertexOverrides.Release();
 
-		Renderer::EndEventMarker(m_CommandBuffer);
 		m_CommandBuffer->EndTimer("JumpFloodPass");
+		m_CommandBuffer->EndMarker();
 	}
 
 	void SceneRenderer::Initialize(const SceneRendererSpecification& specification)
@@ -385,7 +384,7 @@ namespace Shark {
 		mainFBSpecification.DebugName = "Geometry";
 		mainFBSpecification.Width = specification.Width;
 		mainFBSpecification.Height = specification.Height;
-		mainFBSpecification.Attachments = { ImageFormat::RGBA32F, ImageFormat::RED32UI };
+		mainFBSpecification.Attachments = { ImageFormat::RGBA32F, ImageFormat::RED32SI };
 		mainFBSpecification.DepthAttachment = ImageFormat::Depth32;
 		mainFBSpecification.ClearColor = m_ClearColor;
 		mainFBSpecification.IndipendendClearColor[1] = std::numeric_limits<uint32_t>::max();
@@ -406,7 +405,7 @@ namespace Shark {
 		mainFBSpecification.ExistingImages[1] = clearFramebuffer->GetImage(1);
 		mainFBSpecification.ExistingDepthImage = clearFramebuffer->GetDepthImage();
 		Ref<FrameBuffer> loadFramebuffer = FrameBuffer::Create(mainFBSpecification);
-
+		
 		// Mesh
 		{
 			PipelineSpecification specification;

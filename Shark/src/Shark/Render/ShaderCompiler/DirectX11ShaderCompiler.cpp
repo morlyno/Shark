@@ -7,16 +7,15 @@
 
 #include <spirv_cross/spirv_hlsl.hpp>
 
-#include <atlcomcli.h>
 #include <dxc/dxcapi.h>
 #include <d3dcompiler.h>
 
 namespace Shark {
 
 	namespace DxcInstances {
-		extern ATL::CComPtr<IDxcCompiler3> g_Compiler;
-		extern ATL::CComPtr<IDxcUtils> g_Utils;
-		extern ATL::CComPtr<IDxcIncludeHandler> g_IncludeHandler;
+		extern nvrhi::RefCountPtr<IDxcCompiler3> g_Compiler;
+		extern nvrhi::RefCountPtr<IDxcUtils> g_Utils;
+		extern nvrhi::RefCountPtr<IDxcIncludeHandler> g_IncludeHandler;
 	}
 
 	D3D11::ShaderCompiler::ShaderCompiler(const CompilerOptions& options)

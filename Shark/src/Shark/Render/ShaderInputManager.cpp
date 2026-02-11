@@ -20,9 +20,29 @@ namespace Shark {
 				case RenderInputType::Image2D:
 				case RenderInputType::Texture2D:
 				case RenderInputType::TextureCube:
+				case RenderInputType::Viewable:
+				case RenderInputType::ImageView:
 					return true;
 			}
 			SK_CORE_ASSERT(false, "Unknown RenderInputType");
+			return false;
+		}
+
+		static bool IsImageInput(ShaderInputType type)
+		{
+			switch (type)
+			{
+				case ShaderInputType::ConstantBuffer:
+				case ShaderInputType::StorageBuffer:
+				case ShaderInputType::Sampler:
+					return false;
+
+				case ShaderInputType::Image:
+				case ShaderInputType::Texture:
+				case ShaderInputType::StorageImage:
+					return true;
+			}
+			SK_CORE_ASSERT(false, "Unknown ShaderInputType");
 			return false;
 		}
 
@@ -122,10 +142,23 @@ namespace Shark {
 	}
 
 	ShaderInputManager::ShaderInputManager(const ShaderInputManagerSpecification& specification)
-		: m_Specification(specification)
 	{
+		Initialize(specification);
+	}
+
+	ShaderInputManager::~ShaderInputManager()
+	{
+	}
+
+	void ShaderInputManager::Initialize(const ShaderInputManagerSpecification& specification)
+	{
+		m_Specification = specification;
+
 		if (m_Specification.DebugName.empty())
 			m_Specification.DebugName = "<UNNAMED>";
+
+		auto deviceManager = Renderer::GetDeviceManager();
+		m_EnableValidation = deviceManager->GetSpecification().EnableNvrhiValidationLayer;
 
 		const auto& reflection = m_Specification.Shader->GetReflectionData();
 		if (reflection.BindingLayouts.empty())
@@ -136,196 +169,122 @@ namespace Shark {
 		}
 
 		m_Specification.EndSet = std::min(m_Specification.EndSet, (uint32_t)reflection.BindingLayouts.size() - 1);
-		m_InputSetItems.resize((size_t)(m_Specification.EndSet - m_Specification.StartSet + 1));
-		m_BackedSets.resize(reflection.BindingLayouts.size());
 
 		const auto& preBackedSets = m_Specification.Shader->GetRequestedBindingSets();
 
 		for (uint32_t set = m_Specification.StartSet; set <= m_Specification.EndSet; set++)
 		{
+			if (!m_Specification.Shader->HasLayout(set))
+				continue;
+
 			if (preBackedSets.contains(set))
 			{
-				nvrhi::BindingSetHandle bindingSet = preBackedSets.at(set);
-				m_BackedSets[set - m_Specification.StartSet] = bindingSet;
-				m_PendingSets.set(set, false);
+				m_Handles[set] = preBackedSets.at(set);
 				continue;
 			}
+
+			m_SetCount += 1;
+			m_Managers[set] = Scope<DescriptorSetManager>::Create(m_Specification.Shader, set, m_Specification.DebugName);
 
 			const auto& layout = reflection.BindingLayouts[set];
 			for (const auto& [name, inputInfo] : layout.InputInfos)
 			{
-				m_InputInfos[name] = inputInfo;
+				m_InputInfos[name] = &inputInfo;
+				m_InputCount += inputInfo.Count;
 
-				BindingSetInput& input = m_InputSetItems[inputInfo.Set - m_Specification.StartSet][inputInfo.GetGraphicsBinding()];
+				auto& input = m_Inputs[inputInfo.GetGraphicsBinding()];
 				input.Type = inputInfo.Type;
 				input.Items.resize(inputInfo.Count);
 			}
 		}
 
-		m_PendingSets.set(0, reflection.PushConstant.has_value());
+		m_Updates.reserve(m_InputCount);
 	}
 
-	ShaderInputManager::~ShaderInputManager()
+	bool ShaderInputManager::Package(std::vector<InputUpdate>& outUpdates)
 	{
+		if (m_Updates.empty())
+			return false;
+
+		outUpdates = m_Updates;
+		m_Updates.clear();
+		return true;
 	}
 
-	void ShaderInputManager::Bake()
+	void ShaderInputManager::PrepareAll()
 	{
-		if (m_Backed && !m_Specification.Mutable)
+		m_Updates.clear();
+
+		for (const auto& [binding, input] : m_Inputs)
 		{
-			SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager '{}'] Calling Bake multiple times without setting Mutable = true is not allowed.", m_Specification.DebugName);
-			return;
+			for (uint32_t i = 0; i < input.Items.size(); i++)
+			{
+				m_Updates.push_back(
+					InputUpdate{
+						binding, i,
+						input.Items[i].Item,
+						input.Items[i].Type,
+						input.Items[i].ViewArgs
+					}
+				);
+			}
 		}
+	}
 
-		auto deviceManager = Renderer::GetDeviceManager();
-		auto device = Renderer::GetGraphicsDevice();
-
-		static constexpr D3D11BindingSetOffsets s_NullOffsets = {};
-		const D3D11BindingSetOffsets* bindingOffsets = &s_NullOffsets;
-
-		// #Renderer #TODO This should happen on the render thread
-		for (uint32_t inputSetIndex = 0; inputSetIndex < m_InputSetItems.size(); inputSetIndex++)
+	void ShaderInputManager::Update(std::span<const InputUpdate> updates, bool force)
+	{
+		for (const auto& input : updates)
 		{
-			const uint32_t set = inputSetIndex + m_Specification.StartSet;
-			if (!m_PendingSets.test(set) || !m_Specification.Shader->HasLayout(set))
+			auto* manager = m_Managers[input.Binding.Space].Raw();
+			auto* info = manager->GetInputInfo(input.Binding.Slot, input.Binding.Register);
+
+			InputKey key = {
+				input.Binding.Slot,
+				input.Binding.Register,
+				input.ArrayIndex
+			};
+
+			manager->SetInput(key, input.Input->GetResourceHandle());
+
+			if (utils::IsImageInput(info->Type))
 			{
-				m_PendingSets.reset(set);
-				continue;
-			}
+				auto viewable = input.Input.As<ViewableResource>();
+				const auto& view = viewable->GetViewInfo();
 
-			const auto& inputSet = m_InputSetItems[inputSetIndex];
+				manager->SetDescriptor(
+					key,
+					input.ViewArgs.SubresourceSet.value_or(view.SubresourceSet),
+					input.ViewArgs.Format.value_or(view.Format),
+					input.ViewArgs.Dimension.value_or(view.Dimension)
+				);
 
-			if (deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::D3D11)
-			{
-				const auto& layouts = m_Specification.Shader->GetReflectionData().BindingLayouts;
-				bindingOffsets = &layouts[set].BindingOffsets;
-			}
-
-			nvrhi::BindingSetDesc bindingSetDesc;
-
-			for (const auto& [binding, input] : inputSet)
-			{
-				const uint32_t slot = binding.Slot;
-				switch (input.Type)
+				if (info->Type == ShaderInputType::Texture)
 				{
-					case ShaderInputType::ConstantBuffer:
-					{
-						auto constantBuffer = input.Items[0].Item.As<ConstantBuffer>();
-						bindingSetDesc.addItem(nvrhi::BindingSetItem::ConstantBuffer(slot + bindingOffsets->ConstantBuffer, constantBuffer->GetHandle()));
-						break;
-					}
-					case ShaderInputType::StorageBuffer:
-					{
-						auto storageBuffer = input.Items[0].Item.As<StorageBuffer>();
-						bindingSetDesc.addItem(nvrhi::BindingSetItem::StructuredBuffer_SRV(slot + bindingOffsets->ShaderResource, storageBuffer->GetHandle()));
-						break;
-					}
-					case ShaderInputType::Sampler:
-					{
-						for (uint32_t i = 0; i < input.Items.size(); i++)
-						{
-							auto sampler = input.Items[i].Item.As<Sampler>();
-							bindingSetDesc.addItem(
-								nvrhi::BindingSetItem::Sampler(slot + bindingOffsets->Sampler, sampler->GetHandle())
-									.setArrayElement(i)
-							);
-						}
-						break;
-					}
-					case ShaderInputType::Image:
-					{
-						for (uint32_t i = 0; i < input.Items.size(); i++)
-						{
-							const auto& item = input.Items[i];
-							Ref<ViewableResource> viewable = item.Item.As<ViewableResource>();
-							const auto& viewInfo = viewable->GetViewInfo();
-
-							bindingSetDesc.addItem(
-								nvrhi::BindingSetItem::Texture_SRV(slot + bindingOffsets->ShaderResource, viewInfo.Handle, viewInfo.Format, item.SubresourceSet.value_or(viewInfo.SubresourceSet), viewInfo.Dimension)
-									.setArrayElement(i)
-							);
-						}
-						break;
-					}
-					case ShaderInputType::Texture:
-					{
-						for (uint32_t i = 0; i < input.Items.size(); i++)
-						{
-							const auto& item = input.Items[i];
-							Ref<ViewableResource> viewable = input.Items[i].Item.As<ViewableResource>();
-							const auto& viewInfo = viewable->GetViewInfo();
-							SK_CORE_ASSERT(viewInfo.TextureSampler, "Sampler is null indicating that the provided input is not a combined texture but the Shader expects one.");
-
-							const auto& reflection = m_Specification.Shader->GetReflectionData();
-							const auto& sampledImage = reflection.BindingLayouts[set].SampledImages.at(slot);
-
-							bindingSetDesc.addItem(
-								nvrhi::BindingSetItem::Texture_SRV(sampledImage.SeparateImage.Slot + bindingOffsets->ShaderResource, viewInfo.Handle, viewInfo.Format, item.SubresourceSet.value_or(viewInfo.SubresourceSet), viewInfo.Dimension)
-									.setArrayElement(i)
-							);
-
-							bindingSetDesc.addItem(
-								nvrhi::BindingSetItem::Sampler(sampledImage.SeparateSampler.Slot + bindingOffsets->Sampler, viewInfo.TextureSampler)
-									.setArrayElement(i)
-							);
-						}
-						break;
-					}
-					case ShaderInputType::StorageImage:
-					{
-						for (uint32_t i = 0; i < input.Items.size(); i++)
-						{
-							const auto& item = input.Items[i];
-							Ref<ViewableResource> viewable = input.Items[i].Item.As<ViewableResource>();
-							const auto& viewInfo = viewable->GetViewInfo();
-
-							SK_CORE_ASSERT(viewInfo.Handle->getDesc().isUAV, "Input provided is not writable");
-							bindingSetDesc.addItem(
-								nvrhi::BindingSetItem::Texture_UAV(slot + bindingOffsets->UnorderedAccess, viewInfo.Handle, viewInfo.Format, item.SubresourceSet.value_or(viewInfo.SubresourceSet), viewInfo.Dimension)
-									.setArrayElement(i)
-							);
-						}
-						break;
-					}
+					manager->SetInput(key, view.TextureSampler, true);
 				}
 			}
-
-			if (set == 0 && m_Specification.Shader->GetReflectionData().PushConstant)
-			{
-				const auto& pushConstant = *m_Specification.Shader->GetReflectionData().PushConstant;
-				bindingSetDesc.addItem(nvrhi::BindingSetItem::PushConstants(pushConstant.Slot, pushConstant.StructSize));
-			}
-
-			if (m_BackedSets[inputSetIndex] && *m_BackedSets[inputSetIndex]->getDesc() == bindingSetDesc)
-			{
-				SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Creation of Binding set {} skipped", m_Specification.DebugName, set);
-				m_PendingSets.reset(set);
-				continue;
-			}
-
-			nvrhi::IBindingLayout* bindingLayout = m_Specification.Shader->GetBindingLayout(set);
-			m_BackedSets[inputSetIndex] = device->createBindingSet(bindingSetDesc, bindingLayout);
-			m_PendingSets.reset(set);
-			SK_CORE_INFO_TAG("Renderer", "[ShaderInputManager '{}'] Binding set {} created", m_Specification.DebugName, set);
 		}
 
-		m_Backed = true;
-	}
-
-	void ShaderInputManager::Update()
-	{
-		// #TODO #Renderer better update method
-
-		const auto& preBackedSets = m_Specification.Shader->GetRequestedBindingSets();
+		uint8_t setsUpdated = 0;
 		for (uint32_t set = m_Specification.StartSet; set <= m_Specification.EndSet; set++)
 		{
-			if (preBackedSets.contains(set) || !m_Specification.Shader->HasLayout(set))
+			if (!m_Managers[set])
 				continue;
 
-			m_PendingSets.set(set);
+			auto& manager = m_Managers[set];
+			if (m_EnableValidation && !manager->Validate())
+			{
+				continue;
+			}
+
+			if (manager->Update(force))
+			{
+				m_Handles[set] = manager->GetHandle();
+				setsUpdated |= BIT(set);
+			}
 		}
 
-		Bake();
+		SK_CORE_INFO_TAG("Renderer", "[ShaderInputManager '{}'] {} out of {} sets {} ({:08b})", m_Specification.DebugName, std::popcount(setsUpdated), m_SetCount, force ? "created" : "updated", setsUpdated);
 	}
 
 	namespace utils {
@@ -372,46 +331,45 @@ namespace Shark {
 
 		for (const auto& [name, inputInfo] : m_InputInfos)
 		{
-			auto stream = fmt::appender(setErrors[inputInfo.Set]);
+			auto stream = fmt::appender(setErrors[inputInfo->Set]);
 
-			const auto& inputSet = m_InputSetItems[inputInfo.Set - m_Specification.StartSet];
-			const auto& input = inputSet.at(inputInfo.GetGraphicsBinding());
+			const auto& input = m_Inputs.at(inputInfo->GetGraphicsBinding());
 
-			for (uint32_t i = 0; i < inputInfo.Count; i++)
+			for (uint32_t i = 0; i < inputInfo->Count; i++)
 			{
 				if (!input.Items[i].Item)
 				{
-					if (inputInfo.Type == ShaderInputType::Texture)
+					if (inputInfo->Type == ShaderInputType::Texture)
 					{
-						const auto& sampledImage = reflection.BindingLayouts[inputInfo.Set].SampledImages.at(inputInfo.Slot);
+						const auto& sampledImage = reflection.BindingLayouts[inputInfo->Set].SampledImages.at(inputInfo->Slot);
 						fmt::format_to(stream, " - Input for (t{} s{}) index {} is null\n", sampledImage.SeparateImage.Slot, sampledImage.SeparateSampler.Slot, i);
-						fmt::format_to(stream, "   Required is Texture '{}'\n", inputInfo.Name);
+						fmt::format_to(stream, "   Required is Texture '{}'\n", inputInfo->Name);
 					}
 					else
 					{
-						fmt::format_to(stream, " - Input for {}{} index {} is null\n", utils::GetBindingPrefix(inputInfo.GraphicsType), inputInfo.Slot, i);
-						fmt::format_to(stream, "   Required is {} '{}'\n", inputInfo.Type, inputInfo.Name);
+						fmt::format_to(stream, " - Input for {}{} index {} is null\n", utils::GetBindingPrefix(inputInfo->GraphicsType), inputInfo->Slot, i);
+						fmt::format_to(stream, "   Required is {} '{}'\n", inputInfo->Type, inputInfo->Name);
 					}
 					continue;
 				}
 
 				if (!utils::InputCompadible(input.Items[i].Type, input.Type))
 				{
-					if (inputInfo.Type == ShaderInputType::ConstantBuffer || inputInfo.Type == ShaderInputType::StorageBuffer)
+					if (inputInfo->Type == ShaderInputType::ConstantBuffer || inputInfo->Type == ShaderInputType::StorageBuffer)
 					{
-						fmt::format_to(stream, " - Incompatible type for '{}' slot {}{}\n", inputInfo.Name, utils::GetBindingPrefix(inputInfo.GraphicsType), inputInfo.Slot);
-						fmt::format_to(stream, "   Required is {} but {} is provided\n", inputInfo.Type, input.Items[i].Type);
+						fmt::format_to(stream, " - Incompatible type for '{}' slot {}{}\n", inputInfo->Name, utils::GetBindingPrefix(inputInfo->GraphicsType), inputInfo->Slot);
+						fmt::format_to(stream, "   Required is {} but {} is provided\n", inputInfo->Type, input.Items[i].Type);
 					}
-					else if (inputInfo.Type == ShaderInputType::Texture)
+					else if (inputInfo->Type == ShaderInputType::Texture)
 					{
-						const auto& sampledImage = reflection.BindingLayouts[inputInfo.Set].SampledImages.at(inputInfo.Slot);
+						const auto& sampledImage = reflection.BindingLayouts[inputInfo->Set].SampledImages.at(inputInfo->Slot);
 						fmt::format_to(stream, " - Incompatible type for '{}' (t{}, s{}) index {}\n", sampledImage.Name, sampledImage.SeparateImage.Slot, sampledImage.SeparateSampler.Slot, i);
 						fmt::format_to(stream, "   Required is Texture but {} is provided\n", input.Items[i].Type);
 					}
 					else
 					{
-						fmt::format_to(stream, " - Incompatible type for '{}' slot {}{} index {}\n", inputInfo.Name, utils::GetBindingPrefix(inputInfo.GraphicsType), inputInfo.Slot, i);
-						fmt::format_to(stream, "   Required is {} but {} is provided\n", inputInfo.Type, input.Items[i].Type);
+						fmt::format_to(stream, " - Incompatible type for '{}' slot {}{} index {}\n", inputInfo->Name, utils::GetBindingPrefix(inputInfo->GraphicsType), inputInfo->Slot, i);
+						fmt::format_to(stream, "   Required is {} but {} is provided\n", inputInfo->Type, input.Items[i].Type);
 					}
 				}
 				else if (input.Items[i].Type == RenderInputType::Viewable && input.Type == ShaderInputType::Texture)
@@ -419,15 +377,15 @@ namespace Shark {
 					auto viewable = input.Items[i].Item.As<ViewableResource>();
 					if (!viewable->HasSampler())
 					{
-						const auto& sampledImage = reflection.BindingLayouts[inputInfo.Set].SampledImages.at(inputInfo.Slot);
+						const auto& sampledImage = reflection.BindingLayouts[inputInfo->Set].SampledImages.at(inputInfo->Slot);
 						fmt::format_to(stream, " - Incompatible tye for '{}' (t{}, s{}) index {}\n", sampledImage.Name, sampledImage.SeparateImage.Slot, sampledImage.SeparateSampler.Slot, i);
 						fmt::format_to(stream, "   Required is Texture but Viewable without Sampler is provided\n");
 					}
 				}
 
-				if (inputInfo.Type == ShaderInputType::StorageImage && !IsWritable(input.Items[i]))
+				if (inputInfo->Type == ShaderInputType::StorageImage && !IsWritable(input.Items[i]))
 				{
-					fmt::format_to(stream, " - Input '{}' for u{} index {} is not writable\n", inputInfo.Name, inputInfo.Slot, i);
+					fmt::format_to(stream, " - Input '{}' for u{} index {} is not writable\n", inputInfo->Name, inputInfo->Slot, i);
 				}
 
 			}
@@ -456,170 +414,350 @@ namespace Shark {
 	void ShaderInputManager::SetInput(const std::string& name, Ref<ConstantBuffer> constantBuffer, uint32_t arrayIndex)
 	{
 		const ShaderInputInfo* inputInfo = GetInputInfo(name);
-		if (inputInfo)
-		{
-			BindingSetInput& input = m_InputSetItems[inputInfo->Set - m_Specification.StartSet].at(inputInfo->GetGraphicsBinding());
-			input.Set(constantBuffer, arrayIndex);
-			m_PendingSets.set(inputInfo->Set);
-			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
-			SK_LOG_INPUT(constantBuffer, name, arrayIndex);
-		}
-		else
+		if (!inputInfo)
 		{
 			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			return;
 		}
+
+		BindingSetInput& input = m_Inputs.at(inputInfo->GetGraphicsBinding());
+		if (input.IsSame(arrayIndex, constantBuffer))
+			return;
+
+		input.Set(arrayIndex, constantBuffer);
+		SK_LOG_INPUT(constantBuffer, name, arrayIndex);
+
+		m_Updates.push_back(
+			InputUpdate{
+				.Binding = inputInfo->GetGraphicsBinding(),
+				.ArrayIndex = arrayIndex,
+				.Input = constantBuffer,
+				.Type = RenderInputType::ConstantBuffer
+			}
+		);
 	}
 
 	void ShaderInputManager::SetInput(const std::string& name, Ref<StorageBuffer> storageBuffer, uint32_t arrayIndex)
 	{
 		const ShaderInputInfo* inputInfo = GetInputInfo(name);
-		if (inputInfo)
-		{
-			BindingSetInput& input = m_InputSetItems[inputInfo->Set - m_Specification.StartSet].at(inputInfo->GetGraphicsBinding());
-			input.Set(storageBuffer, arrayIndex);
-			m_PendingSets.set(inputInfo->Set);
-			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
-			SK_LOG_INPUT(storageBuffer, name, arrayIndex);
-		}
-		else
+		if (!inputInfo)
 		{
 			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			return;
 		}
+
+		BindingSetInput& input = m_Inputs.at(inputInfo->GetGraphicsBinding());
+		if (input.IsSame(arrayIndex, storageBuffer))
+			return;
+
+		input.Set(arrayIndex, storageBuffer);
+		SK_LOG_INPUT(storageBuffer, name, arrayIndex);
+
+		m_Updates.push_back(
+			InputUpdate{
+				.Binding = inputInfo->GetGraphicsBinding(),
+				.ArrayIndex = arrayIndex,
+				.Input = storageBuffer,
+				.Type = RenderInputType::StorageBuffer
+			}
+		);
 	}
 
 	void ShaderInputManager::SetInput(const std::string& name, Ref<ViewableResource> viewable, uint32_t arrayIndex)
 	{
 		const ShaderInputInfo* inputInfo = GetInputInfo(name);
-		if (inputInfo)
-		{
-			BindingSetInput& input = m_InputSetItems[inputInfo->Set - m_Specification.StartSet].at(inputInfo->GetGraphicsBinding());
-			input.Set(viewable, arrayIndex);
-			m_PendingSets.set(inputInfo->Set);
-			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
-			SK_LOG_INPUT(viewable, name, arrayIndex);
-		}
-		else
+		if (!inputInfo)
 		{
 			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			return;
 		}
+
+		BindingSetInput& input = m_Inputs.at(inputInfo->GetGraphicsBinding());
+		if (input.IsSame(arrayIndex, viewable))
+			return;
+
+		input.Set(arrayIndex, viewable);
+		SK_LOG_INPUT(viewable, name, arrayIndex);
+
+		m_Updates.push_back(
+			InputUpdate{
+				.Binding = inputInfo->GetGraphicsBinding(),
+				.ArrayIndex = arrayIndex,
+				.Input = viewable,
+				.Type = RenderInputType::Viewable
+			}
+		);
 	}
 
 	void ShaderInputManager::SetInput(const std::string& name, Ref<Image2D> image, uint32_t arrayIndex)
 	{
 		const ShaderInputInfo* inputInfo = GetInputInfo(name);
-		if (inputInfo)
-		{
-			BindingSetInput& input = m_InputSetItems[inputInfo->Set - m_Specification.StartSet].at(inputInfo->GetGraphicsBinding());
-			input.Set(image, arrayIndex);
-			m_PendingSets.set(inputInfo->Set);
-			SK_LOG_INPUT(image, name, arrayIndex);
-		}
-		else
+		if (!inputInfo)
 		{
 			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			return;
 		}
-	}
 
-	void ShaderInputManager::SetInput(const std::string& name, Ref<Image2D> image, const nvrhi::TextureSubresourceSet& subresource, uint32_t arrayIndex)
-	{
-		const ShaderInputInfo* inputInfo = GetInputInfo(name);
-		if (inputInfo)
-		{
-			BindingSetInput& input = m_InputSetItems[inputInfo->Set - m_Specification.StartSet].at(inputInfo->GetGraphicsBinding());
-			input.Set(image, arrayIndex);
-			input.Set(subresource, arrayIndex);
-			m_PendingSets.set(inputInfo->Set);
-			SK_LOG_INPUT(image, name, arrayIndex);
-		}
-		else
-		{
-			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
-		}
+		BindingSetInput& input = m_Inputs.at(inputInfo->GetGraphicsBinding());
+		if (input.IsSame(arrayIndex, image))
+			return;
+
+		input.Set(arrayIndex, image);
+		SK_LOG_INPUT(image, name, arrayIndex);
+
+		m_Updates.push_back(
+			InputUpdate{
+				.Binding = inputInfo->GetGraphicsBinding(),
+				.ArrayIndex = arrayIndex,
+				.Input = image,
+				.Type = RenderInputType::Image2D
+			}
+		);
 	}
 
 	void ShaderInputManager::SetInput(const std::string& name, Ref<ImageView> imageView, uint32_t arrayIndex)
 	{
 		const ShaderInputInfo* inputInfo = GetInputInfo(name);
-		if (inputInfo)
-		{
-			BindingSetInput& input = m_InputSetItems[inputInfo->Set - m_Specification.StartSet].at(inputInfo->GetGraphicsBinding());
-			input.Set(imageView, arrayIndex);
-			m_PendingSets.set(inputInfo->Set);
-			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
-			SK_LOG_INPUT(imageView, name, arrayIndex);
-		}
-		else
+		if (!inputInfo)
 		{
 			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			return;
 		}
+
+		BindingSetInput& input = m_Inputs.at(inputInfo->GetGraphicsBinding());
+		if (input.IsSame(arrayIndex, imageView))
+			return;
+
+		input.Set(arrayIndex, imageView);
+		SK_LOG_INPUT(imageView, name, arrayIndex);
+
+		m_Updates.push_back(
+			InputUpdate{
+				.Binding = inputInfo->GetGraphicsBinding(),
+				.ArrayIndex = arrayIndex,
+				.Input = imageView,
+				.Type = RenderInputType::ImageView
+			}
+		);
 	}
 
 	void ShaderInputManager::SetInput(const std::string& name, Ref<Texture2D> texture, uint32_t arrayIndex)
 	{
 		const ShaderInputInfo* inputInfo = GetInputInfo(name);
-		if (inputInfo)
-		{
-			BindingSetInput& input = m_InputSetItems[inputInfo->Set - m_Specification.StartSet].at(inputInfo->GetGraphicsBinding());
-			input.Set(texture, arrayIndex);
-			m_PendingSets.set(inputInfo->Set);
-			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
-			SK_LOG_INPUT(texture, name, arrayIndex);
-		}
-		else
+		if (!inputInfo)
 		{
 			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			return;
 		}
+
+		BindingSetInput& input = m_Inputs.at(inputInfo->GetGraphicsBinding());
+		if (input.IsSame(arrayIndex, texture))
+			return;
+
+		input.Set(arrayIndex, texture);
+		SK_LOG_INPUT(texture, name, arrayIndex);
+
+		m_Updates.push_back(
+			InputUpdate{
+				.Binding = inputInfo->GetGraphicsBinding(),
+				.ArrayIndex = arrayIndex,
+				.Input = texture,
+				.Type = RenderInputType::Texture2D
+			}
+		);
 	}
 
 	void ShaderInputManager::SetInput(const std::string& name, Ref<TextureCube> textureCube, uint32_t arrayIndex)
 	{
 		const ShaderInputInfo* inputInfo = GetInputInfo(name);
-		if (inputInfo)
-		{
-			BindingSetInput& input = m_InputSetItems[inputInfo->Set - m_Specification.StartSet].at(inputInfo->GetGraphicsBinding());
-			input.Set(textureCube, arrayIndex);
-			m_PendingSets.set(inputInfo->Set);
-			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
-			SK_LOG_INPUT(textureCube, name, arrayIndex);
-		}
-		else
+		if (!inputInfo)
 		{
 			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			return;
 		}
+
+		BindingSetInput& input = m_Inputs.at(inputInfo->GetGraphicsBinding());
+		if (input.IsSame(arrayIndex, textureCube))
+			return;
+
+		input.Set(arrayIndex, textureCube);
+		SK_LOG_INPUT(textureCube, name, arrayIndex);
+
+		m_Updates.push_back(
+			InputUpdate{
+				.Binding = inputInfo->GetGraphicsBinding(),
+				.ArrayIndex = arrayIndex,
+				.Input = textureCube,
+				.Type = RenderInputType::TextureCube
+			}
+		);
 	}
 
 	void ShaderInputManager::SetInput(const std::string& name, Ref<Sampler> sampler, uint32_t arrayIndex)
 	{
 		const ShaderInputInfo* inputInfo = GetInputInfo(name);
-		if (inputInfo)
-		{
-			BindingSetInput& input = m_InputSetItems[inputInfo->Set - m_Specification.StartSet].at(inputInfo->GetGraphicsBinding());
-			input.Set(sampler, arrayIndex);
-			m_PendingSets.set(inputInfo->Set);
-			//SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{}", m_Specification.DebugName, name, arrayIndex);
-			SK_LOG_INPUT(sampler, name, arrayIndex);
-		}
-		else
+		if (!inputInfo)
 		{
 			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			return;
 		}
+
+		BindingSetInput& input = m_Inputs.at(inputInfo->GetGraphicsBinding());
+		if (input.IsSame(arrayIndex, sampler))
+			return;
+
+		input.Set(arrayIndex, sampler);
+		SK_LOG_INPUT(sampler, name, arrayIndex);
+
+		m_Updates.push_back(
+			InputUpdate{
+				.Binding = inputInfo->GetGraphicsBinding(),
+				.ArrayIndex = arrayIndex,
+				.Input = sampler,
+				.Type = RenderInputType::Sampler
+			}
+		);
 	}
 
-	void ShaderInputManager::SetInputSubresourceSet(const std::string& name, const nvrhi::TextureSubresourceSet& subresourceSet, uint32_t arrayIndex)
+	void ShaderInputManager::SetInput(const std::string& name, Ref<ViewableResource> viewable, const InputViewArgs& viewArgs, uint32_t arrayIndex)
 	{
-		const ShaderInputInfo* inputInfo = GetInputInfo(name);
-		if (inputInfo)
+		const auto* info = GetInputInfo(name);
+		if (!info)
 		{
-			BindingSetInput& input = m_InputSetItems[inputInfo->Set - m_Specification.StartSet].at(inputInfo->GetGraphicsBinding());
-			input.Set(subresourceSet, arrayIndex);
-			m_PendingSets.set(inputInfo->Set);
+			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			return;
 		}
+
+		BindingSetInput& input = m_Inputs.at(info->GetGraphicsBinding());
+		if (input.IsSame(arrayIndex, viewable, viewArgs))
+			return;
+
+		input.Set(arrayIndex, viewable, viewArgs);
+		SK_LOG_INPUT(viewable, name, arrayIndex);
+
+		m_Updates.push_back(
+			InputUpdate{
+				.Binding = info->GetGraphicsBinding(),
+				.ArrayIndex = arrayIndex,
+				.Input = viewable,
+				.Type = RenderInputType::Viewable,
+				.ViewArgs = viewArgs
+			}
+		);
+	}
+
+	void ShaderInputManager::SetInput(const std::string& name, Ref<Image2D> image, const InputViewArgs& viewArgs, uint32_t arrayIndex)
+	{
+		const auto* info = GetInputInfo(name);
+		if (!info)
+		{
+			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			return;
+		}
+
+		BindingSetInput& input = m_Inputs.at(info->GetGraphicsBinding());
+		if (input.IsSame(arrayIndex, image, viewArgs))
+			return;
+
+		input.Set(arrayIndex, image, viewArgs);
+		SK_LOG_INPUT(image, name, arrayIndex);
+
+		m_Updates.push_back(
+			InputUpdate{
+				.Binding = info->GetGraphicsBinding(),
+				.ArrayIndex = arrayIndex,
+				.Input = image,
+				.Type = RenderInputType::Image2D,
+				.ViewArgs = viewArgs
+			}
+		);
+	}
+
+	void ShaderInputManager::SetInput(const std::string& name, Ref<ImageView> imageView, const InputViewArgs& viewArgs, uint32_t arrayIndex)
+	{
+		const auto* info = GetInputInfo(name);
+		if (!info)
+		{
+			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			return;
+		}
+
+		BindingSetInput& input = m_Inputs.at(info->GetGraphicsBinding());
+		if (input.IsSame(arrayIndex, imageView, viewArgs))
+			return;
+
+		input.Set(arrayIndex, imageView, viewArgs);
+		SK_LOG_INPUT(imageView, name, arrayIndex);
+
+		m_Updates.push_back(
+			InputUpdate{
+				.Binding = info->GetGraphicsBinding(),
+				.ArrayIndex = arrayIndex,
+				.Input = imageView,
+				.Type = RenderInputType::ImageView,
+				.ViewArgs = viewArgs
+			}
+		);
+	}
+
+	void ShaderInputManager::SetInput(const std::string& name, Ref<Texture2D> texture, const InputViewArgs& viewArgs, uint32_t arrayIndex)
+	{
+		const auto* info = GetInputInfo(name);
+		if (!info)
+		{
+			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			return;
+		}
+
+		BindingSetInput& input = m_Inputs.at(info->GetGraphicsBinding());
+		if (input.IsSame(arrayIndex, texture, viewArgs))
+			return;
+
+		input.Set(arrayIndex, texture, viewArgs);
+		SK_LOG_INPUT(texture, name, arrayIndex);
+
+		m_Updates.push_back(
+			InputUpdate{
+				.Binding = info->GetGraphicsBinding(),
+				.ArrayIndex = arrayIndex,
+				.Input = texture,
+				.Type = RenderInputType::Texture2D,
+				.ViewArgs = viewArgs
+			}
+		);
+	}
+
+	void ShaderInputManager::SetInput(const std::string& name, Ref<TextureCube> textureCube, const InputViewArgs& viewArgs, uint32_t arrayIndex)
+	{
+		const auto* info = GetInputInfo(name);
+		if (!info)
+		{
+			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			return;
+		}
+
+		BindingSetInput& input = m_Inputs.at(info->GetGraphicsBinding());
+		if (input.IsSame(arrayIndex, textureCube, viewArgs))
+			return;
+
+		input.Set(arrayIndex, textureCube, viewArgs);
+		SK_LOG_INPUT(textureCube, name, arrayIndex);
+
+		m_Updates.push_back(
+			InputUpdate{
+				.Binding = info->GetGraphicsBinding(),
+				.ArrayIndex = arrayIndex,
+				.Input = textureCube,
+				.Type = RenderInputType::TextureCube,
+				.ViewArgs = viewArgs
+			}
+		);
 	}
 
 	const ShaderInputInfo* ShaderInputManager::GetInputInfo(const std::string& name) const
 	{
 		if (m_InputInfos.contains(name))
-			return &m_InputInfos.at(name);
+			return m_InputInfos.at(name);
 
 		return nullptr;
 	}

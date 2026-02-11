@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "Material.h"
 
+#include "Shark/Render/Renderer.h"
+
 namespace Shark {
 
 	namespace utils {
@@ -41,9 +43,41 @@ namespace Shark {
 
 	}
 
-	void Material::Prepare()
+	void Material::Bake()
 	{
-		m_InputManager.Bake();
+		std::vector<InputUpdate> updates;
+		m_InputManager.Package(updates);
+
+		Ref instance = this;
+		Renderer::Submit([instance, temp = std::move(updates)]()
+		{
+			instance->m_InputManager.Update(temp, true);
+		});
+	}
+
+	void Material::MT_Bake()
+	{
+		std::vector<InputUpdate> updates;
+		m_InputManager.Package(updates);
+
+		Ref instance = this;
+		Renderer::MT::Submit([instance, temp = std::move(updates)]()
+		{
+			instance->m_InputManager.Update(temp, true);
+		});
+	}
+
+	void Material::Update()
+	{
+		std::vector<InputUpdate> updates;
+		if (!m_InputManager.Package(updates))
+			return; // No update needed
+
+		Ref instance = this;
+		Renderer::Submit([instance, temp = std::move(updates)]()
+		{
+			instance->m_InputManager.Update(temp);
+		});
 	}
 
 	bool Material::Validate() const
@@ -69,6 +103,16 @@ namespace Shark {
 	void Material::Set(const std::string& name, Ref<Sampler> sampler, uint32_t arrayIndex)
 	{
 		m_InputManager.SetInput(name, sampler, arrayIndex);
+	}
+
+	void Material::SetInput(const std::string& name, Ref<ViewableResource> viewable, const InputViewArgs& viewArgs, uint32_t arrayIndex)
+	{
+		m_InputManager.SetInput(name, viewable, viewArgs, arrayIndex);
+	}
+
+	void Material::SetInput(const std::string& name, Ref<TextureCube> textureCube, const InputViewArgs& viewArgs, uint32_t arrayIndex)
+	{
+		m_InputManager.SetInput(name, textureCube, viewArgs, arrayIndex);
 	}
 
 	void Material::Set(const std::string& name, const Buffer data)

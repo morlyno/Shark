@@ -15,6 +15,7 @@ namespace Shark {
 	class ImGuiTexture : public ViewableResource
 	{
 	public:
+		virtual nvrhi::ResourceHandle GetResourceHandle() const override { return View.Handle; }
 		virtual bool HasSampler() const override { return true; }
 		virtual const ViewInfo& GetViewInfo() const override { return View; }
 

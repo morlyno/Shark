@@ -12,6 +12,8 @@
 #include "Shark/Render/StorageBuffer.h"
 #include "Shark/Render/Environment.h"
 
+#include <set>
+
 namespace Shark {
 
 	class Scene;
@@ -177,6 +179,7 @@ namespace Shark {
 
 		std::vector<DrawCommand> m_DrawList;
 		std::vector<DrawCommand> m_SelectedDrawList;
+		std::set<Ref<PBRMaterial>> m_MaterialsToUpdate;
 
 		Ref<RenderPass> m_GeometryPass;
 		Ref<RenderPass> m_SelectedGeometryPass;

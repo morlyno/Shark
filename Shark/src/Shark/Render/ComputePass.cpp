@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "ComputePass.h"
 
+#include "Shark/Render/Renderer.h"
+
 namespace Shark {
 
 	ComputePass::ComputePass(const ComputePassSpecification& specification)
@@ -16,7 +18,7 @@ namespace Shark {
 		if (layoutMode == LayoutShareMode::PassOnly)
 			inputManagerSpec.StartSet = 0;
 
-		m_InputManager = ShaderInputManager(inputManagerSpec);
+		m_InputManager.Initialize(inputManagerSpec);
 	}
 
 	ComputePass::ComputePass(Ref<Shader> computeShader, const std::string& debugName)
@@ -31,7 +33,27 @@ namespace Shark {
 
 	void ComputePass::Bake()
 	{
-		m_InputManager.Bake();
+		std::vector<InputUpdate> updates;
+		m_InputManager.Package(updates);
+
+		Ref instance = this;
+		Renderer::Submit([instance, temp = std::move(updates)]()
+		{
+			instance->m_InputManager.Update(temp, true);
+		});
+	}
+
+	void ComputePass::Update()
+	{
+		std::vector<InputUpdate> updates;
+		if (!m_InputManager.Package(updates))
+			return; // No update needed
+
+		Ref instance = this;
+		Renderer::Submit([instance, temp = std::move(updates)]()
+		{
+			instance->m_InputManager.Update(temp);
+		});
 	}
 
 	bool ComputePass::Validate() const
@@ -56,7 +78,7 @@ namespace Shark {
 
 	void ComputePass::SetInput(const std::string& name, Ref<Image2D> image, const nvrhi::TextureSubresourceSet& subresource, uint32_t arrayIndex)
 	{
-		m_InputManager.SetInput(name, image, subresource, arrayIndex);
+		m_InputManager.SetInput(name, image, { .SubresourceSet = subresource }, arrayIndex);
 	}
 
 	void ComputePass::SetInput(const std::string& name, Ref<Texture2D> image, uint32_t arrayIndex)

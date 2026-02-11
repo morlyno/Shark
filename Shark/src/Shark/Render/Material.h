@@ -13,7 +13,9 @@ namespace Shark {
 		static Ref<Material> Create(Ref<Shader> shader, const std::string& name = {}) { return Ref<Material>::Create(shader, name); }
 
 	public:
-		void Prepare();
+		void Bake();
+		void MT_Bake();
+		void Update();
 		bool Validate() const;
 
 		Ref<Shader> GetShader() const { return m_Shader; }
@@ -26,6 +28,9 @@ namespace Shark {
 		void Set(const std::string& name, Ref<Texture2D> texture, uint32_t arrayIndex = 0);
 		void Set(const std::string& name, Ref<TextureCube> textureCube, uint32_t arrayIndex = 0);
 		void Set(const std::string& name, Ref<Sampler> sampler, uint32_t arrayIndex = 0);
+
+		void SetInput(const std::string& name, Ref<ViewableResource> viewable,    const InputViewArgs& viewArgs, uint32_t arrayIndex = 0);
+		void SetInput(const std::string& name, Ref<TextureCube>      textureCube, const InputViewArgs& viewArgs, uint32_t arrayIndex = 0);
 
 		void Set(const std::string& name, const Buffer data);
 

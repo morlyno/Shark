@@ -388,14 +388,14 @@ namespace Shark {
 		{
 			switch (format)
 			{
-				case ImageFormat::None: return nvrhi::Format::UNKNOWN;
-				case ImageFormat::RGBA: return nvrhi::Format::RGBA8_UNORM;
-				case ImageFormat::sRGBA: return nvrhi::Format::SRGBA8_UNORM;
-				case ImageFormat::RG16F: return nvrhi::Format::RG16_FLOAT;
+				case ImageFormat::None:    return nvrhi::Format::UNKNOWN;
+				case ImageFormat::RGBA:    return nvrhi::Format::RGBA8_UNORM;
+				case ImageFormat::sRGBA:   return nvrhi::Format::SRGBA8_UNORM;
+				case ImageFormat::RG16F:   return nvrhi::Format::RG16_FLOAT;
 				case ImageFormat::RGBA16F: return nvrhi::Format::RGBA16_FLOAT;
 				case ImageFormat::RGBA32F: return nvrhi::Format::RGBA32_FLOAT;
 				case ImageFormat::RED32SI: return nvrhi::Format::R32_SINT;
-				case ImageFormat::RED32UI: return nvrhi::Format::R32_SINT;
+				case ImageFormat::RED32UI: return nvrhi::Format::R32_UINT;
 				case ImageFormat::Depth32: return nvrhi::Format::D32;
 				case ImageFormat::Depth24UNormStencil8UINT: return nvrhi::Format::D24S8;
 			}
@@ -403,6 +403,46 @@ namespace Shark {
 			return nvrhi::Format::UNKNOWN;
 		}
 
+		ImageFormat ConvertImageFormat(nvrhi::Format format)
+		{
+			switch (format)
+			{
+				case nvrhi::Format::UNKNOWN:      return ImageFormat::None;
+				case nvrhi::Format::RGBA8_UNORM:  return ImageFormat::RGBA;
+				case nvrhi::Format::SRGBA8_UNORM: return ImageFormat::sRGBA;
+				case nvrhi::Format::RG16_FLOAT:   return ImageFormat::RG16F;
+				case nvrhi::Format::RGBA16_FLOAT: return ImageFormat::RGBA16F;
+				case nvrhi::Format::RGBA32_FLOAT: return ImageFormat::RGBA32F;
+				case nvrhi::Format::R32_SINT:     return ImageFormat::RED32SI;
+				case nvrhi::Format::R32_UINT:     return ImageFormat::RED32UI;
+				case nvrhi::Format::D32:          return ImageFormat::Depth32;
+				case nvrhi::Format::D24S8:        return ImageFormat::Depth24UNormStencil8UINT;
+			}
+			SK_CORE_VERIFY(false);
+			return ImageFormat::None;
+		}
+
+		ImageFormat ConvertToWritableFormat(ImageFormat format)
+		{
+			switch (format)
+			{
+				case ImageFormat::sRGBA: return ImageFormat::RGBA;
+			}
+
+			SK_CORE_ASSERT(!ImageUtils::IsSRGB(format));
+			return format;
+		}
+
+		nvrhi::Format ConvertToWritableFormat(nvrhi::Format format)
+		{
+			switch (format)
+			{
+				case nvrhi::Format::SRGBA8_UNORM: return nvrhi::Format::RGBA8_UNORM;
+			}
+
+			SK_CORE_ASSERT(!nvrhi::getFormatInfo(format).isSRGB);
+			return format;
+		}
 
 		bool IsSRGB(ImageFormat format)
 		{

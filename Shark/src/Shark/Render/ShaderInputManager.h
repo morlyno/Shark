@@ -6,12 +6,24 @@
 #include "Shark/Render/StorageBuffer.h"
 #include "Shark/Render/Image.h"
 #include "Shark/Render/Texture.h"
+#include "Shark/Render/DescriptorSetManager.h"
 
 #include <nvrhi/nvrhi.h>
 
 namespace Shark {
+	 
 
-	enum class RenderInputType
+#if 0
+	// Defined in DescriptorSetManager.h
+	struct InputViewArgs
+	{
+		std::optional<nvrhi::Format>                Format;
+		std::optional<nvrhi::TextureDimension>      Dimension;
+		std::optional<nvrhi::TextureSubresourceSet> SubresourceSet;
+	};
+#endif
+
+	enum class RenderInputType : uint8_t
 	{
 		None = 0,
 		ConstantBuffer,
@@ -27,9 +39,8 @@ namespace Shark {
 	struct InputResource
 	{
 		Ref<RendererResource> Item;
-		RenderInputType Type;
-
-		std::optional<nvrhi::TextureSubresourceSet> SubresourceSet;
+		RenderInputType       Type = RenderInputType::None;
+		InputViewArgs         ViewArgs;
 	};
 
 	struct BindingSetInput
@@ -37,72 +48,84 @@ namespace Shark {
 		ShaderInputType Type = ShaderInputType::None;
 		std::vector<InputResource> Items;
 
-		void Set(Ref<ConstantBuffer> constantBuffer, uint32_t arrayIndex)
-		{
-			Items[arrayIndex].Item = constantBuffer;
-			Items[arrayIndex].Type = RenderInputType::ConstantBuffer;
-		}
+		void Set(Ref<RendererResource> resource, RenderInputType type, uint32_t arrayIndex) { Items[arrayIndex].Item = resource, Items[arrayIndex].Type = type; }
+		void Set(const InputViewArgs& args, uint32_t arrayIndex)                            { Items[arrayIndex].ViewArgs = args; }
 
-		void Set(Ref<StorageBuffer> storageBuffer, uint32_t arrayIndex)
-		{
-			Items[arrayIndex].Item = storageBuffer;
-			Items[arrayIndex].Type = RenderInputType::StorageBuffer;
-		}
+		void Set(uint32_t arrayIndex, Ref<ConstantBuffer> constantBuffer, const InputViewArgs& viewArgs = {}) { Items[arrayIndex].Item = constantBuffer; Items[arrayIndex].Type = RenderInputType::ConstantBuffer; Items[arrayIndex].ViewArgs = viewArgs; }
+		void Set(uint32_t arrayIndex, Ref<StorageBuffer> storageBuffer,   const InputViewArgs& viewArgs = {}) { Items[arrayIndex].Item = storageBuffer;  Items[arrayIndex].Type = RenderInputType::StorageBuffer;  Items[arrayIndex].ViewArgs = viewArgs; }
+		void Set(uint32_t arrayIndex, Ref<Sampler> sampler,               const InputViewArgs& viewArgs = {}) { Items[arrayIndex].Item = sampler;        Items[arrayIndex].Type = RenderInputType::Sampler;        Items[arrayIndex].ViewArgs = viewArgs; }
+		void Set(uint32_t arrayIndex, Ref<ViewableResource> viewable,     const InputViewArgs& viewArgs = {}) { Items[arrayIndex].Item = viewable;       Items[arrayIndex].Type = RenderInputType::Viewable;       Items[arrayIndex].ViewArgs = viewArgs; }
+		void Set(uint32_t arrayIndex, Ref<Image2D> image,                 const InputViewArgs& viewArgs = {}) { Items[arrayIndex].Item = image;          Items[arrayIndex].Type = RenderInputType::Image2D;        Items[arrayIndex].ViewArgs = viewArgs; }
+		void Set(uint32_t arrayIndex, Ref<ImageView> imageView,           const InputViewArgs& viewArgs = {}) { Items[arrayIndex].Item = imageView;      Items[arrayIndex].Type = RenderInputType::ImageView;      Items[arrayIndex].ViewArgs = viewArgs; }
+		void Set(uint32_t arrayIndex, Ref<Texture2D> texture,             const InputViewArgs& viewArgs = {}) { Items[arrayIndex].Item = texture;        Items[arrayIndex].Type = RenderInputType::Texture2D;      Items[arrayIndex].ViewArgs = viewArgs; }
+		void Set(uint32_t arrayIndex, Ref<TextureCube> textureCube,       const InputViewArgs& viewArgs = {}) { Items[arrayIndex].Item = textureCube;    Items[arrayIndex].Type = RenderInputType::TextureCube;    Items[arrayIndex].ViewArgs = viewArgs; }
 
-		void Set(Ref<Sampler> sampler, uint32_t arrayIndex)
+		bool IsSame(uint32_t arrayIndex, Ref<RendererResource> resource, const InputViewArgs& viewArgs = {}) const
 		{
-			Items[arrayIndex].Item = sampler;
-			Items[arrayIndex].Type = RenderInputType::Sampler;
-		}
-
-		void Set(Ref<ViewableResource> viewable, uint32_t arrayIndex)
-		{
-			Items[arrayIndex].Item = viewable;
-			Items[arrayIndex].Type = RenderInputType::Viewable;
-		}
-
-		void Set(Ref<Image2D> image, uint32_t arrayIndex)
-		{
-			Items[arrayIndex].Item = image;
-			Items[arrayIndex].Type = RenderInputType::Image2D;
-		}
-
-		void Set(Ref<ImageView> imageView, uint32_t arrayIndex)
-		{
-			Items[arrayIndex].Item = imageView;
-			Items[arrayIndex].Type = RenderInputType::ImageView;
-		}
-
-		void Set(Ref<Texture2D> texture, uint32_t arrayIndex)
-		{
-			Items[arrayIndex].Item = texture;
-			Items[arrayIndex].Type = RenderInputType::Texture2D;
-		}
-
-		void Set(Ref<TextureCube> textureCube, uint32_t arrayIndex)
-		{
-			Items[arrayIndex].Item = textureCube;
-			Items[arrayIndex].Type = RenderInputType::TextureCube;
-		}
-
-		void Set(const nvrhi::TextureSubresourceSet& subresourceSet, uint32_t arrayIndex)
-		{
-			Items[arrayIndex].SubresourceSet = subresourceSet;
+			return
+				Items[arrayIndex].Item                    == resource &&
+				Items[arrayIndex].ViewArgs.Format         == viewArgs.Format &&
+				Items[arrayIndex].ViewArgs.Dimension      == viewArgs.Dimension &&
+				Items[arrayIndex].ViewArgs.SubresourceSet == viewArgs.SubresourceSet;
 		}
 
 		BindingSetInput() = default;
 	};
 
+	struct InputUpdate
+	{
+		GraphicsBinding       Binding;
+		uint32_t              ArrayIndex;
+		Ref<RendererResource> Input;
+		RenderInputType       Type;
+
+		InputViewArgs         ViewArgs;
+	};
+
+#if TODO
+	struct InputUpdatePacked
+	{
+		Ref<RendererResource> Input;
+		uint32_t Slot;
+		uint32_t ArrayElement;
+		
+		uint8_t                 Set;
+		RenderInputType         Type : 8;
+		nvrhi::Format           Format : 8;
+		nvrhi::TextureDimension Dimension : 8;
+
+		nvrhi::TextureSubresourceSet SubresourceSet;
+
+		bool HasFormat;
+		bool HasDimension;
+		bool HasSubresourceSet;
+	};
+#endif
+
 	struct ShaderInputManagerSpecification
 	{
 		Ref<Shader> Shader;
-		bool Mutable = true;
 
 		uint32_t StartSet = 1;
 		uint32_t EndSet = nvrhi::c_MaxBindingLayouts;
 
 		std::string DebugName;
 	};
+
+	// 
+	// ActiveThread:
+	//  - SetInput
+	//  - Package
+	//  - PrepareAll
+	//  - Validate
+	// 
+	//  - GetUpdates
+	// 
+	// RenderThread:
+	//  - Update (with updates from package)
+	// 
+	// Optional use DescriptorSetManager on the Render Thread
+	// 
 
 	class ShaderInputManager
 	{
@@ -111,25 +134,35 @@ namespace Shark {
 		ShaderInputManager(const ShaderInputManagerSpecification& specification);
 		~ShaderInputManager();
 
-		void Bake();
-		void Update();
+		void Initialize(const ShaderInputManagerSpecification& specification);
+
+		bool Package(std::vector<InputUpdate>& outUpdates);
+		void PrepareAll();
+
+		void Update(std::span<const InputUpdate> updates, bool force = false);
 		bool Validate() const;
 
-		void SetInput(const std::string& name, Ref<ConstantBuffer> constantBuffer, uint32_t arrayIndex = 0);
-		void SetInput(const std::string& name, Ref<StorageBuffer> storageBuffer, uint32_t arrayIndex = 0);
-		void SetInput(const std::string& name, Ref<ViewableResource> viewable, uint32_t arrayIndex = 0);
-		void SetInput(const std::string& name, Ref<Image2D> image, uint32_t arrayIndex = 0);
-		void SetInput(const std::string& name, Ref<Image2D> image, const nvrhi::TextureSubresourceSet& subresource, uint32_t arrayIndex = 0);
-		void SetInput(const std::string& name, Ref<ImageView> imageView, uint32_t arrayIndex = 0);
-		void SetInput(const std::string& name, Ref<Texture2D> texture, uint32_t arrayIndex = 0);
-		void SetInput(const std::string& name, Ref<TextureCube> textureCube, uint32_t arrayIndex = 0);
-		void SetInput(const std::string& name, Ref<Sampler> sampler, uint32_t arrayIndex = 0);
+		void SetInput(const std::string& name, Ref<ConstantBuffer>   constantBuffer, uint32_t arrayIndex = 0);
+		void SetInput(const std::string& name, Ref<StorageBuffer>    storageBuffer,  uint32_t arrayIndex = 0);
+		void SetInput(const std::string& name, Ref<ViewableResource> viewable,       uint32_t arrayIndex = 0);
+		void SetInput(const std::string& name, Ref<Image2D>          image,          uint32_t arrayIndex = 0);
+		void SetInput(const std::string& name, Ref<ImageView>        imageView,      uint32_t arrayIndex = 0);
+		void SetInput(const std::string& name, Ref<Texture2D>        texture,        uint32_t arrayIndex = 0);
+		void SetInput(const std::string& name, Ref<TextureCube>      textureCube,    uint32_t arrayIndex = 0);
+		void SetInput(const std::string& name, Ref<Sampler>          sampler,        uint32_t arrayIndex = 0);
 
-		void SetInputSubresourceSet(const std::string& name, const nvrhi::TextureSubresourceSet& subresourceSet, uint32_t arrayIndex = 0);
+		void SetInput(const std::string& name, Ref<ViewableResource> viewable,    const InputViewArgs& viewArgs, uint32_t arrayIndex = 0);
+		void SetInput(const std::string& name, Ref<Image2D>          image,       const InputViewArgs& viewArgs, uint32_t arrayIndex = 0);
+		void SetInput(const std::string& name, Ref<ImageView>        imageView,   const InputViewArgs& viewArgs, uint32_t arrayIndex = 0);
+		void SetInput(const std::string& name, Ref<Texture2D>        texture,     const InputViewArgs& viewArgs, uint32_t arrayIndex = 0);
+		void SetInput(const std::string& name, Ref<TextureCube>      textureCube, const InputViewArgs& viewArgs, uint32_t arrayIndex = 0);
+
+		uint32_t GetUpdateCount() const { return static_cast<uint32_t>(m_Updates.size()); }
+		uint32_t GetInputCount() const { return static_cast<uint32_t>(m_InputInfos.size()); }
 
 		uint32_t GetStartSet() const { return m_Specification.StartSet; }
 		uint32_t GetEndSet() const { return m_Specification.EndSet; }
-		nvrhi::BindingSetHandle GetHandle(uint32_t set) const { return m_BackedSets[set - m_Specification.StartSet]; }
+		nvrhi::BindingSetHandle GetHandle(uint32_t set) const { return m_Handles[set]; }
 
 		Ref<Shader> GetShader() const { return m_Specification.Shader; }
 
@@ -139,17 +172,21 @@ namespace Shark {
 
 	private:
 		template<typename T>
-		using LayoutArray = nvrhi::static_vector<T, nvrhi::c_MaxBindingLayouts>;
+		using LayoutArray = std::array<T, nvrhi::c_MaxBindingLayouts>;
 
 	private:
 		ShaderInputManagerSpecification m_Specification;
+		bool m_EnableValidation = false;
+		uint32_t m_SetCount = 0;
+		uint32_t m_InputCount = 0;
 
-		bool m_Backed = false;
-		LayoutArray<nvrhi::BindingSetHandle> m_BackedSets;
+		LayoutArray<Scope<DescriptorSetManager>> m_Managers;
+		LayoutArray<nvrhi::BindingSetHandle> m_Handles;
 
-		std::bitset<nvrhi::c_MaxBindingLayouts> m_PendingSets;
-		LayoutArray<std::map<GraphicsBinding, BindingSetInput>> m_InputSetItems;
-		std::unordered_map<std::string, ShaderInputInfo> m_InputInfos;
+		std::map<GraphicsBinding, BindingSetInput> m_Inputs;
+		std::vector<InputUpdate> m_Updates;
+
+		std::unordered_map<std::string, const ShaderInputInfo*> m_InputInfos;
 	};
 
 }

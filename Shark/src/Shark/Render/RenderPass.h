@@ -26,6 +26,7 @@ namespace Shark {
 		void Bake();
 		bool Validate() const;
 		void Update();
+		void UpdateDescriptors();
 
 		void SetInput(const std::string& name, Ref<ConstantBuffer> constantBuffer);
 		void SetInput(const std::string& name, Ref<StorageBuffer> storageBuffer);
@@ -37,6 +38,7 @@ namespace Shark {
 		Ref<Image2D> GetOutput(uint32_t index) const;
 		Ref<Image2D> GetDepthOutput() const;
 
+		Ref<Shader> GetShader() const;
 		Ref<FrameBuffer> GetTargetFramebuffer() const;
 		void SetTargetFramebuffer(Ref<FrameBuffer> targetFramebuffer);
 

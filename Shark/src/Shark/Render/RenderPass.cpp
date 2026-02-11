@@ -1,5 +1,6 @@
 #include "skpch.h"
 #include "RenderPass.h"
+#include "Renderer.h"
 
 namespace Shark {
 
@@ -16,7 +17,7 @@ namespace Shark {
 		if (layoutMode == LayoutShareMode::PassOnly)
 			inputManagerSpec.StartSet = 0;
 
-		m_InputManager = ShaderInputManager(inputManagerSpec);
+		m_InputManager.Initialize(inputManagerSpec);
 	}
 
 	RenderPass::~RenderPass()
@@ -26,7 +27,16 @@ namespace Shark {
 
 	void RenderPass::Bake()
 	{
-		m_InputManager.Bake();
+		std::vector<InputUpdate> updates;
+		m_InputManager.Package(updates);
+
+		SK_CORE_ASSERT(!updates.empty());
+
+		Ref instance = this;
+		Renderer::Submit([instance, temp = std::move(updates)]()
+		{
+			instance->m_InputManager.Update(temp, true);
+		});
 	}
 
 	bool RenderPass::Validate() const
@@ -36,7 +46,21 @@ namespace Shark {
 
 	void RenderPass::Update()
 	{
-		m_InputManager.Update();
+		std::vector<InputUpdate> updates;
+		if (!m_InputManager.Package(updates))
+			return; // No update needed
+
+		Ref instance = this;
+		Renderer::Submit([instance, temp = std::move(updates)]()
+		{
+			instance->m_InputManager.Update(temp);
+		});
+	}
+
+	void RenderPass::UpdateDescriptors()
+	{
+		m_InputManager.PrepareAll();
+		Bake(); // Force updates
 	}
 
 	void RenderPass::SetInput(const std::string& name, Ref<ConstantBuffer> constantBuffer)
@@ -77,6 +101,11 @@ namespace Shark {
 	Ref<Image2D> RenderPass::GetDepthOutput() const
 	{
 		return m_Specification.TargetFramebuffer->GetDepthImage();
+	}
+
+	Ref<Shader> RenderPass::GetShader() const
+	{
+		return m_Specification.Shader;
 	}
 
 	Ref<FrameBuffer> RenderPass::GetTargetFramebuffer() const

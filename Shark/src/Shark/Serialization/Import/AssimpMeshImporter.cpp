@@ -181,7 +181,9 @@ namespace Shark {
 				auto materialName = aiMaterial->GetName();
 
 				// #TODO avoid setDefaults=true
-				auto pbrMaterial = PBRMaterial::Create(materialName.data, true);
+				auto pbrMaterial = PBRMaterial::Create(materialName.data, true, false);
+
+				// #Investigate AssetManager is not thread save
 				meshSource->m_Materials[i] = AssetManager::AddMemoryAsset(pbrMaterial);
 
 				SK_MESH_LOG("  {} (Index = {})", materialName.data, i);
@@ -296,6 +298,8 @@ namespace Shark {
 						pbrMaterial->SetRoughness(1.0f);
 					}
 				}
+
+				pbrMaterial->MT_Bake();
 			}
 		}
 
@@ -346,7 +350,7 @@ namespace Shark {
 			}
 
 			Ref<Texture2D> texture = Texture2D::Create(specification, imageData);
-			Renderer::GenerateMips(texture->GetImage());
+			Renderer::MT::GenerateMips(texture->GetImage());
 
 			if (specification.Height == 0)
 				imageData.Release();
@@ -362,7 +366,7 @@ namespace Shark {
 			ScopedBuffer imageData = TextureImporter::ToBufferFromFile(texturePath, specification.Format, specification.Width, specification.Height);
 
 			Ref<Texture2D> texture = Texture2D::Create(specification, imageData);
-			Renderer::GenerateMips(texture->GetImage());
+			Renderer::MT::GenerateMips(texture->GetImage());
 
 			return AssetManager::AddMemoryAsset(texture);
 			//return AssetManager::CreateMemoryOnlyRendererAsset<Texture2D>(specification, imageData);

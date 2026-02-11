@@ -61,14 +61,6 @@ namespace Shark {
 		Depth24UNormStencil8UINT
 	};
 
-	enum class ImageType : uint16_t
-	{
-		Texture,
-		TextureCube,
-		Storage,
-		Atachment
-	};
-
 	enum class ImageUsage
 	{
 		Texture,
@@ -112,6 +104,7 @@ namespace Shark {
 		const ImageSpecification& GetSpecification() const { return m_Specification; }
 
 		nvrhi::TextureHandle GetHandle() const { return m_ImageHandle; }
+		virtual nvrhi::ResourceHandle GetResourceHandle() const override { return m_ImageHandle; }
 		virtual const ViewInfo& GetViewInfo() const override { return m_ViewInfo; }
 		virtual bool HasSampler() const override { return false; }
 
@@ -223,6 +216,7 @@ namespace Shark {
 
 		bool SupportsStorage() const { return m_StorageSupported; }
 		const ImageViewSpecification& GetSpecification() const { return m_Specification; }
+		virtual nvrhi::ResourceHandle GetResourceHandle() const override { return m_ViewInfo.Handle; }
 		virtual const ViewInfo& GetViewInfo() const override { return m_ViewInfo; }
 		virtual bool HasSampler() const override { return false; }
 		Ref<Image2D> GetImage() const { return m_Image; }
@@ -253,6 +247,9 @@ namespace Shark {
 		uint32_t CalcMipLevels(uint32_t width, uint32_t height);
 		glm::uvec2 CalcMipSize(uint32_t fullWidth, uint32_t fullHeight, uint32_t mip);
 		nvrhi::Format ConvertImageFormat(ImageFormat format);
+		ImageFormat ConvertImageFormat(nvrhi::Format format);
+		ImageFormat ConvertToWritableFormat(ImageFormat format);
+		nvrhi::Format ConvertToWritableFormat(nvrhi::Format format);
 
 		bool IsSRGB(ImageFormat format);
 		bool IsDepthFormat(ImageFormat format);

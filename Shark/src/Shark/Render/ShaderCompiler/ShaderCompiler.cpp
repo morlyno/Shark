@@ -16,9 +16,9 @@
 namespace Shark {
 
 	namespace DxcInstances {
-		ATL::CComPtr<IDxcCompiler3> g_Compiler = nullptr;
-		ATL::CComPtr<IDxcUtils> g_Utils = nullptr;
-		ATL::CComPtr<IDxcIncludeHandler> g_IncludeHandler = nullptr;
+		nvrhi::RefCountPtr<IDxcCompiler3> g_Compiler = nullptr;
+		nvrhi::RefCountPtr<IDxcUtils> g_Utils = nullptr;
+		nvrhi::RefCountPtr<IDxcIncludeHandler> g_IncludeHandler = nullptr;
 	}
 
 	namespace utils {
@@ -212,7 +212,7 @@ namespace Shark {
 
 	bool ShaderCompiler::PreprocessStage(nvrhi::ShaderType stage)
 	{
-		CComPtr<IDxcBlobEncoding> sourceBlob;
+		nvrhi::RefCountPtr<IDxcBlobEncoding> sourceBlob;
 		DxcInstances::g_Utils->CreateBlob(m_Preprocessor.Source.data(), static_cast<UINT32>(m_Preprocessor.Source.size()), CP_UTF8, &sourceBlob);
 
 		const wchar_t* version = s_ShaderTypeMappings.at(stage).DXC;
@@ -234,7 +234,7 @@ namespace Shark {
 		buffer.Size = sourceBlob->GetBufferSize();
 
 
-		CComPtr<IDxcResult> result = nullptr;
+		nvrhi::RefCountPtr<IDxcResult> result = nullptr;
 		HRESULT hResult = DxcInstances::g_Compiler->Compile(&buffer, arguments.data(), static_cast<UINT32>(arguments.size()),
 															m_IncludeHandler.get(), IID_PPV_ARGS(&result));
 
@@ -242,14 +242,14 @@ namespace Shark {
 		result->GetStatus(&hResult);
 		if (FAILED(hResult))
 		{
-			CComPtr<IDxcBlobEncoding> errorBlob;
+			nvrhi::RefCountPtr<IDxcBlobEncoding> errorBlob;
 			hResult = result->GetErrorBuffer(&errorBlob);
 			std::string errorMessage = (const char*)errorBlob->GetBufferPointer();
 			SK_CORE_ERROR_TAG("ShaderCompiler", "Failed to preprocessor source by DXC!\n{}", errorMessage);
 			return false;
 		}
 
-		CComPtr<IDxcBlob> code;
+		nvrhi::RefCountPtr<IDxcBlob> code;
 		result->GetResult(&code);
 
 		auto& processed = m_PreprocessedResult[stage];
@@ -329,19 +329,19 @@ namespace Shark {
 		buffer.Ptr = shaderSource.data();
 		buffer.Size = shaderSource.size();
 
-		CComPtr<IDxcResult> result = nullptr;
+		nvrhi::RefCountPtr<IDxcResult> result = nullptr;
 		HRESULT hResult = DxcInstances::g_Compiler->Compile(&buffer, arguments.data(), static_cast<UINT32>(arguments.size()),
 															m_IncludeHandler.get(), IID_PPV_ARGS(&result));
 
 		result->GetStatus(&hResult);
 		if (FAILED(hResult))
 		{
-			CComPtr<IDxcBlobEncoding> errorBlob;
+			nvrhi::RefCountPtr<IDxcBlobEncoding> errorBlob;
 			hResult = result->GetErrorBuffer(&errorBlob);
 			return (const char*)errorBlob->GetBufferPointer();
 		}
 
-		CComPtr<IDxcBlob> code;
+		nvrhi::RefCountPtr<IDxcBlob> code;
 		result->GetResult(&code);
 
 		auto& spirvBinary = m_Result->SpirvBinary[stage];

@@ -93,7 +93,7 @@ namespace Shark {
 
 		if (texture->GetSpecification().HasMips)
 		{
-			Renderer::GenerateMips(texture->GetImage());
+			Renderer::MT::GenerateMips(texture->GetImage());
 		}
 
 		asset = texture;

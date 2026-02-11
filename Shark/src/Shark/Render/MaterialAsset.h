@@ -7,11 +7,13 @@ namespace Shark {
 	class PBRMaterial : public Asset
 	{
 	public:
-		static Ref<PBRMaterial> Create(const std::string& name, bool setDefault = true) { return Ref<PBRMaterial>::Create(name, setDefault); }
+		static Ref<PBRMaterial> Create(const std::string& name, bool setDefault = true, bool bakeMaterial = true) { return Ref<PBRMaterial>::Create(name, setDefault, bakeMaterial); }
 
 	public:
 		void SetDefaults();
-		void PrepareAndUpdate();
+		void Bake();
+		void MT_Bake();
+		void Update();
 
 		const std::string& GetName() const { return m_Material->GetName(); }
 		Ref<Material> GetMaterial() const { return m_Material; }
@@ -41,7 +43,7 @@ namespace Shark {
 		void SetRoughness(float value);
 
 	public:
-		PBRMaterial(const std::string& name, bool setDefault = true);
+		PBRMaterial(const std::string& name, bool setDefault = true, bool bakeMaterial = true);
 		~PBRMaterial();
 
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }

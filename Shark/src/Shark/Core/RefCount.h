@@ -176,6 +176,8 @@ namespace Shark {
 			return !(*this == rhs);
 		}
 
+		auto operator<=>(const Ref<T>& rhs) const { return m_Instance <=> rhs.m_Instance; }
+
 		T* Raw()
 		{
 			return m_Instance;

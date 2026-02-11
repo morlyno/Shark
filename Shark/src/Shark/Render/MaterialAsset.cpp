@@ -21,9 +21,9 @@ namespace Shark {
 	static const std::string s_RoughnessUniformName = "u_MaterialUniforms.Roughness";
 	static const std::string s_UsingNormalMapUniformName = "u_MaterialUniforms.UsingNormalMap";
 
-
-	PBRMaterial::PBRMaterial(const std::string& name, bool setDefault)
+	PBRMaterial::PBRMaterial(const std::string& name, bool setDefault, bool bakeMaterial)
 	{
+		SK_CORE_VERIFY(bakeMaterial ? setDefault : true);
 		auto shader = Renderer::GetShaderLibrary()->Get("SharkPBR");
 		m_Material = Material::Create(shader, name);
 		
@@ -33,8 +33,8 @@ namespace Shark {
 		if (setDefault)
 			SetDefaults();
 
-		// #TODO #Renderer replace either with combined textures or samplers
-		m_Material->Set("u_LinearClamp", Renderer::GetLinearClampSampler());
+		if (bakeMaterial)
+			m_Material->Bake();
 	}
 
 	PBRMaterial::~PBRMaterial()
@@ -54,7 +54,19 @@ namespace Shark {
 		ClearRoughnessMap();
 	}
 
-	void PBRMaterial::PrepareAndUpdate()
+	void PBRMaterial::Bake()
+	{
+		SK_CORE_VERIFY(m_Material->Validate());
+		m_Material->Bake();
+	}
+
+	void PBRMaterial::MT_Bake()
+	{
+		SK_CORE_VERIFY(m_Material->Validate());
+		m_Material->MT_Bake();
+	}
+
+	void PBRMaterial::Update()
 	{
 		if (AsyncLoadResult result = AssetManager::GetAssetAsync<Texture2D>(m_AlbedoMap); result.Ready)
 			m_Material->Set(s_AlbedoMapName, result.Asset);
@@ -74,8 +86,7 @@ namespace Shark {
 			m_Material->Set(s_MaterialUniformsName, Buffer::FromValue(m_ActiveState));
 		}
 
-		SK_CORE_ASSERT(m_Material->Validate());
-		m_Material->Prepare();
+		m_Material->Update();
 	}
 
 	AssetHandle PBRMaterial::GetAlbedoMap()

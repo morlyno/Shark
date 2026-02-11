@@ -10,7 +10,7 @@ namespace Shark {
 		using CommandFn = void(*)(void*);
 
 	public:
-		RenderCommandQueue();
+		RenderCommandQueue(uint64_t bufferSize = 1024 * 1024 * 10);
 		~RenderCommandQueue();
 
 		void Execute();

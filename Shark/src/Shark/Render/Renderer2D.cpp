@@ -200,6 +200,8 @@ namespace Shark {
 			m_TextPass->Bake();
 
 			m_TextMaterial = Material::Create(pipelineSpec.Shader, "Text");
+			m_TextMaterial->Set("g_FontAtlas", Renderer::GetBlackTexture()); // #TODO default font
+			m_TextMaterial->Bake();
 
 			m_TextVertexBuffer = VertexBuffer::Create(DefaultTextVertices * sizeof(TextVertex));
 			m_TextIndexBuffer = m_QuadIndexBuffer;
@@ -678,6 +680,7 @@ namespace Shark {
 
 		if (m_LineVertexCount)
 		{
+#if TODO // #Renderer #Disabled Renderer2D line pass
 			m_CommandBuffer->BeginTimer("LinePass");
 			Renderer::WriteBuffer(m_CommandBuffer, m_LineVertexBuffer, m_LineVertexData);
 
@@ -687,11 +690,12 @@ namespace Shark {
 
 			m_Statistics.DrawCalls++;
 			m_CommandBuffer->EndTimer("LinePass");
+#endif
 		}
 
 		if (m_TextIndexCount)
 		{
-			m_TextMaterial->Prepare();
+			m_TextMaterial->Update();
 
 			m_CommandBuffer->BeginTimer("TextPass");
 			Renderer::WriteBuffer(m_CommandBuffer, m_TextVertexBuffer, m_TextVertexData);
@@ -776,7 +780,7 @@ namespace Shark {
 				material->Set("u_Textures", Renderer::GetWhiteTexture(), arrayIndex);
 		}
 
-		material->Prepare();
+		material->Update();
 		return material;
 	}
 

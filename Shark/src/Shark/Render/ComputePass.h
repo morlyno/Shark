@@ -20,6 +20,7 @@ namespace Shark {
 
 	public:
 		void Bake();
+		void Update();
 		bool Validate() const;
 
 		void SetInput(const std::string& name, Ref<ConstantBuffer> constantBuffer);

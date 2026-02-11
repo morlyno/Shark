@@ -5,6 +5,7 @@ workspace "Shark"
 	configurations { "Debug", "Debug-AS", "Release" }
 	startproject "Shark-Editor"
 	conformancemode "On"
+	editandcontinue "Off"
 
 	language "C++"
 	cppdialect "C++20"

@@ -51,6 +51,8 @@ namespace Shark {
 		void RT_Invalidate();
 
 		Ref<Image2D> GetImage() const { return m_Image; }
+		nvrhi::TextureHandle GetHandle() const { return m_ViewInfo.Handle; }
+		virtual nvrhi::ResourceHandle GetResourceHandle() const override { return m_ViewInfo.Handle; }
 		virtual const ViewInfo& GetViewInfo() const override { return m_ViewInfo; }
 		virtual bool HasSampler() const override { return true; }
 
@@ -124,6 +126,8 @@ namespace Shark {
 		Ref<Image2D> GetImage() const { return m_Image; }
 		const TextureSpecification& GetSpecification() const { return m_Specification; }
 
+		nvrhi::TextureHandle GetHandle() const { return m_ViewInfo.Handle; }
+		virtual nvrhi::ResourceHandle GetResourceHandle() const override { return m_ViewInfo.Handle; }
 		virtual const ViewInfo& GetViewInfo() const override { return m_ViewInfo; }
 		virtual bool HasSampler() const override { return true; }
 
@@ -158,6 +162,7 @@ namespace Shark {
 
 	public:
 		nvrhi::SamplerHandle GetHandle() const { return m_SamplerHandle; }
+		virtual nvrhi::ResourceHandle GetResourceHandle() const override { return m_SamplerHandle; }
 		const SamplerSpecification& GetSpecification() const { return m_Specification; }
 
 	public:

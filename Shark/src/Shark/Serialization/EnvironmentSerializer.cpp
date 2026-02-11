@@ -31,16 +31,8 @@ namespace Shark {
 
 		Ref<Environment> environment;
 
-		if (Application::Get().GetMainThreadID() == std::this_thread::get_id())
-		{
-			auto [radianceMap, irradianceMap] = Renderer::CreateEnvironmentMap(filesystemPath);
-			environment = Ref<Environment>::Create(radianceMap, irradianceMap);
-		}
-		else
-		{
-			auto [radianceMap, irradianceMap] = Renderer::RT_CreateEnvironmentMap(filesystemPath);
-			environment = Ref<Environment>::Create(radianceMap, irradianceMap);
-		}
+		auto [radianceMap, irradianceMap] = Renderer::MT::CreateEnvironmentMap(filesystemPath);
+		environment = Ref<Environment>::Create(radianceMap, irradianceMap);
 
 		asset = environment;
 		asset->Handle = metadata.Handle;

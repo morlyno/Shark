@@ -419,27 +419,6 @@ namespace Shark {
 				break;
 			}
 
-			case KeyCode::T:
-			{
-				Entity container = m_ActiveScene->CreateEntity("Quad-Container");
-
-				for (uint32_t y = 0; y < 100; y++)
-				{
-					for (uint32_t x = 0; x < 100; x++)
-					{
-						auto quad = m_ActiveScene->CreateChildEntity(container, fmt::format("Quad {}:{}", x, y));
-
-						auto& transform = quad.Transform();
-						transform.Translation.xy = { x, y };
-						transform.Scale.xy = { 0.5f, 0.5f };
-
-						auto& spriteComp = quad.AddComponent<SpriteRendererComponent>();
-						spriteComp.Color.r = static_cast<float>(x) / 100.0f;
-						spriteComp.Color.g = static_cast<float>(y) / 100.0f;
-						spriteComp.Color.b = 0.0f;
-					}
-				}
-			}
 		}
 
 		return false;
@@ -1802,7 +1781,7 @@ namespace Shark {
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
 		SK_CORE_ASSERT(m_ActiveScene == m_EditorScene);
 
-		auto filePath = Platform::SaveFileDialog(L"|*.*|Scene|*.skscene", 2, Project::GetActiveAssetsDirectory(), true);
+		auto filePath = Platform::SaveFileDialog(L"All|*.*|Scene|*.skscene", 2, Project::GetActiveAssetsDirectory(), true);
 		if (filePath.empty())
 			return false;
 

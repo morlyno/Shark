@@ -35,4 +35,15 @@ namespace Shark {
 	template<typename T>
 	uint64_t StandartHash(const T& value) { return std::hash<T>{}(value); }
 
+	struct Hasher
+	{
+		template<typename T>
+		uint64_t operator()(const T& val)
+		{
+			return StandartHash(val);
+		}
+
+		using is_transparent = int;
+	};
+
 }

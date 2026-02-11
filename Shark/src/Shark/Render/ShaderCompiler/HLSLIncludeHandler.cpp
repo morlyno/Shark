@@ -6,7 +6,7 @@
 
 namespace Shark {
 
-	HLSLIncludeHandler::HLSLIncludeHandler(ShaderPreprocessor* preprocessor, ATL::CComPtr<IDxcUtils> utils)
+	HLSLIncludeHandler::HLSLIncludeHandler(ShaderPreprocessor* preprocessor, nvrhi::RefCountPtr<IDxcUtils> utils)
 		: m_Preprocessor(preprocessor), m_Utils(utils)
 	{
 	}

@@ -1,6 +1,7 @@
 #pragma once
-
 #pragma combine : u_AlbedoMap, u_AlbedoSampler
+
+#include "Core/Samplers.hlslh"
 
 struct MaterialUniforms
 {
@@ -20,4 +21,3 @@ uniform Texture2D u_MetalnessMap : register(t2, space0);
 uniform Texture2D u_RoughnessMap : register(t3, space0);
 
 uniform SamplerState u_AlbedoSampler : register(s0, space0);
-uniform SamplerState u_LinearClamp : register(s1, space0);

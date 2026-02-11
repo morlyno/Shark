@@ -14,6 +14,7 @@ namespace Shark {
 		void Upload(const Buffer data);
 		void RT_Upload(const Buffer data);
 
+		virtual nvrhi::ResourceHandle GetResourceHandle() const override { return m_BufferHandle; }
 		nvrhi::BufferHandle GetHandle() const { return m_BufferHandle; }
 		uint64_t GetByteSize() const { return m_ByteSize; }
 

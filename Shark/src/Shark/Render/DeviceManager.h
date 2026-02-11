@@ -34,11 +34,15 @@ namespace Shark {
 		void Lock() { m_ExecutionMutex.lock(); }
 		void Unlock() { m_ExecutionMutex.unlock(); }
 
+		std::mutex& GetCommandListMutex() { return m_CommandListMutex; }
+
 		void ExecuteCommand(auto cmd)
 		{
+			m_CommandListMutex.lock();
 			m_CommandList->open();
 			cmd(m_CommandList);
 			m_CommandList->close();
+			m_CommandListMutex.unlock();
 
 			ExecuteCommandListLocked(m_CommandList);
 		}
@@ -56,6 +60,7 @@ namespace Shark {
 		nvrhi::CommandListHandle m_CommandList;
 
 		std::mutex m_ExecutionMutex;
+		std::mutex m_CommandListMutex;
 	};
 
 }

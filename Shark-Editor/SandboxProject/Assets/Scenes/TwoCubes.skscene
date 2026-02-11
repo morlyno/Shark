@@ -1,0 +1,104 @@
+Scene:
+  Name: Untitled
+  ActiveCamera: 3102119429976287180
+  Entities:
+    - Entity: 3102119429976287180
+      TagComponent:
+        Name: Camera
+      TransformComponent:
+        Translation:
+          - 1.21397305
+          - 1.87212205
+          - -5.63515949
+        Rotation:
+          - 0.261692196
+          - -0.0798142105
+          - -0
+        Scale:
+          - 1.00000012
+          - 1
+          - 0.99999994
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      CameraComponent:
+        IsPerspective: true
+        PerspectiveFOV: 44.9999924
+        OrthographicSize: 10
+        Near: 0.300000012
+        Far: 1000
+    - Entity: 10584447205595490849
+      TagComponent:
+        Name: Red
+      TransformComponent:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      StaticMeshComponent:
+        StaticMesh: 16466054961702350518
+        MaterialTable:
+          0: 1821254970952682847
+        Visible: true
+    - Entity: 15559333159995319189
+      TagComponent:
+        Name: Green
+      TransformComponent:
+        Translation:
+          - 1.56728506
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      StaticMeshComponent:
+        StaticMesh: 16466054961702350518
+        MaterialTable:
+          0: 1471995334651478538
+        Visible: true
+    - Entity: 17618620851746294573
+      TagComponent:
+        Name: Entity
+      TransformComponent:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      SkyComponent:
+        SceneEnvironment: 9087211806961695879
+        Intensity: 1
+        Lod: 0
