@@ -197,7 +197,6 @@ namespace Shark {
 		}
 		m_MaterialsToUpdate.clear();
 
-		// #idear #Renderer check if environment has changed
 		Ref<Environment> environment = m_Scene->GetEnvironment();
 		m_GeometryPass->SetInput("u_IrradianceMap", environment->GetIrradianceMap());
 		m_GeometryPass->SetInput("u_RadianceMap", environment->GetRadianceMap());

@@ -132,7 +132,7 @@ namespace Shark {
 		textureDesc.enableAutomaticStateTracking(utils::GetDefaultResourceState(textureDesc.format, state.Usage));
 		textureDesc.isRenderTarget = state.Usage == ImageUsage::Attachment;
 		textureDesc.isUAV = state.Usage == ImageUsage::Storage;
-		textureDesc.isTypeless = ImageUtils::IsDepthFormat(state.Format);
+		textureDesc.isTypeless = true;//ImageUtils::IsDepthFormat(state.Format);
 
 		if (state.IsCube)
 			textureDesc.dimension = nvrhi::TextureDimension::TextureCube;

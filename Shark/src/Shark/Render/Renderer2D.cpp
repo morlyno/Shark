@@ -680,7 +680,6 @@ namespace Shark {
 
 		if (m_LineVertexCount)
 		{
-#if TODO // #Renderer #Disabled Renderer2D line pass
 			m_CommandBuffer->BeginTimer("LinePass");
 			Renderer::WriteBuffer(m_CommandBuffer, m_LineVertexBuffer, m_LineVertexData);
 
@@ -690,7 +689,6 @@ namespace Shark {
 
 			m_Statistics.DrawCalls++;
 			m_CommandBuffer->EndTimer("LinePass");
-#endif
 		}
 
 		if (m_TextIndexCount)

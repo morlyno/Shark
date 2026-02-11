@@ -376,6 +376,17 @@ namespace Shark {
 		});
 	}
 
+	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount, const Buffer pushConstant)
+	{
+		SK_CORE_TRACE_TAG("Renderer", "[RT] RenderGeometry '{}' '{}'", material->GetName(), pipeline->GetSpecification().DebugName);
+
+		Submit([commandBuffer, pipeline, material, vertexBuffer, vertexCount, temp = Buffer::Copy(pushConstant)]() mutable
+		{
+			RT::RenderGeometry(commandBuffer, pipeline, material, vertexBuffer, nvrhi::DrawArguments().setVertexCount(vertexCount), temp);
+			temp.Release();
+		});
+	}
+
 	void Renderer::RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material, const Buffer pushConstantsData)
 	{
 		SK_CORE_TRACE_TAG("Renderer", "[RT] RenderSubmesh '{}':{} '{}'", meshSource->GetName(), submeshIndex, material->GetName());
@@ -535,7 +546,7 @@ namespace Shark {
 		pass->SetInput("o_Output", destinationImage, nvrhi::TextureSubresourceSet(params.DestinationBaseSlice.Mip, 1, params.DestinationBaseSlice.Layer, params.LayerCount));
 		pass->SetInput("u_Sampler", filterMode == FilterMode::Linear ? s_Data->m_Samplers.LinearClamp : s_Data->m_Samplers.NearestClamp);
 		SK_CORE_VERIFY(pass->Validate());
-		pass->Bake(); // #Renderer #RT
+		pass->Bake();
 
 		const auto& srcDesc = sourceImage->GetHandle()->getDesc();
 		const auto& dstDesc = destinationImage->GetHandle()->getDesc();
@@ -915,6 +926,7 @@ namespace Shark {
 		const uint32_t layers = targetDesc.arraySize;
 		const uint32_t mipLevels = targetDesc.mipLevels;
 		const auto textureDimension = layers == 1 ? nvrhi::TextureDimension::Texture2D : nvrhi::TextureDimension::Texture2DArray;
+		const auto format = ImageUtils::ConvertToWritableFormat(targetDesc.format);
 
 		Ref<Shader> shader;
 		nvrhi::ComputePipelineHandle pipeline;
@@ -986,7 +998,7 @@ namespace Shark {
 				manager.SetDescriptor(
 					sourceKey,
 					nvrhi::TextureSubresourceSet(baseMip - 1, 1, layer, 1),
-					nvrhi::Format::UNKNOWN,
+					format,
 					textureDimension
 				);
 
@@ -999,7 +1011,7 @@ namespace Shark {
 						manager.SetDescriptor(
 							mipKey,
 							nvrhi::TextureSubresourceSet(baseMip + i, 1, layer, 1),
-							nvrhi::Format::UNKNOWN,
+							format,
 							textureDimension
 						);
 					}
