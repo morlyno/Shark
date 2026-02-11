@@ -42,9 +42,9 @@ namespace Shark {
 			m_CommandList->open();
 			cmd(m_CommandList);
 			m_CommandList->close();
-			m_CommandListMutex.unlock();
 
 			ExecuteCommandListLocked(m_CommandList);
+			m_CommandListMutex.unlock();
 		}
 
 	public:
