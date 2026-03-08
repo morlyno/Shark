@@ -333,3 +333,9 @@ namespace Shark {
 	};
 
 }
+
+template<>
+struct magic_enum::customize::enum_range<Shark::ErrorResponse>
+{
+	static constexpr bool is_flags = true;
+};

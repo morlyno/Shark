@@ -32,16 +32,19 @@ namespace Shark {
 		const wchar_t* DXC;
 		const char* D3D11;
 		const char* Extension;
+		const wchar_t* StageMacro;
 	};
 
 	static std::map<nvrhi::ShaderType, ShaderTypeMapping> s_ShaderTypeMappings = {
-		{ nvrhi::ShaderType::Vertex,  { .DXC = L"vs_6_0", .D3D11 = "vs_5_0", .Extension = ".vert" } },
-		{ nvrhi::ShaderType::Pixel,   { .DXC = L"ps_6_0", .D3D11 = "ps_5_0", .Extension = ".pixel" } },
-		{ nvrhi::ShaderType::Compute, { .DXC = L"cs_6_0", .D3D11 = "cs_5_0", .Extension = ".comp" } }
+		{ nvrhi::ShaderType::Vertex,  { .DXC = L"vs_6_0", .D3D11 = "vs_5_0", .Extension = ".vert",  .StageMacro = L"__VERTEX_STAGE__" } },
+		{ nvrhi::ShaderType::Pixel,   { .DXC = L"ps_6_0", .D3D11 = "ps_5_0", .Extension = ".pixel", .StageMacro = L"__PIXEL_STAGE__" } },
+		{ nvrhi::ShaderType::Compute, { .DXC = L"cs_6_0", .D3D11 = "cs_5_0", .Extension = ".comp",  .StageMacro = L"__COMPUTE_STAGE__" } }
 	};
 
 	struct CompilerResult
 	{
+		std::map<nvrhi::ShaderType, std::string> PreprocessedSource;
+
 		std::map<nvrhi::ShaderType, std::vector<uint32_t>> SpirvBinary;
 		std::map<nvrhi::GraphicsAPI, std::map<nvrhi::ShaderType, Buffer>> PlatformBinary;
 

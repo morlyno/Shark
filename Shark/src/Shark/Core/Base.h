@@ -78,7 +78,10 @@
 #endif
 
 #include <stdint.h>
-#include <magic_enum.hpp>
+
+namespace std {
+	inline namespace literals {}
+}
 
 namespace Shark {
 
@@ -88,9 +91,10 @@ namespace Shark {
 	using WindowHandle = void*;
 
 	using namespace std::literals;
-	using namespace magic_enum::bitwise_operators;
 
 }
+
+#include "Shark/Core/Enum.h"
 
 #include "Shark/Core/Allocator.h"
 #include "Shark/Core/Log.h"

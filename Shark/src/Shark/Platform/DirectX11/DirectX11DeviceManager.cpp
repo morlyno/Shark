@@ -1,35 +1,10 @@
 #include "skpch.h"
 #include "DirectX11DeviceManager.h"
+
+#include "Shark/Platform/DirectX11/DirectX11Swapchain.h"
 #include "Shark/Debug/Profiler.h"
 
 namespace Shark {
-
-	class MessageCallback : public nvrhi::IMessageCallback
-	{
-	public:
-		virtual void message(nvrhi::MessageSeverity severity, const char* messageText) override
-		{
-			switch (severity)
-			{
-				case nvrhi::MessageSeverity::Info: SK_CORE_INFO_TAG("nvrhi", messageText); break;
-				case nvrhi::MessageSeverity::Warning: SK_CORE_WARN_TAG("nvrhi", messageText); break;
-				case nvrhi::MessageSeverity::Error: SK_CORE_ERROR_TAG("nvrhi", messageText); break;
-				case nvrhi::MessageSeverity::Fatal: SK_CORE_CRITICAL_TAG("nvrhi", messageText); break;
-			}
-
-			if (severity >= nvrhi::MessageSeverity::Error)
-			{
-				SK_DEBUG_BREAK_CONDITIONAL(s_BREAK_ON_MESSAGE);
-			}
-
-		}
-
-		static MessageCallback& GetInstance()
-		{
-			static MessageCallback instance;
-			return instance;
-		}
-	};
 
 	bool DirectX11DeviceManager::CreateDeviceInternal()
 	{
@@ -40,7 +15,7 @@ namespace Shark {
 			return false;
 		}
 
-		int adapterIndex = m_Sepcification.AdapterIndex;
+		int adapterIndex = m_Specification.AdapterIndex;
 		if (adapterIndex < 0)
 			adapterIndex = 0;
 
@@ -54,7 +29,7 @@ namespace Shark {
 		}
 
 		UINT createFlags = 0;
-		if (m_Sepcification.EnableDebugRuntime)
+		if (m_Specification.EnableDebugRuntime)
 			createFlags |= D3D11_CREATE_DEVICE_DEBUG;
 
 		auto featureLevel = D3D_FEATURE_LEVEL_11_1;
@@ -78,7 +53,24 @@ namespace Shark {
 		deviceDesc.context = m_ImmediateContext;
 		m_NvrhiDevice = nvrhi::d3d11::createDevice(deviceDesc);
 
+		if (!m_Specification.Headless)
+		{
+			auto* window = Window::GetFromHandle(m_Specification.Window);
+
+			SwapChainSpecification specification;
+			specification.Width = window->GetWidth();
+			specification.Height = window->GetHeight();
+			specification.Window = m_Specification.Window;
+			specification.VSync = window->VSyncEnabled();
+			window->SetSwapchain(DirectX11SwapChain::Create(specification));
+		}
+
 		return true;
+	}
+
+	Ref<SwapChain> DirectX11DeviceManager::CreateSwapchain(const SwapChainSpecification& specification)
+	{
+		return Ref<DirectX11SwapChain>::Create(specification);
 	}
 
 	HRESULT DirectX11DeviceManager::CreateSwapChain(DXGI_SWAP_CHAIN_DESC* desc, IDXGISwapChain** outSwapChain)

@@ -2030,7 +2030,7 @@ namespace Shark {
 			sceneName = m_ActiveScene->GetName();
 		}
 
-		std::string title = fmt::format("{} ({}) - Shark-Editor - {} {} ({}) - {}", sceneFilePath, sceneName, Platform::GetPlatformName(), Platform::GetArchitecture(), Platform::GetConfiguration(), RendererAPI::GetCurrentAPI());
+		std::string title = fmt::format("{} ({}) - Shark-Editor - {} {} ({}) - {}", sceneFilePath, sceneName, Platform::GetPlatformName(), Platform::GetArchitecture(), Platform::GetConfiguration(), Renderer::GetDeviceManager()->GetGraphicsAPI());
 		Application::Get().GetWindow().SetTitle(title);
 	}
 

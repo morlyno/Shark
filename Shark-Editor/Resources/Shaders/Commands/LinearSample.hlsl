@@ -21,8 +21,9 @@ struct Settings
 [[vk::push_constant]]
 ConstantBuffer<Settings> u_Settings;
 
-Texture2D<float4> u_Source : register(t0);
+[[vk::image_format("unknown")]]
 RWTexture2D<float4> o_Mips[NUM_LODS] : register(u0);
+Texture2D<float4> u_Source : register(t0);
 
 groupshared float4 s_ReductionData[GROUP_SIZE][GROUP_SIZE];
 

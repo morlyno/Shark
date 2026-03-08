@@ -56,6 +56,10 @@ namespace Shark {
 		void SetDescriptor(const InputKey& key, const InputViewArgs& viewArgs);
 		void SetDescriptor(const InputKey& key, const nvrhi::TextureSubresourceSet& subresource, nvrhi::Format format, nvrhi::TextureDimension dimension);
 
+		void SetFormat(std::string_view name, nvrhi::Format format)                                 { SetDescriptor(GetInputKey(name), { .Format = format }); }
+		void SetDimension(std::string_view name, nvrhi::TextureDimension dimension)                 { SetDescriptor(GetInputKey(name), { .Dimension = dimension }); }
+		void SetSubresource(std::string_view name, const nvrhi::TextureSubresourceSet& subresource) { SetDescriptor(GetInputKey(name), { .SubresourceSet = subresource }); }
+
 		void SetInput(std::string_view name, nvrhi::BufferHandle buffer,   uint32_t arrayIndex);
 		void SetInput(std::string_view name, nvrhi::TextureHandle texture, uint32_t arrayIndex);
 		void SetInput(std::string_view name, nvrhi::SamplerHandle sampler, uint32_t arrayIndex);

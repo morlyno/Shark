@@ -9,38 +9,28 @@
 
 namespace Shark::RT {
 
-	static void CacheSetupPipeline_LS_LSA(nvrhi::IDevice* device, ResourceCache* cache)
+	static void CacheSetupPipeline_LS(nvrhi::IDevice* device, ResourceCache* cache)
 	{
 		auto ls = Renderer::GetShaderLibrary()->Get("LinearSample");
-		auto lsa = Renderer::GetShaderLibrary()->Get("LinearSampleArray");
 
 		nvrhi::ComputePipelineDesc lsDesc;
 		lsDesc.CS = ls->GetHandle(nvrhi::ShaderType::Compute);
 		lsDesc.bindingLayouts = ls->GetBindingLayouts();
 
-		nvrhi::ComputePipelineDesc lsaDesc;
-		lsaDesc.CS = lsa->GetHandle(nvrhi::ShaderType::Compute);
-		lsaDesc.bindingLayouts = lsa->GetBindingLayouts();
-
 		cache->Add("Pipeline-LS", device->createComputePipeline(lsDesc));
-		cache->Add("Pipeline-LSA", device->createComputePipeline(lsaDesc));
 	}
 
 	static void CacheSetupNullUAVs(nvrhi::IDevice* device, ResourceCache* cache)
 	{
 		nvrhi::TextureDesc desc;
 		desc.format = nvrhi::Format::RGBA8_UNORM;
+		desc.dimension = nvrhi::TextureDimension::Texture2D;
 		desc.isUAV = true;
+		desc.enableAutomaticStateTracking(nvrhi::ResourceStates::UnorderedAccess);
 
 		cache->Add("UAV-null-0", device->createTexture(desc.setDebugName("UAV-null-0")));
 		cache->Add("UAV-null-1", device->createTexture(desc.setDebugName("UAV-null-1")));
 		cache->Add("UAV-null-2", device->createTexture(desc.setDebugName("UAV-null-2")));
-
-		desc.dimension = nvrhi::TextureDimension::Texture2DArray;
-
-		cache->Add("UAV-Array-null-0", device->createTexture(desc.setDebugName("UAV-Array-null-0")));
-		cache->Add("UAV-Array-null-1", device->createTexture(desc.setDebugName("UAV-Array-null-1")));
-		cache->Add("UAV-Array-null-2", device->createTexture(desc.setDebugName("UAV-Array-null-2")));
 	}
 
 	static void CacheSetupPipelineEnv(nvrhi::IDevice* device, ResourceCache* cache)
@@ -68,7 +58,7 @@ namespace Shark::RT {
 
 	void SetupCache(nvrhi::IDevice* device, ResourceCache* cache)
 	{
-		CacheSetupPipeline_LS_LSA(device, cache);
+		CacheSetupPipeline_LS(device, cache);
 		CacheSetupNullUAVs(device, cache);
 		CacheSetupPipelineEnv(device, cache);
 	}
@@ -140,7 +130,7 @@ namespace Shark::RT {
 
 		graphicsState = nvrhi::GraphicsState();
 		graphicsState.framebuffer = framebuffer->GetHandle();
-		graphicsState.viewport.addViewport(framebuffer->GetViewport());
+		graphicsState.viewport.addViewportAndScissorRect(framebuffer->GetViewport());
 		graphicsState.vertexBuffers.resize(1);
 		graphicsState.bindings.resize(shader->GetBindingLayouts().size());
 
@@ -195,7 +185,9 @@ namespace Shark::RT {
 
 		auto commandList = commandBuffer->GetHandle();
 		commandList->setComputeState(computeState);
-		commandList->setPushConstants(pushConstantData.As<const void>(), pushConstantData.Size);
+
+		if (pushConstantData.Size)
+			commandList->setPushConstants(pushConstantData.As<const void>(), pushConstantData.Size);
 
 		commandList->dispatch(workGroups.x, workGroups.y, workGroups.z);
 	}
@@ -203,7 +195,7 @@ namespace Shark::RT {
 	void RenderGeometry(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, const nvrhi::DrawArguments& drawArguments, Buffer pushConstant)
 	{
 		SK_PROFILE_SCOPED("Renderer - RenderGeometry");
-		SK_CORE_TRACE_TAG("Renderer", "[RT] RenderGeometry '{}' '{}'", material->GetName(), pipeline->GetSpecification().DebugName);
+		SK_CORE_TRACE_TAG("Renderer", "[RT] RenderGeometry '{}' '{}'", material ? material->GetName() : "<null>", pipeline->GetSpecification().DebugName);
 
 		nvrhi::GraphicsState graphicsState = commandBuffer->GetGraphicsState();
 
@@ -226,14 +218,16 @@ namespace Shark::RT {
 
 		auto commandList = commandBuffer->GetHandle();
 		commandList->setGraphicsState(graphicsState);
-		commandList->setPushConstants(pushConstant.As<const void>(), pushConstant.Size);
+		if (pushConstant.Size)
+			commandList->setPushConstants(pushConstant.As<const void>(), pushConstant.Size);
+
 		commandList->drawIndexed(drawArguments);
 	}
 
 	void RenderGeometry(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, const nvrhi::DrawArguments& drawArguments, const Buffer pushConstant)
 	{
 		SK_PROFILE_SCOPED("Renderer - RenderGeometry");
-		SK_CORE_TRACE_TAG("Renderer", "[RT] RenderGeometry '{}' '{}'", material->GetName(), pipeline->GetSpecification().DebugName);
+		SK_CORE_TRACE_TAG("Renderer", "[RT] RenderGeometry '{}' '{}'", material ? material->GetName() : "<null>", pipeline->GetSpecification().DebugName);
 
 		nvrhi::GraphicsState graphicsState = commandBuffer->GetGraphicsState();
 
@@ -252,14 +246,19 @@ namespace Shark::RT {
 
 		auto commandList = commandBuffer->GetHandle();
 		commandList->setGraphicsState(graphicsState);
-		commandList->setPushConstants(pushConstant.As<const void>(), pushConstant.Size);
+		if (pushConstant.Size)
+			commandList->setPushConstants(pushConstant.As<const void>(), pushConstant.Size);
+
 		commandList->drawIndexed(drawArguments);
 	}
 
 	void RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material, const Buffer pushConstantsData)
 	{
+		const auto& submeshes = meshSource->GetSubmeshes();
+		const auto& submesh = submeshes[submeshIndex];
+
 		SK_PROFILE_SCOPED("Renderer - RenderSubmesh");
-		SK_CORE_TRACE_TAG("Renderer", "[RT] RenderSubmesh '{}':{} '{}'", meshSource->GetName(), submeshIndex, material->GetName());
+		SK_CORE_TRACE_TAG("Renderer", "[RT] RenderSubmesh '{}':{}[{}] '{}'", meshSource->GetName(), submesh.MeshName, submeshIndex, material ? material->GetName() : "<null>");
 
 		auto vertexBuffer = meshSource->GetVertexBuffer();
 		auto indexBuffer = meshSource->GetIndexBuffer();
@@ -283,9 +282,6 @@ namespace Shark::RT {
 		drawState.indexBuffer.format = nvrhi::Format::R32_UINT;
 		drawState.indexBuffer.offset = 0;
 
-		const auto& submeshes = meshSource->GetSubmeshes();
-		const auto& submesh = submeshes[submeshIndex];
-
 		nvrhi::DrawArguments drawArgs;
 		drawArgs.vertexCount = submesh.IndexCount;
 		drawArgs.startIndexLocation = submesh.BaseIndex;
@@ -293,7 +289,9 @@ namespace Shark::RT {
 
 		auto commandList = commandBuffer->GetHandle();
 		commandList->setGraphicsState(drawState);
-		commandList->setPushConstants(pushConstantsData.As<const void>(), pushConstantsData.Size);
+		if (pushConstantsData.Size)
+			commandList->setPushConstants(pushConstantsData.As<const void>(), pushConstantsData.Size);
+
 		commandList->drawIndexed(drawArgs);
 	}
 
@@ -302,7 +300,6 @@ namespace Shark::RT {
 	{
 		auto commandList = commandBuffer->GetHandle();
 		commandList->writeBuffer(buffer->GetHandle(), bufferData.As<const void>(), bufferData.Size);
-
 	}
 
 	void WriteImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> image, const ImageSlice& slice, const Buffer imageData)

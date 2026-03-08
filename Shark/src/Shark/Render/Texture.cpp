@@ -126,6 +126,8 @@ namespace Shark {
 
 		m_ViewInfo.Handle = image->GetHandle();
 		m_ViewInfo.SubresourceSet = nvrhi::AllSubresources;
+		m_ViewInfo.Dimension = image->GetViewInfo().Dimension;
+		m_ViewInfo.Format = image->GetViewInfo().Format;
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -162,6 +164,8 @@ namespace Shark {
 
 		m_ViewInfo.Handle = m_Image->GetHandle();
 		m_ViewInfo.SubresourceSet = nvrhi::AllSubresources;
+		m_ViewInfo.Dimension = nvrhi::TextureDimension::TextureCube;
+		m_ViewInfo.Format = m_Image->GetViewInfo().Format;
 	}
 
 	TextureCube::~TextureCube()

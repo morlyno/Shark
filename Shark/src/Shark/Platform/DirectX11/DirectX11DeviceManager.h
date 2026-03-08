@@ -2,16 +2,18 @@
 
 #include "Shark/Render/DeviceManager.h"
 
-#include "nvrhi/nvrhi.h"
-#include "nvrhi/validation.h"
-#include "nvrhi/d3d11.h"
+#include <nvrhi/nvrhi.h>
+#include <nvrhi/d3d11.h>
 
 namespace Shark {
 
 	class DirectX11DeviceManager : public DeviceManager
 	{
 	public:
+		virtual bool CreateInstanceInternal() override { return true; }
 		virtual bool CreateDeviceInternal() override;
+
+		virtual Ref<SwapChain> CreateSwapchain(const SwapChainSpecification& specification) override;
 
 		virtual nvrhi::IDevice* GetDevice() const override { return m_NvrhiDevice; }
 		virtual nvrhi::GraphicsAPI GetGraphicsAPI() const override { return nvrhi::GraphicsAPI::D3D11; }

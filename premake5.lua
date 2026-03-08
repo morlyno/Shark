@@ -29,7 +29,8 @@ workspace "Shark"
 		"IMGUI_DISABLE_OBSOLETE_FUNCTIONS",
 		"IMGUI_DEFINE_MATH_OPERATORS",
 
-		"SK_WITH_DX11"
+		"SK_WITH_DX11",
+		"SK_WITH_VULKAN"
 	}
 
 	filter "action:vs*"

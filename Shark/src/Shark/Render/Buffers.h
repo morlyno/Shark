@@ -11,14 +11,14 @@ namespace Shark {
 	class VertexBuffer : public GpuBuffer
 	{
 	public:
-		static Ref<VertexBuffer> Create(uint64_t size) { return Ref<VertexBuffer>::Create(size); }
-		static Ref<VertexBuffer> Create(const Buffer vertexData) { return Ref<VertexBuffer>::Create(vertexData); }
+		static Ref<VertexBuffer> Create(uint64_t size, nvrhi::CpuAccessMode cpuAccess = nvrhi::CpuAccessMode::None) { return Ref<VertexBuffer>::Create(size, cpuAccess); }
+		static Ref<VertexBuffer> Create(const Buffer vertexData, nvrhi::CpuAccessMode cpuAccess = nvrhi::CpuAccessMode::None) { return Ref<VertexBuffer>::Create(vertexData, cpuAccess); }
 
 		void Resize(uint64_t newSize) { ResizeBuffer(newSize); }
 
 	public:
-		VertexBuffer(uint64_t size);
-		VertexBuffer(const Buffer vertexData);
+		VertexBuffer(uint64_t size, nvrhi::CpuAccessMode cpuAccess);
+		VertexBuffer(const Buffer vertexData, nvrhi::CpuAccessMode cpuAccess);
 		~VertexBuffer();
 
 	};
@@ -26,15 +26,15 @@ namespace Shark {
 	class IndexBuffer : public GpuBuffer
 	{
 	public:
-		static Ref<IndexBuffer> Create(uint32_t count) { return Ref<IndexBuffer>::Create(count); }
-		static Ref<IndexBuffer> Create(const Buffer indexData) { return Ref<IndexBuffer>::Create(indexData); }
+		static Ref<IndexBuffer> Create(uint32_t count, nvrhi::CpuAccessMode cpuAccess = nvrhi::CpuAccessMode::None) { return Ref<IndexBuffer>::Create(count, cpuAccess); }
+		static Ref<IndexBuffer> Create(const Buffer indexData, nvrhi::CpuAccessMode cpuAccess = nvrhi::CpuAccessMode::None) { return Ref<IndexBuffer>::Create(indexData, cpuAccess); }
 
 		void Resize(uint32_t newCount);
 		uint32_t GetCount() const { return m_Count; }
 
 	public:
-		IndexBuffer(uint32_t count);
-		IndexBuffer(const Buffer indexData);
+		IndexBuffer(uint32_t count, nvrhi::CpuAccessMode cpuAccess);
+		IndexBuffer(const Buffer indexData, nvrhi::CpuAccessMode cpuAccess);
 		~IndexBuffer();
 
 	private:

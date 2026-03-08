@@ -216,6 +216,11 @@ namespace Shark {
 			vtxOffset += cmdList->VtxBuffer.Size;
 		}
 
+		Renderer::Submit([swapchain = m_Swapchain]()
+		{
+			swapchain->WaitForImage();
+		});
+
 		m_CommandBuffer->End();
 		m_CommandBuffer->Execute();
 		return true;
@@ -259,6 +264,7 @@ namespace Shark {
 				.setWidth(texture->Width)
 				.setHeight(texture->Height)
 				.setFormat(nvrhi::Format::RGBA8_UNORM)
+				.enableAutomaticStateTracking(nvrhi::ResourceStates::ShaderResource)
 				.setDebugName(fmt::format("ImGui Texture {}", texture->UniqueID));
 
 			auto textureHandle = device->createTexture(textureDesc);
@@ -284,11 +290,7 @@ namespace Shark {
 				auto commandList = commandBuffer->GetHandle();
 				const auto& viewInfo = tex->GetViewInfo();
 
-				commandList->beginTrackingTextureState(viewInfo.Handle, nvrhi::AllSubresources, nvrhi::ResourceStates::Common);
 				commandList->writeTexture(viewInfo.Handle, 0, 0, temp.As<const void>(), pitch);
-				commandList->setPermanentTextureState(viewInfo.Handle, nvrhi::ResourceStates::ShaderResource);
-				commandList->commitBarriers();
-
 				temp.Release();
 			});
 

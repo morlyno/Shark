@@ -28,6 +28,10 @@ namespace Shark {
 
 		virtual void SetTitlebarHitTestCallback(const std::function<void(int, int, bool&)>& callback) = 0;
 
+		virtual void CreateSwapchain() = 0;
+		virtual void SetSwapchain(Ref<SwapChain> swapchain) = 0;
+
+		virtual void BeginFrame() = 0;
 		virtual void SwapBuffers() = 0;
 		virtual void ProcessEvents() = 0;
 

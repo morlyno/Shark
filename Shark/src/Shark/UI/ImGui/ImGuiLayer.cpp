@@ -178,7 +178,10 @@ namespace Shark {
 		specification.Width = (uint32_t)viewport->Size.x;
 		specification.Height = (uint32_t)viewport->Size.y;
 		specification.Window = hwnd;
-		auto swapchain = SwapChain::Create(specification);
+		specification.VSync = false;
+
+		auto deviceManager = Renderer::GetDeviceManager();
+		auto swapchain = deviceManager->CreateSwapchain(specification);
 
 		auto renderer = sknew ImGuiRenderer();
 		renderer->Initialize(swapchain);
@@ -198,24 +201,37 @@ namespace Shark {
 
 	void ImGuiLayer::SetWindowSize(ImGuiViewport* viewport, ImVec2 size)
 	{
+		// #renderer-d3d11 #TODO resize swapchain
+#if 0
 		auto renderer = static_cast<ImGuiRenderer*>(viewport->RendererUserData);
 
 		auto swapchain = renderer->GetSwapchain();
 		swapchain->Resize((uint32_t)size.x, (uint32_t)size.y);
+#endif
 	}
 
 	void ImGuiLayer::RenderWindow(ImGuiViewport* viewport, void*)
 	{
 		auto renderer = static_cast<ImGuiRenderer*>(viewport->RendererUserData);
+		auto swapchain = renderer->GetSwapchain();
+
+		Renderer::Submit([swapchain]()
+		{
+			swapchain->BeginFrame();
+		});
+
 		renderer->Render(viewport);
 	}
 
 	void ImGuiLayer::SwapBuffers(ImGuiViewport* viewport, void*)
 	{
 		auto renderer = static_cast<ImGuiRenderer*>(viewport->RendererUserData);
-
 		auto swapchain = renderer->GetSwapchain();
-		swapchain->Present(false);
+
+		Renderer::Submit([swapchain]()
+		{
+			swapchain->Present();
+		});
 	}
 
 }

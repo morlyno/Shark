@@ -13,7 +13,7 @@ struct MaterialUniforms
     float P0;
 };
 
-ConstantBuffer<MaterialUniforms> u_MaterialUniforms : register(b0, space0);
+ConstantBuffer<MaterialUniforms> u_MaterialUniforms : register(b1, space0);
 
 uniform Texture2D u_AlbedoMap : register(t0, space0);
 uniform Texture2D u_NormalMap : register(t1, space0);

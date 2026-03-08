@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Core/Enum.h"
+
 #include <magic_enum.hpp>
 
 namespace Shark {
@@ -24,6 +26,15 @@ namespace Shark {
 		Application  = BIT(4)
 	};
 
+}
+
+template <>
+struct ::magic_enum::customize::enum_range<Shark::EventCategory> {
+	static constexpr bool is_flags = true;
+};
+
+namespace Shark {
+
 	class Event
 	{
 	public:
@@ -33,7 +44,7 @@ namespace Shark {
 		virtual std::string_view GetName() const = 0;
 		virtual std::string ToString() const { return std::string(GetName()); }
 		virtual EventCategory GetEventCategoryFlags() const = 0;
-		bool IsInCategory(EventCategory category) const { return (GetEventCategoryFlags() & category) == category; }
+		bool IsInCategory(EventCategory category) const { return Enum::HasFlag(GetEventCategoryFlags(), category); }
 
 		template<typename TEvent>
 		TEvent& As()
@@ -96,9 +107,4 @@ struct fmt::formatter<TEvent>
 	{
 		return fmt::format_to(ctx.out(), "{0}", event.ToString());
 	}
-};
-
-template <>
-struct ::magic_enum::customize::enum_range<Shark::EventCategory> {
-	static constexpr bool is_flags = true;
 };

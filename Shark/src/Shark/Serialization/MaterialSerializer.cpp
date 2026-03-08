@@ -57,12 +57,14 @@ namespace Shark {
 			return false;
 		}
 
-		Ref<PBRMaterial> material = PBRMaterial::Create(FileSystem::GetStemString(metadata.FilePath));
+		Ref<PBRMaterial> material = PBRMaterial::Create(FileSystem::GetStemString(metadata.FilePath), true, false);
 		if (!DeserializeFromYAML(material, filedata))
 		{
 			SK_CORE_ERROR_TAG("Serialization", "Failed to deserialize YAML file!\n\tError Message: {}", m_ErrorMsg);
 			return false;
 		}
+
+		material->MT_Bake();
 
 		asset = material;
 		asset->Handle = metadata.Handle;
@@ -111,12 +113,12 @@ namespace Shark {
 			return false;
 		}
 
-		SK_DESERIALIZE_PROPERTY(materialNode, "AlbedoColor", material->GetAlbedoColor(), glm::vec3(1.0f));
-		SK_DESERIALIZE_PROPERTY(materialNode, "Metallic", material->GetMetalness(), 0.0f);
-		SK_DESERIALIZE_PROPERTY(materialNode, "Roughness", material->GetRoughness(), 0.5f);
+		SK_DESERIALIZE_PROPERTY(materialNode, "AlbedoColor", material->GetAlbedoColor());
+		SK_DESERIALIZE_PROPERTY(materialNode, "Metallic", material->GetMetalness());
+		SK_DESERIALIZE_PROPERTY(materialNode, "Roughness", material->GetRoughness());
 
-		bool usingNormalMap;
-		SK_DESERIALIZE_PROPERTY(materialNode, "UsingNormalMap", usingNormalMap, false);
+		bool usingNormalMap = false;
+		SK_DESERIALIZE_PROPERTY(materialNode, "UsingNormalMap", usingNormalMap, true);
 
 		AssetHandle albedoMap, normalMap, metalnessMap, roughnessMap;
 		SK_DESERIALIZE_PROPERTY(materialNode, "AlbedoMap", albedoMap, AssetHandle::Invalid);

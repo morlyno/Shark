@@ -30,6 +30,16 @@ namespace Shark {
 			return hash;
 		}
 
+		static std::string GetSpirvCacheFile(uint64_t shaderID, nvrhi::ShaderType stage)
+		{
+			return fmt::format("Cache/Shaders/spirv/{}{}", shaderID, s_ShaderTypeMappings.at(stage).Extension);
+		}
+
+		static std::string GetPlatformCacheFile(uint64_t shaderID, nvrhi::ShaderType stage, nvrhi::GraphicsAPI gapi)
+		{
+			return fmt::format("Cache/Shaders/{}/{}{}", gapi, shaderID, s_ShaderTypeMappings.at(stage).Extension);
+		}
+
 	}
 
 	void ShaderCache::SaveRegistry()
@@ -110,9 +120,21 @@ namespace Shark {
 				entry.Stages.push_back(info);
 			}
 
+			for (auto includeNode : entryNode["Includes"])
+			{
+				ShaderInclude include;
+				anyFailed |= !YAML::DeserializeProperty(includeNode, "Info.ID", include.Info.ShaderID);
+				anyFailed |= !YAML::DeserializeProperty(includeNode, "Info.Path", include.Info.SourcePath);
+				anyFailed |= !YAML::DeserializeProperty(includeNode, "Hash", include.HashCode);
+
+				if (anyFailed)
+					continue;
+
+				entry.Includes.push_back(include);
+			}
+
 			m_CacheRegistry[entry.Info.ShaderID] = entry;
 		}
-
 	}
 
 	bool ShaderCache::ShaderUpToDate(const ShaderInfo& info) const
@@ -137,7 +159,7 @@ namespace Shark {
 		if (!m_CacheRegistry.contains(info.ShaderID))
 			return CacheStatus::Missing;
 
-		const std::string cacheFile = fmt::format("Cache/Shaders/spirv/{}.{}", info.ShaderID, s_ShaderTypeMappings.at(stageInfo.Stage).Extension);
+		const std::string cacheFile = utils::GetSpirvCacheFile(info.ShaderID, stageInfo.Stage);
 		if (!FileSystem::Exists(cacheFile))
 			CacheStatus::Missing;
 
@@ -147,19 +169,19 @@ namespace Shark {
 
 	CacheStatus ShaderCache::GetCacheStatus(const ShaderInfo& info, nvrhi::ShaderType stage, nvrhi::GraphicsAPI platform) const
 	{
-		const std::string spirvCacheFile = fmt::format("Cache/Shaders/spirv/{}.{}", info.ShaderID, s_ShaderTypeMappings.at(stage).Extension);
-		const std::string d3d11CacheFile = fmt::format("Cache/Shaders/{}/{}.{}", magic_enum::enum_name(platform), info.ShaderID, s_ShaderTypeMappings.at(stage).Extension);
+		const std::string spirvCacheFile = utils::GetSpirvCacheFile(info.ShaderID, stage);
+		const std::string platformCacheFile = utils::GetPlatformCacheFile(info.ShaderID, stage, platform);
 
-		if (!FileSystem::Exists(d3d11CacheFile))
+		if (!FileSystem::Exists(platformCacheFile))
 			return CacheStatus::Missing;
 
 		if (!FileSystem::Exists(spirvCacheFile))
 			return CacheStatus::OutOfDate;
 
 		const uint64_t spirvTime = FileSystem::GetLastWriteTime(spirvCacheFile);
-		const uint64_t d3d11Time = FileSystem::GetLastWriteTime(d3d11CacheFile);
+		const uint64_t platformTime = FileSystem::GetLastWriteTime(platformCacheFile);
 
-		if (d3d11Time < spirvTime)
+		if (platformTime < spirvTime)
 			return CacheStatus::OutOfDate;
 		return CacheStatus::OK;
 	}
@@ -176,7 +198,7 @@ namespace Shark {
 
 	bool ShaderCache::LoadSpirv(const ShaderInfo& info, nvrhi::ShaderType stage, std::vector<uint32_t>& outBinary) const
 	{
-		const std::string cacheFile = fmt::format("Cache/Shaders/spirv/{}.{}", info.ShaderID, s_ShaderTypeMappings.at(stage).Extension);
+		const std::string cacheFile = utils::GetSpirvCacheFile(info.ShaderID, stage);
 
 		ScopedBuffer binary = FileSystem::ReadBinary(cacheFile);
 		if (!binary)
@@ -188,7 +210,7 @@ namespace Shark {
 
 	bool ShaderCache::LoadBinary(const ShaderInfo& info, nvrhi::ShaderType stage, nvrhi::GraphicsAPI platform, Buffer& outBinary) const
 	{
-		const std::string cacheFile = fmt::format("Cache/Shaders/{}/{}.{}", magic_enum::enum_name(platform), info.ShaderID, s_ShaderTypeMappings.at(stage).Extension);
+		const std::string cacheFile = utils::GetPlatformCacheFile(info.ShaderID, stage, platform);
 
 		outBinary = FileSystem::ReadBinary(cacheFile);
 		return outBinary;
@@ -253,14 +275,14 @@ namespace Shark {
 
 	void ShaderCache::SaveSpirv(const ShaderInfo& info, nvrhi::ShaderType stage, std::span<const uint32_t> binary)
 	{
-		const std::string cacheFile = fmt::format("Cache/Shaders/spirv/{}.{}", info.ShaderID, s_ShaderTypeMappings.at(stage).Extension);
+		const std::string cacheFile = utils::GetSpirvCacheFile(info.ShaderID, stage);
 
 		FileSystem::WriteBinary(cacheFile, Buffer::FromArray(binary));
 	}
 
 	void ShaderCache::SaveBinary(const ShaderInfo& info, nvrhi::ShaderType stage, nvrhi::GraphicsAPI platform, const Buffer binary)
 	{
-		const std::string cacheFile = fmt::format("Cache/Shaders/{}/{}.{}", magic_enum::enum_name(platform), info.ShaderID, s_ShaderTypeMappings.at(stage).Extension);
+		const std::string cacheFile = utils::GetPlatformCacheFile(info.ShaderID, stage, platform);
 
 		FileSystem::WriteBinary(cacheFile, binary);
 	}

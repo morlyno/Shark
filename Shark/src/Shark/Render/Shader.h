@@ -6,6 +6,12 @@
 
 #include <nvrhi/nvrhi.h>
 
+template<>
+struct magic_enum::customize::enum_range<nvrhi::ShaderType>
+{
+	static constexpr bool is_flags = true;
+};
+
 namespace Shark {
 
 	class Shader : public RefCount

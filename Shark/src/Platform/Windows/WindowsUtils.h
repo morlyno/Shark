@@ -7,6 +7,8 @@ namespace Shark {
 	public:
 		static std::string TranslateHResult(HRESULT hResult);
 		static void SetThreadName(HANDLE thread, const std::wstring& name);
+
+		static HINSTANCE GetInstanceFromWindow(HWND handle);
 	};
 
 }

@@ -251,12 +251,20 @@ namespace Shark {
 				auto viewable = input.Input.As<ViewableResource>();
 				const auto& view = viewable->GetViewInfo();
 
-				manager->SetDescriptor(
-					key,
-					input.ViewArgs.SubresourceSet.value_or(view.SubresourceSet),
-					input.ViewArgs.Format.value_or(view.Format),
-					input.ViewArgs.Dimension.value_or(view.Dimension)
-				);
+				auto subresourceSet = input.ViewArgs.SubresourceSet.value_or(view.SubresourceSet);
+				auto format = input.ViewArgs.Format.value_or(view.Format);
+				auto dimension = input.ViewArgs.Dimension.value_or(view.Dimension);
+
+				#if 1
+				if (info->Type == ShaderInputType::StorageImage)
+				{
+					SK_CORE_ASSERT(dimension != nvrhi::TextureDimension::Unknown);
+					if (dimension == nvrhi::TextureDimension::TextureCube)
+						dimension = nvrhi::TextureDimension::Texture2DArray;
+				}
+				#endif
+
+				manager->SetDescriptor(key, subresourceSet, format, dimension);
 
 				if (info->Type == ShaderInputType::Texture)
 				{
@@ -420,6 +428,7 @@ namespace Shark {
 			return;
 		}
 
+		SK_CORE_ASSERT(constantBuffer);
 		BindingSetInput& input = m_Inputs.at(inputInfo->GetGraphicsBinding());
 		if (input.IsSame(arrayIndex, constantBuffer))
 			return;
@@ -446,6 +455,7 @@ namespace Shark {
 			return;
 		}
 
+		SK_CORE_ASSERT(storageBuffer);
 		BindingSetInput& input = m_Inputs.at(inputInfo->GetGraphicsBinding());
 		if (input.IsSame(arrayIndex, storageBuffer))
 			return;
@@ -472,6 +482,7 @@ namespace Shark {
 			return;
 		}
 
+		SK_CORE_ASSERT(viewable);
 		BindingSetInput& input = m_Inputs.at(inputInfo->GetGraphicsBinding());
 		if (input.IsSame(arrayIndex, viewable))
 			return;
@@ -498,6 +509,7 @@ namespace Shark {
 			return;
 		}
 
+		SK_CORE_ASSERT(image);
 		BindingSetInput& input = m_Inputs.at(inputInfo->GetGraphicsBinding());
 		if (input.IsSame(arrayIndex, image))
 			return;
@@ -524,6 +536,7 @@ namespace Shark {
 			return;
 		}
 
+		SK_CORE_ASSERT(imageView);
 		BindingSetInput& input = m_Inputs.at(inputInfo->GetGraphicsBinding());
 		if (input.IsSame(arrayIndex, imageView))
 			return;
@@ -550,6 +563,7 @@ namespace Shark {
 			return;
 		}
 
+		SK_CORE_ASSERT(texture);
 		BindingSetInput& input = m_Inputs.at(inputInfo->GetGraphicsBinding());
 		if (input.IsSame(arrayIndex, texture))
 			return;
@@ -576,6 +590,7 @@ namespace Shark {
 			return;
 		}
 
+		SK_CORE_ASSERT(textureCube);
 		BindingSetInput& input = m_Inputs.at(inputInfo->GetGraphicsBinding());
 		if (input.IsSame(arrayIndex, textureCube))
 			return;
@@ -602,6 +617,7 @@ namespace Shark {
 			return;
 		}
 
+		SK_CORE_ASSERT(sampler);
 		BindingSetInput& input = m_Inputs.at(inputInfo->GetGraphicsBinding());
 		if (input.IsSame(arrayIndex, sampler))
 			return;
@@ -628,6 +644,7 @@ namespace Shark {
 			return;
 		}
 
+		SK_CORE_ASSERT(viewable);
 		BindingSetInput& input = m_Inputs.at(info->GetGraphicsBinding());
 		if (input.IsSame(arrayIndex, viewable, viewArgs))
 			return;
@@ -655,6 +672,7 @@ namespace Shark {
 			return;
 		}
 
+		SK_CORE_ASSERT(image);
 		BindingSetInput& input = m_Inputs.at(info->GetGraphicsBinding());
 		if (input.IsSame(arrayIndex, image, viewArgs))
 			return;
@@ -682,6 +700,7 @@ namespace Shark {
 			return;
 		}
 
+		SK_CORE_ASSERT(imageView);
 		BindingSetInput& input = m_Inputs.at(info->GetGraphicsBinding());
 		if (input.IsSame(arrayIndex, imageView, viewArgs))
 			return;
@@ -709,6 +728,7 @@ namespace Shark {
 			return;
 		}
 
+		SK_CORE_ASSERT(texture);
 		BindingSetInput& input = m_Inputs.at(info->GetGraphicsBinding());
 		if (input.IsSame(arrayIndex, texture, viewArgs))
 			return;
@@ -736,6 +756,7 @@ namespace Shark {
 			return;
 		}
 
+		SK_CORE_ASSERT(textureCube);
 		BindingSetInput& input = m_Inputs.at(info->GetGraphicsBinding());
 		if (input.IsSame(arrayIndex, textureCube, viewArgs))
 			return;

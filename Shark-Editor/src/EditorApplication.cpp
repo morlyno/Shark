@@ -42,8 +42,6 @@ namespace Shark {
 		if (argc > 1)
 			startupProject = argv[1];
 
-		RendererAPI::SetAPI(RendererAPIType::DirectX11);
-
 		ApplicationSpecification specification;
 		specification.Name = "Shark-Editor";
 		specification.WindowWidth = 1280;

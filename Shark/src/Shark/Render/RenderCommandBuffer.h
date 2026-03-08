@@ -10,7 +10,7 @@ namespace Shark {
 	class RenderCommandBuffer : public RefCount
 	{
 	public:
-		static Ref<RenderCommandBuffer> Create(const std::string& name) { return Ref<RenderCommandBuffer>::Create(name); }
+		static Ref<RenderCommandBuffer> Create(const std::string& name, bool enableQueries = false) { return Ref<RenderCommandBuffer>::Create(name, enableQueries); }
 
 	public:
 		void Begin();
@@ -29,9 +29,9 @@ namespace Shark {
 		void EndMarker();
 
 		void BeginTimer(std::string_view timerName);
-		void EndTimer(std::string_view timerName);
+		void EndTimer();
 		void RT_BeginTimer(std::string_view timerName);
-		void RT_EndTimer(std::string_view timerName);
+		void RT_EndTimer();
 
 		TimeStep GetGPUExecutionTime() const;
 		TimeStep GetGPUExecutionTime(std::string_view timerName) const;
@@ -39,26 +39,36 @@ namespace Shark {
 		// #Renderer #Investigate Pipeline Statistics are not supported by nvrhi
 
 	public:
-		RenderCommandBuffer(const std::string& name);
+		RenderCommandBuffer(const std::string& name, bool enableQueries);
 		~RenderCommandBuffer();
 
 	private:
 		std::string m_Name;
+		bool m_EnableQueries;
+
+		bool m_DoQuery = false;
+		uint32_t m_LastOpenFrame = ~0u;
+
 		nvrhi::CommandListHandle m_CommandList;
 		nvrhi::GraphicsState m_GraphicsState;
 		nvrhi::ComputeState m_ComputeState;
 
-		struct TimerQueries
-		{
-			nvrhi::TimerQueryHandle m_Timer;
+		using TimerMap = std::map<std::string, nvrhi::TimerQueryHandle, std::ranges::less>;
 
-			std::map<std::string, std::pair<nvrhi::TimerQueryHandle, bool>, std::ranges::less> m_TimerQuery;
-		};
+		std::filesystem::path m_TimerStack;
+		std::string m_LastBegin;
 
-		std::array<TimerQueries, 3> m_Queries;
+		nvrhi::TimerQueryHandle m_CurrentTimer;
+		TimerMap* m_CurrentStack = nullptr;
+
+		std::array<nvrhi::TimerQueryHandle, 3> m_FrameTimer;
+		std::array<TimerMap, 3> m_NamedTimers;
 
 		float m_TimerResult[2];
-		std::map<std::string_view, float> m_TimerResults[2];
+		std::map<std::string_view, float> m_NamedResults[2];
+
+		// Debug
+		std::filesystem::path m_MarkerStack;
 	};
 
 }

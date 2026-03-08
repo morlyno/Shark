@@ -25,9 +25,9 @@ struct PixelOutput
     int ID : SV_Target1;
 };
 
-#pragma stage : Vertex
-
 #include "Core/Bindings/Buffers.hlslh"
+
+#pragma stage : Vertex
 
 VertexToPixel main(VertexInput Input)
 {
@@ -51,7 +51,6 @@ VertexToPixel main(VertexInput Input)
 #pragma stage : Pixel
 
 #include "Core/Bindings/PBRMaterial.hlslh"
-#include "Core/Bindings/Buffers.hlslh"
 
 uniform TextureCube u_IrradianceMap : register(t0, space2);
 uniform TextureCube u_RadianceMap : register(t1, space2);

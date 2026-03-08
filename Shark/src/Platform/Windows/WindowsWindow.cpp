@@ -1,11 +1,12 @@
 #include "skpch.h"
 #include "WindowsWindow.h"
 
+#include "Shark/Render/Renderer.h"
+
 #include "Shark/Input/KeyCodes.h"
 #include "Shark/Input/MouseButtons.h"
 
 #include "Shark/Utils/String.h"
-
 #include "Shark/Debug/Profiler.h"
 
 #include <backends/imgui_impl_win32.h>
@@ -88,9 +89,31 @@ namespace Shark {
 		Shutdown();
 	}
 
+	void WindowsWindow::CreateSwapchain()
+	{
+		auto deviceManager = Renderer::GetDeviceManager();
+
+		SwapChainSpecification swapChainSpecs;
+		swapChainSpecs.Width = m_Specification.Width;
+		swapChainSpecs.Height = m_Specification.Height;
+		swapChainSpecs.Window = m_WindowHandle;
+		swapChainSpecs.Fullscreen = m_Specification.Fullscreen;
+		m_SwapChain = deviceManager->CreateSwapchain(swapChainSpecs);
+	}
+
+	void WindowsWindow::SetSwapchain(Ref<SwapChain> swapchain)
+	{
+		m_SwapChain = swapchain;
+	}
+
+	void WindowsWindow::BeginFrame()
+	{
+		m_SwapChain->BeginFrame();
+	}
+
 	void WindowsWindow::SwapBuffers()
 	{
-		m_SwapChain->Present(m_Specification.VSync);
+		m_SwapChain->Present();
 	}
 
 	void WindowsWindow::ProcessEvents()
@@ -194,8 +217,6 @@ namespace Shark {
 #if TODO // #Renderer #Disabled
 			m_SwapChain->SetFullscreen(fullscreen);
 #endif
-			// NOTE(moro): should this really be hear?
-			m_SwapChain->Resize(width, height);
 		}
 	}
 
@@ -283,6 +304,11 @@ namespace Shark {
 		m_CursorMode = mode;
 	}
 
+	HINSTANCE WindowsWindow::GetNativeInstance() const
+	{
+		return m_WindowClass->GetHInstance();
+	}
+
 	void WindowsWindow::CaptureCursor()
 	{
 		RECT rect;
@@ -331,13 +357,6 @@ namespace Shark {
 		UpdateWindow(m_WindowHandle);
 
 		SetFullscreen(m_Specification.Fullscreen);
-
-		SwapChainSpecification swapChainSpecs;
-		swapChainSpecs.Width = m_Specification.Width;
-		swapChainSpecs.Height = m_Specification.Height;
-		swapChainSpecs.Window = m_WindowHandle;
-		swapChainSpecs.Fullscreen = m_Specification.Fullscreen;
-		m_SwapChain = SwapChain::Create(swapChainSpecs);
 	}
 
 	void WindowsWindow::Shutdown()

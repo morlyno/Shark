@@ -13,14 +13,24 @@ namespace Shark {
 	class DirectX11SwapChain : public SwapChain
 	{
 	public:
+		static Ref<DirectX11SwapChain> Create(const SwapChainSpecification& specification) { return Ref<DirectX11SwapChain>::Create(specification); }
+
 		DirectX11SwapChain(const SwapChainSpecification& specification);
 		~DirectX11SwapChain();
 
-		virtual void Present(bool vSync) override;
-		virtual void Resize(uint32_t width, uint32_t height) override;
+		virtual void BeginFrame() override {}
+		virtual void Present() override;
+		virtual void WaitForImage() override {}
+
+		virtual uint32_t GetImageCount() const { return 1; };
+		virtual uint32_t GetCurrentBufferIndex() const { return 0; };
+
+		virtual nvrhi::ITexture* GetCurrentImage() { return GetImage(0); }
+		virtual nvrhi::ITexture* GetImage(uint32_t index) { return m_SwapchainTexture; }
+		virtual nvrhi::IFramebuffer* GetCurrentFramebuffer() { return GetFramebuffer(0); }
+		virtual nvrhi::IFramebuffer* GetFramebuffer(uint32_t index) { return m_Framebuffer; }
 
 		virtual const nvrhi::FramebufferInfo& GetFramebufferInfo() const override { return m_FramebufferInfo; };
-		virtual nvrhi::IFramebuffer* GetCurrentFramebuffer() override { return m_Framebuffer; }
 
 	private:
 		void CreateSwapchain();

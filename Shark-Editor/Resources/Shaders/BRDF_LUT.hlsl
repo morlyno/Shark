@@ -10,6 +10,7 @@ static const float Epsilon = 0.00001;
 static const uint NumSamples = 1024;
 static const float InvNumSamples = 1.0 / float(NumSamples);
 
+[[vk::image_format("rg16f")]]
 RWTexture2D<float2> o_LUT : register(u0, space0);
 
 // Compute Van der Corput radical inverse

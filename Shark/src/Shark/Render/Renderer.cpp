@@ -43,8 +43,8 @@ namespace Shark {
 		ShaderCache m_ShaderCache;
 		std::unordered_map<uint64_t, ShaderDependencies> m_ShaderDependencies;
 
-		uint32_t m_FrameIndex = (uint32_t)-1;
-		uint32_t m_RTFrameIndex = (uint32_t)-1;
+		uint32_t m_FrameIndex = 0;
+		uint32_t m_RTFrameIndex = 0;
 	};
 
 	static RendererConfig s_Config = {};
@@ -117,7 +117,6 @@ namespace Shark {
 		shaderLibrary->Load("resources/Shaders/Commands/CmdBlitImage.hlsl");
 		shaderLibrary->Load("resources/Shaders/Commands/CmdBlitImageArray.hlsl");
 		shaderLibrary->Load("Resources/Shaders/Commands/LinearSample.hlsl");
-		shaderLibrary->Load("Resources/Shaders/Commands/LinearSampleArray.hlsl");
 
 		shaderLibrary->Load("Resources/Shaders/ImGui.hlsl");
 		s_Data->m_ShaderCache.SaveRegistry();
@@ -205,8 +204,6 @@ namespace Shark {
 			nullUAVSpec.Layers = 2;
 			s_Data->m_NullArrayUAVs[i] = Image2D::Create(nullUAVSpec);
 		}
-
-		Renderer::WaitAndRender();
 	}
 
 	void Renderer::ShutDown()
@@ -215,6 +212,8 @@ namespace Shark {
 
 		// execute any remaining commands (usually there are none)
 		Renderer::WaitAndRender();
+
+		GetGraphicsDevice()->waitForIdle();
 
 		s_Data->m_ShaderCache.SaveRegistry();
 
@@ -247,17 +246,26 @@ namespace Shark {
 	void Renderer::BeginFrame()
 	{
 		s_Data->m_FrameIndex++;
+		SK_CORE_TRACE_TAG("Renderer", " ===== Begin frame {} ===== ", s_Data->m_FrameIndex);
+
 		Renderer::Submit([]()
 		{
 			s_Data->m_RTFrameIndex++;
+			SK_CORE_TRACE_TAG("Renderer", " ===== [RT] Begin frame {} ===== ", s_Data->m_RTFrameIndex);
 
-			auto device = GetGraphicsDevice();
-			device->runGarbageCollection();
+			auto deviceManager = GetDeviceManager();
+			deviceManager->RunGarbageCollection();
 		});
 	}
 
 	void Renderer::EndFrame()
 	{
+		SK_CORE_TRACE_TAG("Renderer", " ===== End frame {} ===== ", s_Data->m_FrameIndex);
+
+		Renderer::Submit([]()
+		{
+			SK_CORE_TRACE_TAG("Renderer", " ===== [RT] End frame {} ===== ", s_Data->m_RTFrameIndex);
+		});
 	}
 
 	void Renderer::WaitAndRender()
@@ -356,7 +364,7 @@ namespace Shark {
 
 	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, Buffer pushConstant)
 	{
-		SK_CORE_TRACE_TAG("Renderer", "[RT] RenderGeometry '{}' '{}'", material->GetName(), pipeline->GetSpecification().DebugName);
+		SK_CORE_TRACE_TAG("Renderer", "RenderGeometry '{}' '{}'", material ? material->GetName() : "<null>", pipeline->GetSpecification().DebugName);
 
 		Submit([commandBuffer, pipeline, material, vertexBuffer, indexBuffer, indexCount, temp = Buffer::Copy(pushConstant)]() mutable
 		{
@@ -367,7 +375,7 @@ namespace Shark {
 
 	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, const nvrhi::DrawArguments& drawArguments, Buffer pushConstant)
 	{
-		SK_CORE_TRACE_TAG("Renderer", "[RT] RenderGeometry '{}' '{}'", material->GetName(), pipeline->GetSpecification().DebugName);
+		SK_CORE_TRACE_TAG("Renderer", "RenderGeometry '{}' '{}'", material ? material->GetName() : "<null>", pipeline->GetSpecification().DebugName);
 
 		Submit([commandBuffer, pipeline, material, vertexBuffer, indexBuffer, drawArguments, temp = Buffer::Copy(pushConstant)]() mutable
 		{
@@ -378,7 +386,7 @@ namespace Shark {
 
 	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount, const Buffer pushConstant)
 	{
-		SK_CORE_TRACE_TAG("Renderer", "[RT] RenderGeometry '{}' '{}'", material->GetName(), pipeline->GetSpecification().DebugName);
+		SK_CORE_TRACE_TAG("Renderer", "RenderGeometry '{}' '{}'", material->GetName(), pipeline->GetSpecification().DebugName);
 
 		Submit([commandBuffer, pipeline, material, vertexBuffer, vertexCount, temp = Buffer::Copy(pushConstant)]() mutable
 		{
@@ -389,7 +397,7 @@ namespace Shark {
 
 	void Renderer::RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material, const Buffer pushConstantsData)
 	{
-		SK_CORE_TRACE_TAG("Renderer", "[RT] RenderSubmesh '{}':{} '{}'", meshSource->GetName(), submeshIndex, material->GetName());
+		SK_CORE_TRACE_TAG("Renderer", "RenderSubmesh '{}':{} '{}'", meshSource->GetName(), submeshIndex, material ? material->GetName() : "<null>");
 
 		Submit([commandBuffer, pipeline, mesh, meshSource, submeshIndex, material, temp = Buffer::Copy(pushConstantsData)]() mutable
 		{
@@ -534,7 +542,7 @@ namespace Shark {
 	void Renderer::BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage, const BlitImageParams& params, FilterMode filterMode)
 	{
 		SK_PROFILE_SCOPED("Renderer - BlitImage");
-		SK_CORE_TRACE_TAG("Renderer", "[RT] BlitImage '{}' -> '{}'", sourceImage->GetSpecification().DebugName, destinationImage->GetSpecification().DebugName);
+		SK_CORE_TRACE_TAG("Renderer", "BlitImage '{}' -> '{}'", sourceImage->GetSpecification().DebugName, destinationImage->GetSpecification().DebugName);
 
 		SK_CORE_VERIFY(destinationImage->GetSpecification().Usage == ImageUsage::Storage);
 		auto shader = Renderer::GetShaderLibrary()->Get(params.LayerCount == 1 ? "CmdBlitImage" : "CmdBlitImageArray");
@@ -585,7 +593,7 @@ namespace Shark {
 		SK_PROFILE_SCOPED("Renderer - GenerateMips");
 		SK_CORE_TRACE_TAG("Renderer", "GenerateMips '{}':({}, {}):{}", targetImage->GetSpecification().DebugName, targetImage->GetWidth(), targetImage->GetHeight(), targetImage->GetSpecification().MipLevels);
 
-		auto shader = targetImage->GetSpecification().Layers == 1 ? Renderer::GetShaderLibrary()->Get("LinearSample") : Renderer::GetShaderLibrary()->Get("LinearSampleArray");
+		auto shader = Renderer::GetShaderLibrary()->Get("LinearSample");
 
 		auto pipeline = ComputePipeline::Create(shader, "GenerateMips");
 		auto pass = ComputePass::Create(shader, "GenerateMips");
@@ -594,10 +602,7 @@ namespace Shark {
 
 		const uint32_t layers = targetImage->GetSpecification().Layers;
 		const uint32_t mipLevels = targetImage->GetSpecification().MipLevels;
-		const nvrhi::TextureDimension textureDimension = layers == 1 ? nvrhi::TextureDimension::Texture2D : nvrhi::TextureDimension::Texture2DArray;
-
-		float targetMipWidth = (float)targetImage->GetWidth();
-		float targetMipHeight = (float)targetImage->GetHeight();
+		const nvrhi::TextureDimension textureDimension = nvrhi::TextureDimension::Texture2D;
 
 		auto dstSubresource = nvrhi::TextureSubresourceSet(0, 1, 0, 1);
 		auto srcSubresource = nvrhi::TextureSubresourceSet(0, 1, 0, 1);
@@ -614,6 +619,9 @@ namespace Shark {
 
 			dstSubresource.baseArraySlice = layer;
 			srcSubresource.baseArraySlice = layer;
+
+			float targetMipWidth = static_cast<float>(targetImage->GetWidth());
+			float targetMipHeight = static_cast<float>(targetImage->GetHeight());
 
 			for (uint32_t baseMip = 1, dispatch = 0; baseMip < mipLevels; baseMip += NUM_LODS, dispatch++)
 			{
@@ -637,7 +645,7 @@ namespace Shark {
 					}
 					else
 					{
-						material->Set("o_Mips", targetImage->GetSpecification().Layers == 1 ? s_Data->m_NullUAVs[i - 1] : s_Data->m_NullArrayUAVs[i - 1], i);
+						material->Set("o_Mips", s_Data->m_NullUAVs[i - 1], i);
 					}
 				}
 
@@ -925,7 +933,7 @@ namespace Shark {
 		const auto& targetDesc = targetImage->GetHandle()->getDesc();
 		const uint32_t layers = targetDesc.arraySize;
 		const uint32_t mipLevels = targetDesc.mipLevels;
-		const auto textureDimension = layers == 1 ? nvrhi::TextureDimension::Texture2D : nvrhi::TextureDimension::Texture2DArray;
+		const auto textureDimension = nvrhi::TextureDimension::Texture2D;
 		const auto format = ImageUtils::ConvertToWritableFormat(targetDesc.format);
 
 		Ref<Shader> shader;
@@ -933,7 +941,7 @@ namespace Shark {
 		std::array<nvrhi::TextureHandle, 3> nullUAVs;
 
 		auto* cache = Renderer::GetResourceCache();
-		if (layers == 1)
+		if (true)
 		{
 			shader = Renderer::GetShaderLibrary()->Get("LinearSample");
 			pipeline = cache->Get<nvrhi::IComputePipeline>("Pipeline-LS");
@@ -941,16 +949,6 @@ namespace Shark {
 				cache->Get<nvrhi::ITexture>("UAV-null-0"),
 				cache->Get<nvrhi::ITexture>("UAV-null-1"),
 				cache->Get<nvrhi::ITexture>("UAV-null-2")
-			};
-		}
-		else
-		{
-			shader = Renderer::GetShaderLibrary()->Get("LinearSampleArray");
-			pipeline = cache->Get<nvrhi::IComputePipeline>("Pipeline-LSA");
-			nullUAVs = {
-				cache->Get<nvrhi::ITexture>("UAV-Array-null-0"),
-				cache->Get<nvrhi::ITexture>("UAV-Array-null-1"),
-				cache->Get<nvrhi::ITexture>("UAV-Array-null-2")
 			};
 		}
 
@@ -1066,6 +1064,7 @@ namespace Shark {
 		specification.MipLevels = targetDesc.mipLevels;
 		specification.Layers = targetDesc.arraySize;
 		specification.Usage = ImageUsage::Storage;
+		specification.DebugName = fmt::format("TEMP - GenerateMips - '{}'", targetImage->GetSpecification().DebugName);
 		Ref<Image2D> newTarget = Image2D::Create(specification);
 
 		Renderer::RT_CopyMip(commandBuffer, targetImage, 0, newTarget, 0);
@@ -1094,7 +1093,7 @@ namespace Shark {
 		SK_CORE_VERIFY(radianceTarget->GetSpecification().Format == ImageFormat::RGBA32F && irradianceTarget->GetSpecification().Format == ImageFormat::RGBA32F);
 
 		SK_PROFILE_SCOPED("Renderer - CreateEnvironmentMap");
-		SK_CORE_TRACE_TAG("renderer", "[RT] CreateEnvironmentMap '{}'", filepath);
+		SK_CORE_TRACE_TAG("Renderer", "[RT] CreateEnvironmentMap '{}'", filepath);
 
 		/////////////////////////////////////////////////
 		/// Setupt
@@ -1137,6 +1136,7 @@ namespace Shark {
 			DescriptorSetManager manager(equirectToCubeShader, 0);
 			manager.SetInput("u_Equirect", equirectangular->GetHandle(), 0);
 			manager.SetInput("o_CubeMap", unfiltered->GetHandle(), 0);
+			manager.SetDimension("o_CubeMap", nvrhi::TextureDimension::Texture2DArray);
 			SK_CORE_VERIFY(manager.Validate());
 			manager.Bake();
 
@@ -1177,7 +1177,7 @@ namespace Shark {
 				const uint32_t workGroups = glm::max(1u, size / 32);
 				const float roughness = glm::max(i * delta, 0.05f);
 
-				set0.SetDescriptor("o_Filtered", nvrhi::TextureSubresourceSet(i, 1, 0, nvrhi::TextureSubresourceSet::AllArraySlices));
+				set0.SetDescriptor("o_Filtered", nvrhi::TextureSubresourceSet(i, 1, 0, nvrhi::TextureSubresourceSet::AllArraySlices), nvrhi::Format::UNKNOWN, nvrhi::TextureDimension::Texture2DArray);
 				SK_CORE_VERIFY(set0.Validate());
 				set0.Bake();
 
@@ -1195,6 +1195,7 @@ namespace Shark {
 			DescriptorSetManager manager(irradianceShader, 0);
 			manager.SetInput("u_Radiance", radianceTarget->GetHandle(), 0);
 			manager.SetInput("o_Irradiance", irradianceTarget->GetHandle(), 0);
+			manager.SetDimension("o_Irradiance", nvrhi::TextureDimension::Texture2DArray);
 			SK_CORE_VERIFY(manager.Validate());
 			manager.Bake();
 
@@ -1217,7 +1218,7 @@ namespace Shark {
 	std::pair<Ref<TextureCube>, Ref<TextureCube>> Renderer::RT_CreateEnvironmentMap(Ref<RenderCommandBuffer> commandBuffer, const std::filesystem::path& filepath)
 	{
 		SK_PROFILE_SCOPED("Renderer - CreateEnvironmentMap");
-		SK_CORE_TRACE_TAG("renderer", "[RT] CreateEnvironmentMap '{}'", filepath);
+		SK_CORE_TRACE_TAG("Renderer", "[RT] CreateEnvironmentMap '{}'", filepath);
 
 		auto device = Renderer::GetGraphicsDevice();
 
@@ -1486,6 +1487,7 @@ namespace Shark {
 		Renderer::Dispatch(commandBuffer, pipeline, { imageSize / 32, imageSize / 32, 1 });
 		Renderer::EndComputePass(commandBuffer, pass);
 		commandBuffer->End();
+		commandBuffer->Execute();
 
 		return image;
 	}

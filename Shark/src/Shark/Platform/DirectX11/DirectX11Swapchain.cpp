@@ -21,12 +21,12 @@ namespace Shark {
 
 	}
 
-	void DirectX11SwapChain::Present(bool vSync)
+	void DirectX11SwapChain::Present()
 	{
 		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("SwapChain Present");
 
-		const HRESULT hResult = m_Swapchain->Present(vSync ? 1 : 0, 0);
+		const HRESULT hResult = m_Swapchain->Present(m_Specification.VSync ? 1 : 0, 0);
 
 		bool forceResize = false;
 		if (hResult == DXGI_ERROR_INVALID_CALL)
@@ -47,23 +47,13 @@ namespace Shark {
 		}
 	}
 
-	void DirectX11SwapChain::Resize(uint32_t width, uint32_t height)
-	{
-		m_Specification.Width = width;
-		m_Specification.Height = height;
-		RT_ResizeSwapChain();
-	}
-
 	void DirectX11SwapChain::CreateSwapchain()
 	{
-		DirectX11DeviceManager* deviceManager = (DirectX11DeviceManager*)Application::Get().GetDeviceManager();
+		auto* deviceManager = (DirectX11DeviceManager*)Application::Get().GetDeviceManager();
 		const auto& deviceSpec = deviceManager->GetSpecification();
 
-		if (m_Specification.BufferCount == 0)
-			m_Specification.BufferCount = deviceSpec.SwapchainBufferCount;
-
 		ZeroMemory(&m_SwapchainDesc, sizeof(m_SwapchainDesc));
-		m_SwapchainDesc.BufferCount = m_Specification.BufferCount;
+		m_SwapchainDesc.BufferCount = deviceSpec.SwapchainBufferCount;
 		m_SwapchainDesc.BufferDesc.Width = m_Specification.Width;
 		m_SwapchainDesc.BufferDesc.Height = m_Specification.Height;
 		m_SwapchainDesc.BufferDesc.RefreshRate.Numerator = 0;
@@ -120,10 +110,13 @@ namespace Shark {
 
 	void DirectX11SwapChain::RT_ResizeSwapChain()
 	{
+		auto* deviceManager = (DirectX11DeviceManager*)Application::Get().GetDeviceManager();
+		const auto& deviceSpec = deviceManager->GetSpecification();
+
 		ReleaseRenderTarget();
 
 		SK_CORE_WARN_TAG("Renderer", "Resizing Swapchain ({}, {})", m_Specification.Width, m_Specification.Height);
-		const HRESULT hResult = m_Swapchain->ResizeBuffers(m_Specification.BufferCount,
+		const HRESULT hResult = m_Swapchain->ResizeBuffers(deviceSpec.SwapchainBufferCount,
 														   m_Specification.Width,
 														   m_Specification.Height,
 														   m_SwapchainDesc.BufferDesc.Format,

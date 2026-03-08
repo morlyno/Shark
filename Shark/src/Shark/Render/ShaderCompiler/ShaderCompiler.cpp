@@ -7,6 +7,7 @@
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/ShaderCompiler/ShaderCache.h"
 #include "Shark/Render/ShaderCompiler/DirectX11ShaderCompiler.h"
+#include "Shark/Render/ShaderCompiler/VulkanShaderCompiler.h"
 
 #include "Shark/Utils/String.h"
 #include "Shark/Utils/std.h"
@@ -22,19 +23,6 @@ namespace Shark {
 	}
 
 	namespace utils {
-
-		static LPCWSTR ShaderStageToMakro(nvrhi::ShaderType stage)
-		{
-			switch (stage)
-			{
-				case nvrhi::ShaderType::Vertex: return L"__VERTEX_STAGE__";
-				case nvrhi::ShaderType::Pixel: return L"__PIXEL_STAGE__";
-				case nvrhi::ShaderType::Compute: return L"__COMPUTE_STAGE__";
-			}
-
-			SK_CORE_ASSERT(false, "Unknown ShaderType");
-			return L"__UNKNOWN_STAGE__";
-		}
 
 		static void SetupDXC()
 		{
@@ -55,6 +43,7 @@ namespace Shark {
 		m_Info.ShaderID = Hash::GenerateFNV(m_Info.SourcePath.generic_string());
 
 		m_PlatformCompilers.push_back(Scope<D3D11::ShaderCompiler>::Create(options));
+		m_PlatformCompilers.push_back(Scope<Vulkan::ShaderCompiler>::Create(options));
 	}
 
 	/*Ref<ShaderCompiler> ShaderCompiler::Load(const std::filesystem::path& sourcePath, const CompilerOptions& options)
@@ -224,7 +213,7 @@ namespace Shark {
 			L"-P",
 			L"-I Resources/Shaders/",
 			L"-I Resources/Shaders/EnvMap",
-			L"-D", utils::ShaderStageToMakro(stage)
+			L"-D", s_ShaderTypeMappings.at(stage).StageMacro
 		};
 
 
@@ -256,6 +245,8 @@ namespace Shark {
 		processed.Source = { static_cast<const char*>(code->GetBufferPointer()), code->GetBufferSize() };
 		processed.Info.HashCode = Hash::GenerateFNV(processed.Source);
 		processed.Info.Stage = stage;
+
+		m_Result->PreprocessedSource[stage] = processed.Source;
 		return true;
 	}
 
@@ -304,11 +295,11 @@ namespace Shark {
 			L"-I Resources/Shaders/EnvMap",
 
 			L"-D", L"__HLSL__",
-			L"-D", utils::ShaderStageToMakro(stage),
+			L"-D", s_ShaderTypeMappings.at(stage).StageMacro,
 
 			L"-spirv",
 			L"-fspv-reflect",
-			L"-fspv-target-env=vulkan1.2",
+			L"-fspv-target-env=vulkan1.3",
 			L"-fspv-preserve-bindings",
 			L"-fspv-preserve-interface",
 		};

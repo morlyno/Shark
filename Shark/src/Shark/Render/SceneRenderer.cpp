@@ -81,7 +81,7 @@ namespace Shark {
 			m_JumpFloodPass[1]->GetTargetFramebuffer()->Resize(m_Specification.Width, m_Specification.Height);
 			m_JumpFloodCompositePass->GetTargetFramebuffer()->Resize(m_Specification.Width, m_Specification.Height);
 
-				// Update invalidated binding sets
+			// Update invalidated binding sets
 			m_GeometryPass->UpdateDescriptors();
 			m_SkyboxPass->UpdateDescriptors();
 			m_CompositePass->UpdateDescriptors();
@@ -90,7 +90,6 @@ namespace Shark {
 			m_JumpFloodPass[0]->UpdateDescriptors();
 			m_JumpFloodPass[1]->UpdateDescriptors();
 			m_JumpFloodCompositePass->UpdateDescriptors();
-
 
 			m_Renderer2D->Resize(m_Specification.Width, m_Specification.Height);
 			m_NeedsResize = false;
@@ -129,7 +128,7 @@ namespace Shark {
 		Renderer::RenderFullScreenQuad(m_CommandBuffer, m_CompositePipeline, nullptr);
 		Renderer::EndRenderPass(m_CommandBuffer, m_CompositePass);
 
-		m_CommandBuffer->EndTimer("CompositePass");
+		m_CommandBuffer->EndTimer();
 		m_CommandBuffer->EndMarker();
 
 		if (m_Options.JumpFlood)
@@ -297,7 +296,7 @@ namespace Shark {
 		Renderer::EndRenderPass(m_CommandBuffer, m_SelectedGeometryPass);
 
 
-		m_CommandBuffer->EndTimer("GeometryPass");
+		m_CommandBuffer->EndTimer();
 		m_CommandBuffer->EndMarker();
 	}
 
@@ -309,7 +308,7 @@ namespace Shark {
 		Renderer::BeginRenderPass(m_CommandBuffer, m_SkyboxPass);
 		Renderer::RenderCube(m_CommandBuffer, m_SkyboxPipeline, nullptr);
 		Renderer::EndRenderPass(m_CommandBuffer, m_SkyboxPass);
-		m_CommandBuffer->EndTimer("SkyboxPass");
+		m_CommandBuffer->EndTimer();
 	}
 
 	void SceneRenderer::JumpFloodPass()
@@ -345,7 +344,7 @@ namespace Shark {
 
 		vertexOverrides.Release();
 
-		m_CommandBuffer->EndTimer("JumpFloodPass");
+		m_CommandBuffer->EndTimer();
 		m_CommandBuffer->EndMarker();
 	}
 
@@ -354,7 +353,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		m_Specification = specification;
-		m_CommandBuffer = RenderCommandBuffer::Create(fmt::format("SceneRenderer - {}", specification.DebugName));
+		m_CommandBuffer = RenderCommandBuffer::Create(fmt::format("SceneRenderer - {}", specification.DebugName), true);
 
 		m_CBScene             = ConstantBuffer::Create(sizeof(CBScene), "Scene");
 		m_CBCamera            = ConstantBuffer::Create(sizeof(CBCamera), "Camera");

@@ -12,6 +12,35 @@
 
 namespace Shark {
 
+	enum class CBItemActionFlag : uint16_t
+	{
+		None = 0,
+		Refresh = BIT(0),
+		Reload = BIT(1),
+		Renamed = BIT(2),
+		StartRenaming = BIT(3),
+		OpenDeleteDialogue = BIT(4),
+		OpenExternal = BIT(5),
+		ShowInExplorer = BIT(6),
+		Activated = BIT(7),
+		DropAccepted = BIT(8)
+	};
+
+	enum class CBItemType
+	{
+		Directory, Asset
+	};
+
+}
+
+template<>
+struct magic_enum::customize::enum_range<Shark::CBItemActionFlag>
+{
+	static constexpr bool is_flags = true;
+};
+
+namespace Shark {
+
 	class ContentBrowserPanel;
 
 	class DirectoryInfo : public RefCount
@@ -42,20 +71,6 @@ namespace Shark {
 		std::vector<std::string> Filenames;
 	};
 
-	enum class CBItemActionFlag : uint16_t
-	{
-		None = 0,
-		Refresh = BIT(0),
-		Reload = BIT(1),
-		Renamed = BIT(2),
-		StartRenaming = BIT(3),
-		OpenDeleteDialogue = BIT(4),
-		OpenExternal = BIT(5),
-		ShowInExplorer = BIT(6),
-		Activated = BIT(7),
-		DropAccepted = BIT(8)
-	};
-
 	struct CBItemAction
 	{
 		bool IsSet(CBItemActionFlag flag) const
@@ -72,11 +87,6 @@ namespace Shark {
 		}
 
 		CBItemActionFlag Flags = CBItemActionFlag::None;
-	};
-
-	enum class CBItemType
-	{
-		Directory, Asset
 	};
 
 	class ContentBrowserItem : public RefCount

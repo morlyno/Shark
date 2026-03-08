@@ -56,13 +56,13 @@ namespace Shark {
 
 	void PBRMaterial::Bake()
 	{
-		SK_CORE_VERIFY(m_Material->Validate());
+		SK_CORE_ASSERT(m_Material->Validate());
 		m_Material->Bake();
 	}
 
 	void PBRMaterial::MT_Bake()
 	{
-		SK_CORE_VERIFY(m_Material->Validate());
+		SK_CORE_ASSERT(m_Material->Validate());
 		m_Material->MT_Bake();
 	}
 
@@ -86,6 +86,7 @@ namespace Shark {
 			m_Material->Set(s_MaterialUniformsName, Buffer::FromValue(m_ActiveState));
 		}
 
+		SK_CORE_ASSERT(m_Material->Validate());
 		m_Material->Update();
 	}
 

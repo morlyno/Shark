@@ -4,8 +4,14 @@
 #include "Shark/Core/Application.h"
 
 #if SK_WITH_DX11
-#include "Shark/Platform/DirectX11/DirectX11DeviceManager.h"
+	#include "Shark/Platform/DirectX11/DirectX11DeviceManager.h"
 #endif
+
+#if SK_WITH_VULKAN
+	#include "Shark/Platform/Vulkan/VulkanDeviceManager.h"
+#endif
+
+#include <nvrhi/validation.h>
 
 namespace Shark {
 
@@ -24,9 +30,7 @@ namespace Shark {
 #endif
 
 #if SK_WITH_VULKAN
-#error Vulkan is not implemented
-			case nvrhi::GraphicsAPI::VULKAN:
-				break;
+			case nvrhi::GraphicsAPI::VULKAN: return Scope<VulkanDeviceManager>::Create();
 #endif
 		}
 
@@ -39,24 +43,70 @@ namespace Shark {
 
 	}
 
+	DeviceManager::~DeviceManager()
+	{
+		m_CommandLists.clear();
+
+		DestroyInternal();
+	}
+
+	nvrhi::CommandListHandle DeviceManager::GetTemporaryCommandList(nvrhi::CommandQueue queue)
+	{
+		return GetOrCreateThreadLocalCommandList(queue);
+	}
+
+	nvrhi::CommandListHandle DeviceManager::GetOrCreateThreadLocalCommandList(nvrhi::CommandQueue queue)
+	{
+		auto threadID = std::this_thread::get_id();
+
+		{
+			std::shared_lock lock(m_CommandListMutex);
+			const auto i = m_CommandLists.find(threadID);
+
+			if (i != m_CommandLists.end() && i->second[queue])
+				return i->second[queue];
+		}
+
+		std::scoped_lock lock(m_CommandListMutex);
+
+		nvrhi::CommandListParameters params;
+		params.queueType = queue;
+		params.enableImmediateExecution = false;
+
+		auto commandList = m_NvrhiDevice->createCommandList(params);
+
+		m_CommandLists[threadID][queue] = commandList;
+		return commandList;
+	}
+
 	bool DeviceManager::CreateDevice(const DeviceSpecification& specification)
 	{
-		m_Sepcification = specification;
-		if (!CreateDeviceInternal())
-			return false;
+		m_Specification = specification;
 
-		if (m_Sepcification.EnableNvrhiValidationLayer)
+		if (!CreateInstanceInternal())
+		{
+			SK_CORE_ERROR_TAG("Renderer", "Failed to create instance");
+			return false;
+		}
+
+		if (!CreateDeviceInternal())
+		{
+			SK_CORE_ERROR_TAG("Renderer", "Failed to create device");
+			return false;
+		}
+
+		if (m_Specification.EnableNvrhiValidationLayer)
 		{
 			m_NvrhiDevice = nvrhi::validation::createValidationLayer(m_NvrhiDevice);
 		}
 
-		m_CommandList = m_NvrhiDevice->createCommandList(
-			nvrhi::CommandListParameters()
-				.setEnableImmediateExecution(true)
-				.setQueueType(nvrhi::CommandQueue::Graphics)
-		);
-
 		return true;
+	}
+
+	void DeviceManager::RunGarbageCollection()
+	{
+		m_NvrhiDevice->runGarbageCollection();
+		RunGarbageCollectionInternal();
 	}
 
 	void DeviceManager::ExecuteCommandList(nvrhi::ICommandList* commandList)
@@ -66,9 +116,9 @@ namespace Shark {
 
 	void DeviceManager::ExecuteCommandListLocked(nvrhi::ICommandList* commandList)
 	{
-		m_ExecutionMutex.lock();
+		LockQueue();
 		m_NvrhiDevice->executeCommandList(commandList);
-		m_ExecutionMutex.unlock();
+		UnlockQueue();
 	}
 
 }

@@ -46,7 +46,7 @@ namespace Shark {
 		uint32_t width = m_Specifications.Width;
 		uint32_t height = m_Specifications.Height;
 
-		m_CommandBuffer = RenderCommandBuffer::Create("Renderer2D");
+		m_CommandBuffer = RenderCommandBuffer::Create("Renderer2D", true);
 		m_CBCamera = ConstantBuffer::Create(sizeof(CBCamera), "Camera2D");
 
 		if (!targetFramebuffer)
@@ -662,7 +662,7 @@ namespace Shark {
 				batchIndex++;
 			}
 			Renderer::EndRenderPass(m_CommandBuffer, m_QuadPass);
-			m_CommandBuffer->EndTimer("QuadPass");
+			m_CommandBuffer->EndTimer();
 		}
 
 		if (m_CircleIndexCount)
@@ -675,7 +675,7 @@ namespace Shark {
 			Renderer::EndRenderPass(m_CommandBuffer, m_CirclePass);
 
 			m_Statistics.DrawCalls++;
-			m_CommandBuffer->EndTimer("CirclePass");
+			m_CommandBuffer->EndTimer();
 		}
 
 		if (m_LineVertexCount)
@@ -688,7 +688,7 @@ namespace Shark {
 			Renderer::EndRenderPass(m_CommandBuffer, m_LinePass);
 
 			m_Statistics.DrawCalls++;
-			m_CommandBuffer->EndTimer("LinePass");
+			m_CommandBuffer->EndTimer();
 		}
 
 		if (m_TextIndexCount)
@@ -703,10 +703,10 @@ namespace Shark {
 			Renderer::EndRenderPass(m_CommandBuffer, m_TextPass);
 
 			m_Statistics.DrawCalls++;
-			m_CommandBuffer->EndTimer("TextPass");
+			m_CommandBuffer->EndTimer();
 		}
 
-		m_CommandBuffer->EndTimer("GeometryPass");
+		m_CommandBuffer->EndTimer();
 	}
 
 	void Renderer2D::AssureQuadVertexDataSize()

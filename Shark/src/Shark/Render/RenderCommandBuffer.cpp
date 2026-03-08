@@ -7,14 +7,14 @@
 
 namespace Shark {
 
-	RenderCommandBuffer::RenderCommandBuffer(const std::string& name)
-		: m_Name(name)
+	RenderCommandBuffer::RenderCommandBuffer(const std::string& name, bool enableQueries)
+		: m_Name(name), m_EnableQueries(enableQueries), m_DoQuery(enableQueries)
 	{
 		auto deviceManager = Application::Get().GetDeviceManager();
 		auto device = deviceManager->GetDevice();
 
 		// NOTE(moro): nvrhi doesn't support deferred command lists for d3d11
-		const bool deferredSupported = device->queryFeatureSupport(nvrhi::Feature::DeferredCommandLists);
+		const bool deferredSupported = true;// device->queryFeatureSupport(nvrhi::Feature::DeferredCommandLists);
 
 		auto desc = nvrhi::CommandListParameters()
 			.setEnableImmediateExecution(!deferredSupported)
@@ -22,8 +22,11 @@ namespace Shark {
 
 		m_CommandList = device->createCommandList(desc);
 
-		for (auto& queries : m_Queries)
-			queries.m_Timer = device->createTimerQuery();
+		if (!m_EnableQueries)
+			return;
+
+		for (auto& queries : m_FrameTimer)
+			queries = device->createTimerQuery();
 	}
 
 	RenderCommandBuffer::~RenderCommandBuffer()
@@ -32,6 +35,8 @@ namespace Shark {
 
 	void RenderCommandBuffer::Begin()
 	{
+		SK_CORE_TRACE_TAG("Renderer", "CommandBuffer open '{}'", m_Name);
+
 		Ref instance = this;
 		Renderer::Submit([instance]()
 		{
@@ -41,6 +46,8 @@ namespace Shark {
 
 	void RenderCommandBuffer::End()
 	{
+		SK_CORE_TRACE_TAG("Renderer", "CommandBuffer close '{}'", m_Name);
+
 		Ref instance = this;
 		Renderer::Submit([instance]()
 		{
@@ -50,6 +57,8 @@ namespace Shark {
 
 	void RenderCommandBuffer::Execute()
 	{
+		SK_CORE_TRACE_TAG("Renderer", "CommandBuffer Execute '{}'", m_Name);
+
 		Ref instance = this;
 		Renderer::Submit([instance]()
 		{
@@ -61,77 +70,93 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		uint32_t index = Renderer::RT_GetCurrentFrameIndex() % m_Queries.size();
-		auto& queries = m_Queries[index];
+		const uint32_t index = Renderer::RT_GetCurrentFrameIndex();
+		if (index == m_LastOpenFrame)
+		{
+			SK_CORE_WARN_TAG("Renderer", "[CommandBuffer '{}'] Opening more than once a frame can produce undefined behavior. Queries disabled for this frame", m_Name);
+			m_DoQuery = false;
+		}
 
-		SK_CORE_TRACE_TAG("Renderer", "CommandBuffer open '{}'", m_Name);
-		Renderer::GetDeviceManager()->GetCommandListMutex().lock();
+		m_LastOpenFrame = index;
+
+		SK_CORE_TRACE_TAG("Renderer", "[RT] CommandBuffer open '{}'", m_Name);
 		m_CommandList->open();
 		m_CommandList->beginMarker(m_Name.c_str());
-		m_CommandList->beginTimerQuery(queries.m_Timer);
+
+		if (!m_DoQuery)
+			return;
+
+		m_CurrentTimer = m_FrameTimer[index % 3];
+		m_CurrentStack = &m_NamedTimers[index % 3];
+
+		const uint32_t resultIndex = Renderer::RT_GetCurrentFrameIndex() % 2;
+		const uint32_t lastResultIndex = (Renderer::RT_GetCurrentFrameIndex() - 1) % 2;
+		auto device = Renderer::GetGraphicsDevice();
+
+		if (device->pollTimerQuery(m_CurrentTimer))
+		{
+			float seconds = device->getTimerQueryTime(m_CurrentTimer);
+			m_TimerResult[resultIndex] = seconds;
+		}
+
+		device->resetTimerQuery(m_CurrentTimer);
+
+		for (auto& [name, timerQuery] : *m_CurrentStack)
+		{
+			if (device->pollTimerQuery(timerQuery))
+			{
+				float seconds = device->getTimerQueryTime(timerQuery);
+
+				if (!m_NamedResults[lastResultIndex].contains(name))
+				{
+					m_NamedResults[resultIndex][name] = seconds;
+				}
+				else
+				{
+					m_NamedResults[resultIndex][name] = m_NamedResults[lastResultIndex][name] * 0.2f + seconds * 0.8f;
+				}
+
+				device->resetTimerQuery(timerQuery);
+			}
+			else
+			{
+				SK_CORE_WARN_TAG("Renderer", "[CommandBuffer '{}'] [{}] Timer {} not ready", m_Name, Renderer::RT_GetCurrentFrameIndex(), name);
+			}
+		}
+
+		m_CommandList->beginTimerQuery(m_CurrentTimer);
 	}
 
 	void RenderCommandBuffer::RT_End()
 	{
 		SK_PROFILE_FUNCTION();
 
-		uint32_t index = Renderer::RT_GetCurrentFrameIndex() % m_Queries.size();
-		auto& queries = m_Queries[index];
+		if (m_DoQuery)
+		{
+			m_CommandList->endTimerQuery(m_CurrentTimer);
 
-		m_CommandList->endTimerQuery(queries.m_Timer);
+			SK_CORE_ASSERT(m_TimerStack.empty());
+		}
+
 		m_CommandList->endMarker();
 		m_CommandList->close();
-		Renderer::GetDeviceManager()->GetCommandListMutex().unlock();
-		SK_CORE_TRACE_TAG("Renderer", "CommandBuffer close '{}'", m_Name);
+		SK_CORE_TRACE_TAG("Renderer", "[RT] CommandBuffer close '{}'", m_Name);
 	}
 
 	void RenderCommandBuffer::RT_Execute()
 	{
 		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("CommandBuffer Execute");
-		SK_CORE_TRACE_TAG("Renderer", "CommandBuffer Execute '{}'", m_Name);
+		SK_CORE_TRACE_TAG("Renderer", "[RT] CommandBuffer Execute '{}'", m_Name);
 
 		auto deviceManager = Application::Get().GetDeviceManager();
 		auto device = deviceManager->GetDevice();
 
-		deviceManager->Lock();
+		deviceManager->LockQueue();
 		deviceManager->ExecuteCommandList(m_CommandList);
-		deviceManager->Unlock();
+		deviceManager->UnlockQueue();
 
-
-		deviceManager->GetCommandListMutex().lock();
-
-		uint32_t index = (Renderer::RT_GetCurrentFrameIndex() + 1) % m_Queries.size();
-		auto& queries = m_Queries[index];
-
-		const uint32_t resultIndex = Renderer::RT_GetCurrentFrameIndex() % 2;
-		{
-			if (device->pollTimerQuery(queries.m_Timer))
-			{
-				m_TimerResult[resultIndex] = device->getTimerQueryTime(queries.m_Timer);
-				device->resetTimerQuery(queries.m_Timer);
-			}
-			else
-				m_TimerResult[resultIndex] = 0.0f;
-		}
-
-		for (auto& [key, timerData] : queries.m_TimerQuery)
-		{
-			auto& [timer, started] = timerData;
-			float time = 0.0f;
-
-			if (started && device->pollTimerQuery(timer))
-			{
-				time = device->getTimerQueryTime(timer);
-				device->resetTimerQuery(timer);
-				started = false;
-			}
-
-			m_TimerResults[resultIndex][key] = time;
-		}
-		deviceManager->GetCommandListMutex().unlock();
-
-		//deviceManager->Unlock();
+		m_DoQuery = m_EnableQueries;
 	}
 
 	void RenderCommandBuffer::BeginMarker(const char* name)
@@ -139,6 +164,7 @@ namespace Shark {
 		Ref instance = this;
 		Renderer::Submit([instance, n = std::string(name)]()
 		{
+			instance->m_MarkerStack /= n;
 			instance->m_CommandList->beginMarker(n.c_str());
 		});
 	}
@@ -149,11 +175,15 @@ namespace Shark {
 		Renderer::Submit([instance]()
 		{
 			instance->m_CommandList->endMarker();
+			instance->m_MarkerStack = instance->m_MarkerStack.parent_path();
 		});
 	}
 
 	void RenderCommandBuffer::BeginTimer(std::string_view timerName)
 	{
+		SK_CORE_ASSERT(m_EnableQueries);
+		SK_CORE_ASSERT(timerName.find_first_of("/\\") == std::string_view::npos);
+
 		Ref instance = this;
 		Renderer::Submit([instance, name = std::string(timerName)]()
 		{
@@ -161,41 +191,52 @@ namespace Shark {
 		});
 	}
 
-	void RenderCommandBuffer::EndTimer(std::string_view timerName)
+	void RenderCommandBuffer::EndTimer()
 	{
+		SK_CORE_ASSERT(m_EnableQueries);
+
 		Ref instance = this;
-		Renderer::Submit([instance, name = std::string(timerName)]()
+		Renderer::Submit([instance]()
 		{
-			instance->RT_EndTimer(name);
+			instance->RT_EndTimer();
 		});
 	}
 
 	void RenderCommandBuffer::RT_BeginTimer(std::string_view timerName)
 	{
-		uint32_t index = Renderer::RT_GetCurrentFrameIndex() % m_Queries.size();
-		auto& queries = m_Queries[index];
+		SK_CORE_ASSERT(m_EnableQueries);
+		SK_CORE_ASSERT(timerName.find_first_of("/\\") == std::string_view::npos);
+		SK_CORE_ASSERT(!timerName.empty());
 
-		auto i = queries.m_TimerQuery.find(timerName);
-		if (i == queries.m_TimerQuery.end())
+		if (!m_DoQuery)
+			return;
+
+		m_LastBegin = timerName;
+		auto i = m_CurrentStack->find(timerName);
+		if (i == m_CurrentStack->end())
 		{
 			auto device = Renderer::GetGraphicsDevice();
-			i = queries.m_TimerQuery.emplace(std::string(timerName), std::pair{ device->createTimerQuery(), false }).first;
+			i = m_CurrentStack->emplace(m_LastBegin, device->createTimerQuery()).first;
 		}
 
-		m_CommandList->beginTimerQuery(i->second.first);
-		i->second.second = true;
+		m_TimerStack /= m_LastBegin;
+		m_CommandList->beginTimerQuery(i->second);
 	}
 
-	void RenderCommandBuffer::RT_EndTimer(std::string_view timerName)
+	void RenderCommandBuffer::RT_EndTimer()
 	{
-		uint32_t index = Renderer::RT_GetCurrentFrameIndex() % m_Queries.size();
-		auto& queries = m_Queries[index];
+		SK_CORE_ASSERT(m_EnableQueries);
 
-		const auto i = queries.m_TimerQuery.find(timerName);
-		if (i == queries.m_TimerQuery.end())
+		if (!m_DoQuery)
 			return;
-		
-		m_CommandList->endTimerQuery(i->second.first);
+
+		const auto i = m_CurrentStack->find(m_LastBegin);
+		if (i == m_CurrentStack->end())
+			return;
+
+		m_TimerStack = m_TimerStack.parent_path();
+		m_LastBegin = m_TimerStack.filename().string();
+		m_CommandList->endTimerQuery(i->second);
 	}
 
 	TimeStep RenderCommandBuffer::GetGPUExecutionTime() const
@@ -207,8 +248,8 @@ namespace Shark {
 	TimeStep RenderCommandBuffer::GetGPUExecutionTime(std::string_view timerName) const
 	{
 		uint32_t resultIndex = Renderer::GetCurrentFrameIndex() % 2;
-		if (m_TimerResults[resultIndex].contains(timerName))
-			return m_TimerResults[resultIndex].at(timerName);
+		if (m_NamedResults[resultIndex].contains(timerName))
+			return m_NamedResults[resultIndex].at(timerName);
 		return 0.0f;
 	}
 

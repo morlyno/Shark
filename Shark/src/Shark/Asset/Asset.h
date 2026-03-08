@@ -16,6 +16,15 @@ namespace Shark {
 		Fallback = BIT(2)
 	};
 
+}
+
+template<>
+struct magic_enum::customize::enum_range<Shark::AssetFlag>
+{
+	static constexpr bool is_flags = true;
+};
+
+namespace Shark {
 
 	class Asset : public RefCount
 	{

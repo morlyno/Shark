@@ -141,7 +141,10 @@ namespace Shark {
 
 		auto device = Renderer::GetGraphicsDevice();
 		m_ImageHandle = device->createTexture(textureDesc);
+
 		m_ViewInfo.Handle = m_ImageHandle;
+		m_ViewInfo.Dimension = textureDesc.dimension;
+		m_ViewInfo.Format = textureDesc.format;
 
 		SK_CORE_TRACE_TAG("Renderer", "Image Invalidated from state. '{}' {} ({}:{})", m_ImageHandle->getDesc().debugName, fmt::ptr(m_ImageHandle.Get()), state.Width, state.Height);
 	}

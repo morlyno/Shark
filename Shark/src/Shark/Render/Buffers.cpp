@@ -3,11 +3,11 @@
 
 namespace Shark {
 	
-	VertexBuffer::VertexBuffer(uint64_t size)
+	VertexBuffer::VertexBuffer(uint64_t size, nvrhi::CpuAccessMode cpuAccess)
 		: GpuBuffer(
 			nvrhi::BufferDesc()
 				.setByteSize(size)
-				.setCpuAccess(nvrhi::CpuAccessMode::Write)
+				.setCpuAccess(cpuAccess)
 				.setIsVertexBuffer(true)
 				.setKeepInitialState(true)
 				.setInitialState(nvrhi::ResourceStates::VertexBuffer)
@@ -15,8 +15,8 @@ namespace Shark {
 	{
 	}
 
-	VertexBuffer::VertexBuffer(const Buffer vertexData)
-		: VertexBuffer(vertexData.Size)
+	VertexBuffer::VertexBuffer(const Buffer vertexData, nvrhi::CpuAccessMode cpuAccess)
+		: VertexBuffer(vertexData.Size, cpuAccess)
 	{
 		RT_Upload(vertexData);
 	}
@@ -25,11 +25,11 @@ namespace Shark {
 	{
 	}
 
-	IndexBuffer::IndexBuffer(uint32_t count)
+	IndexBuffer::IndexBuffer(uint32_t count, nvrhi::CpuAccessMode cpuAccess)
 		: GpuBuffer(
 			nvrhi::BufferDesc()
 				.setByteSize(count * sizeof(uint32_t))
-				.setCpuAccess(nvrhi::CpuAccessMode::Write)
+				.setCpuAccess(cpuAccess)
 				.setIsIndexBuffer(true)
 				.setKeepInitialState(true)
 				.setInitialState(nvrhi::ResourceStates::IndexBuffer)
@@ -38,8 +38,8 @@ namespace Shark {
 	{
 	}
 
-	IndexBuffer::IndexBuffer(const Buffer indexData)
-		: IndexBuffer((uint32_t)indexData.Count<uint32_t>())
+	IndexBuffer::IndexBuffer(const Buffer indexData, nvrhi::CpuAccessMode cpuAccess)
+		: IndexBuffer((uint32_t)indexData.Count<uint32_t>(), cpuAccess)
 	{
 		RT_Upload(indexData);
 	}

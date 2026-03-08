@@ -50,7 +50,7 @@ struct Scene
 // 
 
 [[vk::push_constant]]
-ConstantBuffer<MeshData> u_MeshData;
+ConstantBuffer<MeshData> u_MeshData : register(b0, space0);
 
 ConstantBuffer<Scene> u_Scene : register(b1, space1);
 StructuredBuffer<PointLight> u_PointLights : register(t0, space1);

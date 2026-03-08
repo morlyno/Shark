@@ -30,17 +30,6 @@ namespace Shark {
 		m_Profiler = sknew PerformanceProfiler;
 		m_SecondaryProfiler = sknew PerformanceProfiler;
 
-		m_DeviceManager = DeviceManager::Create(nvrhi::GraphicsAPI::D3D11);
-		m_DeviceManager->CreateDevice(
-			DeviceSpecification{
-				.EnableDebugRuntime = true,
-				.EnableNvrhiValidationLayer = true
-			}
-		);
-
-		Renderer::Init();
-		Renderer::WaitAndRender();
-
 		WindowSpecification windowSpec;
 		windowSpec.Title = specification.Name;
 		windowSpec.Width = specification.WindowWidth;
@@ -54,6 +43,21 @@ namespace Shark {
 			m_Window->Maximize();
 		else
 			m_Window->CenterWindow();
+
+		m_DeviceManager = DeviceManager::Create(nvrhi::GraphicsAPI::VULKAN);
+		m_DeviceManager->CreateDevice(
+			DeviceSpecification{
+				.EnableDebugRuntime = true,
+				.EnableNvrhiValidationLayer = true,
+				.SrgbSurface = false,
+				.Window = m_Window->GetHandle()
+			}
+		);
+
+		SK_CORE_VERIFY(m_DeviceManager->Initialized(), "Failed to initialize the device manager");
+
+		Renderer::Init();
+		Renderer::WaitAndRender();
 
 		if (specification.EnableImGui)
 		{
@@ -135,6 +139,8 @@ namespace Shark {
 
 			if (!m_Minimized)
 			{
+				Window* window = m_Window.Raw();
+				Renderer::Submit([window]() { window->BeginFrame(); });
 				Renderer::BeginFrame();
 
 				for (auto& layer : m_LayerStack)
@@ -146,9 +152,7 @@ namespace Shark {
 				}
 
 				Renderer::EndFrame();
-
-				Application* app = this;
-				Renderer::Submit([app]() { app->m_Window->SwapBuffers(); });
+				Renderer::Submit([window]() { window->SwapBuffers(); });
 
 				m_CPUTime = cpuTimer.Elapsed() - waitAndRenderTime;
 			}

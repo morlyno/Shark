@@ -8,21 +8,28 @@ namespace Shark {
 	struct SwapChainSpecification
 	{
 		uint32_t Width, Height;
-		uint32_t BufferCount = 0;
 		bool Fullscreen = false;
+		bool VSync = true;
+
 		WindowHandle Window;
 	};
 
 	class SwapChain : public RefCount
 	{
 	public:
-		static Ref<SwapChain> Create(const SwapChainSpecification& specification);
+		virtual void BeginFrame() = 0;
+		virtual void Present() = 0;
+		virtual void WaitForImage() = 0;
 
-		virtual void Present(bool vSync) = 0;
-		virtual void Resize(uint32_t width, uint32_t height) = 0;
+		virtual uint32_t GetImageCount() const = 0;
+		virtual uint32_t GetCurrentBufferIndex() const = 0;
+
+		virtual nvrhi::ITexture* GetCurrentImage() = 0;
+		virtual nvrhi::ITexture* GetImage(uint32_t index) = 0;
+		virtual nvrhi::IFramebuffer* GetCurrentFramebuffer() = 0;
+		virtual nvrhi::IFramebuffer* GetFramebuffer(uint32_t index) = 0;
 
 		virtual const nvrhi::FramebufferInfo& GetFramebufferInfo() const = 0;
-		virtual nvrhi::IFramebuffer* GetCurrentFramebuffer() = 0;
 
 #if TODO
 		virtual void SetFullscreen(bool fullscreen) = 0;

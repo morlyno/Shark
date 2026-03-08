@@ -22,6 +22,10 @@ namespace Shark {
 
 		virtual void SetTitlebarHitTestCallback(const std::function<void(int, int, bool&)>& callback) override { m_TitlebarHitTestCallback = callback; }
 
+		virtual void CreateSwapchain() override;
+		virtual void SetSwapchain(Ref<SwapChain> swapchain) override;
+
+		virtual void BeginFrame() override;
 		virtual void SwapBuffers() override;
 		virtual void ProcessEvents() override;
 
@@ -61,6 +65,9 @@ namespace Shark {
 
 		virtual WindowHandle GetHandle() const override { return m_WindowHandle; }
 		virtual Ref<SwapChain> GetSwapChain() const override { return m_SwapChain; }
+
+		HWND GetNativeWindow() const { return m_WindowHandle; }
+		HINSTANCE GetNativeInstance() const;
 
 	public:
 		void CaptureCursor();

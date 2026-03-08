@@ -50,7 +50,6 @@
 // --------------------------------------
 
 // --- Render ---------------------------
-#include "Shark/Render/RendererAPI.h"
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/Renderer2D.h"
 #include "Shark/Render/Buffers.h"
