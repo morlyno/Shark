@@ -215,6 +215,8 @@ namespace Shark {
 											 ImGuiCol_FrameBgActive, 0,
 											 ImGuiCol_FrameBgHovered, 0);
 
+			ImGui::SetKeyboardFocusHere();
+
 			ImGui::SetNextItemWidth(-1.0f);
 			UI::InputText("##rename", s_RenameBuffer, std::size(s_RenameBuffer), ImGuiInputTextFlags_CallbackCharFilter, UI_INPUT_TEXT_FILTER("\\/:*?\"<>|"));
 
@@ -222,9 +224,9 @@ namespace Shark {
 			{
 				Rename(s_RenameBuffer);
 				action.Set(CBItemActionFlag::Renamed);
+				m_IsRenameing = false;
 			}
-
-			if (!ImGui::IsItemActive())
+			else if (ImGui::IsItemDeactivated())
 				m_IsRenameing = false;
 		}
 		else
@@ -340,10 +342,6 @@ namespace Shark {
 	{
 		m_IsRenameing = true;
 		strcpy_s(s_RenameBuffer, m_DisplayName.c_str());
-
-		ImGui::PushID(ImGui::GetIDWithSeed(this, 0));
-		ImGui::ActivateItemByID(ImGui::GetID("##rename"));
-		ImGui::PopID();
 	}
 
 	void ContentBrowserItem::StopRenaming()
