@@ -25,7 +25,7 @@ namespace Shark {
 		template<Concepts::EnumFlag TFlag>
 		constexpr bool HasFlag(TFlag flags, TFlag flag)
 		{
-			return static_cast<TFlag>(Underlying(flags) & Underlying(flags)) == flag;
+			return static_cast<TFlag>(Underlying(flags) & Underlying(flag)) == flag;
 		}
 
 		template<typename E, typename T>
