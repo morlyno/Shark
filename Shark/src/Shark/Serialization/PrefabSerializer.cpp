@@ -1,8 +1,11 @@
 #include "skpch.h"
 #include "PrefabSerializer.h"
 
-#include "Shark/Core/Project.h"
+#include "Shark/Asset/AssetManager/AssetUtilities.h"
+
+#include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Prefab.h"
+
 #include "Shark/Serialization/YAML.h"
 #include "Shark/Serialization/SceneSerializer.h"
 #include "Shark/Serialization/SerializationMacros.h"
@@ -15,7 +18,6 @@ namespace Shark {
 	bool PrefabSerializer::Serialize(Ref<Asset> asset, const AssetMetaData& metadata)
 	{
 		SK_PROFILE_FUNCTION();
-
 		SK_CORE_VERIFY(asset);
 		SK_CORE_INFO_TAG("Serialization", "Serializing Prefab to {}", metadata.FilePath);
 		ScopedTimer timer("Serializing Prefab");
@@ -27,32 +29,40 @@ namespace Shark {
 			return false;
 		}
 
-		return FileSystem::WriteString(Project::GetEditorAssetManager()->GetFilesystemPath(metadata), result);
+		return FileSystem::WriteString(GetAssetFilesystemPath(metadata), result);
 	}
 
-	bool PrefabSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata)
+	bool PrefabSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context)
 	{
 		SK_PROFILE_FUNCTION();
 		SK_CORE_INFO_TAG("Serialization", "Deserializing Prefab from {}", metadata.FilePath);
 		ScopedTimer timer("Loading Prefab");
 
-		if (!Project::GetEditorAssetManager()->HasExistingFilePath(metadata))
+		const auto filesystemPath = context->GetFilesystemPath(metadata);
+		if (!FileSystem::Exists(filesystemPath))
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Path not found! {0}", metadata.FilePath);
+			context->OnFileNotFound(metadata);
 			return false;
 		}
 
-		const std::string filedata = FileSystem::ReadString(Project::GetEditorAssetManager()->GetFilesystemPath(metadata));
+		const std::string filedata = FileSystem::ReadString(filesystemPath);
+		if (filedata.empty())
+		{
+			context->OnFileEmpty(metadata);
+			return false;
+		}
 
 		Ref<Prefab> prefab = Ref<Prefab>::Create();
-		if (!DeserializeFromYAML(prefab, filedata))
+		if (!DeserializeFromYAML(prefab, filedata, context))
 		{
 			SK_CORE_ERROR_TAG("Serialization", "Failed to deserialize Prefab from YAML");
+			context->OnYamlError(metadata);
 			return false;
 		}
 
 		asset = prefab;
 		asset->Handle = metadata.Handle;
+		context->SetStatus(AssetLoadStatus::Ready);
 		return true;
 	}
 
@@ -83,7 +93,7 @@ namespace Shark {
 		return out.c_str();
 	}
 
-	bool PrefabSerializer::DeserializeFromYAML(Ref<Prefab> prefab, const std::string& filedata)
+	bool PrefabSerializer::DeserializeFromYAML(Ref<Prefab> prefab, const std::string& filedata, AssetLoadContext* context)
 	{
 		YAML::Node rootNode = YAML::Load(filedata);
 		if (!rootNode)
@@ -97,7 +107,7 @@ namespace Shark {
 
 		SK_DESERIALIZE_PROPERTY(prefabNode, "RootID", prefab->m_RootEntityID, UUID::Invalid);
 		SK_DESERIALIZE_PROPERTY(prefabNode, "ActiveCameraID", activeCameraID, UUID::Invalid);
-		SK_DESERIALIZE_PROPERTY(prefabNode, "SetActiveCamera", prefab->m_SetActiveCamera, UUID::Invalid);
+		SK_DESERIALIZE_PROPERTY(prefabNode, "SetActiveCamera", prefab->m_SetActiveCamera, false);
 
 		prefab->m_Scene->SetActiveCamera(activeCameraID);
 

@@ -15,6 +15,7 @@ namespace Shark {
 		void MT_Bake();
 		void Update();
 
+		void SetName(const std::string& name) { m_Material->SetName(name); }
 		const std::string& GetName() const { return m_Material->GetName(); }
 		Ref<Material> GetMaterial() const { return m_Material; }
 
@@ -26,7 +27,7 @@ namespace Shark {
 
 		AssetHandle GetNormalMap();
 		void SetNormalMap(AssetHandle handle);
-		void ClearNormalMap();
+		void ClearNormalMap(bool resetUsing = false);
 		bool IsUsingNormalMap();
 		void SetUsingNormalMap(bool value);
 

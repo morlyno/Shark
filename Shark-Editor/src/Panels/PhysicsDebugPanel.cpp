@@ -100,8 +100,8 @@ namespace Shark {
 						{
 							b2Joint* joint = jointEdge->joint;
 							UI::Control("Type", magic_enum::enum_name(joint->GetType()));
-							Entity bodyAEntity = m_Scene->TryGetEntityByUUID((UUID)joint->GetBodyA()->GetUserData().pointer);
-							Entity bodyBEntity = m_Scene->TryGetEntityByUUID((UUID)joint->GetBodyB()->GetUserData().pointer);
+							Entity bodyAEntity = m_Scene->TryGetEntityByUUID(UUID::Make(joint->GetBodyA()->GetUserData().pointer));
+							Entity bodyBEntity = m_Scene->TryGetEntityByUUID(UUID::Make(joint->GetBodyB()->GetUserData().pointer));
 							UI::Control("Body A", (const std::string&)bodyAEntity.GetName());
 							UI::Control("Body B", (const std::string&)bodyBEntity.GetName());
 							UI::Control("Anchor A", fmt::to_string(joint->GetAnchorA()));

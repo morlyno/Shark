@@ -40,11 +40,9 @@ namespace Shark {
 
 		const ImVec2 textureSize = { 64, 64 };
 
-		AsyncLoadResult materialResult = AssetManager::GetAssetAsync<PBRMaterial>(m_MaterialHandle);
-		if (!materialResult.Ready)
+		auto material = AssetManager::GetAssetAsync<PBRMaterial>(m_MaterialHandle);
+		if (!material)
 			return;
-
-		Ref<PBRMaterial> material = materialResult;
 
 		ImGui::Text(fmt::format("Shader: {}", material->GetMaterial()->GetShader()->GetName()));
 		ImGui::Text(fmt::format("Name: {}", material->GetMaterial()->GetName()));
@@ -204,7 +202,7 @@ namespace Shark {
 		if (!AssetManager::IsValidAssetHandle(m_Sphere))
 		{
 			AssetHandle sphereSourceHandle = Project::GetEditorAssetManager()->GetEditorAsset("Resources/Meshes/Default/Sphere.gltf");
-			m_Sphere = AssetManager::CreateMemoryOnlyAsset<Mesh>(sphereSourceHandle);
+			m_Sphere = AssetManager::CreateMemoryOnlyAsset<Mesh>(AssetManager::GetAsset<MeshSource>(sphereSourceHandle));
 		}
 
 		Ref<Mesh> sphere = AssetManager::GetAsset<Mesh>(m_Sphere);

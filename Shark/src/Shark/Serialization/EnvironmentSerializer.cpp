@@ -1,8 +1,6 @@
 #include "skpch.h"
 #include "EnvironmentSerializer.h"
 
-#include "Shark/Core/Project.h"
-
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/Environment.h"
 
@@ -16,16 +14,17 @@ namespace Shark {
 		return true;
 	}
 
-	bool EnvironmentSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata)
+	bool EnvironmentSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context)
 	{
 		SK_PROFILE_FUNCTION();
 		SK_CORE_INFO_TAG("Serialization", "Loading EnvironmentMap from {}", metadata.FilePath);
+
 		ScopedTimer timer("Loading EnvironmentMap");
 
-		const auto filesystemPath = Project::GetEditorAssetManager()->GetFilesystemPath(metadata);
+		const auto filesystemPath = context->GetFilesystemPath(metadata);
 		if (!FileSystem::Exists(filesystemPath))
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Path not found! {}", metadata.FilePath);
+			context->OnFileNotFound(metadata);
 			return false;
 		}
 
@@ -36,6 +35,7 @@ namespace Shark {
 
 		asset = environment;
 		asset->Handle = metadata.Handle;
+		context->SetStatus(AssetLoadStatus::Ready);
 		return true;
 	}
 

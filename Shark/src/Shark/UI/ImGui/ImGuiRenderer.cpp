@@ -310,11 +310,14 @@ namespace Shark {
 
 	nvrhi::IBindingSet* ImGuiRenderer::GetBindingSet(Ref<ViewableResource> viewable)
 	{
+		SK_PROFILE_FUNCTION();
+		SK_PERF_SCOPED("ImGui binding cache");
+
 		auto device = Application::Get().GetDeviceManager()->GetDevice();
 
 		const auto iter = m_BindingsCache.find(viewable->GetViewInfo());
 		if (iter != m_BindingsCache.end())
-			iter->second;
+			return iter->second;
 
 		nvrhi::BindingSetDesc desc;
 		const auto& viewInfo = viewable->GetViewInfo();

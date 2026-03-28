@@ -855,9 +855,9 @@ namespace Shark {
 					AssetHandle handle = registry.TryFind(s_InvalidSceneMetadataFilepath);
 					if (!handle)
 					{
-						handle = 1;
+						handle = AssetHandle::Make(1);
 						while (registry.Contains(handle))
-							handle = handle + 1;
+							handle = AssetHandle::Make(handle + 1);
 
 						SK_CORE_VERIFY(registry.Contains(handle) ? (registry.Read(handle).FilePath == s_InvalidSceneMetadataFilepath) : true);
 
@@ -891,7 +891,7 @@ namespace Shark {
 
 					AssetHandle handle = registry.TryFind(s_InvalidSceneMetadataFilepath);
 					if (!handle)
-						handle = 1;
+						handle = AssetHandle::Make(1);
 
 					ImGui::SetDragDropPayload("Asset", &handle, sizeof(AssetHandle));
 					ImGui::EndDragDropSource();
@@ -1165,6 +1165,7 @@ namespace Shark {
 						}
 						case AssetType::MeshSource:
 						{
+							AssetManager::LoadAssetAsync(handle);
 							m_CreateMeshAssetData = {};
 							m_CreateMeshAssetData.Show = true;
 							m_CreateMeshAssetData.MeshSource = handle;
@@ -1537,7 +1538,7 @@ namespace Shark {
 				AssetHandle meshSource = m_CreateMeshAssetData.MeshSource;
 				if (AssetManager::IsValidAssetHandle(meshSource) && AssetManager::GetAssetType(meshSource) == AssetType::MeshSource)
 				{
-					Ref<Mesh> mesh = Project::GetEditorAssetManager()->CreateAsset<Mesh>(fullPath, meshSource);
+					Ref<Mesh> mesh = Project::GetEditorAssetManager()->CreateAsset<Mesh>(fullPath, AssetManager::GetAsset<MeshSource>(meshSource));
 					Entity entity = m_EditorScene->InstantiateMesh(mesh);
 					SelectionManager::DeselectAll(m_EditorScene->GetID());
 					SelectionManager::Select(m_EditorScene->GetID(), entity.GetUUID());
@@ -1945,8 +1946,6 @@ namespace Shark {
 		m_EditorScene = nullptr;
 
 		m_PanelManager->OnProjectChanged(nullptr);
-
-		Project::GetEditorAssetManager()->PrepareForQuickStop();
 		Project::SetActive(nullptr);
 
 		Application::Get().SubmitToMainThread([this]() { UpdateWindowTitle(); });

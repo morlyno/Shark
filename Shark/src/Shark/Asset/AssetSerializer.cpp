@@ -1,12 +1,12 @@
 #include "skpch.h"
 #include "AssetSerializer.h"
 
+#include "Shark/Core/Application.h"
 #include "Shark/Asset/AssetUtils.h"
 
 #include "Shark/Serialization/SerializerBase.h"
 #include "Shark/Serialization/SceneSerializer.h"
 #include "Shark/Serialization/TextureSerializer.h"
-#include "Shark/Serialization/ScriptSerializers.h"
 #include "Shark/Serialization/Serializers.h"
 #include "Shark/Serialization/MeshSourceSerializer.h"
 #include "Shark/Serialization/MeshSerializer.h"
@@ -36,12 +36,12 @@ namespace Shark {
 		s_Serializers.clear();
 	}
 
-	bool AssetSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata)
+	bool AssetSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context)
 	{
 		if (s_Serializers.contains(metadata.Type))
 		{
 			const auto& serializer = s_Serializers.at(metadata.Type);
-			return serializer->TryLoadAsset(asset, metadata);
+			return serializer->TryLoadAsset(asset, metadata, context);
 		}
 
 		SK_CORE_ASSERT(false, "Serializer not found");
@@ -50,6 +50,7 @@ namespace Shark {
 
 	bool AssetSerializer::Serialize(Ref<Asset> asset, const AssetMetaData& metadata)
 	{
+		SK_CORE_VERIFY(Application::IsMainThread(), "AssetSerializer::Serialize can only be called from the main thread");
 		if (s_Serializers.contains(metadata.Type))
 		{
 			const auto& serializer = s_Serializers.at(metadata.Type);
@@ -58,18 +59,6 @@ namespace Shark {
 
 		SK_CORE_ASSERT(false, "Serializer not found");
 		return false;
-	}
-
-	SerializerBase* AssetSerializer::GetSerializer(AssetType type)
-	{
-		if (s_Serializers.contains(type))
-		{
-			auto& serializer = s_Serializers.at(type);
-			return serializer.Raw();
-		}
-
-		SK_CORE_ASSERT(false, "Serializer not found");
-		return nullptr;
 	}
 
 }

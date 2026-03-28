@@ -8,7 +8,7 @@ namespace Shark {
 	{
 	public:
 		virtual bool Serialize(Ref<Asset> asset, const AssetMetaData& metadata) override;
-		virtual bool TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata) override;
+		virtual bool TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context) override;
 		
 	};
 

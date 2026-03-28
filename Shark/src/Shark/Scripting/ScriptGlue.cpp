@@ -36,7 +36,7 @@ namespace Shark {
 	{
 		auto currentScene = ScriptEngine::Get().GetCurrentSceen();
 		SK_CORE_VERIFY(currentScene, "No active Scene");
-		return currentScene->TryGetEntityByUUID(entityID);
+		return currentScene->TryGetEntityByUUID(UUID::Make(entityID));
 	}
 
 	void ScriptGlue::Initialize(Coral::ManagedAssembly& assembly)
@@ -370,7 +370,7 @@ namespace Shark {
 		Coral::Bool32 Scene_IsEntityValid(uint64_t entityID)
 		{
 			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
-			return currentScene->IsValidEntityID(entityID);
+			return currentScene->IsValidEntityID(UUID::Make(entityID));
 		}
 
 		uint64_t Scene_CreateEntity(Coral::String name)
@@ -392,26 +392,26 @@ namespace Shark {
 
 		uint64_t Scene_InstantiateChildPrefab(AssetHandle handle, uint64_t parentID, glm::vec3* translation, glm::vec3* rotation, glm::vec3* scale)
 		{
-			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
-			Entity parent = currentScene->TryGetEntityByUUID(parentID);
+			Entity parent = GetEntity(parentID);
 			SK_ICALL_VERIFY_PARAMETER(parent);
 			SK_ICALL_VERIFY_PARAMETER_V(handle, AssetManager::IsValidAssetHandle(handle));
 
 			Ref<Prefab> prefab = AssetManager::GetAsset<Prefab>(handle);
 			if (prefab)
 			{
+				auto currentScene = ScriptEngine::Get().GetCurrentSceen();
 				Entity entity = currentScene->InstansitateChild(prefab, parent, translation, rotation, scale);
 				return entity.GetUUID();
 			}
-			return UUID::Invalid;
+			return UUID(UUID::Invalid);
 		}
 
 		void Scene_DestroyEntity(uint64_t entityID)
 		{
-			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
-			Entity entity = currentScene->TryGetEntityByUUID(entityID);
+			Entity entity = GetEntity(entityID);
 			SK_ICALL_VERIFY_PARAMETER(entity);
 
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
 			currentScene->DestroyEntity(entity);
 		}
 
@@ -419,7 +419,7 @@ namespace Shark {
 		{
 			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
 			Entity entity = currentScene->FindEntityByTag(Tag);
-			return entity ? (uint64_t)entity.GetUUID() : UUID::Invalid;
+			return entity ? (uint64_t)entity.GetUUID() : UUID(UUID::Invalid);
 		}
 
 		#pragma endregion
@@ -433,36 +433,29 @@ namespace Shark {
 
 			if (entity && entity.HasParent())
 				return entity.ParentID();
-			return UUID::Invalid;
+			return UUID(UUID::Invalid);
 		}
 
 		void Entity_SetParent(uint64_t entityID, uint64_t parentID)
 		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
 			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
-			if (!currentScene->IsValidEntityID(entityID))
-			{
-				// #TODO(moro): error
-				return;
-			}
 
-			Entity entity = currentScene->GetEntityByID(entityID);
 			if (!parentID)
 			{
 				currentScene->UnparentEntity(entity);
 				return;
 			}
 
-			Entity parent = currentScene->GetEntityByID(parentID);
+			Entity parent = GetEntity(parentID);
 			currentScene->ParentEntity(entity, parent);
 		}
 
 		Coral::Array<uint64_t> Entity_GetChildren(uint64_t entityID)
 		{
-			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
-			if (!currentScene->IsValidEntityID(entityID))
-				return {};
-
-			Entity entity = currentScene->GetEntityByID(entityID);
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
 			const auto& children = entity.Children();
 			auto childrenIDs = Coral::Array<uint64_t>::New(children.size());
 
@@ -474,12 +467,9 @@ namespace Shark {
 
 		Coral::Bool32 Entity_HasComponent(uint64_t entityID, Coral::ReflectionType reflectionType)
 		{
-			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
-			if (!currentScene->IsValidEntityID(entityID))
-				return false;
-
 			Coral::Type& type = reflectionType;
-			Entity entity = currentScene->GetEntityByID(entityID);
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
 			
 			auto hasCompFunc = s_HasComponentFunctions.at(type.GetTypeId());
 			return hasCompFunc(entity);
@@ -487,12 +477,9 @@ namespace Shark {
 
 		void Entity_AddComponent(uint64_t entityID, Coral::ReflectionType reflectionType)
 		{
-			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
-			if (!currentScene->IsValidEntityID(entityID))
-				return;
-
 			Coral::Type& type = reflectionType;
-			Entity entity = currentScene->GetEntityByID(entityID);
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
 
 			auto addCompFunc = s_AddComponentFunctions.at(type.GetTypeId());
 			addCompFunc(entity);
@@ -500,12 +487,9 @@ namespace Shark {
 
 		void Entity_RemoveComponent(uint64_t entityID, Coral::ReflectionType reflectionType)
 		{
-			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
-			if (!currentScene->IsValidEntityID(entityID))
-				return;
-
 			Coral::Type& type = reflectionType;
-			Entity entity = currentScene->GetEntityByID(entityID);
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
 
 			auto removeCompFunc = s_RemoveComponentFunctions.at(type.GetTypeId());
 			removeCompFunc(entity);
@@ -517,21 +501,15 @@ namespace Shark {
 
 		Coral::String TagComponent_GetTag(uint64_t entityID)
 		{
-			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
-			if (!currentScene->IsValidEntityID(entityID))
-				return {};
-
-			Entity entity = currentScene->GetEntityByID(entityID);
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
 			return Coral::String::New(entity.Tag());
 		}
 
 		void TagComponent_SetTag(uint64_t entityID, Coral::String tag)
 		{
-			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
-			if (!currentScene->IsValidEntityID(entityID))
-				return;
-
-			Entity entity = currentScene->GetEntityByID(entityID);
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
 			entity.Tag() = tag;
 		}
 
@@ -541,22 +519,16 @@ namespace Shark {
 
 		void TransformComponent_GetTranslation(uint64_t entityID, glm::vec3* out_Translation)
 		{
-			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
-			if (!currentScene->IsValidEntityID(entityID))
-				return;
-
-			Entity entity = currentScene->GetEntityByID(entityID);
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
 			auto& transform = entity.Transform();
 			*out_Translation = transform.Translation;
 		}
 
 		void TransformComponent_SetTranslation(uint64_t entityID, glm::vec3* translation)
 		{
-			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
-			if (!currentScene->IsValidEntityID(entityID))
-				return;
-
-			Entity entity = currentScene->GetEntityByID(entityID);
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
 			auto& transform = entity.Transform();
 			transform.Translation = *translation;
 
@@ -570,22 +542,16 @@ namespace Shark {
 
 		void TransformComponent_GetRotation(uint64_t entityID, glm::vec3* out_Rotation)
 		{
-			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
-			if (!currentScene->IsValidEntityID(entityID))
-				return;
-
-			Entity entity = currentScene->GetEntityByID(entityID);
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
 			auto& transform = entity.Transform();
 			*out_Rotation = transform.Rotation;
 		}
 
 		void TransformComponent_SetRotation(uint64_t entityID, glm::vec3* rotation)
 		{
-			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
-			if (!currentScene->IsValidEntityID(entityID))
-				return;
-
-			Entity entity = currentScene->GetEntityByID(entityID);
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
 			auto& transform = entity.Transform();
 			transform.Rotation = *rotation;
 
@@ -599,43 +565,31 @@ namespace Shark {
 
 		void TransformComponent_GetScale(uint64_t entityID, glm::vec3* out_Scaling)
 		{
-			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
-			if (!currentScene->IsValidEntityID(entityID))
-				return;
-
-			Entity entity = currentScene->GetEntityByID(entityID);
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
 			auto& transform = entity.Transform();
 			*out_Scaling = transform.Scale;
 		}
 
 		void TransformComponent_SetScale(uint64_t entityID, glm::vec3* scaling)
 		{
-			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
-			if (!currentScene->IsValidEntityID(entityID))
-				return;
-
-			Entity entity = currentScene->GetEntityByID(entityID);
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
 			auto& transform = entity.Transform();
 			transform.Scale = *scaling;
 		}
 
 		void TransformComponent_GetLocalTransform(uint64_t entityID, TransformComponent* out_LocalTransform)
 		{
-			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
-			if (!currentScene->IsValidEntityID(entityID))
-				return;
-
-			Entity entity = currentScene->GetEntityByID(entityID);
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
 			*out_LocalTransform = entity.Transform();
 		}
 
 		void TransformComponent_SetLocalTransform(uint64_t entityID, TransformComponent* localTransform)
 		{
-			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
-			if (!currentScene->IsValidEntityID(entityID))
-				return;
-
-			Entity entity = currentScene->GetEntityByID(entityID);
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
 			entity.Transform() = *localTransform;
 
 			if (entity.HasComponent<RigidBody2DComponent>())
@@ -651,33 +605,30 @@ namespace Shark {
 
 		void TransformComponent_GetWorldTransform(uint64_t entityID, TransformComponent* out_WorldTransform)
 		{
-			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
-			if (!currentScene->IsValidEntityID(entityID))
-				return;
-
-			Entity entity = currentScene->GetEntityByID(entityID);
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
 			if (!entity.HasParent())
 			{
 				*out_WorldTransform = entity.Transform();
 				return;
 			}
 
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
 			glm::mat4 worldTransform = currentScene->GetWorldSpaceTransformMatrix(entity);
 			Math::DecomposeTransform(worldTransform, out_WorldTransform->Translation, out_WorldTransform->Rotation, out_WorldTransform->Scale);
 		}
 
 		void TransformComponent_SetWorldTransform(uint64_t entityID, TransformComponent* worldTransform)
 		{
-			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
-			if (!currentScene->IsValidEntityID(entityID))
-				return;
-
-			Entity entity = currentScene->GetEntityByID(entityID);
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
 			if (!entity.HasParent())
 			{
 				entity.Transform() = *worldTransform;
 				return;
 			}
+
+			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
 
 			entity.Transform() = *worldTransform;
 			currentScene->ConvertToLocaSpace(entity);

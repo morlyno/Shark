@@ -2,6 +2,8 @@
 #include "SceneSerializer.h"
 
 #include "Shark/Asset/AssetManager.h"
+#include "Shark/Asset/AssetManager/AssetUtilities.h"
+
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scripting/ScriptEngine.h"
@@ -61,6 +63,11 @@ namespace Shark {
 	SceneSerializer::SceneSerializer(Ref<Scene> scene)
 		: m_Scene(scene)
 	{
+	}
+
+	Ref<Scene> SceneSerializer::GetScene() const
+	{
+		return m_Scene;
 	}
 
 	void SceneSerializer::Serialize(const std::filesystem::path& filepath)
@@ -789,11 +796,11 @@ namespace Shark {
 		ScopedTimer timer("Serializing Scene");
 
 		SceneSerializer serializer(asset.As<Scene>());
-		serializer.Serialize(Project::GetEditorAssetManager()->GetFilesystemPath(metadata));
+		serializer.Serialize(GetAssetFilesystemPath(metadata));
 		return true;
 	}
 
-	bool SceneAssetSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata)
+	bool SceneAssetSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context)
 	{
 		SK_PROFILE_FUNCTION();
 		SK_CORE_INFO_TAG("Serialization", "Deserializing Scene from {}", metadata.FilePath);
@@ -801,14 +808,16 @@ namespace Shark {
 
 		Ref<Scene> scene = Ref<Scene>::Create();
 		SceneSerializer serializer(scene);
-		if (!serializer.Deserialize(Project::GetEditorAssetManager()->GetFilesystemPath(metadata)))
+		if (!serializer.Deserialize(context->GetFilesystemPath(metadata)))
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Failed to load scene!\n\t - {}\n\t - {}", serializer.GetErrorMessage(), metadata.FilePath);
+			// #TODO better error code and message
+			context->AddError(AssetLoadError::Unknown, serializer.GetErrorMessage());
 			return false;
 		}
 
 		asset = scene;
 		asset->Handle = metadata.Handle;
+		context->SetStatus(AssetLoadStatus::Ready);
 		return true;
 	}
 

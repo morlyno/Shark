@@ -19,8 +19,11 @@ namespace Shark {
 
 		virtual AssetType GetAssetType(AssetHandle handle) override;
 		virtual Ref<Asset> GetAsset(AssetHandle handle) override;
-		virtual AsyncLoadResult<Asset> GetAssetAsync(AssetHandle handle) override;
+		virtual Ref<Asset> GetAssetAsync(AssetHandle handle) override;
 		virtual Threading::Future<Ref<Asset>> GetAssetFuture(AssetHandle handle) override;
+
+		virtual bool WaitForAsset(AssetHandle handle, bool queueLoad = true) override;
+		virtual void LoadAssetAsync(AssetHandle handle) override;
 
 		virtual std::vector<AssetHandle> GetAllAssetsOfType(AssetType assetType) override;
 
@@ -36,11 +39,7 @@ namespace Shark {
 		virtual void DeleteMemoryAsset(AssetHandle handle) override;
 		bool SaveAsset(AssetHandle handle);
 
-		void PrepareForQuickStop();
-		virtual void WaitUntilIdle() override;
 		virtual void SyncWithAssetThread() override;
-
-		Ref<Asset> GetPlaceholder(AssetType assetType);
 
 		template<typename TAsset, typename... TArgs>
 		Ref<TAsset> CreateAsset(const std::filesystem::path& filepath, TArgs&&... args);

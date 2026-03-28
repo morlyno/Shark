@@ -6,6 +6,7 @@
 #include "Shark/Asset/AssetSerializer.h"
 #include "Shark/Asset/AssetUtils.h"
 #include "Shark/Asset/AssetThread/EditorAssetThread.h"
+#include "Shark/Asset/AssetThread/AssetLoadContext.h"
 
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/Mesh.h"
@@ -28,11 +29,6 @@ namespace Shark {
 
 	static AssetMetaData s_NullMetadata;
 
-	static std::map<AssetType, Ref<Asset>(*)()> s_Placeholders = {
-		{ AssetType::Environment, []() -> Ref<Asset> { return Renderer::GetEmptyEnvironment(); } },
-		{ AssetType::Texture, []() -> Ref<Asset> { return Renderer::GetWhiteTexture(); } }
-	};
-
 	EditorAssetManager::EditorAssetManager(Ref<ProjectConfig> projectConfig)
 		: m_Project(projectConfig)
 	{
@@ -41,7 +37,7 @@ namespace Shark {
 
 		AssetThreadSettings settings;
 		settings.MonitorAssets = true;
-		m_AssetThread = Ref<EditorAssetThread>::Create(settings);
+		m_AssetThread = Ref<EditorAssetThread>::Create(projectConfig, settings);
 	}
 
 	EditorAssetManager::~EditorAssetManager()
@@ -71,45 +67,24 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		if (IsMemoryAsset(handle))
+			return m_MemoryOnlyAssets.at(handle);
+
+		if (!WaitForAsset(handle, true))
+			return nullptr;
+
+		return m_LoadedAssets.at(handle);
+	}
+
+	Ref<Asset> EditorAssetManager::GetAssetAsync(AssetHandle handle)
+	{
+		SK_PROFILE_FUNCTION();
+
 		if (!IsValidAssetHandle(handle))
 			return nullptr;
 
 		if (IsMemoryAsset(handle))
 			return m_MemoryOnlyAssets.at(handle);
-
-		AssetMetaData& metadata = m_Registry.Get(handle);
-		if (metadata.Status != AssetStatus::Ready)
-		{
-			if (metadata.Status == AssetStatus::Loading)
-			{
-				Threading::Future future = m_AssetThread->GetFuture(handle);
-				return future.WaitAndGet();
-			}
-
-			Ref<Asset> asset = nullptr;
-			bool success = AssetSerializer::TryLoadAsset(asset, metadata);
-			if (success)
-			{
-				m_LoadedAssets[handle] = asset;
-				metadata.LastWriteTime = FileSystem::GetLastWriteTime(GetFilesystemPath(metadata));
-				metadata.Status = AssetStatus::Ready;
-				m_AssetThread->OnAssetLoaded(metadata);
-			}
-			return asset;
-		}
-
-		return m_LoadedAssets.at(handle);
-	}
-
-	AsyncLoadResult<Asset> EditorAssetManager::GetAssetAsync(AssetHandle handle)
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (!IsValidAssetHandle(handle))
-			return { nullptr, false };
-
-		if (IsMemoryAsset(handle))
-			return { m_MemoryOnlyAssets.at(handle), true };
 
 		AssetMetaData& metadata = m_Registry.Get(handle);
 		if (metadata.Status != AssetStatus::Ready)
@@ -121,10 +96,10 @@ namespace Shark {
 				m_AssetThread->QueueAssetLoad(alr);
 			}
 
-			return { GetPlaceholder(metadata.Type), false };
+			return nullptr;
 		}
 
-		return { m_LoadedAssets.at(handle), true };
+		return m_LoadedAssets.at(handle);
 	}
 
 	Threading::Future<Ref<Asset>> EditorAssetManager::GetAssetFuture(AssetHandle handle)
@@ -152,6 +127,48 @@ namespace Shark {
 		}
 
 		return Threading::Future(m_LoadedAssets.at(handle));
+	}
+
+	bool EditorAssetManager::WaitForAsset(AssetHandle handle, bool queueLoad)
+	{
+		SK_PROFILE_FUNCTION();
+		if (!IsValidAssetHandle(handle))
+			return false;
+		if (IsAssetLoaded(handle))
+			return true;
+
+		if (m_Registry.Get(handle).Status == AssetStatus::Unloaded && !queueLoad)
+			return false;
+
+		auto future = GetAssetFuture(handle);
+
+		if (Application::IsMainThread())
+		{
+			auto& queueSize = m_AssetThread->GetOperations();
+
+			while (!future.Ready())
+			{
+				queueSize.wait(0);
+				SyncWithAssetThread();
+			}
+		}
+
+		future.Wait();
+		return true;
+	}
+
+	void EditorAssetManager::LoadAssetAsync(AssetHandle handle)
+	{
+		if (!IsValidAssetHandle(handle) || IsMemoryAsset(handle))
+			return;
+
+		AssetMetaData& metadata = m_Registry.Get(handle);
+		if (metadata.Status != AssetStatus::Unloaded)
+			return;
+
+		metadata.Status = AssetStatus::Loading;
+		AssetLoadRequest alr(metadata);
+		m_AssetThread->QueueAssetLoad(alr);
 	}
 
 	std::vector<AssetHandle> EditorAssetManager::GetAllAssetsOfType(AssetType assetType)
@@ -194,7 +211,7 @@ namespace Shark {
 		m_LoadedAssets[metadata.Handle] = asset;
 		WriteImportedAssetsToDisc();
 
-		m_AssetThread->OnAssetLoaded(metadata);
+		//m_AssetThread->OnAssetLoaded(metadata);
 
 		SK_CORE_WARN_TAG("AssetManager", "Asset Created (Type: {0}, Handle: 0x{1:x}, FilePath: {2}", metadata.Type, metadata.Handle, metadata.FilePath);
 		return metadata.Handle;
@@ -222,7 +239,7 @@ namespace Shark {
 		asset->Handle = metadata.Handle;
 		m_MemoryOnlyAssets[metadata.Handle] = asset;
 
-		m_AssetThread->OnAssetLoaded(metadata);
+		//m_AssetThread->OnAssetLoaded(metadata);
 
 		SK_CORE_INFO_TAG("AssetManager", "Memory Asset Added (Type: {}, Handle: 0x{:x})", metadata.Type, metadata.Handle);
 		return metadata.Handle;
@@ -479,28 +496,23 @@ namespace Shark {
 		if (AssetSerializer::Serialize(m_LoadedAssets.at(handle), metadata))
 		{
 			metadata.LastWriteTime = FileSystem::GetLastWriteTime(GetFilesystemPath(metadata));
-			m_AssetThread->UpdateLastWriteTime(handle, metadata.LastWriteTime);
+			//m_AssetThread->UpdateLastWriteTime(handle, metadata.LastWriteTime);
 			return true;
 		}
 
 		return false;
 	}
 
-	void EditorAssetManager::PrepareForQuickStop()
-	{
-		m_AssetThread->ForceSleep();
-		m_AssetThread->WaitUntilIdle();
-	}
-
-	void EditorAssetManager::WaitUntilIdle()
-	{
-		m_AssetThread->WaitUntilIdle();
-	}
-
 	void EditorAssetManager::SyncWithAssetThread()
 	{
+		SK_PROFILE_FUNCTION();
+
+		std::vector<Ref<Asset>> pendingAssets;
 		std::vector<AssetLoadRequest> loadedAssets;
-		m_AssetThread->RetrieveLoadedAssets(loadedAssets);
+		m_AssetThread->RetrieveLoadedAssets(loadedAssets, pendingAssets);
+
+		std::ranges::for_each(pendingAssets, [](auto asset) { asset->SetFlag(AssetFlag::AsyncPending, false); });
+		std::ranges::for_each(pendingAssets, std::bind_front(&EditorAssetManager::AddMemoryAsset, this));
 
 		for (AssetLoadRequest& alr : loadedAssets)
 		{
@@ -513,18 +525,21 @@ namespace Shark {
 			m_Registry.Update(alr.Metadata);
 			m_LoadedAssets[alr.Metadata.Handle] = alr.Asset;
 
+			alr.Future.Set(alr.Asset);
+			alr.Future.Signal();
+
 			if (alr.Reload)
 			{
 				Application::Get().DispatchEvent<AssetReloadedEvent>(alr.Metadata.Handle);
 			}
 		}
-	}
 
-	Ref<Asset> EditorAssetManager::GetPlaceholder(AssetType assetType)
-	{
-		if (s_Placeholders.contains(assetType))
-			return s_Placeholders.at(assetType)();
-		return nullptr;;
+		auto& operations = m_AssetThread->GetOperations();
+		operations.fetch_sub(loadedAssets.size());
+		operations.notify_all();
+
+		m_AssetThread->RunTasks();
+		m_AssetThread->DebugLogTimes();
 	}
 
 	const AssetMetaData& EditorAssetManager::GetMetadata(AssetHandle handle) const

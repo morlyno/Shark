@@ -1,7 +1,7 @@
 #include "skpch.h"
 #include "TextureSerializer.h"
 
-#include "Shark/Asset/AssetManager.h"
+#include "Shark/Asset/AssetManager/AssetUtilities.h"
 
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/Texture.h"
@@ -12,6 +12,7 @@
 #include "Shark/Serialization/Import/TextureImporter.h"
 
 #include "Shark/Debug/Profiler.h"
+#include "../Asset/AssetManager.h"
 
 #define SK_SERIALIZATION_ERROR(...) SK_CORE_ERROR_TAG("Serialization", __VA_ARGS__); SK_DEBUG_BREAK();
 
@@ -22,6 +23,21 @@ namespace Shark {
 		static bool ShouldBeSharkTexture(const std::filesystem::path& filepath)
 		{
 			return FileSystem::GetExtensionString(filepath) == ".sktex";
+		}
+
+		static bool LoadImageData(const std::filesystem::path& filepath, TextureSpecification& outSpecification, Buffer& outBuffer)
+		{
+			outBuffer = TextureImporter::ToBufferFromFile(filepath, outSpecification.Format, outSpecification.Width, outSpecification.Height);
+			if (!outBuffer)
+			{
+				outBuffer = TextureImporter::ToBufferFromFile("Resources/Textures/ErrorTexture.png", outSpecification.Format, outSpecification.Width, outSpecification.Height);
+				outSpecification.DebugName += " - Fallback";
+				SK_CORE_VERIFY(outBuffer.Data, "Failed to load error texture as fallback");
+				// NOTE(moro): it's ok to continue if the error texture failed to load
+				//             but THIS SHOULD NEVER HAPPEN!
+				return false;
+			}
+			return true;
 		}
 
 	}
@@ -40,41 +56,61 @@ namespace Shark {
 			return false;
 		}
 
-		std::string filedata = SerializeToYAML(asset.As<Texture2D>());
-
-		const auto filesystemPath = Project::GetEditorAssetManager()->GetFilesystemPath(metadata);
-		FileSystem::WriteString(filesystemPath, filedata);
+		const auto filedata = SerializeToYAML(asset.As<Texture2D>());
+		FileSystem::WriteString(GetAssetFilesystemPath(metadata), filedata);
 
 		return true;
 	}
 
-	bool TextureSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata)
+	bool TextureSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context)
 	{
 		SK_PROFILE_FUNCTION();
 		SK_CORE_INFO_TAG("Serialization", "Loading Texture from {}", metadata.FilePath);
 		ScopedTimer timer("Loading Texture");
 
-		if (!Project::GetEditorAssetManager()->HasExistingFilePath(metadata))
+		const auto filesystemPath = context->GetFilesystemPath(metadata);
+		if (!FileSystem::Exists(filesystemPath))
 		{
-			SK_CORE_WARN_TAG("Serialization", "[Texture] Path not found! {}", metadata.FilePath);
+			context->OnFileNotFound(metadata);
 			return false;
 		}
 
 		Ref<Texture2D> texture;
+		bool deferred = false;
 
 		if (utils::ShouldBeSharkTexture(metadata.FilePath))
 		{
 			TextureSpecification specification;
 			specification.DebugName = FileSystem::GetStemString(metadata.FilePath);
 			AssetHandle sourceHandle;
-			Buffer imageData;
 
-			const std::string fileData = FileSystem::ReadString(Project::GetEditorAssetManager()->GetFilesystemPath(metadata));
-			if (DesrializeFromYAML(fileData, specification, sourceHandle, imageData))
+			const std::string fileData = FileSystem::ReadString(filesystemPath);
+			if (DeserializeFromYAML(fileData, specification, sourceHandle, context))
 			{
-				texture = Texture2D::Create(specification, imageData);
+				// #TODO #async can't create texture2d with specification because it will create a texture with sizes of 0
+				texture = Texture2D::Create();
+				texture->GetSpecification() = specification;
 				texture->SetSourceTextureHandle(sourceHandle);
-				imageData.Release();
+
+				deferred = true;
+				context->AddTask([texture](AssetLoadContext* context)
+				{
+					auto sourceHandle = texture->GetSourceTextureHandle();
+					if (auto type = AssetManager::GetAssetType(sourceHandle); type != AssetType::Texture)
+					{
+						context->AddError(
+							AssetLoadError::TaskFailed,
+							fmt::format("Source handle was of type {}. Required is Texture", type)
+						);
+					}
+
+					Buffer& imageData = texture->GetBuffer();
+					auto& specification = texture->GetSpecification();
+					const auto filesystemPath = Project::GetEditorAssetManager()->GetFilesystemPath(sourceHandle);
+					utils::LoadImageData(filesystemPath, specification, imageData);
+
+					texture->RT_Invalidate();
+				});
 			}
 		}
 
@@ -84,8 +120,7 @@ namespace Shark {
 			TextureSpecification specification;
 			specification.DebugName = FileSystem::GetStemString(metadata.FilePath);
 
-			const auto filesystemPath = Project::GetEditorAssetManager()->GetFilesystemPath(metadata);
-			LoadImageData(filesystemPath, specification, imageData);
+			utils::LoadImageData(filesystemPath, specification, imageData);
 			texture = Texture2D::Create(specification, imageData);
 			texture->SetFilepath(filesystemPath);
 			imageData.Release();
@@ -93,55 +128,18 @@ namespace Shark {
 
 		if (texture->GetSpecification().HasMips)
 		{
-			Renderer::MT::GenerateMips(texture->GetImage());
+			if (deferred)
+				context->AddTask(std::bind_front(&Renderer::MT::GenerateMips, texture->GetImage()));
+			else
+				Renderer::MT::GenerateMips(texture->GetImage());
 		}
+
+		if (deferred)
+			context->QueueStatus(AssetLoadStatus::Ready);
 
 		asset = texture;
 		asset->Handle = metadata.Handle;
 		return true;
-	}
-
-	Ref<Texture2D> TextureSerializer::TryLoad(const std::filesystem::path& filepath, bool useFallback)
-	{
-		SK_PROFILE_FUNCTION();
-
-
-		Ref<Texture2D> texture;
-
-		if (utils::ShouldBeSharkTexture(filepath))
-		{
-			TextureSpecification specification;
-			specification.DebugName = FileSystem::GetStemString(filepath);
-			AssetHandle sourceHandle;
-			Buffer imageData;
-
-			const std::string fileData = FileSystem::ReadString(filepath);
-			if (DesrializeFromYAML(fileData, specification, sourceHandle, imageData))
-			{
-				texture = Texture2D::Create(specification, imageData);
-				texture->SetSourceTextureHandle(sourceHandle);
-				imageData.Release();
-			}
-		}
-
-		if (!texture)
-		{
-			Buffer imageData;
-			TextureSpecification specification;
-			specification.DebugName = FileSystem::GetStemString(filepath);
-
-			LoadImageData(filepath, specification, imageData);
-			texture = Texture2D::Create(specification, imageData);
-			texture->SetFilepath(filepath);
-			imageData.Release();
-		}
-
-		if (texture->GetSpecification().HasMips)
-		{
-			Renderer::GenerateMips(texture->GetImage());
-		}
-
-		return texture;
 	}
 
 	std::string TextureSerializer::SerializeToYAML(Ref<Texture2D> texture)
@@ -166,7 +164,7 @@ namespace Shark {
 		return out.c_str();
 	}
 
-	bool TextureSerializer::DesrializeFromYAML(const std::string& filedata, TextureSpecification& outSpecification, AssetHandle& outSourceHandle, Buffer& outImageData)
+	bool TextureSerializer::DeserializeFromYAML(const std::string& filedata, TextureSpecification& outSpecification, AssetHandle& outSourceHandle, AssetLoadContext* context)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -181,32 +179,18 @@ namespace Shark {
 		}
 		catch (const YAML::Exception& e)
 		{
+			context->AddError(AssetLoadError::InvalidYAML, e.what());
 			return false;
 		}
 
-		if (textureNode["Source"])
+		if (textureNode["SourcePath"])
 		{
-			AssetHandle sourceHandle = AssetHandle::Invalid;
-			SK_DESERIALIZE_PROPERTY(textureNode, "Source", sourceHandle);
-			if (AssetManager::IsValidAssetHandle(sourceHandle))
-			{
-				outSourceHandle = sourceHandle;
-
-				auto sourcePath = Project::GetEditorAssetManager()->GetFilesystemPath(sourceHandle);
-				LoadImageData(sourcePath, outSpecification, outImageData);
-			}
-		}
-		else if (textureNode["SourcePath"])
-		{
-			std::filesystem::path sourcePath;
-			SK_DESERIALIZE_PROPERTY(textureNode, "SourcePath", sourcePath, "");
-			if (!sourcePath.empty())
-			{
-				LoadImageData(sourcePath, outSpecification, outImageData);
-				outSourceHandle = AssetHandle::Invalid;
-			}
+			SK_CORE_ERROR_TAG("Serialization", "[Texture] The 'SourcePath' node (filepath) is no longer supported");
+			context->AddError(AssetLoadError::Deprecated, "The 'SourcePath' node (filepath) is no longer supported");
+			return false;
 		}
 
+		DeserializeProperty(textureNode, "Source", outSourceHandle, AssetHandle::Invalid);
 		DeserializeProperty(textureNode, "GenerateMips", outSpecification.HasMips, true);
 		DeserializeProperty(textureNode, "Filter", outSpecification.Filter, FilterMode::Linear);
 		DeserializeProperty(textureNode, "Address", outSpecification.Address, AddressMode::Repeat);
@@ -216,21 +200,6 @@ namespace Shark {
 		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Filter {}", outSpecification.Filter);
 		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Address {}", outSpecification.Address);
 		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Max Anisotropy {}", outSpecification.MaxAnisotropy);
-		return true;
-	}
-
-	bool TextureSerializer::LoadImageData(const std::filesystem::path& filepath, TextureSpecification& outSpecification, Buffer& outBuffer)
-	{
-		outBuffer = TextureImporter::ToBufferFromFile(filepath, outSpecification.Format, outSpecification.Width, outSpecification.Height);
-		if (!outBuffer)
-		{
-			outBuffer = TextureImporter::ToBufferFromFile("Resources/Textures/ErrorTexture.png", outSpecification.Format, outSpecification.Width, outSpecification.Height);
-			outSpecification.DebugName += " - Fallback";
-			SK_CORE_VERIFY(outBuffer.Data, "Failed to load error texture as fallback");
-			// NOTE(moro): it's ok to continue if the error texture failed to load
-			//             but THIS SHOULD NEVER HAPPEN!
-			return false;
-		}
 		return true;
 	}
 

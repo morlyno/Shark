@@ -1,7 +1,7 @@
 #include "skpch.h"
 #include "MeshSourceSerializer.h"
 
-#include "Shark/Core/Project.h"
+#include "Shark/File/FileSystem.h"
 #include "Shark/Serialization/Import/AssimpMeshImporter.h"
 
 #include "Shark/Debug/Profiler.h"
@@ -18,25 +18,27 @@ namespace Shark {
 		return true;
 	}
 
-	bool MeshSourceSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata)
+	bool MeshSourceSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context)
 	{
 		SK_PROFILE_FUNCTION();
 		SK_CORE_INFO_TAG("Serialization", "Loading MeshSource from {}", metadata.FilePath);
 
-		ScopedTimer timer("Loading MeshSource");
+		ScopedTimer timer("Serialization", "Loading MeshSource");
 
-		if (!Project::GetEditorAssetManager()->HasExistingFilePath(metadata))
+		auto filesystemPath = context->GetFilesystemPath(metadata);
+		if (!FileSystem::Exists(filesystemPath))
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Path not found! {}", metadata.FilePath);
+			context->OnFileNotFound(metadata);
 			return false;
 		}
 
-		auto filesystemPath = Project::GetEditorAssetManager()->GetFilesystemPath(metadata);
 		AssimpMeshImporter importer(filesystemPath);
-		Ref<MeshSource> meshSource = importer.ToMeshSourceFromFile();
+		Ref<MeshSource> meshSource = importer.ToMeshSourceFromFile(context);
+
 		if (!meshSource)
 		{
 			SK_CORE_ERROR_TAG("Serialization", "Failed to Load MeshSource!");
+			context->AddError(AssetLoadError::Unknown, "Assimp mesh importer failed to load file");
 			return false;
 		}
 

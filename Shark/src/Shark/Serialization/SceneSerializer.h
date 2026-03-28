@@ -14,7 +14,7 @@ namespace Shark {
 	public:
 		SceneSerializer(Ref<Scene> scene);
 
-		Ref<Scene> GetScene() const { return m_Scene; }
+		Ref<Scene> GetScene() const;
 		const std::string& GetErrorMessage() const { return m_ErrorMessage; }
 
 	public:
@@ -36,7 +36,7 @@ namespace Shark {
 	{
 	public:
 		virtual bool Serialize(Ref<Asset> asset, const AssetMetaData& metadata) override;
-		virtual bool TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata) override;
+		virtual bool TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context) override;
 	};
 
 }

@@ -13,7 +13,9 @@ namespace Shark {
 		None = 0,
 		Invalid = BIT(0),
 		Missing = BIT(1),
-		Fallback = BIT(2)
+		Fallback = BIT(2),
+
+		AsyncPending = BIT(3)
 	};
 
 }
@@ -35,7 +37,7 @@ namespace Shark {
 		static AssetType GetStaticType() { return AssetType::None; }
 		virtual AssetType GetAssetType() const { return GetStaticType(); }
 
-		void SetFlag(AssetFlag flag, bool enabled)
+		void SetFlag(AssetFlag flag, bool enabled = true)
 		{
 			if (enabled)
 				Flags |= flag;

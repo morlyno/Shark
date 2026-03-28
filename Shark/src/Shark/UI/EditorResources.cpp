@@ -80,7 +80,7 @@ namespace Shark {
 	std::filesystem::path g_AngleRightIconPath = "Resources/Icons/Misc/AngleRight.png";
 	std::filesystem::path g_SettingsIconPath = "Resources/Icons/Misc/Settings.png";
 	std::filesystem::path g_SearchIconPath = "Resources/Icons/Misc/Search.png";
-	std::filesystem::path g_AlphaBackgroundPath = "Resources/Textures/AlphaBackground.sktex";
+	std::filesystem::path g_AlphaBackgroundPath = "Resources/Textures/AlphaBackground.png";
 
 	void EditorResources::Init()
 	{
@@ -88,30 +88,31 @@ namespace Shark {
 		SK_CORE_INFO("Loading Icons...");
 		ScopedTimer timer("Loading Icons");
 
-		auto* serializer = AssetSerializer::GetSerializer<TextureSerializer>();
+		TextureSpecification specification;
+		specification.HasMips = false;
 
-		FileIcon        = serializer->TryLoad(g_GenericFileIconPath);
-		FolderIcon      = serializer->TryLoad(g_FolderIconPath);
-		PNGIcon         = serializer->TryLoad(g_PNGIconPath);
-		JPGIcon         = serializer->TryLoad(g_JPGIconPath);
-		SceneIcon       = serializer->TryLoad(g_SceneIconPath);
-		ScriptIcon      = serializer->TryLoad(g_ScriptIconPath);
-		TextureIcon     = serializer->TryLoad(g_TextureIconPath);
+		FileIcon        = Texture2D::Create(specification, g_GenericFileIconPath);
+		FolderIcon      = Texture2D::Create(specification, g_FolderIconPath);
+		PNGIcon         = Texture2D::Create(specification, g_PNGIconPath);
+		JPGIcon         = Texture2D::Create(specification, g_JPGIconPath);
+		SceneIcon       = Texture2D::Create(specification, g_SceneIconPath);
+		ScriptIcon      = Texture2D::Create(specification, g_ScriptIconPath);
+		TextureIcon     = Texture2D::Create(specification, g_TextureIconPath);
 
-		PlayIcon        = serializer->TryLoad(g_PlayIconPath);
-		StopIcon        = serializer->TryLoad(g_StopIconPath);
-		PauseIcon       = serializer->TryLoad(g_PauseIconPath);
-		SimulateIcon    = serializer->TryLoad(g_SimulateIconPath);
-		StepIcon        = serializer->TryLoad(g_StepIconPath);
+		PlayIcon        = Texture2D::Create(specification, g_PlayIconPath);
+		StopIcon        = Texture2D::Create(specification, g_StopIconPath);
+		PauseIcon       = Texture2D::Create(specification, g_PauseIconPath);
+		SimulateIcon    = Texture2D::Create(specification, g_SimulateIconPath);
+		StepIcon        = Texture2D::Create(specification, g_StepIconPath);
 
-		ClearIcon       = serializer->TryLoad(g_ClearIconPath);
-		ReloadIcon      = serializer->TryLoad(g_ReloadIconPath);
-		AngleLeftIcon   = serializer->TryLoad(g_AngleLeftIconPath);
-		AngleRightIcon  = serializer->TryLoad(g_AngleRightIconPath);
-		SettingsIcon    = serializer->TryLoad(g_SettingsIconPath);
-		SearchIcon      = serializer->TryLoad(g_SearchIconPath);
+		ClearIcon       = Texture2D::Create(specification, g_ClearIconPath);
+		ReloadIcon      = Texture2D::Create(specification, g_ReloadIconPath);
+		AngleLeftIcon   = Texture2D::Create(specification, g_AngleLeftIconPath);
+		AngleRightIcon  = Texture2D::Create(specification, g_AngleRightIconPath);
+		SettingsIcon    = Texture2D::Create(specification, g_SettingsIconPath);
+		SearchIcon      = Texture2D::Create(specification, g_SearchIconPath);
 
-		AlphaBackground = serializer->TryLoad(g_AlphaBackgroundPath);
+		AlphaBackground = Texture2D::Create(specification, g_AlphaBackgroundPath);
 
 		{
 			Buffer textureData;

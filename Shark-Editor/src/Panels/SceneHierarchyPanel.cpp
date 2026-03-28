@@ -260,7 +260,7 @@ namespace Shark {
 
 					std::string materialName;
 					auto materialAsset = AssetManager::GetAssetAsync<PBRMaterial>(materialHandle);
-					if (materialAsset.Ready)
+					if (materialAsset)
 					{
 						auto& name = materialAsset->GetName();
 						if (!name.empty())
@@ -1121,7 +1121,7 @@ namespace Shark {
 				if (!isMixed)
 				{
 					auto materialAsset = AssetManager::GetAssetAsync<PBRMaterial>(firstComponent.Material);
-					if (materialAsset.Ready)
+					if (materialAsset)
 					{
 						auto& name = materialAsset->GetName();
 						if (!name.empty())
@@ -1160,7 +1160,7 @@ namespace Shark {
 			utils::MultiselectControl(entities, &StaticMeshComponent::Visible, "Visible");
 			UI::EndControlsGrid();
 
-			Ref<Mesh> mesh = AssetManager::GetReadyAssetAsync<Mesh>(firstComponent.StaticMesh);
+			Ref<Mesh> mesh = AssetManager::GetAssetAsync<Mesh>(firstComponent.StaticMesh);
 			if (mesh)
 			{
 				UI::ScopedDisabled disabled(isInconsistantMesh);
@@ -1243,10 +1243,10 @@ namespace Shark {
 			float maxLod = 12; // 8k textures has 13 mips
 			if (AssetManager::IsValidAssetHandle(comp.SceneEnvironment))
 			{
-				AsyncLoadResult envResult = AssetManager::GetAssetAsync<Environment>(comp.SceneEnvironment);
-				if (envResult.Ready)
+				auto env = AssetManager::GetAssetAsync<Environment>(comp.SceneEnvironment);
+				if (env)
 				{
-					maxLod = (float)(envResult.Asset->GetRadianceMap()->GetMipLevelCount() - 1);
+					maxLod = (float)(env->GetRadianceMap()->GetMipLevelCount() - 1);
 				}
 			}
 
@@ -1666,7 +1666,7 @@ namespace Shark {
 						AssetHandle sourceHandle = Project::GetEditorAssetManager()->GetAssetHandleFromFilepath(defaultSourcePath / sourceMeshName);
 						if (sourceHandle)
 						{
-							Ref<Mesh> mesh = Project::GetEditorAssetManager()->CreateAsset<Mesh>(defaultPath / staticMeshName, sourceHandle);
+							Ref<Mesh> mesh = Project::GetEditorAssetManager()->CreateAsset<Mesh>(defaultPath / staticMeshName, AssetManager::GetAsset<MeshSource>(sourceHandle));
 							entity.AddComponent<StaticMeshComponent>(meshHandle);
 						}
 					}

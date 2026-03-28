@@ -419,7 +419,7 @@ namespace Shark {
 			}
 
 			if (!m_LightEnvironment.SceneEnvironment)
-				m_LightEnvironment.SceneEnvironment = AssetManager::GetReadyAssetAsync<Environment>(m_FallbackEnvironment);
+				m_LightEnvironment.SceneEnvironment = AssetManager::GetAssetAsync<Environment>(m_FallbackEnvironment);
 
 			if (!m_LightEnvironment.SceneEnvironment)
 			{
@@ -478,26 +478,31 @@ namespace Shark {
 					continue;
 
 				SK_PERF_SCOPED("Scene Submit Mesh");
-				if (AsyncLoadResult meshResult = AssetManager::GetAssetAsync<Mesh>(submeshComponent.Mesh))
+
+				Ref<Mesh> mesh;
+				Ref<MeshSource> meshSource;
+
+				if (!(mesh       = AssetManager::GetAssetAsync<Mesh>(submeshComponent.Mesh)) ||
+					!(meshSource = AssetManager::GetAssetAsync<MeshSource>(mesh->GetMeshSource())))
 				{
-					if (AsyncLoadResult meshSourceResult = AssetManager::GetAssetAsync<MeshSource>(meshResult.Asset->GetMeshSource()))
-					{
-						Entity entity = { ent, this };
-						glm::mat4 transform = GetWorldSpaceTransformMatrix(entity);
-
-						const auto& submeshes = meshSourceResult->GetSubmeshes();
-						const auto& submesh = submeshes[submeshComponent.SubmeshIndex];
-
-						AssetHandle materialHandle = submeshComponent.Material ? submeshComponent.Material : meshSourceResult->GetMaterials()[submesh.MaterialIndex];
-						Ref<PBRMaterial> material = AssetManager::GetAssetAsync<PBRMaterial>(materialHandle);
-						if (!material)
-							continue;
-
-						renderer->SubmitMesh(meshResult.Asset, meshSourceResult.Asset, submeshComponent.SubmeshIndex, material, transform, (int)ent);
-						if (SelectionManager::IsEntityOrAncestorSelected(GetID(), entity))
-							renderer->SubmitSelectedMesh(meshResult.Asset, meshSourceResult.Asset, submeshComponent.SubmeshIndex, material, transform);
-					}
+					continue;
 				}
+
+				Entity entity = { ent, this };
+				glm::mat4 transform = GetWorldSpaceTransformMatrix(entity);
+
+				const auto& submeshes = meshSource->GetSubmeshes();
+				const auto& submesh = submeshes[submeshComponent.SubmeshIndex];
+
+				AssetHandle materialHandle = submeshComponent.Material ? submeshComponent.Material : meshSource->GetMaterials()[submesh.MaterialIndex];
+				auto material = AssetManager::GetAssetAsync<PBRMaterial>(materialHandle);
+				if (!material)
+					continue;
+
+				renderer->SubmitMesh(mesh, meshSource, submeshComponent.SubmeshIndex, material, transform, (int)ent);
+				if (SelectionManager::IsEntityOrAncestorSelected(GetID(), entity))
+					renderer->SubmitSelectedMesh(mesh, meshSource, submeshComponent.SubmeshIndex, material, transform);
+
 			}
 		}
 
@@ -510,31 +515,37 @@ namespace Shark {
 				if (!meshComponent.Visible)
 					continue;
 
+				SK_PERF_SCOPED("Scene Submit Static Mesh");
+
 				Entity entity{ ent, this };
 				const bool isSelected = SelectionManager::IsEntityOrAncestorSelected(GetID(), entity);
 
-				SK_PERF_SCOPED("Scene Submit Static Mesh");
-				if (auto mesh = AssetManager::GetAssetAsync<Mesh>(meshComponent.StaticMesh))
+				Ref<Mesh> mesh;
+				Ref<MeshSource> meshSource;
+
+				if (!(mesh = AssetManager::GetAssetAsync<Mesh>(meshComponent.StaticMesh)) ||
+					!(meshSource = AssetManager::GetAssetAsync<MeshSource>(mesh->GetMeshSource())))
 				{
-					if (auto meshSource = AssetManager::GetAssetAsync<MeshSource>(mesh->GetMeshSource()))
+					continue;
+				}
+
+				glm::mat4 rootTransform = GetWorldSpaceTransformMatrix(entity);
+
+				const auto& submeshes = meshSource->GetSubmeshes();
+				const auto& nodes = meshSource->GetNodes();
+				for (const auto& node : nodes)
+				{
+					for (const auto& submeshIndex : node.Submeshes)
 					{
-						glm::mat4 rootTransform = GetWorldSpaceTransformMatrix(entity);
+						const auto& submesh = submeshes[submeshIndex];
+						auto materialHandle = meshComponent.MaterialTable->HasMaterial(submesh.MaterialIndex) ? meshComponent.MaterialTable->GetMaterial(submesh.MaterialIndex) : mesh->GetMaterials()->GetMaterial(submesh.MaterialIndex);
+						Ref<PBRMaterial> material = AssetManager::GetAssetAsync<PBRMaterial>(materialHandle);
+						if (!material)
+							continue;
 
-						const auto& submeshes = meshSource->GetSubmeshes();
-						const auto& nodes = meshSource->GetNodes();
-						for (const auto& node : nodes)
-						{
-							for (const auto& submeshIndex : node.Submeshes)
-							{
-								const auto& submesh = submeshes[submeshIndex];
-								auto materialHandle = meshComponent.MaterialTable->HasMaterial(submesh.MaterialIndex) ? meshComponent.MaterialTable->GetMaterial(submesh.MaterialIndex) : mesh->GetMaterials()->GetMaterial(submesh.MaterialIndex);
-								auto material = AssetManager::GetAsset<PBRMaterial>(materialHandle);
-
-								renderer->SubmitMesh(mesh, meshSource, submeshIndex, material, rootTransform * node.Transform, (int)ent);
-								if (isSelected)
-									renderer->SubmitSelectedMesh(mesh, meshSource, submeshIndex, material, rootTransform * node.Transform);
-							}
-						}
+						renderer->SubmitMesh(mesh, meshSource, submeshIndex, material, rootTransform * node.Transform, (int)ent);
+						if (isSelected)
+							renderer->SubmitSelectedMesh(mesh, meshSource, submeshIndex, material, rootTransform * node.Transform);
 					}
 				}
 			}
@@ -552,15 +563,12 @@ namespace Shark {
 			for (auto ent : group)
 			{
 				auto [transformComponent, textComponent] = group.get<TransformComponent, TextRendererComponent>(ent);
-				if (!AssetManager::IsValidAssetHandle(textComponent.FontHandle))
-					continue;
 
-				AsyncLoadResult fontResult = AssetManager::GetAssetAsync<Font>(textComponent.FontHandle);
-				if (fontResult.Ready)
+				if (auto font = AssetManager::GetAssetAsync<Font>(textComponent.FontHandle))
 				{
 					Entity entity = { ent, this };
 					glm::mat4 transform = GetWorldSpaceTransformMatrix(entity);
-					renderer2D->DrawString(textComponent.Text, fontResult.Asset, transform, textComponent.Kerning, textComponent.LineSpacing, textComponent.Color, (int)ent);
+					renderer2D->DrawString(textComponent.Text, font, transform, textComponent.Kerning, textComponent.LineSpacing, textComponent.Color, (int)ent);
 				}
 			}
 		}
@@ -574,14 +582,7 @@ namespace Shark {
 				const SpriteRendererComponent& spriteRendererComponent = entity.GetComponent<SpriteRendererComponent>();
 
 				glm::mat4 transform = GetWorldSpaceTransformMatrix(entity);
-
-				Ref<Texture2D> texture = Renderer::GetWhiteTexture();
-				if (AssetManager::IsValidAssetHandle(spriteRendererComponent.TextureHandle))
-				{
-					AsyncLoadResult<Texture2D> result = AssetManager::GetAssetAsync<Texture2D>(spriteRendererComponent.TextureHandle);
-					if (result.Ready)
-						texture = result.Asset;
-				}
+				auto texture = AssetManager::GetAssetAsync<Texture2D>(spriteRendererComponent.TextureHandle, Renderer::GetWhiteTexture());
 
 				renderer2D->DrawQuad(transform, texture, spriteRendererComponent.TilingFactor, spriteRendererComponent.Color, (int)ent);
 			}

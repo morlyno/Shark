@@ -3,18 +3,20 @@
 
 #include "Shark/Core/Project.h"
 #include "Shark/Asset/AssetSerializer.h"
+#include "Shark/Asset/AssetThread/AssetLoadContext.h"
+
 #include "Shark/File/FileSystem.h"
 #include "Shark/Debug/Profiler.h"
+
 #include <ranges>
 
 namespace Shark {
 
-	EditorAssetThread::EditorAssetThread(const AssetThreadSettings& settings)
-		: m_Thread("AssetThread"), m_IdleSignal(true, false)
+	EditorAssetThread::EditorAssetThread(Ref<ProjectConfig> project, const AssetThreadSettings& settings)
+		: m_Project(project)
 	{
-		m_MonitorAssets = settings.MonitorAssets;
-
-		m_Thread.Dispacht(&EditorAssetThread::AssetThreadFunc, this);
+		m_Thread = std::jthread(std::bind_front(&EditorAssetThread::AssetThreadFunc, this));
+		Platform::SetThreadName(m_Thread, "AssetThread");
 	}
 
 	EditorAssetThread::~EditorAssetThread()
@@ -24,23 +26,88 @@ namespace Shark {
 
 	void EditorAssetThread::Stop()
 	{
-		if (!m_Thread.Running())
+		if (!m_Thread.joinable())
 			return;
 
-		m_Running = false;
-		m_WorkAvailable.notify_all();
-		m_Thread.Join();
+		m_Thread.request_stop();
+		m_Thread.join();
 		SK_CORE_WARN_TAG("AssetThread", "Thread Stopped");
 	}
 
-	void EditorAssetThread::WaitUntilIdle()
+	void EditorAssetThread::RunTasks()
 	{
 		SK_PROFILE_FUNCTION();
-		if (!m_Running)
+
+		{
+			std::scoped_lock lock(m_Mutex);
+			SK_CORE_VERIFY(m_WorkQueue.empty());
+			std::swap(m_WorkQueue, m_PendingQueue);
+		}
+
+		AssetLoadContext* context = nullptr;
+
+		while (true)
+		{
+			{
+				std::scoped_lock lock(m_Mutex);
+				if (m_WorkQueue.empty())
+					break;
+
+				context = m_WorkQueue.front();
+				m_WorkQueue.pop();
+			}
+
+			auto tasks = context->GetTasks();
+			for (auto& task : tasks)
+			{
+				if (context->HasErrors())
+					break;
+
+				task(context);
+			}
+
+			std::scoped_lock lock(m_Mutex);
+			if (context->Loading())
+			{
+				m_PendingQueue.push(context);
+				continue;
+			}
+			
+			m_FinalizeQueue.push(context);
+			m_MainThreadOperations.fetch_sub(1);
+			m_MainThreadOperations.notify_all();
+			m_WorkAvailable.notify_one();
+		}
+
+		SK_CORE_VERIFY(m_WorkQueue.empty());
+	}
+
+	void EditorAssetThread::RetrieveLoadedAssets(std::vector<AssetLoadRequest>& outLoadedAssets, std::vector<Ref<Asset>>& outPendingAssets)
+	{
+		SK_PROFILE_FUNCTION();
+
+		std::scoped_lock lock(m_Mutex);
+
+		if (!m_PendingAssets.empty())
+		{
+			outPendingAssets = std::move(m_PendingAssets);
+		}
+
+		if (m_HandledRequests.empty())
 			return;
 
-		SK_CORE_WARN_TAG("AssetThread", "Waiting until idle");
-		m_IdleSignal.Wait();
+		for (AssetHandle handle : m_HandledRequests)
+		{
+			AssetLoadRequest& request = m_RequestStorage.at(handle);
+			//request.Future.Set(request.Asset);
+			//request.Future.Signal();
+
+			outLoadedAssets.push_back(request);
+			m_RequestStorage.erase(handle);
+			m_ContextStorage.erase(handle);
+		}
+
+		m_HandledRequests.clear();
 	}
 
 	void EditorAssetThread::QueueAssetLoad(AssetLoadRequest& alr)
@@ -48,19 +115,11 @@ namespace Shark {
 		SK_CORE_TRACE_TAG("AssetThread", "QueueAssetLoad - {} {}", alr.Metadata.Handle, alr.Metadata.FilePath);
 
 		{
-			std::scoped_lock lock(m_ALRStorageMutex);
-			if (m_ALRStorage.contains(alr.Metadata.Handle))
-			{
-				SK_CORE_WARN("ALR Merge {} {}", alr.Metadata.Handle, alr.Metadata.FilePath);
-				AssetLoadRequest& activeRequest = m_ALRStorage.at(alr.Metadata.Handle);
-				activeRequest.Future.MergeCallbacks(alr.Future);
-				alr.Future = activeRequest.Future;
-			}
-			else
-			{
-				m_ALRStorage[alr.Metadata.Handle] = alr;
-				m_LoadingQueue.push(alr.Metadata.Handle);
-			}
+			std::scoped_lock lock(m_Mutex);
+			SK_CORE_VERIFY(!m_RequestStorage.contains(alr.Metadata.Handle));
+
+			m_RequestStorage[alr.Metadata.Handle] = alr;
+			m_LoadingQueue.push(alr.Metadata.Handle);
 		}
 
 		m_WorkAvailable.notify_one();
@@ -68,114 +127,81 @@ namespace Shark {
 
 	Threading::Future<Ref<Asset>> EditorAssetThread::GetFuture(AssetHandle handle)
 	{
-		std::scoped_lock lock(m_ALRStorageMutex);
-		if (!m_ALRStorage.contains(handle))
+		std::scoped_lock lock(m_Mutex);
+		if (!m_RequestStorage.contains(handle))
 			return {};
 
-		AssetLoadRequest& request = m_ALRStorage.at(handle);
+		AssetLoadRequest& request = m_RequestStorage.at(handle);
 		return request.Future;
 	}
 
-	void EditorAssetThread::RetrieveLoadedAssets(std::vector<AssetLoadRequest>& outLoadedAssets)
+	void EditorAssetThread::DebugLogTimes()
 	{
-		SK_PROFILE_FUNCTION();
+		std::scoped_lock lock(m_Mutex);
 
-		std::scoped_lock lock(m_ALRStorageMutex);
-		if (m_HandledRequests.empty())
-			return;
+		auto now = std::chrono::system_clock::now();
 
-		for (AssetHandle handle : m_HandledRequests)
+		for (auto& [handle, time] : m_RequestStartedAt)
 		{
-			AssetLoadRequest& request = m_ALRStorage.at(handle);
-			request.Future.Signal();
+			if (!m_RequestStorage.contains(handle))
+				continue;
 
-			outLoadedAssets.push_back(request);
-			m_ALRStorage.erase(handle);
+			if ((time.second + 30s) < now)
+			{
+				auto& request = m_RequestStorage.at(handle);
+				std::chrono::duration totalTime = now - time.first;
+				SK_CORE_WARN_TAG("AssetThread", "Asset {} '{}' is loading for {:%T}", request.Metadata.Handle, request.Metadata.FilePath, totalTime);
+				time.second = now;
+			}
 		}
 
-		m_HandledRequests.clear();
 	}
 
-	void EditorAssetThread::UpdateLastWriteTime(AssetHandle handle, uint64_t lastWriteTime)
-	{
-		std::scoped_lock lock(m_LoadedAssetMetadataMutex);
-		if (m_LoadedAssetMetadata.contains(handle))
-		{
-			AssetMetaData& metadata = m_LoadedAssetMetadata.at(handle);
-			metadata.LastWriteTime = lastWriteTime;
-		}
-	}
-
-	void EditorAssetThread::OnMetadataChanged(const AssetMetaData& metadata)
-	{
-		if (metadata.IsMemoryAsset)
-			return;
-
-		std::scoped_lock lock(m_LoadedAssetMetadataMutex);
-		if (m_LoadedAssetMetadata.contains(metadata.Handle))
-		{
-			AssetMetaData& md = m_LoadedAssetMetadata.at(metadata.Handle);
-			md = metadata;
-		}
-	}
-
-	void EditorAssetThread::OnAssetLoaded(const AssetMetaData& metadata)
-	{
-		if (metadata.IsMemoryAsset)
-			return;
-
-		std::scoped_lock lock(m_LoadedAssetMetadataMutex);
-		m_LoadedAssetMetadata[metadata.Handle] = metadata;
-	}
-
-	void EditorAssetThread::AssetThreadFunc()
+	void EditorAssetThread::AssetThreadFunc(std::stop_token stopToken)
 	{
 		SK_PROFILE_FRAME("AssetThread");
-
-		while (m_Running)
+		std::stop_callback guard{ stopToken, [this]
 		{
-			if (m_SleepRequested || m_LoadingQueue.empty())
+			SK_CORE_WARN_TAG("AssetThread", "Stopping Thread");
+			m_WorkAvailable.notify_all();
+		}};
+
+		while (!stopToken.stop_requested())
+		{
 			{
-				m_IdleSignal.Notify();
-
-				SK_PROFILE_SCOPED("Idle");
-				std::unique_lock lock(m_WorkAvailableMutex);
-				if (m_MonitorAssets)
-					m_WorkAvailable.wait_for(lock, m_MonitorAssetsIntervall);
-				else
-					m_WorkAvailable.wait(lock);
-
-				m_IdleSignal.Reset();
+				std::unique_lock lock(m_Mutex);
+				m_WorkAvailable.wait(lock, [&]() { return stopToken.stop_requested() || !m_LoadingQueue.empty() || !m_FinalizeQueue.empty(); });
 			}
 
 			SK_PROFILE_SCOPED("Busy");
-			//SK_LOG_IF(loadQueue.size() > 0, LoggerType::Core, LogLevel::Trace, "AssetThread", "Loading {} Assets", loadQueue.size());
 
-			while (!m_SleepRequested)
+			while (!stopToken.stop_requested())
 			{
-				std::unique_lock lock(m_ALRStorageMutex);
+				std::unique_lock lock(m_Mutex);
 				if (m_LoadingQueue.empty())
 					break;
 
-				AssetHandle next = m_LoadingQueue.front();
+				AssetLoadRequest& alr = m_RequestStorage.at(m_LoadingQueue.front());
+				m_RequestStartedAt[alr.Metadata.Handle] = [](auto time) { return std::pair{ time, time }; }(std::chrono::system_clock::now());
 				m_LoadingQueue.pop();
-
-				AssetLoadRequest& alr = m_ALRStorage.at(next);
 				lock.unlock();
 
 				LoadAsset(alr);
 			}
 
-			if (!m_SleepRequested && m_MonitorAssets)
+			while (!stopToken.stop_requested())
 			{
-				SK_PROFILE_SCOPED("Monitor Assets");
+				std::unique_lock lock(m_Mutex);
+				if (m_FinalizeQueue.empty())
+					break;
 
-				std::unique_lock lock(m_LoadedAssetMetadataMutex);
-				for (auto& [handle, metadata] : m_LoadedAssetMetadata)
-				{
-					EnsureCurrent(metadata);
-				}
+				AssetLoadContext* context = m_FinalizeQueue.front();
+				m_FinalizeQueue.pop();
+				lock.unlock();
+
+				FinishLoad(*context);
 			}
+
 		}
 
 		if (!m_LoadingQueue.empty())
@@ -183,8 +209,6 @@ namespace Shark {
 			SK_CORE_WARN_TAG("AssetThread", "Skipping {} load requests after stop was requested", m_LoadingQueue.size());
 		}
 
-		// Just in case
-		m_IdleSignal.Notify();
 	}
 
 	void EditorAssetThread::LoadAsset(AssetLoadRequest& request)
@@ -195,73 +219,60 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_CORE_INFO_TAG("AssetThread", "Loading {} {} {}", request.Metadata.Type, request.Metadata.Handle, request.Metadata.FilePath);
 
-		bool success = AssetSerializer::TryLoadAsset(request.Asset, request.Metadata);
+		AssetLoadContext context(request.Metadata.Handle);
+		const bool sucess = AssetSerializer::TryLoadAsset(request.Asset, request.Metadata, &context);
+		context.FixStatus(sucess);
 
-		if (!success)
+		if (context.Loading())
 		{
-			std::scoped_lock lock(m_ALRStorageMutex);
-			// TODO(moro): request.Future.SetError();
-
-			SK_CORE_VERIFY(false);
-			request.Metadata.Status = AssetStatus::Unloaded;
-
+			std::scoped_lock lock(m_Mutex);
+			m_ContextStorage.emplace(request.Metadata.Handle, std::move(context));
+			m_PendingQueue.push(&m_ContextStorage.at(request.Metadata.Handle));
+			m_MainThreadOperations.fetch_add(1);
+			m_MainThreadOperations.notify_all();
 			return;
 		}
 
-		if (success)
-		{
-			auto absolutePath = GetFilesystemPath(request.Metadata);
-			request.Metadata.LastWriteTime = FileSystem::GetLastWriteTime(absolutePath);
-			request.Metadata.Status = AssetStatus::Ready;
-
-			{
-				std::scoped_lock lock(m_LoadedAssetMetadataMutex);
-				m_LoadedAssetMetadata[request.Metadata.Handle] = request.Metadata;
-			}
-
-			request.Future.Set(request.Asset);
-			request.Future.Signal(true, false);
-		}
-
-		SK_CORE_INFO_TAG("AssetThread", "Finished loading {} {} {}", request.Metadata.Type, request.Metadata.Handle, request.Metadata.FilePath);
-
-		// NOTE(moro): After this next scope accessing the current alr is no longer save
-		//             As soon as the handle is added to m_LoadedRequests the alr can be deleted from m_ALRStorage by the main thread
-		{
-			std::scoped_lock lock(m_ALRStorageMutex);
-			m_HandledRequests.emplace_back(request.Metadata.Handle);
-		}
+		FinishLoad(context);
 	}
 
-	bool EditorAssetThread::EnsureCurrent(AssetMetaData& metadata)
+	bool EditorAssetThread::FinishLoad(AssetLoadContext& context)
 	{
-		SK_PROFILE_FUNCTION();
-
-		// Asset was already reloaded
-		if (metadata.Status == AssetStatus::Loading)
+		SK_CORE_ASSERT(!context.Loading());
+		if (context.Loading())
 			return false;
 
-		auto absolutePath = GetFilesystemPath(metadata);
-
-		if (!FileSystem::Exists(absolutePath))
-			return false;
-
-		uint64_t recordedLastWriteTime = metadata.LastWriteTime;
-		uint64_t actualLastWriteTime = FileSystem::GetLastWriteTime(absolutePath);
-
-		if (recordedLastWriteTime == 0 || actualLastWriteTime == 0)
-			return false;
-
-		if (recordedLastWriteTime != actualLastWriteTime)
+		auto& request = m_RequestStorage.at(context.GetAssetHandle());
+		if (context.HasErrors())
 		{
-			SK_CORE_WARN_TAG("AssetThread", "Out of date asset detected {}", metadata.FilePath);
-			metadata.Status = AssetStatus::Loading;
-			AssetLoadRequest alr(metadata, true);
-			QueueAssetLoad(alr);
+			SK_CORE_ERROR_TAG("AssetThread", "Failed to load asset {} '{}'{}", request.Metadata.Handle, request.Metadata.FilePath, fmt::join(context.GetErrors(), "\n - {}"));
+			request.Metadata.Status = AssetStatus::Unloaded;
+
+			// #TODO #async error handling + remove alr
+
 			return true;
 		}
+		
+		auto absolutePath = GetFilesystemPath(request.Metadata);
+		request.Metadata.LastWriteTime = FileSystem::GetLastWriteTime(absolutePath);
+		request.Metadata.Status = AssetStatus::Ready;
 
-		return false;
+		SK_CORE_INFO_TAG("AssetThread", "Finished loading {} {} {}", request.Metadata.Type, request.Metadata.Handle, request.Metadata.FilePath);
+		
+		// NOTE(moro): After this accessing the current alr is no longer save
+		//             As soon as the handle is added to m_LoadedRequests the alr can be deleted from m_ALRStorage by the main thread
+		{
+			std::scoped_lock lock(m_Mutex);
+
+			auto assets = context.GetAssets() | std::views::values;
+			m_PendingAssets.insert(m_PendingAssets.end(), assets.begin(), assets.end());
+			m_HandledRequests.emplace_back(request.Metadata.Handle);
+			m_MainThreadOperations.fetch_add(1);
+			m_MainThreadOperations.notify_all();
+			m_RequestStartedAt.erase(request.Metadata.Handle);
+		}
+
+		return true;
 	}
 
 	std::filesystem::path EditorAssetThread::GetFilesystemPath(const AssetMetaData& metadata)
@@ -272,7 +283,7 @@ namespace Shark {
 		if (metadata.IsEditorAsset)
 			return FileSystem::Absolute(metadata.FilePath);
 
-		return (Project::GetActiveAssetsDirectory() / metadata.FilePath).lexically_normal();
+		return (m_Project.GetRef()->GetAssetsDirectory() / metadata.FilePath).lexically_normal();
 	}
 
 }

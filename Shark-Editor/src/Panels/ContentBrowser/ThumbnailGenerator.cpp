@@ -63,7 +63,7 @@ namespace Shark {
 	MaterialThumbnailGenerator::MaterialThumbnailGenerator()
 	{
 		AssetHandle meshSource = Project::GetEditorAssetManager()->GetEditorAsset("Resources/Meshes/Default/Sphere.gltf");
-		m_SphereMesh = AssetManager::CreateMemoryOnlyAsset<Mesh>(meshSource);
+		m_SphereMesh = AssetManager::CreateMemoryOnlyAsset<Mesh>(AssetManager::GetAsset<MeshSource>(meshSource));
 	}
 
 	MaterialThumbnailGenerator::~MaterialThumbnailGenerator()
@@ -144,11 +144,12 @@ namespace Shark {
 
 	void MeshSourceThumbnailGenerator::OnPrepare(AssetHandle assetHandle, Ref<Scene> scene, Ref<SceneRenderer> renderer)
 	{
-		m_MeshHandle = AssetManager::CreateMemoryOnlyAsset<Mesh>(assetHandle);
+		Ref<MeshSource> meshSource = AssetManager::GetAsset<MeshSource>(assetHandle);
+
+		m_MeshHandle = AssetManager::CreateMemoryOnlyAsset<Mesh>(meshSource);
 		Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(m_MeshHandle);
 		m_Mesh = scene->InstantiateMesh(mesh);
 
-		Ref<MeshSource> meshSource = AssetManager::GetAsset<MeshSource>(assetHandle);
 		m_Camera = utils::CreateMeshCamera(scene, meshSource->GetBoundingBox());
 
 		m_DirectionalLight = scene->CreateEntity("Directional Light");
@@ -207,7 +208,7 @@ namespace Shark {
 	EnvironmentThumbnailGenerator::EnvironmentThumbnailGenerator()
 	{
 		AssetHandle meshSource = Project::GetEditorAssetManager()->GetEditorAsset("Resources/Meshes/Default/Sphere.gltf");
-		m_SphereHandle = AssetManager::CreateMemoryOnlyAsset<Mesh>(meshSource);
+		m_SphereHandle = AssetManager::CreateMemoryOnlyAsset<Mesh>(AssetManager::GetAsset<MeshSource>(meshSource));
 
 		m_MaterialHandle = AssetManager::CreateMemoryOnlyAsset<PBRMaterial>("ThumnbailGenerator-Environment-Reflective");
 		auto reflectiveMaterial = AssetManager::GetAsset<PBRMaterial>(m_MaterialHandle);
@@ -276,15 +277,19 @@ namespace Shark {
 		m_AssetThumbnailGenerators[AssetType::Environment] = Scope<EnvironmentThumbnailGenerator>::Create();
 		m_AssetThumbnailGenerators[AssetType::Texture] = Scope<TextureThumbnailGenerator>::Create();
 
-		m_SkyLight = m_Scene->CreateEntity("SkyLight");
-		auto& skyLight = m_SkyLight.AddComponent<SkyComponent>();
-
-		auto [radianceMap, irradianceMap] = Renderer::CreateEnvironmentMap("Resources/Environment/green_point_park_4k.hdr");
-		skyLight.SceneEnvironment = AssetManager::CreateMemoryOnlyAsset<Environment>(radianceMap, irradianceMap);
-		skyLight.Intensity = 0.8f;
-		skyLight.Lod = (float)(AssetManager::GetAsset<Environment>(skyLight.SceneEnvironment)->GetRadianceMap()->GetMipLevelCount() - 1);
-
 		m_CommandBuffer = RenderCommandBuffer::Create("ThumbnailGenerator");
+
+		m_CommandBuffer->Begin();
+		auto [radianceMap, irradianceMap] = Renderer::CreateEnvironmentMap(m_CommandBuffer, "Resources/Environment/green_point_park_4k.hdr");
+		m_CommandBuffer->End();
+		m_CommandBuffer->Execute();
+
+
+		m_SkyLight                = m_Scene->CreateEntity("SkyLight");
+		auto& skyLight            = m_SkyLight.AddComponent<SkyComponent>();
+		skyLight.SceneEnvironment = AssetManager::CreateMemoryOnlyAsset<Environment>(radianceMap, irradianceMap);
+		skyLight.Intensity        = 0.8f;
+		skyLight.Lod              = static_cast<float>(radianceMap->GetMipLevelCount() - 1) * 0.75f;
 	}
 
 	Ref<Image2D> ThumbnailGenerator::GenerateThumbnail(AssetHandle handle)

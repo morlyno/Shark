@@ -1,11 +1,10 @@
 #include "skpch.h"
 #include "AssimpMeshImporter.h"
 
-#include "Shark/Asset/AssetManager.h"
-
 #include "Shark/Render/Renderer.h"
-#include "Shark/File/FileSystem.h"
 #include "Shark/Serialization/Import/TextureImporter.h"
+
+#include "Shark/File/FileSystem.h"
 #include "Shark/Debug/Profiler.h"
 
 #include <assimp/scene.h>
@@ -82,7 +81,7 @@ namespace Shark {
 		}
 	}
 
-	Ref<MeshSource> AssimpMeshImporter::ToMeshSourceFromFile()
+	Ref<MeshSource> AssimpMeshImporter::ToMeshSourceFromFile(AssetLoadContext* context)
 	{
 		SK_PROFILE_FUNCTION();
 		Ref<MeshSource> meshSource = MeshSource::Create();
@@ -183,8 +182,7 @@ namespace Shark {
 				// #TODO avoid setDefaults=true
 				auto pbrMaterial = PBRMaterial::Create(materialName.data, true, false);
 
-				// #Investigate AssetManager is not thread save
-				meshSource->m_Materials[i] = AssetManager::AddMemoryAsset(pbrMaterial);
+				meshSource->m_Materials[i] = context->AddMemoryOnlyAsset(pbrMaterial);
 
 				SK_MESH_LOG("  {} (Index = {})", materialName.data, i);
 
@@ -261,7 +259,7 @@ namespace Shark {
 				if (aiMaterial->GetTexture(AI_MATKEY_BASE_COLOR_TEXTURE, &aiTexPath) == aiReturn_SUCCESS ||
 					aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &aiTexPath) == aiReturn_SUCCESS)
 				{
-					AssetHandle textureHandle = LoadTexture(scene, aiTexPath, true);
+					AssetHandle textureHandle = LoadTexture(scene, aiTexPath, true, context);
 					if (textureHandle != AssetHandle::Invalid)
 					{
 						pbrMaterial->SetAlbedoMap(textureHandle);
@@ -271,7 +269,7 @@ namespace Shark {
 
 				if (aiMaterial->GetTexture(aiTextureType_NORMALS, 0, &aiTexPath) == aiReturn_SUCCESS)
 				{
-					AssetHandle textureHandle = LoadTexture(scene, aiTexPath, false);
+					AssetHandle textureHandle = LoadTexture(scene, aiTexPath, false, context);
 					if (textureHandle != AssetHandle::Invalid)
 					{
 						pbrMaterial->SetNormalMap(textureHandle);
@@ -281,7 +279,7 @@ namespace Shark {
 
 				if (aiMaterial->GetTexture(AI_MATKEY_METALLIC_TEXTURE, &aiTexPath) == aiReturn_SUCCESS)
 				{
-					AssetHandle textureHandle = LoadTexture(scene, aiTexPath, false);
+					AssetHandle textureHandle = LoadTexture(scene, aiTexPath, false, context);
 					if (textureHandle != AssetHandle::Invalid)
 					{
 						pbrMaterial->SetMetalnessMap(textureHandle);
@@ -291,7 +289,7 @@ namespace Shark {
 				
 				if (aiMaterial->GetTexture(AI_MATKEY_ROUGHNESS_TEXTURE, &aiTexPath) == aiReturn_SUCCESS)
 				{
-					AssetHandle textureHandle = LoadTexture(scene, aiTexPath, false);
+					AssetHandle textureHandle = LoadTexture(scene, aiTexPath, false, context);
 					if (textureHandle != AssetHandle::Invalid)
 					{
 						pbrMaterial->SetRoughnessMap(textureHandle);
@@ -330,7 +328,7 @@ namespace Shark {
 		}
 	}
 
-	AssetHandle AssimpMeshImporter::LoadTexture(const aiScene* scene, const aiString& path, bool sRGB)
+	AssetHandle AssimpMeshImporter::LoadTexture(const aiScene* scene, const aiString& path, bool sRGB, AssetLoadContext* context)
 	{
 		SK_PROFILE_FUNCTION();
 		TextureSpecification specification;
@@ -355,25 +353,17 @@ namespace Shark {
 			if (specification.Height == 0)
 				imageData.Release();
 
-			// TODO(moro): race-condition! This line can be called from both the main thread and the asset thread!
-			return AssetManager::AddMemoryAsset(texture);
+			return context->AddMemoryOnlyAsset(texture);
 		}
 
-		if (sRGB)
-		{
-			// TODO(moro): find a way to do this through the asset system
-			const auto texturePath = m_Filepath.parent_path() / path.C_Str();
-			ScopedBuffer imageData = TextureImporter::ToBufferFromFile(texturePath, specification.Format, specification.Width, specification.Height);
-
-			Ref<Texture2D> texture = Texture2D::Create(specification, imageData);
-			Renderer::MT::GenerateMips(texture->GetImage());
-
-			return AssetManager::AddMemoryAsset(texture);
-			//return AssetManager::CreateMemoryOnlyRendererAsset<Texture2D>(specification, imageData);
-		}
-
+		// #TODO #async find a way to do this through the asset system
 		const auto texturePath = m_Filepath.parent_path() / path.C_Str();
-		return Project::GetEditorAssetManager()->GetAssetHandleFromFilepath(texturePath);
+		ScopedBuffer imageData = TextureImporter::ToBufferFromFile(texturePath, specification.Format, specification.Width, specification.Height);
+
+		Ref<Texture2D> texture = Texture2D::Create(specification, imageData);
+		Renderer::MT::GenerateMips(texture->GetImage());
+
+		return context->AddMemoryOnlyAsset(texture);
 	}
 
 }

@@ -39,26 +39,4 @@ namespace Shark {
 			: Metadata(std::move(metadata)), Reload(reload), Future(true) {}
 	};
 
-	template<typename TAsset>
-	struct AsyncLoadResult
-	{
-		Ref<TAsset> Asset = nullptr;
-		bool Ready = false;
-
-		operator Ref<TAsset>() const { return Asset; }
-		operator bool() const { return Ready; }
-
-		auto operator->() { return Asset.operator ->(); }
-		auto operator->() const { return Asset.operator ->(); }
-
-		AsyncLoadResult() = default;
-		AsyncLoadResult(Ref<TAsset> asset, bool ready)
-			: Asset(asset), Ready(ready) {}
-
-		template<typename TAsset2>
-		explicit AsyncLoadResult(const AsyncLoadResult<TAsset2>& other)
-			: Asset(other.Asset.As<TAsset>()), Ready(other.Ready) {}
-
-	};
-
 }

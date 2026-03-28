@@ -2,11 +2,10 @@
 #include "MaterialSerializer.h"
 
 #include "Shark/Asset/AssetManager.h"
+#include "Shark/Asset/AssetManager/AssetUtilities.h"
+#include "Shark/Render/MaterialAsset.h"
 
 #include "Shark/File/FileSystem.h"
-#include "Shark/Render/Renderer.h"
-#include "Shark/Render/MeshSource.h"
-
 #include "Shark/Serialization/YAML.h"
 #include "Shark/Serialization/SerializationMacros.h"
 
@@ -21,53 +20,60 @@ namespace Shark {
 		SK_CORE_INFO_TAG("Serialization", "Serializing Material to {}", metadata.FilePath);
 
 		ScopedTimer timer("Serializing Material");
-		m_ErrorMsg.clear();
 
 		std::string result = SerializeToYAML(asset.As<PBRMaterial>());
 		if (result.empty())
 		{
-			SK_CORE_ERROR_TAG("Serialization", "YAML result was empty!\n\tError Message: {}", m_ErrorMsg);
+			SK_CORE_ERROR_TAG("Serialization", "YAML result was empty!");
 			return false;
 		}
 
-		const auto fsPath = Project::GetEditorAssetManager()->GetFilesystemPath(metadata);
-		FileSystem::WriteString(fsPath, result);
+		const auto filesystemPath = GetAssetFilesystemPath(metadata);
+		FileSystem::WriteString(filesystemPath, result);
 
 		return true;
 	}
 
-	bool MaterialSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata)
+	bool MaterialSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context)
 	{
 		SK_PROFILE_FUNCTION();
 		SK_CORE_INFO_TAG("Serialization", "Loading Material from {}", metadata.FilePath);
 
 		ScopedTimer timer("Loading Material");
-		m_ErrorMsg.clear();
 
-		if (!Project::GetEditorAssetManager()->HasExistingFilePath(metadata))
+		const auto filesystemPath = context->GetFilesystemPath(metadata);
+		if (!FileSystem::Exists(filesystemPath))
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Path not found! {}", metadata.FilePath);
+			context->OnFileNotFound(metadata);
 			return false;
 		}
 
-		std::string filedata = FileSystem::ReadString(Project::GetEditorAssetManager()->GetFilesystemPath(metadata));
+		std::string filedata = FileSystem::ReadString(filesystemPath);
 		if (filedata.empty())
 		{
-			SK_CORE_ERROR_TAG("Serialization", "File was empty");
+			context->OnFileEmpty(metadata);
 			return false;
 		}
 
 		Ref<PBRMaterial> material = PBRMaterial::Create(FileSystem::GetStemString(metadata.FilePath), true, false);
-		if (!DeserializeFromYAML(material, filedata))
+		if (!DeserializeFromYAML(material, filedata, context))
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Failed to deserialize YAML file!\n\tError Message: {}", m_ErrorMsg);
+			context->OnYamlError(metadata);
 			return false;
 		}
 
-		material->MT_Bake();
+		//
+		// no longer necessary to call bake
+		// if bake becomes necessary again call either
+		// 
+		//	context->AddTask([material]() { material->MT_Bake(); });
+		// or
+		//	material->MT_Bake();
+		//
 
 		asset = material;
 		asset->Handle = metadata.Handle;
+		context->SetStatus(AssetLoadStatus::Ready);
 		return true;
 	}
 
@@ -91,25 +97,22 @@ namespace Shark {
 		out << YAML::Key << "RoughnessMap" << YAML::Value << material->GetRoughnessMap();
 		out << YAML::EndMap;
 		out << YAML::EndMap;
-		m_ErrorMsg = out.GetLastError();
+		
 		return out.c_str();
 	}
 
-	bool MaterialSerializer::DeserializeFromYAML(Ref<PBRMaterial> material, const std::string& filedata)
+	bool MaterialSerializer::DeserializeFromYAML(Ref<PBRMaterial> material, const std::string& filedata, AssetLoadContext* context)
 	{
 		SK_PROFILE_FUNCTION();
 
 		auto rootNode = YAML::Load(filedata);
 		if (!rootNode)
-		{
-			m_ErrorMsg = "Failed to load YAML";
 			return false;
-		}
 
 		auto materialNode = rootNode["Material"];
 		if (!materialNode)
 		{
-			m_ErrorMsg = "Material Node not found";
+			context->AddError(AssetLoadError::InvalidYAML, "Root node 'Material' missing");
 			return false;
 		}
 
@@ -126,26 +129,33 @@ namespace Shark {
 		SK_DESERIALIZE_PROPERTY(materialNode, "MetalnessMap", metalnessMap, AssetHandle::Invalid);
 		SK_DESERIALIZE_PROPERTY(materialNode, "RoughnessMap", roughnessMap, AssetHandle::Invalid);
 
-		if (AssetManager::IsValidAssetHandle(albedoMap) && AssetManager::GetAssetType(albedoMap) == AssetType::Texture)
-		{
-			material->SetAlbedoMap(albedoMap);
-		}
+		material->SetUsingNormalMap(usingNormalMap && normalMap);
+		if (albedoMap)    material->SetAlbedoMap(albedoMap);
+		if (normalMap)    material->SetNormalMap(normalMap);
+		if (metalnessMap) material->SetMetalnessMap(metalnessMap);
+		if (roughnessMap) material->SetRoughnessMap(roughnessMap);
 
-		if (AssetManager::IsValidAssetHandle(normalMap) && AssetManager::GetAssetType(normalMap) == AssetType::Texture)
+		context->AddTask([material](AssetLoadContext* context)
 		{
-			material->SetUsingNormalMap(usingNormalMap);
-			material->SetNormalMap(normalMap);
-		}
+			auto albedo = material->GetAlbedoMap();
+			auto normal = material->GetNormalMap();
+			auto metalness = material->GetMetalnessMap();
+			auto roughness = material->GetRoughnessMap();
 
-		if (AssetManager::IsValidAssetHandle(metalnessMap) && AssetManager::GetAssetType(metalnessMap) == AssetType::Texture)
-		{
-			material->SetMetalnessMap(metalnessMap);
-		}
+			if (AssetManager::GetAssetType(albedo) != AssetType::Texture)
+				material->ClearAlbedoMap();
 
-		if (AssetManager::IsValidAssetHandle(roughnessMap) && AssetManager::GetAssetType(roughnessMap) == AssetType::Texture)
-		{
-			material->SetRoughnessMap(roughnessMap);
-		}
+			if (AssetManager::GetAssetType(normal) != AssetType::Texture)
+				material->ClearNormalMap(true);
+
+			if (AssetManager::GetAssetType(metalness) != AssetType::Texture)
+				material->ClearMetalnessMap();
+
+			if (AssetManager::GetAssetType(roughness) != AssetType::Texture)
+				material->ClearRoughnessMap();
+
+			context->SetStatus(AssetLoadStatus::Ready);
+		});
 
 		return true;
 	}

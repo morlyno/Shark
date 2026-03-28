@@ -76,6 +76,7 @@ namespace Shark {
 		const ApplicationSpecification& GetSpecification() const { return m_Specification; }
 
 		static Application& Get() { return *s_Instance; }
+		static bool IsMainThread() { return Get().GetMainThreadID() == std::this_thread::get_id(); }
 
 	public:
 		template<typename TEvent, typename... TArgs>

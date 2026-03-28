@@ -5,35 +5,13 @@
 
 namespace Shark {
 
-	Mesh::Mesh(AssetHandle meshSource)
-		: m_MeshSource(meshSource)
+	Mesh::Mesh(Ref<MeshSource> meshSource)
+		: m_MeshSource(meshSource->Handle)
 	{
-		m_MaterialTable = Ref<MaterialTable>::Create();
-
-		if (auto meshSourceAsset = AssetManager::GetAsset<MeshSource>(meshSource))
-		{
-			SetSubmeshes({}, meshSourceAsset);
-
-			const auto& meshMaterials = meshSourceAsset->GetMaterials();
-			for (uint32_t i = 0; i < meshMaterials.size(); i++)
-				m_MaterialTable->SetMaterial(i, meshMaterials[i]);
-		}
+		InitializeFromThis(meshSource);
 	}
 
-	Mesh::Mesh(AssetHandle meshSource, const std::vector<uint32_t>& submeshes)
-		: m_MeshSource(meshSource)
-	{
-		m_MaterialTable = Ref<MaterialTable>::Create();
-
-		if (auto meshSourceAsset = AssetManager::GetAsset<MeshSource>(meshSource))
-		{
-			SetSubmeshes(submeshes, meshSourceAsset);
-
-			const auto& meshMaterials = meshSourceAsset->GetMaterials();
-			for (uint32_t i = 0; i < meshMaterials.size(); i++)
-				m_MaterialTable->SetMaterial(i, meshMaterials[i]);
-		}
-	}
+#if TODO
 
 	void Mesh::SetSubmeshes(std::span<const uint32_t> submeshes, Ref<MeshSource> meshSource)
 	{
@@ -50,6 +28,25 @@ namespace Shark {
 			for (uint32_t i = 0; i < m_Submeshes.size(); i++)
 				m_Submeshes[i] = i;
 		}
+	}
+#endif
+
+	void Mesh::InitializeFromThis(Ref<MeshSource> meshSource)
+	{
+		SK_CORE_VERIFY(m_MeshSource == meshSource->Handle);
+		m_MaterialTable = Ref<MaterialTable>::Create();
+
+		if (m_Submeshes.empty())
+		{
+			const auto& submeshes = meshSource->GetSubmeshes();
+			m_Submeshes.resize(submeshes.size());
+			for (uint32_t i = 0; i < m_Submeshes.size(); i++)
+				m_Submeshes[i] = i;
+		}
+
+		const auto& meshMaterials = meshSource->GetMaterials();
+		for (uint32_t i = 0; i < meshMaterials.size(); i++)
+			m_MaterialTable->SetMaterial(i, meshMaterials[i]);
 	}
 
 }

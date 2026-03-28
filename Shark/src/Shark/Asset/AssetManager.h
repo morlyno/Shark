@@ -11,8 +11,11 @@ namespace Shark {
 	public:
 		static AssetType GetAssetType(AssetHandle handle) { return Project::GetAssetManager()->GetAssetType(handle); }
 		static Ref<Asset> GetAsset(AssetHandle handle) { return Project::GetEditorAssetManager()->GetAsset(handle); }
-		static AsyncLoadResult<Asset> GetAssetAsync(AssetHandle handle) { return Project::GetEditorAssetManager()->GetAssetAsync(handle); }
+		static Ref<Asset> GetAssetAsync(AssetHandle handle) { return Project::GetEditorAssetManager()->GetAssetAsync(handle); }
 		static Threading::Future<Ref<Asset>> GetAssetFuture(AssetHandle handle) { return Project::GetEditorAssetManager()->GetAssetFuture(handle); }
+
+		static bool WaitForAsset(AssetHandle handle, bool queueLoad = true) { return Project::GetAssetManager()->WaitForAsset(handle, queueLoad); }
+		static void LoadAssetAsync(AssetHandle handle) { return Project::GetAssetManager()->LoadAssetAsync(handle); }
 
 		static std::vector<AssetHandle> GetAllAssetsOfType(AssetType assetType) { return Project::GetAssetManager()->GetAllAssetsOfType(assetType); }
 
@@ -26,7 +29,6 @@ namespace Shark {
 		static void DeleteAsset(AssetHandle handle) { return Project::GetAssetManager()->DeleteAsset(handle); }
 		static void DeleteMemoryAsset(AssetHandle handle) { return Project::GetAssetManager()->DeleteMemoryAsset(handle); }
 		
-		static void WaitUntilIdle() { Project::GetAssetManager()->WaitUntilIdle(); }
 		static void SyncWithAssetThread() { Project::GetAssetManager()->SyncWithAssetThread(); }
 
 		template<typename TAsset>
@@ -36,29 +38,45 @@ namespace Shark {
 
 			Ref<Asset> asset = GetAsset(handle);
 			if (asset && asset->GetAssetType() != TAsset::GetStaticType())
+			{
+				SK_CORE_ERROR_TAG("AssetManager", "GetAsset<{}> Error asset {} is of type {}", TAsset::GetStaticType(), handle, asset->GetAssetType());
 				return nullptr;
+			}
 
 			return asset.As<TAsset>();
 		}
 		
 		template<typename TAsset>
-		static AsyncLoadResult<TAsset> GetAssetAsync(AssetHandle handle)
+		static Ref<TAsset> GetAssetAsync(AssetHandle handle)
 		{
 			static_assert(std::is_base_of_v<Asset, TAsset>, "GetAsset only works for types with base class Asset");
 
-			AsyncLoadResult<Asset> result = GetAssetAsync(handle);
-			return AsyncLoadResult<TAsset>(result);
+			auto asset = GetAssetAsync(handle);
+			if (asset && asset->GetAssetType() != TAsset::GetStaticType())
+			{
+				SK_CORE_ERROR_TAG("AssetManager", "GetAssetAsync<{}> Error asset {} is of type {}", TAsset::GetStaticType(), handle, asset->GetAssetType());
+				return nullptr;
+			}
+
+			return GetAssetAsync(handle).As<TAsset>();
 		}
-		
+
 		template<typename TAsset>
-		static Ref<TAsset> GetReadyAssetAsync(AssetHandle handle)
+		static Ref<TAsset> GetAssetAsync(AssetHandle handle, Ref<TAsset> defaultAsset)
 		{
 			static_assert(std::is_base_of_v<Asset, TAsset>, "GetAsset only works for types with base class Asset");
+			if (auto asset = GetAssetAsync<TAsset>(handle))
+				return asset;
+			return defaultAsset;
+		}
 
-			AsyncLoadResult<Asset> result = GetAssetAsync(handle);
-			if (result.Ready)
-				return result.Asset.As<TAsset>();
-			return nullptr;
+		template<typename TAsset>
+		static Ref<TAsset> GetAssetAsync(AssetHandle handle, AssetHandle defaultAsset)
+		{
+			static_assert(std::is_base_of_v<Asset, TAsset>, "GetAsset only works for types with base class Asset");
+			if (auto asset = GetAssetAsync<TAsset>(handle))
+				return asset;
+			return GetAssetAsync<TAsset>(defaultAsset);
 		}
 
 		template<typename TAsset, typename... TArgs>

@@ -40,22 +40,22 @@ namespace Shark {
 
 	void ContactListener::OnCollisionBegin(b2Body* bodyA, b2Body* bodyB)
 	{
-		m_ContactEventCallback(ContactType::CollisionBegin, bodyA->GetUserData().pointer, bodyB->GetUserData().pointer);
+		m_ContactEventCallback(ContactType::CollisionBegin, UUID::Make(bodyA->GetUserData().pointer), UUID::Make(bodyB->GetUserData().pointer));
 	}
 
 	void ContactListener::OnCollisionEnd(b2Body* bodyA, b2Body* bodyB)
 	{
-		m_ContactEventCallback(ContactType::CollisionEnd, bodyA->GetUserData().pointer, bodyB->GetUserData().pointer);
+		m_ContactEventCallback(ContactType::CollisionEnd, UUID::Make(bodyA->GetUserData().pointer), UUID::Make(bodyB->GetUserData().pointer));
 	}
 
 	void ContactListener::OnTriggerBegin(b2Body* bodyA, b2Body* bodyB)
 	{
-		m_ContactEventCallback(ContactType::TriggerBegin, bodyA->GetUserData().pointer, bodyB->GetUserData().pointer);
+		m_ContactEventCallback(ContactType::TriggerBegin, UUID::Make(bodyA->GetUserData().pointer), UUID::Make(bodyB->GetUserData().pointer));
 	}
 
 	void ContactListener::OnTriggerEnd(b2Body* bodyA, b2Body* bodyB)
 	{
-		m_ContactEventCallback(ContactType::TriggerEnd, bodyA->GetUserData().pointer, bodyB->GetUserData().pointer);
+		m_ContactEventCallback(ContactType::TriggerEnd, UUID::Make(bodyA->GetUserData().pointer), UUID::Make(bodyB->GetUserData().pointer));
 	}
 
 }

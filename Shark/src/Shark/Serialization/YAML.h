@@ -252,12 +252,11 @@ struct convert<_Type>                                                \
 	{																 \
 		BaseType temp;												 \
 		bool result = convert<BaseType>::decode(node, temp);		 \
-		outValue = temp;											 \
+		outValue = Type(temp);										 \
 		return result;												 \
 	}                                                                \
 }
 
-	DECALRE_YAML_CONVERT_AS(Shark::UUID, uint64_t);
 	DECALRE_YAML_CONVERT_AS(Shark::TimeStep, float);
 #undef DECALRE_YAML_CONVERT_AS
 

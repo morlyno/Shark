@@ -39,17 +39,19 @@ namespace Shark {
 	{
 	public:
 		ScopedTimer(const std::string& name)
-			: m_Name(name)
-		{
-		}
+			: m_Tag("Timer"), m_Name(name) {}
+
+		ScopedTimer(std::string_view tag, const std::string& name)
+			: m_Tag(tag), m_Name(name) {}
 
 		~ScopedTimer()
 		{
-			SK_CORE_TRACE_TAG("Timer", "{0} took {1}", m_Name, m_Timer.Elapsed());
+			SK_CORE_TRACE_TAG(m_Tag, "{0} took {1}", m_Name, m_Timer.Elapsed());
 		}
 
 	private:
 		Timer m_Timer;
+		std::string_view m_Tag;
 		std::string m_Name;
 	};
 

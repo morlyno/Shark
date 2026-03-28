@@ -68,17 +68,17 @@ namespace Shark {
 
 	void PBRMaterial::Update()
 	{
-		if (AsyncLoadResult result = AssetManager::GetAssetAsync<Texture2D>(m_AlbedoMap); result.Ready)
-			m_Material->Set(s_AlbedoMapName, result.Asset);
+		if (auto result = AssetManager::GetAssetAsync<Texture2D>(m_AlbedoMap))
+			m_Material->Set(s_AlbedoMapName, result);
 
-		if (AsyncLoadResult result = AssetManager::GetAssetAsync<Texture2D>(m_NormalMap); result.Ready)
-			m_Material->Set(s_NormalMapName, result.Asset);
+		if (auto result = AssetManager::GetAssetAsync<Texture2D>(m_NormalMap))
+			m_Material->Set(s_NormalMapName, result);
 
-		if (AsyncLoadResult result = AssetManager::GetAssetAsync<Texture2D>(m_MetalnessMap); result.Ready)
-			m_Material->Set(s_MetalnessMapName, result.Asset);
+		if (auto result = AssetManager::GetAssetAsync<Texture2D>(m_MetalnessMap))
+			m_Material->Set(s_MetalnessMapName, result);
 
-		if (AsyncLoadResult result = AssetManager::GetAssetAsync<Texture2D>(m_RoughnessMap); result.Ready)
-			m_Material->Set(s_RoughnessMapName, result.Asset);
+		if (auto result = AssetManager::GetAssetAsync<Texture2D>(m_RoughnessMap))
+			m_Material->Set(s_RoughnessMapName, result);
 
 		if (m_Uniforms != m_ActiveState)
 		{
@@ -126,10 +126,12 @@ namespace Shark {
 		m_NormalMap = handle;
 	}
 
-	void PBRMaterial::ClearNormalMap()
+	void PBRMaterial::ClearNormalMap(bool resetUsing)
 	{
 		m_NormalMap = AssetHandle::Invalid;
 		m_Material->Set(s_NormalMapName, Renderer::GetWhiteTexture());
+		if (resetUsing)
+			m_Uniforms.UsingNormalMap = false;
 	}
 
 	bool PBRMaterial::IsUsingNormalMap()
