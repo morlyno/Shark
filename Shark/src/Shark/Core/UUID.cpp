@@ -9,11 +9,6 @@ namespace Shark {
 	static std::mt19937_64 s_Engine{ s_Device() };
 	static std::uniform_int_distribution<uint64_t> s_Distribution;
 
-	constexpr UUID::UUID(uint64_t uuid)
-		: m_UUID(uuid)
-	{
-	}
-
 	UUID UUID::Generate()
 	{
 		UUID uuid{ s_Distribution(s_Engine) };

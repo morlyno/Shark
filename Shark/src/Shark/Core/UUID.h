@@ -26,7 +26,8 @@ namespace Shark {
 		static constexpr Invalid Invalid;
 
 	private:
-		explicit constexpr UUID(uint64_t uuid);
+		explicit constexpr UUID(uint64_t uuid)
+			: m_UUID(uuid) {}
 
 		uint64_t m_UUID = 0;
 
