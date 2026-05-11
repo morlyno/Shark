@@ -12,9 +12,10 @@ namespace Shark {
 	public:
 		static void DeselectAll();
 		static void DeselectAll(UUID contextID);
+		static void ClearContext(UUID contextID);
 
 		static void Select(UUID contextID, UUID id);
-		static void Select(UUID contextID, std::span<UUID> ids);
+		static void Select(UUID contextID, std::span<const UUID> ids);
 		static void Unselect(UUID contextID, UUID id);
 		static void Toggle(UUID contextID, UUID id, bool select);
 

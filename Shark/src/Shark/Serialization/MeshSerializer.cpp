@@ -104,6 +104,12 @@ namespace Shark {
 		context->AddTask([mesh = mesh](AssetLoadContext* context)
 		{
 			auto future = AssetManager::GetAssetFuture(mesh->GetMeshSource());
+			if (!future.Valid())
+			{
+				context->AddError(AssetLoadError::Unknown, fmt::format("MeshSource '{}' missing!", mesh->GetMeshSource()));
+				return;
+			}
+
 			future.OnReady([context, mesh](Ref<Asset> asset)
 			{
 				mesh->InitializeFromThis(asset.As<MeshSource>());

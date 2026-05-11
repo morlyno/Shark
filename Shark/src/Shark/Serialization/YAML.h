@@ -14,6 +14,7 @@ namespace YAML {
 		static Node encode(const glm::vec2& val)
 		{
 			Node node(NodeType::Sequence);
+			node.SetStyle(YAML::EmitterStyle::Flow);
 			node.push_back(val.x);
 			node.push_back(val.y);
 			return node;
@@ -37,6 +38,7 @@ namespace YAML {
 		static Node encode(const glm::vec3& val)
 		{
 			Node node(NodeType::Sequence);
+			node.SetStyle(YAML::EmitterStyle::Flow);
 			node.push_back(val.x);
 			node.push_back(val.y);
 			node.push_back(val.z);
@@ -62,6 +64,7 @@ namespace YAML {
 		static Node encode(const glm::vec4& val)
 		{
 			Node node(NodeType::Sequence);
+			node.SetStyle(YAML::EmitterStyle::Flow);
 			node.push_back(val.x);
 			node.push_back(val.y);
 			node.push_back(val.z);

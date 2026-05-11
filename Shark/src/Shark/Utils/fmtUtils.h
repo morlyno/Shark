@@ -36,7 +36,7 @@ struct fmt::formatter<glm::vec<3, T, Q>> : fmt::formatter<T>
 		fmt::detail::write(ctx.out(), ", ");
 		UnderlyingFormatter::format(val.y, ctx);
 		fmt::detail::write(ctx.out(), ", ");
-		UnderlyingFormatter::format(val.y, ctx);
+		UnderlyingFormatter::format(val.z, ctx);
 		fmt::detail::write(ctx.out(), ']');
 		return ctx.out();
 	}
@@ -54,9 +54,9 @@ struct fmt::formatter<glm::vec<4, T, Q>> : fmt::formatter<T>
 		fmt::detail::write(ctx.out(), ", ");
 		UnderlyingFormatter::format(val.y, ctx);
 		fmt::detail::write(ctx.out(), ", ");
-		UnderlyingFormatter::format(val.y, ctx);
+		UnderlyingFormatter::format(val.z, ctx);
 		fmt::detail::write(ctx.out(), ", ");
-		UnderlyingFormatter::format(val.y, ctx);
+		UnderlyingFormatter::format(val.w, ctx);
 		fmt::detail::write(ctx.out(), ']');
 		return ctx.out();
 	}

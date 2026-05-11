@@ -359,6 +359,11 @@ namespace Shark {
 		// #TODO #async find a way to do this through the asset system
 		const auto texturePath = m_Filepath.parent_path() / path.C_Str();
 		ScopedBuffer imageData = TextureImporter::ToBufferFromFile(texturePath, specification.Format, specification.Width, specification.Height);
+		if (!imageData)
+		{
+			// #TODO handle file not found
+			return AssetHandle::Invalid;
+		}
 
 		Ref<Texture2D> texture = Texture2D::Create(specification, imageData);
 		Renderer::MT::GenerateMips(texture->GetImage());

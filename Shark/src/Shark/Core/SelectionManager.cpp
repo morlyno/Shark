@@ -26,13 +26,18 @@ namespace Shark {
 		selections.clear();
 	}
 
+	void SelectionManager::ClearContext(UUID contextID)
+	{
+		s_SelectionData.m_Selections.erase(contextID);
+	}
+
 	void SelectionManager::Select(UUID contextID, UUID id)
 	{
 		auto& selections = s_SelectionData.m_Selections[contextID];
 		selections.push_back(id);
 	}
 
-	void SelectionManager::Select(UUID contextID, std::span<UUID> entities)
+	void SelectionManager::Select(UUID contextID, std::span<const UUID> entities)
 	{
 		auto& selections = s_SelectionData.m_Selections[contextID];
 		selections.insert(selections.end(), entities.begin(), entities.end());

@@ -216,7 +216,7 @@ namespace Shark {
 
 			void MergeCallbacks(const Future& other);
 
-			bool Valid() const { m_State != nullptr; }
+			bool Valid() const { return m_State != nullptr; }
 			bool Ready() const { return m_State->m_Finished; }
 
 

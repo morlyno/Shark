@@ -834,36 +834,40 @@ namespace Shark {
 			{
 				SK_CORE_VERIFY(currentItem->GetType() == CBItemType::Directory);
 
+				// #fix this doesn't work anymore, payload is always null
 				const ImGuiPayload* payload = ImGui::GetDragDropPayload();
-				if (payload->IsDataType("Asset"))
+				if (payload)
 				{
-					AssetHandle handle = *(AssetHandle*)payload->Data;
-					if (AssetManager::IsValidAssetHandle(handle))
+					if (payload->IsDataType("Asset"))
 					{
-						SK_CORE_VERIFY(m_CurrentItems.Contains(handle));
-						auto item = m_CurrentItems.Get(handle);
-						auto tagetDirectory = GetDirectory(currentItem->GetID());
+						AssetHandle handle = *(AssetHandle*)payload->Data;
+						if (AssetManager::IsValidAssetHandle(handle))
+						{
+							SK_CORE_VERIFY(m_CurrentItems.Contains(handle));
+							auto item = m_CurrentItems.Get(handle);
+							auto tagetDirectory = GetDirectory(currentItem->GetID());
 
+							item->Move(tagetDirectory);
+							NextDirectory(m_CurrentDirectory, false, false);
+						}
+					}
+
+					if (payload->IsDataType("uuid.cb.directory"))
+					{
+						UUID id = *(UUID*)payload->Data;
+						SK_CORE_VERIFY(m_CurrentItems.Contains(id));
+
+						auto item = m_CurrentItems.Get(id);
+						auto tagetDirectory = GetDirectory(currentItem->GetID());
 						item->Move(tagetDirectory);
 						NextDirectory(m_CurrentDirectory, false, false);
 					}
-				}
 
-				if (payload->IsDataType("uuid.cb.directory"))
-				{
-					UUID id = *(UUID*)payload->Data;
-					SK_CORE_VERIFY(m_CurrentItems.Contains(id));
-
-					auto item = m_CurrentItems.Get(id);
-					auto tagetDirectory = GetDirectory(currentItem->GetID());
-					item->Move(tagetDirectory);
-					NextDirectory(m_CurrentDirectory, false, false);
-				}
-
-				if (payload->IsDataType("ENTITY_ID"))
-				{
-					auto targetDirectory = GetDirectory(currentItem->GetID());
-					HandleEntityPayload(payload, targetDirectory);
+					if (payload->IsDataType("ENTITY_ID"))
+					{
+						auto targetDirectory = GetDirectory(currentItem->GetID());
+						HandleEntityPayload(payload, targetDirectory);
+					}
 				}
 			}
 
