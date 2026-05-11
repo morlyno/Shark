@@ -13,6 +13,7 @@ __pycache__
 # Visual Studios files
 .vs/
 **.sln
+**.slnx
 **.vcxproj
 **.vcxproj.filters
 **.vcxproj.user

@@ -37,7 +37,7 @@ project "Shark-Editor"
     }
 
     filter "files:**.hlsl or files:**.glsl"
-        flags { "ExcludeFromBuild" }
+        excludefrombuild "On"
 
     filter "configurations:Debug or configurations:Debug-AS or configurations:Release"
         defines { "SK_TRACK_MEMORY" }

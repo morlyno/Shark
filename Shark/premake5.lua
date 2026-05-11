@@ -43,7 +43,7 @@ project "Shark"
     IncludeDependencies()
 
     filter "files:dependencies/tracy/**.cpp or files:dependencies/ImGuizmo/ImGuizmo.cpp"
-        flags { "NoPCH" }
+        enablepch "Off"
 
     filter "files:dependencies/StrToNum/StrToNum.h"
         defines { "NDEBUG" }

@@ -3,6 +3,7 @@ include "Dependencies.lua"
 
 workspace "Shark"
 	configurations { "Debug", "Debug-AS", "Release" }
+	platforms { "x64" }
 	startproject "Shark-Editor"
 	conformancemode "On"
 	editandcontinue "Off"
@@ -10,8 +11,7 @@ workspace "Shark"
 	language "C++"
 	cppdialect "C++20"
 	staticruntime "Off"
-
-	flags { "MultiProcessorCompile" }
+	multiprocessorcompile "On"
 
 	defines {
 		"_CRT_SECURE_NO_WARNINGS",
@@ -46,14 +46,14 @@ workspace "Shark"
 
 	filter "configurations:Debug-AS"
 		sanitize { "Address" }
-		flags { "NoRuntimeChecks", "NoIncrementalLink" }
-		editandcontinue "off"
+		runtimechecks "Off"
+		incrementallink "Off"
 		defines { "SK_DEBUG_ADDRESS" }
 	
 	filter "configurations:Release"
 		optimize "On"
 		symbols "Default"
-        vectorextensions "AVX2"
+        -- vectorextensions "AVX2"
         defines { "SK_RELEASE", "NDEBUG" }
 
 	filter "system:windows"
@@ -73,9 +73,6 @@ group "Dependencies"
 group "Dependencies/NVRHI"
 	include "Shark/dependencies/NVRHI"
 group ""
-
-
-
 
 group "Core"
 	include "Shark"
