@@ -158,11 +158,11 @@ namespace Shark {
 		glm::mat4 GetWorldSpaceTransformMatrix(Entity entity) const;
 		TransformComponent GetWorldSpaceTransform(Entity entity);
 
-		bool ConvertToLocaSpace(Entity entity, glm::mat4& transformMatrix);
+		bool ConvertToLocalSpace(Entity entity, glm::mat4& transformMatrix);
 		bool ConvertToWorldSpace(Entity entity, glm::mat4& transformMatrix);
-		bool ConvertToLocaSpace(Entity entity, TransformComponent& transform);
+		bool ConvertToLocalSpace(Entity entity, TransformComponent& transform);
 		bool ConvertToWorldSpace(Entity entity, TransformComponent& transform);
-		bool ConvertToLocaSpace(Entity entity);
+		bool ConvertToLocalSpace(Entity entity);
 		bool ConvertToWorldSpace(Entity entity);
 
 		void ParentEntity(Entity entity, Entity parent);

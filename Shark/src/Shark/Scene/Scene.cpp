@@ -1075,7 +1075,7 @@ namespace Shark {
 		return transform;
 	}
 
-	bool Scene::ConvertToLocaSpace(Entity entity, glm::mat4& transformMatrix)
+	bool Scene::ConvertToLocalSpace(Entity entity, glm::mat4& transformMatrix)
 	{
 		if (!entity.HasParent())
 			return true;
@@ -1093,7 +1093,7 @@ namespace Shark {
 		return true;
 	}
 
-	bool Scene::ConvertToLocaSpace(Entity entity, TransformComponent& transform)
+	bool Scene::ConvertToLocalSpace(Entity entity, TransformComponent& transform)
 	{
 		if (!entity.HasParent())
 			return true;
@@ -1111,9 +1111,9 @@ namespace Shark {
 		return Math::DecomposeTransform(worldTransformMatrix, transform.Translation, transform.Rotation, transform.Scale);
 	}
 
-	bool Scene::ConvertToLocaSpace(Entity entity)
+	bool Scene::ConvertToLocalSpace(Entity entity)
 	{
-		return ConvertToLocaSpace(entity, entity.Transform());
+		return ConvertToLocalSpace(entity, entity.Transform());
 	}
 
 	bool Scene::ConvertToWorldSpace(Entity entity)
@@ -1140,7 +1140,7 @@ namespace Shark {
 		}
 
 		entity.SetParent(parent);
-		ConvertToLocaSpace(entity);
+		ConvertToLocalSpace(entity);
 	}
 
 	void Scene::UnparentEntity(Entity entity)

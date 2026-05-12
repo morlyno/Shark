@@ -966,79 +966,142 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		
-		if (!m_RenderGizmo)
+		if (!m_RenderGizmo || m_CurrentOperation == (ImGuizmo::OPERATION)0)
 			return;
 
-		if (m_CurrentOperation != (ImGuizmo::OPERATION)0 && SelectionManager::AnySelected(m_EditorScene->GetID()))
+		const auto& selections = SelectionManager::GetSelections(m_ActiveScene->GetID());
+
+		if (selections.empty())
+			return;
+
+		float snapVal = 0.0f;
+		if (Input::IsKeyDown(KeyCode::LeftShift))
 		{
-			ImGuiWindow* window = ImGui::GetCurrentWindow();
-
-			ImVec2 windowPos = window->WorkRect.Min;
-			ImVec2 windowSize = window->WorkRect.GetSize();
-
-			ImGuizmo::SetDrawlist();
-			ImGuizmo::SetRect(windowPos.x, windowPos.y, windowSize.x, windowSize.y);
-
-			glm::mat4 view;
-			glm::mat4 projection;
-			if (m_SceneState == SceneState::Play)
+			switch (m_CurrentOperation)
 			{
-				Entity cameraEntity = m_ActiveScene->GetActiveCameraEntity();
-				auto& component = cameraEntity.GetComponent<CameraComponent>();
-				glm::mat4 transform = cameraEntity.Transform().CalcTransform();
-
-				ImGuizmo::SetOrthographic(!component.IsPerspective);
-				view = glm::inverse(transform);
-				projection = component.GetProjection();
+				case ImGuizmo::TRANSLATE: snapVal = m_TranslationSnap; break;
+				case ImGuizmo::ROTATE:    snapVal = m_RotationSnap; break;
+				case ImGuizmo::SCALE:     snapVal = m_ScaleSnap; break;
 			}
-			else
+		}
+
+		float snapValues[3] = { snapVal, snapVal, snapVal };
+
+		const ImGuiWindow* window = ImGui::GetCurrentWindow();
+		const ImVec2 windowPos = window->WorkRect.Min;
+		const ImVec2 windowSize = window->WorkRect.GetSize();
+
+		ImGuizmo::SetDrawlist();
+		ImGuizmo::SetRect(windowPos.x, windowPos.y, windowSize.x, windowSize.y);
+
+		glm::mat4 view, projection;
+		if (m_SceneState == SceneState::Play)
+		{
+			Entity cameraEntity = m_ActiveScene->GetActiveCameraEntity();
+			auto& component = cameraEntity.GetComponent<CameraComponent>();
+
+			ImGuizmo::SetOrthographic(!component.IsPerspective);
+			view = glm::inverse(m_ActiveScene->GetWorldSpaceTransformMatrix(cameraEntity));
+			projection = component.GetProjection();
+		}
+		else
+		{
+			ImGuizmo::SetOrthographic(false);
+			view = m_EditorCamera.GetView();
+			projection = m_EditorCamera.GetProjection();
+		}
+
+		if (selections.size() == 1)
+		{
+			Entity entity = m_ActiveScene->TryGetEntityByUUID(selections[0]);
+			auto& entityTransform = entity.Transform();
+
+			glm::mat4 transform = m_ActiveScene->GetWorldSpaceTransformMatrix(entity);
+
+			if (ImGuizmo::Manipulate(glm::value_ptr(view),
+									 glm::value_ptr(projection),
+									 static_cast<ImGuizmo::OPERATION>(m_CurrentOperation),
+									 ImGuizmo::LOCAL,
+									 glm::value_ptr(transform),
+									 nullptr,
+									 snapValues))
 			{
-				ImGuizmo::SetOrthographic(false);
-				view = m_EditorCamera.GetView();
-				projection = m_EditorCamera.GetProjection();
-			}
+				m_ActiveScene->ConvertToLocalSpace(entity, transform);
 
-			auto entities = SelectionManager::GetSelections(m_EditorScene->GetID()) |
-				            std::views::transform([s = m_EditorScene](UUID id) { return s->TryGetEntityByUUID(id); });
+				glm::vec3 translation;
+				glm::quat rotation;
+				glm::vec3 scale;
+				Math::DecomposeTransform(transform, translation, rotation, scale);
 
-			TransformComponent centerTransform = m_ActiveScene->GetWorldSpaceTransform(entities[0]);
-			centerTransform.Translation = utils::GetCenterOfEntities(m_ActiveScene, entities);
-			glm::mat4 transform = centerTransform.CalcTransform();
-
-			float snapVal = 0.0f;
-			if (Input::IsKeyDown(KeyCode::LeftShift))
-			{
 				switch (m_CurrentOperation)
 				{
-					case ImGuizmo::TRANSLATE: snapVal = m_TranslationSnap; break;
-					case ImGuizmo::ROTATE:    snapVal = m_RotationSnap; break;
-					case ImGuizmo::SCALE:     snapVal = m_ScaleSnap; break;
-				}
-			}
-
-			float snap[3] = { snapVal, snapVal, snapVal };
-			glm::mat4 delta;
-			ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(projection), (ImGuizmo::OPERATION)m_CurrentOperation, ImGuizmo::LOCAL, glm::value_ptr(transform), glm::value_ptr(delta), snap);
-
-			if (!Input::IsKeyDown(KeyCode::LeftAlt) && ImGuizmo::IsUsing())
-			{
-				for (Entity entity : entities)
-				{
-					glm::mat4 originalTransform = m_ActiveScene->GetWorldSpaceTransformMatrix(entity);
-
-					glm::vec3 translation, rotation, scale;
-					if (Math::DecomposeTransform(delta, translation, rotation, scale))
+					case ImGuizmo::TRANSLATE:
 					{
-						auto& tf = entity.Transform();
-						switch (m_CurrentOperation)
-						{
-							case ImGuizmo::TRANSLATE: tf.Translation += translation; break;
-							case ImGuizmo::ROTATE: tf.Rotation += rotation; break;
-							case ImGuizmo::SCALE: tf.Scale *= scale; break;
-						}
+						entityTransform.Translation = translation;
+						break;
+					}
+					case ImGuizmo::ROTATE:
+					{
+						constexpr auto pi = glm::vec3(glm::pi<float>());
+						constexpr auto two_pi = glm::vec3(glm::two_pi<float>());
+
+						entityTransform.Rotation = glm::mod(glm::eulerAngles(rotation) + pi, two_pi) - pi;
+						break;
+					}
+					case ImGuizmo::SCALE:
+					{
+						entityTransform.Scale = scale;
+						break;
 					}
 				}
+			}
+		}
+		else
+		{
+			// #TODO add transformation around individual origins
+			TransformComponent median;
 
+			for (auto entityID : selections)
+			{
+				Entity entity = m_ActiveScene->GetEntityByID(entityID);
+				auto transform = m_ActiveScene->GetWorldSpaceTransform(entity);
+				median.Translation += transform.Translation;
+				median.Rotation += transform.Rotation;
+				median.Scale += transform.Scale;
+			}
+
+			median.Translation /= selections.size();
+			median.Rotation /= selections.size();
+			median.Scale /= selections.size();
+
+			auto medianMatrix = median.CalcTransform();
+			auto transformOrigin = medianMatrix;
+			auto deltaMatrix = glm::identity<glm::mat4>();
+			
+			if (ImGuizmo::Manipulate(glm::value_ptr(view),
+									 glm::value_ptr(projection),
+									 static_cast<ImGuizmo::OPERATION>(m_CurrentOperation),
+									 ImGuizmo::LOCAL,
+									 glm::value_ptr(medianMatrix),
+									 glm::value_ptr(deltaMatrix),
+									 snapValues))
+			{
+				for (auto entityID : selections)
+				{
+					Entity entity = m_ActiveScene->GetEntityByID(entityID);
+
+					auto worldTransform = m_ActiveScene->GetWorldSpaceTransformMatrix(entity);
+					auto newWorldTransform = medianMatrix * (glm::inverse(transformOrigin) * worldTransform);
+
+					m_ActiveScene->ConvertToLocalSpace(entity, newWorldTransform);
+
+					auto& transform = entity.Transform();
+					transform.SetTransform(newWorldTransform);
+
+					constexpr auto pi = glm::vec3(glm::pi<float>());
+					constexpr auto two_pi = glm::vec3(glm::two_pi<float>());
+					transform.Rotation = glm::mod(transform.Rotation + pi, two_pi) - pi;
+				}
 			}
 		}
 	}

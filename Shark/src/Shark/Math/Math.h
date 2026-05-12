@@ -10,6 +10,7 @@ namespace Shark::Math {
 	constexpr float Rad2Deg = 57.295779513082320876798154814105f;
 
 	bool DecomposeTransform(const glm::mat4& ModelMatrix, glm::vec3& out_Translation, glm::vec3& out_Euler, glm::vec3& out_Scale);
+	bool DecomposeTransform(const glm::mat4& ModelMatrix, glm::vec3& out_Translation, glm::quat& outRotation, glm::vec3& out_Scale);
 	bool DecomposeTranslation(const glm::mat4& ModelMatrix, glm::vec3& out_Translation);
 
 	template <class T, std::enable_if_t<std::_Is_standard_unsigned_integer<T>, int> = 0>

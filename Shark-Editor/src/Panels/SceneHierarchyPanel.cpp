@@ -955,7 +955,7 @@ namespace Shark {
 					for (Entity entity : entities)
 					{
 						TransformComponent localTransform = firstTransform;
-						m_Context->ConvertToLocaSpace(entity, localTransform);
+						m_Context->ConvertToLocalSpace(entity, localTransform);
 
 						auto& transform = entity.Transform();
 						if (isTranslationInconsistent.x) transform.Translation.x = localTransform.Translation.x;

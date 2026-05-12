@@ -631,7 +631,7 @@ namespace Shark {
 			auto currentScene = ScriptEngine::Get().GetCurrentSceen();
 
 			entity.Transform() = *worldTransform;
-			currentScene->ConvertToLocaSpace(entity);
+			currentScene->ConvertToLocalSpace(entity);
 
 			if (entity.HasComponent<RigidBody2DComponent>())
 			{

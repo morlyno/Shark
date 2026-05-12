@@ -143,7 +143,7 @@ namespace Shark {
 					{
 						auto& transform = entity.Transform();
 						transform = TransformComponent{};
-						m_Context->ConvertToLocaSpace(entity, transform);
+						m_Context->ConvertToLocalSpace(entity, transform);
 					}
 					else
 					{
@@ -162,7 +162,7 @@ namespace Shark {
 						{
 							m_Context->ConvertToWorldSpace(entity);
 							entity.Transform().Translation = glm::vec3(0.0f);
-							m_Context->ConvertToLocaSpace(entity);
+							m_Context->ConvertToLocalSpace(entity);
 						}
 						else
 						{
@@ -176,7 +176,7 @@ namespace Shark {
 						{
 							m_Context->ConvertToWorldSpace(entity);
 							entity.Transform().Rotation = glm::vec3(0.0f);
-							m_Context->ConvertToLocaSpace(entity);
+							m_Context->ConvertToLocalSpace(entity);
 						}
 						else
 						{
@@ -190,7 +190,7 @@ namespace Shark {
 						{
 							m_Context->ConvertToWorldSpace(entity);
 							entity.Transform().Scale = glm::vec3(1.0f);
-							m_Context->ConvertToLocaSpace(entity);
+							m_Context->ConvertToLocalSpace(entity);
 						}
 						else
 						{
@@ -285,7 +285,7 @@ namespace Shark {
 					{
 						auto& transform = entity.Transform();
 						transform = TransformComponent{};
-						m_Context->ConvertToLocaSpace(entity, transform);
+						m_Context->ConvertToLocalSpace(entity, transform);
 					}
 				}
 				else
@@ -310,7 +310,7 @@ namespace Shark {
 						{
 							m_Context->ConvertToWorldSpace(entity);
 							entity.Transform().Translation = glm::vec3(0.0f);
-							m_Context->ConvertToLocaSpace(entity);
+							m_Context->ConvertToLocalSpace(entity);
 						}
 						else
 						{
@@ -327,7 +327,7 @@ namespace Shark {
 						{
 							m_Context->ConvertToWorldSpace(entity);
 							entity.Transform().Rotation = glm::vec3(0.0f);
-							m_Context->ConvertToLocaSpace(entity);
+							m_Context->ConvertToLocalSpace(entity);
 						}
 						else
 						{
@@ -344,7 +344,7 @@ namespace Shark {
 						{
 							m_Context->ConvertToWorldSpace(entity);
 							entity.Transform().Scale = glm::vec3(1.0f);
-							m_Context->ConvertToLocaSpace(entity);
+							m_Context->ConvertToLocalSpace(entity);
 						}
 						else
 						{
