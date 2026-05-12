@@ -280,10 +280,9 @@ namespace Shark {
 		{
 			case KeyCode::Escape:
 			{
-				//Input::SetCursorMode(CursorMode::Normal);
-				if (!m_EditorCamera.GetFlyMode())
+				if (SelectionManager::AnySelected(m_ActiveScene->GetID()))
 				{
-					SelectionManager::DeselectAll();
+					SelectionManager::DeselectAll(m_ActiveScene->GetID());
 					return true;
 				}
 				break;
@@ -1878,6 +1877,12 @@ namespace Shark {
 		m_RuntimeScene = Scene::Copy(m_EditorScene);
 		OnSceneStateChanged(m_RuntimeScene);
 
+		if (SelectionManager::AnySelected(m_EditorScene->GetID()))
+		{
+			auto& selections = SelectionManager::GetSelections(m_EditorScene->GetID());
+			SelectionManager::Select(m_RuntimeScene->GetID(), selections);
+		}
+
 		m_PanelManager->OnScenePlay();
 		m_RuntimeScene->OnScenePlay();
 	}
@@ -1893,6 +1898,7 @@ namespace Shark {
 		m_PanelManager->OnSceneStop();
 
 		OnSceneStateChanged(m_EditorScene);
+		SelectionManager::ClearContext(m_RuntimeScene->GetID());
 		m_RuntimeScene = nullptr;
 
 		Project::RestartScriptEngine();
