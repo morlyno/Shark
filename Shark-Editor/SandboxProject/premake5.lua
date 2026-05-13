@@ -1,9 +1,8 @@
 
 SharkDir = os.getenv("SHARK_DIR")
-include (path.join(SharkDir, "Shark", "dependencies", "Coral", "Premake", "CSExtensions.lua"))
 
 workspace "Sandbox"
-    configurations { "Debug", "Debug-AS", "Release" }
+    configurations { "Debug", "Release" }
     startproject "Sandbox"
 
 
@@ -17,15 +16,18 @@ project "Sandbox"
     location "Assets/Scripts"
     kind "SharedLib"
     language "C#"
-    framework "net8.0"
+    framework "net9.0"
 
     targetname "Sandbox"
     targetdir "%{prj.location}/Binaries"
     objdir "%{prj.location}/Intermediates"
 
-    propertytags {
-        { "AppendTargetFrameworkToOutputPath", "false" },
-        { "Nullable", "enable" }
+    vsprops {
+        AppendTargetFrameworkToOutputPath = "false",
+        Nullable = "enable",
+        CopyLocalLockFileAssemblies = "true",
+        EnableDynamicLoading = "true",
+        RollForward = "Major",
     }
 
     files {

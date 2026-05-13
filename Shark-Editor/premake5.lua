@@ -25,6 +25,7 @@ project "Shark-Editor"
     }
 
     IncludeDependencies();
+    PostbuildNethost();
 
     defines {
         "GLM_FORCE_LEFT_HANDED",

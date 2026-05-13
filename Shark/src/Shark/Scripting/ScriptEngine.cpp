@@ -6,6 +6,7 @@
 #include "Shark/Scripting/ScriptGlue.h"
 #include "Shark/File/FileSystem.h"
 
+#include <Coral/Attribute.hpp>
 #include <Coral/FieldInfo.hpp>
 #include <Coral/TypeCache.hpp>
 
@@ -130,11 +131,17 @@ namespace Shark {
 				if (!s_DataTypeLookupTable.contains(typeName))
 					continue;
 
-				if (fieldInfo.HasAttribute(hideFromEditorAttribute))
+				auto attributes = fieldInfo.GetAttributes();
+				const auto hasAttribute = [&attributes](const Coral::Type& attributeType)
+				{
+					return std::ranges::find(attributes, attributeType, &Coral::Attribute::GetType) != attributes.end();
+				};
+
+				if (hasAttribute(hideFromEditorAttribute))
 					continue;
 
 				Coral::TypeAccessibility accessibility = fieldInfo.GetAccessibility();
-				if (!fieldInfo.HasAttribute(showInEditorAttribute) && accessibility != Coral::TypeAccessibility::Public)
+				if (!hasAttribute(showInEditorAttribute) && accessibility != Coral::TypeAccessibility::Public)
 					continue;
 
 				Buffer defaultValue;

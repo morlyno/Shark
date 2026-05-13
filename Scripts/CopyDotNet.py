@@ -17,8 +17,8 @@ if (not os.path.exists(DotNetDir)):
     os.makedirs(DotNetDir)
 
 try:
-    shutil.copyfile(f"{CoralDir}/Coral.Managed/Coral.Managed.runtimeconfig.json", f"{DotNetDir}/Coral.Managed.runtimeconfig.json")
-    print(f"copied {CoralDir}/Coral.Managed/Coral.Managed.runtimeconfig.json -> {DotNetDir}/Coral.Managed.runtimeconfig.json")
+    shutil.copyfile(f"{BuildDir}/Coral.Managed.runtimeconfig.json", f"{DotNetDir}/Coral.Managed.runtimeconfig.json")
+    print(f"copied {BuildDir}/Coral.Managed.runtimeconfig.json -> {DotNetDir}/Coral.Managed.runtimeconfig.json")
 
     shutil.copyfile(f"{BuildDir}/Coral.Managed.deps.json", f"{DotNetDir}/Coral.Managed.deps.json")
     print(f"copied {BuildDir}/Coral.Managed.deps.json -> {DotNetDir}/Coral.Managed.deps.json")
