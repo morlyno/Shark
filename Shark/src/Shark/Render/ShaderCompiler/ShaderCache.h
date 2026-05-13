@@ -1,6 +1,7 @@
 #pragma once
 
-#include <Shark/Render/ShaderCompiler/Common.h>
+#include "Shark/Render/ShaderCompiler/Common.h"
+
 #include <span>
 
 namespace Shark {

@@ -43,7 +43,7 @@ namespace Shark {
 				UI::Control("Gamma (2.2)", m_Renderer->GetOptions().GammaCorrect);
 				UI::Control("Exposure", m_Renderer->GetOptions().Exposure);
 
-				if (UI::ControlColor("Clear Color", m_ClearColor))
+				if (UI::Control("Clear Color", m_ClearColor, UI::as_color))
 					m_Renderer->SetClearColor(m_ClearColor);
 				UI::EndControlsGrid();
 
@@ -53,9 +53,9 @@ namespace Shark {
 			if (ImGui::TreeNodeEx("Jump Flood", UI::DefaultHeaderFlags | ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				UI::BeginControlsGrid();
-				UI::ControlColor("Outline Color", m_Renderer->m_OutlineColor);
-				UI::ControlSlider("Outline Width", m_Renderer->m_OutlinePixelWidth, 0.0f, 50.0f);
-				UI::ControlSlider("Steps", m_Renderer->m_JumpFloodSteps, 1, 10);
+				UI::Control("Outline Color", m_Renderer->m_OutlineColor, UI::as_color);
+				UI::Control("Outline Width", m_Renderer->m_OutlinePixelWidth, { .Min = 0.0f, .Max = 50.0f, .Slider = true });
+				UI::Control("Steps", m_Renderer->m_JumpFloodSteps, { .Min = 1, .Max = 10, .Slider = true });
 				UI::EndControlsGrid();
 				ImGui::TreePop();
 			}

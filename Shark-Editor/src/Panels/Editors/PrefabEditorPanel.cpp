@@ -12,7 +12,7 @@
 namespace Shark {
 
 	PrefabEditorPanel::PrefabEditorPanel(const std::string& panelName, const AssetMetaData& metadata)
-		: EditorPanel(panelName)
+		: EditorPanel(panelName), m_EditorCamera(45.0f, 1280.0f, 720.0f, 0.1f, 1000.0f)
 	{
 		m_DefaultEnvironment = Project::GetEditorAssetManager()->GetEditorAsset("Resources/Environment/lenong_2_4k.hdr");
 		SetAsset(metadata);
@@ -32,7 +32,8 @@ namespace Shark {
 			m_NeedsResize = false;
 		}
 
-		m_EditorCamera.OnUpdate(ts, m_ViewportHovered || m_ViewportFocused && Input::GetCursorMode() == CursorMode::Locked);
+		m_EditorCamera.SetActive(m_ViewportHovered || m_ViewportFocused && Input::GetCursorMode() == CursorMode::Locked);
+		m_EditorCamera.OnUpdate(ts);
 
 		Ref<Scene> prefabScene = m_Prefab->GetScene();
 		prefabScene->OnRenderEditor(m_SceneRenderer, m_EditorCamera);

@@ -2,12 +2,12 @@
 #include "ShaderCache.h"
 
 #include "Shark/Core/Memory.h"
+#include "Shark/Core/Hash.h"
+
 #include "Shark/File/FileSystem.h"
 #include "Shark/Serialization/YAML.h"
 #include "Shark/Serialization/YAML/ShaderReflection.h"
 #include "Shark/Utils/std.h"
-
-#include <magic_enum.hpp>
 
 namespace Shark {
 

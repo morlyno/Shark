@@ -128,14 +128,18 @@ namespace Shark {
 			UI::Control("Directory", m_TempConfig->Directory.string());
 		}
 
-		dirty |= UI::ControlCustom("Assets", [&]() { ImGui::SetNextItemWidth(-1.0f); return UI::Widgets::InputDirectory(UI::DialogType::Open, m_TempConfig->AssetsDirectory); });
+		dirty |= UI::Control("Assets", [&]()
+		{
+			ImGui::SetNextItemWidth(-1.0f);
+			return UI::Widgets::InputDirectory(UI::DialogType::Open, m_TempConfig->AssetsDirectory);
+		});
 
 		{
 			const bool isMemory = AssetManager::IsMemoryAsset(m_TempConfig->StartupScene);
 			const bool isInvalid = !AssetManager::IsValidAssetHandle(m_TempConfig->StartupScene) ||
 				                   !Project::GetEditorAssetManager()->HasExistingFilePath(m_TempConfig->StartupScene);
 
-			UI::AssetControlSettings settings;
+			UI::AssetControlArgs settings;
 			if (isInvalid)
 				settings.TextColor = UI::Colors::Theme::TextError;
 			if (isMemory)
@@ -173,14 +177,14 @@ namespace Shark {
 		dirty |= UI::Control("Velocity Iterations", m_TempConfig->Physics.VelocityIterations);
 		dirty |= UI::Control("Position Iterations", m_TempConfig->Physics.PositionIterations);
 		float fixedTSInMS = m_TempConfig->Physics.FixedTimeStep * 1000.0f;
-		if (UI::Control("Fixed Time Step", fixedTSInMS, 0.1f, 0.1f, FLT_MAX, "%.3fms"))
+		if (UI::Control("Fixed Time Step", fixedTSInMS, { .Min = 0.1f, .Max = FLT_MAX, .Format = "%.3fms"}))
 		{
 			m_TempConfig->Physics.FixedTimeStep = fixedTSInMS * 0.001f;
 			dirty = true;
 		}
 
 		float maxTSinMS = m_TempConfig->Physics.MaxTimestep * 1000.0f;
-		if (UI::Control("Max Timestep", maxTSinMS, 0.1f, 0.1f, FLT_MAX, "%.3fms"))
+		if (UI::Control("Max Timestep", maxTSinMS, { .Min = 0.1f, .Max = FLT_MAX, .Format = "%.3fms" }))
 		{
 			m_TempConfig->Physics.MaxTimestep = maxTSinMS * 0.001f;
 			dirty = true;

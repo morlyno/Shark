@@ -27,7 +27,7 @@ namespace Shark {
 
 		static glm::bvec3 Control(const char* label, glm::vec3& val, const glm::bvec3& isMixed, float reset = 0.0f)
 		{
-			if (!UI::ControlHelperBegin(ImGui::GetID(label)))
+			if (!UI::details::BeginControl(ImGui::GetID(label)))
 				return glm::bvec3(false);
 
 			ImGui::Text(label);
@@ -81,7 +81,7 @@ namespace Shark {
 			ImGui::EndHorizontal();
 			ImGui::PopItemWidth();
 
-			UI::ControlHelperEnd();
+			UI::details::EndControl();
 			return changed;
 		}
 
@@ -205,6 +205,7 @@ namespace Shark {
 
 		// uiFunc: bool(const TComponent& first, const std::vector<Entity>& entities)
 		template<typename TComponent, typename TMemberType, typename... TArgs>
+			requires (requires(TMemberType& value, TArgs&&... args) { UI::Control("", value, std::forward<TArgs>(args)...); })
 		static bool MultiselectControl(const std::vector<Entity>& entities, TMemberType TComponent::* member, std::string_view label, TArgs&&... args)
 		{
 			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, IsInconsistentProperty<TComponent>(entities, member));
@@ -277,10 +278,10 @@ namespace Shark {
 						}
 					}
 
-					UI::AssetControlSettings settings;
-					settings.DisplayName = materialName;
-					settings.TextColor = UI::Colors::Theme::TextDarker;
-					if (UI::ControlAsset(label, AssetType::Material, materialHandle, settings))
+					UI::AssetControlArgs args;
+					args.DisplayName = materialName;
+					args.TextColor = UI::Colors::Theme::TextDarker;
+					if (UI::ControlAsset(label, AssetType::Material, materialHandle, args))
 					{
 						for (auto entity : entities)
 						{
@@ -1011,7 +1012,7 @@ namespace Shark {
 
 			utils::Multiselect(entities, &SpriteRendererComponent::Color, [](auto& firstComponent, const auto& entities)
 			{
-				return UI::ControlColor("Color", firstComponent.Color);
+				return UI::Control("Color", firstComponent.Color, UI::as_color);
 			});
 
 			utils::Multiselect(entities, &SpriteRendererComponent::TextureHandle, [](auto& firstComponent, const auto& entities)
@@ -1021,7 +1022,7 @@ namespace Shark {
 
 			utils::Multiselect(entities, &SpriteRendererComponent::TilingFactor, [](auto& firstComponent, const auto& entities)
 			{
-				return UI::Control("Tiling Factor", firstComponent.TilingFactor, 0.05f, 0.0f, FLT_MAX);
+				return UI::Control<glm::vec2>("Tiling Factor", firstComponent.TilingFactor, UI::as_drag(0.0f, FLT_MAX));
 			});
 
 			utils::Multiselect(entities, &SpriteRendererComponent::Transparent, [](auto& firstComponent, const auto& entities) -> bool
@@ -1036,22 +1037,11 @@ namespace Shark {
 		DrawComponetMultiSelect<CircleRendererComponent>(entities, "Circle Renderer", [](CircleRendererComponent& firstComponent, const std::vector<Entity>& entities)
 		{
 			UI::BeginControlsGrid();
-			
-			utils::Multiselect(entities, &CircleRendererComponent::Color,
-							   [](auto& firstComponent, const auto& entities) { return UI::ControlColor("Color", firstComponent.Color); });
-
-			utils::Multiselect(entities, &CircleRendererComponent::Thickness,
-							   [](auto& firstComponent, const auto& entities) { return UI::Control("Thickness", firstComponent.Thickness, 0.1f, 0.0f, 1.0f); });
-
-			utils::Multiselect(entities, &CircleRendererComponent::Fade,
-							   [](auto& firstComponent, const auto& entities) { return UI::Control("Fade", firstComponent.Fade, 0.1f, 0.0f, 10.0f); });
-
-			utils::Multiselect(entities, &CircleRendererComponent::Filled,
-							   [](auto& firstComponent, const auto& entities) { return UI::Control("Filled", firstComponent.Filled); });
-
-			utils::Multiselect(entities, &CircleRendererComponent::Transparent,
-							   [](auto& firstComponent, const auto& entities) { return UI::Control("Transparent", firstComponent.Transparent); });
-
+			utils::MultiselectControl(entities, &CircleRendererComponent::Color, "Color", UI::as_color);
+			utils::MultiselectControl(entities, &CircleRendererComponent::Thickness, "Thickness", UI::as_slider(0.0f, 1.0f));
+			utils::MultiselectControl(entities, &CircleRendererComponent::Fade, "Fade", UI::as_drag(0.0f, 10.0f));
+			utils::MultiselectControl(entities, &CircleRendererComponent::Filled, "Filled");
+			utils::MultiselectControl(entities, &CircleRendererComponent::Transparent, "Transparent");
 			UI::EndControlsGrid();
 		});
 
@@ -1061,27 +1051,19 @@ namespace Shark {
 
 			utils::Multiselect(entities, &TextRendererComponent::Text, [](auto& firstComponent, const auto& entities)
 			{
-				bool changed = false;
-				UI::ControlCustom("Text", [&firstComponent, &changed]()
+				return UI::Control("Text", [&firstComponent]()
 				{
 					ImGui::SetNextItemWidth(-1.0f);
-					changed = UI::InputTextMultiline("##Text", &firstComponent.Text);
+					return UI::InputTextMultiline(UI::GenerateID(), &firstComponent.Text);
 				});
-				return changed;
 			});
 
 			utils::Multiselect(entities, &TextRendererComponent::FontHandle,
 							   [](auto& firstComponent, const auto& entities) { return UI::ControlAsset("Font", AssetType::Font, firstComponent.FontHandle); });
 			
-			utils::Multiselect(entities, &TextRendererComponent::Color,
-							   [](auto& firstComponent, const auto& entities) { return UI::ControlColor("Color", firstComponent.Color); });
-
-			utils::Multiselect(entities, &TextRendererComponent::Kerning,
-							   [](auto& firstComponent, const auto& entities) { return UI::Control("Kerning", firstComponent.Kerning, 0.005f); });
-
-			utils::Multiselect(entities, &TextRendererComponent::LineSpacing,
-							   [](auto& firstComponent, const auto& entities) { return UI::Control("Line Spacing", firstComponent.LineSpacing, 0.01f); });
-
+			utils::MultiselectControl(entities, &TextRendererComponent::Color, "Color", UI::as_color);
+			utils::MultiselectControl(entities, &TextRendererComponent::Kerning, "Kerning", UI::as_drag(0.005f));
+			utils::MultiselectControl(entities, &TextRendererComponent::LineSpacing, "LineSpacing", UI::as_drag(0.01f));
 			UI::EndControlsGrid();
 		});
 
@@ -1138,7 +1120,7 @@ namespace Shark {
 						}
 					}
 				}
-				return UI::ControlAsset("Material", materialName, AssetType::Material, firstComponent.Material);
+				return UI::ControlAsset("Material", AssetType::Material, firstComponent.Material, { .DisplayName = materialName });
 			});
 
 			UI::EndControlsGrid();
@@ -1171,28 +1153,18 @@ namespace Shark {
 		DrawComponetMultiSelect<PointLightComponent>(entities, "Point Light", [](PointLightComponent& firstComponent, const std::vector<Entity>& entities)
 		{
 			UI::BeginControlsGrid();
-			utils::Multiselect(entities, &PointLightComponent::Radiance,
-									  [](auto& firstComponent, const auto& entities) { return UI::ControlColor("Radiance", firstComponent.Radiance); });
-			
-			utils::Multiselect(entities, &PointLightComponent::Intensity,
-									  [](auto& firstComponent, const auto& entities) { return UI::Control("Intensity", firstComponent.Intensity, 0.05f, 0.0f, FLT_MAX); });
-			
-			utils::Multiselect(entities, &PointLightComponent::Radius,
-									  [](auto& firstComponent, const auto& entities) { return UI::Control("Radius", firstComponent.Radius, 0.05f, 0.0f, FLT_MAX); });
-			
-			utils::Multiselect(entities, &PointLightComponent::Falloff,
-									  [](auto& firstComponent, const auto& entities) { return UI::Control("Falloff", firstComponent.Falloff, 0.05f, 0.0f, FLT_MAX); });
+			utils::MultiselectControl(entities, &PointLightComponent::Radiance, "Radiance", UI::as_color);
+			utils::MultiselectControl(entities, &PointLightComponent::Intensity, "Intensity", UI::as_drag(0.0f, FLT_MAX));
+			utils::MultiselectControl(entities, &PointLightComponent::Radius, "Radius", UI::as_drag(0.0f, FLT_MAX));
+			utils::MultiselectControl(entities, &PointLightComponent::Falloff, "Falloff", UI::as_drag(0.0f, FLT_MAX));
 			UI::EndControlsGrid();
 		});
 		
 		DrawComponetMultiSelect<DirectionalLightComponent>(entities, "Directional Light", [](DirectionalLightComponent& firstComponent, const std::vector<Entity>& entities)
 		{
 			UI::BeginControlsGrid();
-			utils::Multiselect(entities, &DirectionalLightComponent::Radiance,
-									  [](auto& firstComponent, const auto& entities) { return UI::ControlColor("Radiance", firstComponent.Radiance); });
-
-			utils::Multiselect(entities, &DirectionalLightComponent::Intensity,
-									  [](auto& firstComponent, const auto& entities) { return UI::Control("Intensity", firstComponent.Intensity, 0.005f, 0.0f, FLT_MAX); });
+			utils::MultiselectControl(entities, &DirectionalLightComponent::Radiance, "Radiance");
+			utils::MultiselectControl(entities, &DirectionalLightComponent::Intensity, "Intensity", UI::as_drag(0.0f, FLT_MAX));
 			UI::EndControlsGrid();
 		});
 
@@ -1250,8 +1222,8 @@ namespace Shark {
 				}
 			}
 
-			UI::Control("Intensity", comp.Intensity, 0.005f, 0.0f, FLT_MAX);
-			UI::ControlSlider("Lod", comp.Lod, 0.0f, maxLod);
+			UI::Control("Intensity", comp.Intensity, UI::as_drag(0.0f, FLT_MAX));
+			UI::Control("Lod", comp.Lod, UI::as_slider(0.0f, maxLod));
 			UI::EndControlsGrid();
 		});
 #endif
@@ -1265,7 +1237,7 @@ namespace Shark {
 
 			changed |= utils::Multiselect(entities, &CameraComponent::IsPerspective, [](auto& firstComponent, const auto& entities)
 			{
-				return UI::ControlCombo("Projection", firstComponent.IsPerspective, "Orthographic", "Perspective");
+				return UI::Control("Projection", firstComponent.IsPerspective, "Orthographic", "Perspective");
 			});
 
 			ImGui::BeginDisabled(projectionMixed);
@@ -1274,7 +1246,7 @@ namespace Shark {
 				changed |= utils::Multiselect(entities, &CameraComponent::PerspectiveFOV, [](auto& firstComponent, const auto& entities)
 				{
 					float fov = firstComponent.PerspectiveFOV * Math::Rad2Deg;
-					if (UI::Control("Field of View", fov, 0.1f, 1.0f, 179.0f))
+					if (UI::Control("Field of View", fov, UI::as_drag(1.0f, 179.0f)))
 					{
 						firstComponent.PerspectiveFOV = fov * Math::Deg2Rad;
 						return true;
@@ -1284,12 +1256,12 @@ namespace Shark {
 			}
 			else
 			{
-				changed |= utils::MultiselectControl(entities, &CameraComponent::OrthographicSize, "Size", 0.1f, 0.25f, FLT_MAX);
+				changed |= utils::MultiselectControl(entities, &CameraComponent::OrthographicSize, "Size", UI::as_drag(0.25f, FLT_MAX));
 			}
 			ImGui::EndDisabled();
 
-			changed |= utils::MultiselectControl(entities, &CameraComponent::Near, "Near", 0.1f, 0.01f, FLT_MAX);
-			changed |= utils::MultiselectControl(entities, &CameraComponent::Far, "FarClip", 0.1f, 0.01f, FLT_MAX);
+			changed |= utils::MultiselectControl(entities, &CameraComponent::Near, "Near", UI::as_drag(0.01f, FLT_MAX));
+			changed |= utils::MultiselectControl(entities, &CameraComponent::Far, "FarClip", UI::as_drag(0.01f, FLT_MAX));
 
 			if (changed)
 			{
@@ -1327,12 +1299,7 @@ namespace Shark {
 		DrawComponetMultiSelect<RigidBody2DComponent>(entities, "RigidBody 2D", [](RigidBody2DComponent& firstComponent, const std::vector<Entity>& entities)
 		{
 			UI::BeginControlsGrid();
-
-			utils::Multiselect(entities, &RigidBody2DComponent::Type, [](auto& firstComponent, const auto& entities)
-			{
-				return UI::ControlCombo("Body Type", firstComponent.Type);
-			});
-
+			utils::MultiselectControl(entities, &RigidBody2DComponent::Type, "Body Type");
 			utils::MultiselectControl(entities, &RigidBody2DComponent::FixedRotation, "Fixed Rotation");
 			utils::MultiselectControl(entities, &RigidBody2DComponent::IsBullet, "Bullet");
 			utils::MultiselectControl(entities, &RigidBody2DComponent::Awake, "Awake");
@@ -1341,17 +1308,17 @@ namespace Shark {
 			utils::MultiselectControl(entities, &RigidBody2DComponent::AllowSleep, "Allow Sleep");
 			UI::EndControlsGrid();
 		});
-		
+
 		DrawComponetMultiSelect<BoxCollider2DComponent>(entities, "BoxCollider 2D", [](BoxCollider2DComponent& firstComponent, const std::vector<Entity>& entities)
 		{
 			UI::BeginControlsGrid();
 			utils::MultiselectControl(entities, &BoxCollider2DComponent::Size, "Size");
 			utils::MultiselectControl(entities, &BoxCollider2DComponent::Offset, "Offset");
 			utils::MultiselectControl(entities, &BoxCollider2DComponent::Rotation, "Angle");
-			utils::MultiselectControl(entities, &BoxCollider2DComponent::Density, "Density", 0.1f, 0.0f, FLT_MAX);
-			utils::MultiselectControl(entities, &BoxCollider2DComponent::Friction, "Friction", 0.1f, 0.0f, 1.0f);
-			utils::MultiselectControl(entities, &BoxCollider2DComponent::Restitution, "Restitution", 0.1f, 0.0f, 1.0f);
-			utils::MultiselectControl(entities, &BoxCollider2DComponent::RestitutionThreshold, "RestitutionThreshold", 0.1f, 0.0f, FLT_MAX);
+			utils::MultiselectControl(entities, &BoxCollider2DComponent::Density, "Density", UI::as_drag(0.0f, FLT_MAX));
+			utils::MultiselectControl(entities, &BoxCollider2DComponent::Friction, "Friction", UI::as_drag(0.0f, 1.0f));
+			utils::MultiselectControl(entities, &BoxCollider2DComponent::Restitution, "Restitution", UI::as_drag(0.0f, 1.0f));
+			utils::MultiselectControl(entities, &BoxCollider2DComponent::RestitutionThreshold, "RestitutionThreshold", UI::as_drag(0.0f, FLT_MAX));
 			utils::MultiselectControl(entities, &BoxCollider2DComponent::IsSensor, "IsSensor");
 			UI::EndControlsGrid();
 		});
@@ -1362,10 +1329,10 @@ namespace Shark {
 			utils::MultiselectControl(entities, &CircleCollider2DComponent::Radius, "Radius");
 			utils::MultiselectControl(entities, &CircleCollider2DComponent::Offset, "Offset");
 			utils::MultiselectControl(entities, &CircleCollider2DComponent::Rotation, "Angle");
-			utils::MultiselectControl(entities, &CircleCollider2DComponent::Density, "Density", 0.1f, 0.0f, FLT_MAX);
-			utils::MultiselectControl(entities, &CircleCollider2DComponent::Friction, "Friction", 0.1f, 0.0f, 1.0f);
-			utils::MultiselectControl(entities, &CircleCollider2DComponent::Restitution, "Restitution", 0.1f, 0.0f, 1.0f);
-			utils::MultiselectControl(entities, &CircleCollider2DComponent::RestitutionThreshold, "RestitutionThreshold", 0.1f, 0.0f, FLT_MAX);
+			utils::MultiselectControl(entities, &CircleCollider2DComponent::Density, "Density", UI::as_drag(0.0f, FLT_MAX));
+			utils::MultiselectControl(entities, &CircleCollider2DComponent::Friction, "Friction", UI::as_drag(0.0f, 1.0f));
+			utils::MultiselectControl(entities, &CircleCollider2DComponent::Restitution, "Restitution", UI::as_drag(0.0f, 1.0f));
+			utils::MultiselectControl(entities, &CircleCollider2DComponent::RestitutionThreshold, "RestitutionThreshold", UI::as_drag(0.0f, FLT_MAX));
 			utils::MultiselectControl(entities, &CircleCollider2DComponent::IsSensor, "IsSensor");
 			UI::EndControlsGrid();
 		});
@@ -1375,7 +1342,7 @@ namespace Shark {
 			UI::BeginControlsGrid();
 			utils::Multiselect(entities, &DistanceJointComponent::ConnectedEntity, [this](auto& firstComponent, const auto& entities)
 			{
-				return UI::ControlEntity("Connected Entity", m_Context, firstComponent.ConnectedEntity, "Entity");
+				return UI::ControlEntity("Connected Entity", m_Context, firstComponent.ConnectedEntity);
 			});
 
 			utils::MultiselectControl(entities, &DistanceJointComponent::AnchorOffsetA, "AnchorA");
@@ -1393,7 +1360,7 @@ namespace Shark {
 			UI::BeginControlsGrid();
 			utils::Multiselect(entities, &HingeJointComponent::ConnectedEntity, [this](auto& firstComponent, const auto& entities)
 			{
-				return UI::ControlEntity("Connected Entity", m_Context, firstComponent.ConnectedEntity, "Entity");
+				return UI::ControlEntity("Connected Entity", m_Context, firstComponent.ConnectedEntity);
 			});
 
 			utils::MultiselectControl(entities, &HingeJointComponent::Anchor, "Anchor");
@@ -1411,7 +1378,7 @@ namespace Shark {
 			UI::BeginControlsGrid();
 			utils::Multiselect(entities, &PrismaticJointComponent::ConnectedEntity, [this](auto& firstComponent, const auto& entities)
 			{
-				return UI::ControlEntity("Connected Entity", m_Context, firstComponent.ConnectedEntity, "Entity");
+				return UI::ControlEntity("Connected Entity", m_Context, firstComponent.ConnectedEntity);
 			});
 
 			utils::MultiselectControl(entities, &PrismaticJointComponent::Anchor, "Anchor");
@@ -1431,14 +1398,14 @@ namespace Shark {
 			UI::BeginControlsGrid();
 			utils::Multiselect(entities, &PulleyJointComponent::ConnectedEntity, [this](auto& firstComponent, const auto& entities)
 			{
-				return UI::ControlEntity("Connected Entity", m_Context, firstComponent.ConnectedEntity, "Entity");
+				return UI::ControlEntity("Connected Entity", m_Context, firstComponent.ConnectedEntity);
 			});
 
 			utils::MultiselectControl(entities, &PulleyJointComponent::AnchorA, "AnchorA");
 			utils::MultiselectControl(entities, &PulleyJointComponent::AnchorA, "AnchorB");
 			utils::MultiselectControl(entities, &PulleyJointComponent::GroundAnchorA, "Ground AnchorA");
 			utils::MultiselectControl(entities, &PulleyJointComponent::GroundAnchorB, "Ground AnchorB");
-			utils::MultiselectControl(entities, &PulleyJointComponent::Ratio, "Ratio", FLT_EPSILON, FLT_MAX);
+			utils::MultiselectControl(entities, &PulleyJointComponent::Ratio, "Ratio", UI::as_drag(FLT_EPSILON, FLT_MAX));
 			utils::MultiselectControl(entities, &PulleyJointComponent::CollideConnected, "Collide Connected");
 			UI::EndControlsGrid();
 		});

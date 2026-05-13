@@ -191,7 +191,7 @@ namespace Shark {
 		Camera Camera;
 
 		const glm::mat4& GetProjection() const { return Camera.GetProjection(); }
-		void SetProjection(const glm::mat4& projection) { Camera.SetProjection(projection); }
+		void SetProjection(const glm::mat4& projection) { Camera.SetProjectionMatrix(projection); }
 
 		void RecalculatePerspective() { SetProjection(glm::perspective(PerspectiveFOV, AspectRatio, Near, Far)); }
 		void RecalculateOrthographic() { SetProjection(glm::ortho(-OrthographicSize * AspectRatio, OrthographicSize * AspectRatio, OrthographicSize, OrthographicSize, Near, Far)); }

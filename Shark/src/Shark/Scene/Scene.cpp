@@ -386,12 +386,12 @@ namespace Shark {
 
 	void Scene::OnRenderEditor(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera)
 	{
-		OnRender(renderer, { editorCamera.GetView(), editorCamera.GetProjection(), editorCamera.GetPosition() });
+		OnRender(renderer, { editorCamera.GetViewMatrix(), editorCamera.GetProjection(), editorCamera.GetPosition() });
 	}
 
 	void Scene::OnRenderSimulate(Ref<SceneRenderer> renderer, const EditorCamera& editorCamera)
 	{
-		OnRender(renderer, { editorCamera.GetView(), editorCamera.GetProjection(), editorCamera.GetPosition() });
+		OnRender(renderer, { editorCamera.GetViewMatrix(), editorCamera.GetProjection(), editorCamera.GetPosition() });
 	}
 
 	void Scene::OnRender(Ref<SceneRenderer> renderer, const SceneRendererCamera& camera)

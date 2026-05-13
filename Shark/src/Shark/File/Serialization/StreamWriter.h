@@ -1,5 +1,11 @@
 #pragma once
 
+#include "Shark/Core/Base.h"
+
+namespace Shark {
+	class Buffer;
+}
+
 namespace Shark {
 
 	class StreamWriter

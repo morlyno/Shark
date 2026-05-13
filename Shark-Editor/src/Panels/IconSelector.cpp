@@ -34,7 +34,7 @@ namespace Shark {
 
 		static void FileDialogControl(std::string_view label, std::filesystem::path& path, Ref<Texture2D> texture = nullptr)
 		{
-			UI::ControlCustom(label, [&]()
+			UI::Control(label, [&]()
 			{
 				if (UI::Widgets::InputFile(UI::DialogType::Open, path, "All|*.*|png|*.png", path.parent_path()))
 				{
@@ -45,7 +45,9 @@ namespace Shark {
 						TextureSpecification& specification = texture->GetSpecification();
 						buffer = TextureImporter::ToBufferFromFile(path, specification.Format, specification.Width, specification.Height);
 						texture->Invalidate();
+						return true;
 					}
+					return false;
 				}
 			});
 		}

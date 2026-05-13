@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Core/Buffer.h"
+
 #include <Coral/ManagedObject.hpp>
 
 namespace Shark {

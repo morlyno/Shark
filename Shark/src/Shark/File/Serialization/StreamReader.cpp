@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "StreamReader.h"
 
+#include "Shark/Core/Buffer.h"
+
 namespace Shark {
 
 	bool StreamReader::ReadBuffer(Buffer& buffer)

@@ -51,7 +51,6 @@ namespace Shark {
 		void UI_DrawMenuBarItems();
 		void UI_Viewport();
 		void UI_Gizmo();
-		void UI_EditorCamera();
 		void UI_DragDrop();
 		void UI_ToolBar();
 		bool UI_MousePicking();

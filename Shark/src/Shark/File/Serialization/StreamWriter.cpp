@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "StreamWriter.h"
 
+#include "Shark/Core/Buffer.h"
+
 namespace Shark {
 
 	void StreamWriter::WriteBuffer(Buffer buffer)

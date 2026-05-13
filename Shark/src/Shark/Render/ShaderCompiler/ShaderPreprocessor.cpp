@@ -1,6 +1,7 @@
 #include "skpch.h"
 #include "Shark/Render/ShaderCompiler/ShaderPreprocessor.h"
 
+#include "Shark/Core/Hash.h"
 #include "Shark/File/FileSystem.h"
 #include "Shark/String/RegexStream.h"
 #include "Shark/Utils/String.h"

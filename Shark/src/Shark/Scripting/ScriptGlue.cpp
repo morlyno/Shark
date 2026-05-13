@@ -773,7 +773,7 @@ namespace Shark {
 			Entity entity = GetEntity(entityID);
 			SK_ICALL_VERIFY_PARAMETER(entity);
 			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<CameraComponent>());
-			entity.GetComponent<CameraComponent>().Camera.SetProjection(*projection);
+			entity.GetComponent<CameraComponent>().Camera.SetProjectionMatrix(*projection);
 		}
 
 		Coral::Bool32 CameraComponent_GetIsPerspective(uint64_t entityID)

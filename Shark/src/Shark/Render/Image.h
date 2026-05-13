@@ -2,6 +2,7 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Buffer.h"
+#include "Shark/Core/Hash.h"
 #include "Shark/Render/RendererResource.h"
 #include <nvrhi/nvrhi.h>
 

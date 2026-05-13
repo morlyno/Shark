@@ -74,7 +74,7 @@ namespace Shark {
 			UI::BeginControlsGrid();
 			UI::Control("Handle", fmt::to_string(metadata.Handle));
 			UI::Control("FilePath", metadata.FilePath.string());
-			UI::Control("Type", std::string(magic_enum::enum_name(metadata.Type)));
+			UI::Control("Type", magic_enum::enum_name(metadata.Type));
 			UI::EndControlsGrid();
 
 			ImGui::Separator();

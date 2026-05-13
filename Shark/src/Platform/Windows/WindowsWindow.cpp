@@ -278,13 +278,18 @@ namespace Shark {
 
 	void WindowsWindow::SetCursorMode(CursorMode mode)
 	{
+		m_CursorMode = mode;
+
 		if (IsFocused())
 		{
 			if (mode == CursorMode::Locked)
 			{
 				m_RestoreCursorPosition = m_LastCursorPosition;
 				m_VirtualCursorPosition = m_LastCursorPosition;
-				SetCursorPositionInWindow({ m_Specification.Width / 2, m_Specification.Height / 2 });
+
+				const glm::vec2 halfSize = glm::vec2(GetSize() / 2u);
+				SetCursorPositionInWindow(halfSize);
+				m_LastCursorPosition = halfSize;
 			}
 
 			if (mode == CursorMode::Locked)
@@ -301,7 +306,6 @@ namespace Shark {
 		else
 			SetCursor(nullptr);
 
-		m_CursorMode = mode;
 	}
 
 	HINSTANCE WindowsWindow::GetNativeInstance() const

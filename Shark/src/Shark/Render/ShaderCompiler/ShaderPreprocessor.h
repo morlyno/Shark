@@ -2,7 +2,6 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/String/TokenStreamReader.h"
-#include "Shark/Render/ShaderCompiler/Common.h"
 
 #include <nvrhi/nvrhi.h>
 #include <set>

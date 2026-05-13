@@ -2,6 +2,7 @@
 
 #include "Shark/Core/Project.h"
 #include "Shark/Core/SelectionManager.h"
+#include "Shark/Core/Memory.h"
 
 #include "Shark/Scene/Components.h"
 #include "Shark/Asset/AssetUtils.h"
@@ -36,10 +37,9 @@
 #include "Panels/Editors/PrefabEditorPanel.h"
 
 #include "Shark/Debug/Profiler.h"
+#include "Shark/Debug/enttDebug.h"
 
 #include <glm/gtc/type_ptr.hpp>
-#include "Shark/Debug/enttDebug.h"
-#include "Shark/Core/Memory.h"
 
 namespace Shark {
 
@@ -78,7 +78,7 @@ namespace Shark {
 	}
 
 	EditorLayer::EditorLayer(const std::filesystem::path& startupProject)
-		: Layer("EditorLayer"), m_StartupProject(startupProject)
+		: Layer("EditorLayer"), m_StartupProject(startupProject), m_EditorCamera(45.0f, 1280.0f, 720, 0.1f, 1000.0f)
 	{
 	}
 
@@ -100,7 +100,7 @@ namespace Shark {
 		m_PanelManager->LoadSettings();
 
 		Ref<SceneHierarchyPanel> sceneHirachy = m_PanelManager->AddPanel<SceneHierarchyPanel>(PanelCategory::View, "Scene Hierarchy", true);
-		sceneHirachy->RegisterSnapToEditorCameraCallback([this](Entity entity) { entity.Transform().SetTransform(glm::inverse(m_EditorCamera.GetView())); });
+		sceneHirachy->RegisterSnapToEditorCameraCallback([this](Entity entity) { entity.Transform().SetTransform(glm::inverse(m_EditorCamera.GetViewMatrix())); });
 
 		Ref<ContentBrowserPanel> contentBrowser = m_PanelManager->AddPanel<ContentBrowserPanel>(PanelCategory::View, "Content Browser", true);
 		contentBrowser->RegisterAssetActicatedCallback(AssetType::Material, [this](const AssetMetaData& metadata)
@@ -211,7 +211,8 @@ namespace Shark {
 			{
 				case SceneState::Edit:
 				{
-					m_EditorCamera.OnUpdate(ts, m_ViewportHovered || m_ViewportFocused && Input::GetCursorMode() == CursorMode::Locked);
+					m_EditorCamera.SetActive(m_ViewportHovered || m_ViewportFocused && Input::GetCursorMode() == CursorMode::Locked);
+					m_EditorCamera.OnUpdate(ts);
 					m_ActiveScene->OnUpdateEditor(ts);
 					m_ActiveScene->OnRenderEditor(m_SceneRenderer, m_EditorCamera);
 					break;
@@ -224,7 +225,8 @@ namespace Shark {
 				}
 				case SceneState::Simulate:
 				{
-					m_EditorCamera.OnUpdate(ts, m_ViewportHovered || m_ViewportFocused && Input::GetCursorMode() == CursorMode::Locked);
+					m_EditorCamera.SetActive(m_ViewportHovered || m_ViewportFocused && Input::GetCursorMode() == CursorMode::Locked);
+					m_EditorCamera.OnUpdate(ts);
 					m_ActiveScene->OnUpdateSimulate(ts);
 					m_ActiveScene->OnRenderSimulate(m_SceneRenderer, m_EditorCamera);
 					break;
@@ -345,8 +347,8 @@ namespace Shark {
 				{
 					glm::vec3 center = utils::GetCenterOfSelections(m_ActiveScene, SelectionManager::GetSelections(m_EditorScene->GetID()));
 
-					m_EditorCamera.SetFocusPoint(center);
-					m_EditorCamera.SetDistance(7.5f);
+					m_EditorCamera.Focus(center);
+					//m_EditorCamera.SetDistance(7.5f);
 					return true;
 				}
 				break;
@@ -380,44 +382,33 @@ namespace Shark {
 				return true;
 			}
 
-			// ImGuizmo
-			case KeyCode::Q:
+		}
+
+		if (m_EditorCamera.GetCurrentMode() != CameraMode::Fly)
+		{
+			switch (event.GetKeyCode())
 			{
-				if (!m_EditorCamera.GetFlyMode())
+				case KeyCode::Q:
 				{
 					m_CurrentOperation = (ImGuizmo::OPERATION)0;
 					return true;
 				}
-				break;
-			}
-			case KeyCode::W:
-			{
-				if (!m_EditorCamera.GetFlyMode())
+				case KeyCode::W:
 				{
 					m_CurrentOperation = ImGuizmo::TRANSLATE;
 					return true;
 				}
-				break;
-			}
-			case KeyCode::E:
-			{
-				if (!m_EditorCamera.GetFlyMode())
+				case KeyCode::E:
 				{
 					m_CurrentOperation = ImGuizmo::ROTATE;
 					return true;
 				}
-				break;
-			}
-			case KeyCode::R:
-			{
-				if (!m_EditorCamera.GetFlyMode())
+				case KeyCode::R:
 				{
 					m_CurrentOperation = ImGuizmo::SCALE;
 					return true;
 				}
-				break;
 			}
-
 		}
 
 		return false;
@@ -507,7 +498,6 @@ namespace Shark {
 
 		UI_ToolBar();
 
-		UI_EditorCamera();
 		UI_OpenProjectModal();
 		UI_ImportAsset();
 		UI_CreateMeshAsset();
@@ -1006,7 +996,7 @@ namespace Shark {
 		else
 		{
 			ImGuizmo::SetOrthographic(false);
-			view = m_EditorCamera.GetView();
+			view = m_EditorCamera.GetViewMatrix();
 			projection = m_EditorCamera.GetProjection();
 		}
 
@@ -1102,81 +1092,6 @@ namespace Shark {
 					transform.Rotation = glm::mod(transform.Rotation + pi, two_pi) - pi;
 				}
 			}
-		}
-	}
-
-	void EditorLayer::UI_EditorCamera()
-	{
-		SK_PROFILE_FUNCTION();
-
-		if (m_ShowEditorCameraControlls)
-		{
-			if (ImGui::Begin("Editor Camera", &m_ShowEditorCameraControlls))
-			{
-				UI::BeginControlsGrid();
-
-				//UI::DragFloat("Position", m_EditorCamera.GetPosition());
-
-				auto focuspoint = m_EditorCamera.GetFocusPoint();
-				if (UI::Control("FocusPoint", focuspoint))
-					m_EditorCamera.SetFocusPoint(focuspoint);
-
-				glm::vec2 py = { m_EditorCamera.GetPitch(), m_EditorCamera.GetYaw() };
-				if (UI::Control("Orientation", py))
-				{
-					m_EditorCamera.SetPicht(py.x);
-					m_EditorCamera.SetYaw(py.y);
-				}
-
-				float distance = m_EditorCamera.GetDistance();
-				if (UI::Control("Distance", distance, 10))
-					if (distance >= 0.25f)
-						m_EditorCamera.SetDistance(distance);
-
-				float nearClip = m_EditorCamera.GetNearClip();
-				if (UI::Control("near", nearClip))
-					m_EditorCamera.SetNearClip(nearClip);
-				
-				float farClip = m_EditorCamera.GetFarClip();
-				if (UI::Control("Far", farClip))
-					m_EditorCamera.SetFarClip(farClip);
-
-				ImGui::TableNextRow();
-				for (int i = 0; i < ImGui::TableGetColumnCount(); i++)
-				{
-					ImGui::TableSetColumnIndex(i);
-					ImGui::Separator();
-				}
-				ImGui::TableNextRow();
-
-				float flySpeed = m_EditorCamera.GetFlySpeed();
-				if (UI::Control("Movement Speed", flySpeed))
-					m_EditorCamera.SetFlySpeed(flySpeed);
-
-				float rotationSpeed = m_EditorCamera.GetRotationSpeed();
-				if (UI::Control("Rotation Speed", rotationSpeed))
-					m_EditorCamera.SetRotationSpeed(rotationSpeed);
-
-				float speedup = m_EditorCamera.GetSpeedup();
-				if (UI::Control("Speedup", speedup))
-					m_EditorCamera.SetSpeedup(speedup);
-
-				float fov = m_EditorCamera.GetFOV();
-				if (UI::Control("FOV", fov))
-					m_EditorCamera.SetFOV(fov);
-
-				UI::EndControlsGrid();
-
-				if (ImGui::Button("Reset"))
-				{
-					m_EditorCamera.SetFocusPoint({ 0.0f, 0.0f, 0.0f });
-					m_EditorCamera.SetPicht(0.0f);
-					m_EditorCamera.SetYaw(0.0f);
-					m_EditorCamera.SetDistance(10.0f);
-				}
-
-			}
-			ImGui::End();
 		}
 	}
 
@@ -1808,7 +1723,6 @@ namespace Shark {
 		ScriptEngine::Get().SetCurrentScene(m_EditorScene);
 		m_ActiveScene = m_EditorScene;
 
-		m_EditorCamera.SetFlyView({ 40.0f, 25.0f, -40.0f }, 10.0f, -45.0f);
 		Application::Get().SubmitToMainThread([this]() { UpdateWindowTitle(); });
 		return true;
 	}

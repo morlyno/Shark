@@ -146,7 +146,7 @@ namespace Shark {
 		UI::BeginControlsGrid();
 
 		TextureSpecification& spec = m_Texture->GetSpecification();
-		changed |= UI::ControlCombo("Format", spec.Format);
+		changed |= UI::Control("Format", spec.Format);
 
 		nativeTextureTooltip();
 		bool genMipsChanged = UI::Control("Generate Mipmap", spec.HasMips);
@@ -154,15 +154,15 @@ namespace Shark {
 
 		{
 			UI::ScopedDisabled disabled(!spec.HasMips);
-			UI::ControlSlider("Mip", m_MipIndex, 0, (uint32_t)m_PerMipView.size() - 1);
+			UI::Control("Mip", m_MipIndex, { .Min = 0, .Max = static_cast<uint32_t>(m_PerMipView.size() - 1)});
 			nativeTextureTooltip();
 		}
 
-		changed |= UI::ControlCombo("Filter", spec.Filter);
+		changed |= UI::Control("Filter", spec.Filter);
 		nativeTextureTooltip();
-		changed |= UI::ControlCombo("Address", spec.Address);
+		changed |= UI::Control("Address", spec.Address);
 		nativeTextureTooltip();
-		changed |= UI::Control("Max Anisotropy", spec.MaxAnisotropy, 0.05f, 0, capabilities.MaxAnisotropy);
+		changed |= UI::Control("Max Anisotropy", spec.MaxAnisotropy, { .Min = 0.0f, .Max = static_cast<float>(capabilities.MaxAnisotropy) });
 		nativeTextureTooltip();
 
 		UI::EndControlsGrid();

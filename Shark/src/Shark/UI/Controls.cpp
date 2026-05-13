@@ -1,25 +1,97 @@
 #include "skpch.h"
 #include "Controls.h"
 
-#include "Shark/Core/Project.h"
-#include "Shark/Core/SelectionManager.h"
 #include "Shark/Asset/AssetManager.h"
-#include "Shark/Scripting/ScriptEngine.h"
-#include "Shark/Scene/Scene.h"
-#include "Shark/Scene/Entity.h"
-
 #include "Shark/UI/Widgets.h"
-#include "Shark/UI/TextFilter.h"
-#include "Shark/UI/EditorResources.h"
-
-#include <imgui_internal.h>
-#include <misc/cpp/imgui_stdlib.h>
 
 namespace Shark::UI {
 
-	namespace utils {
+#define IMPLEMENT_DRAG(_dataType)																			   \
+	[&]()																									   \
+	{																										   \
+		const auto modified = ImGui::DragScalar(label, _dataType, &v, v_speed, &v_min, &v_max, format, flags); \
+		Draw::ItemActivityOutline();																		   \
+		return modified;																					   \
+	}();
 
-		static void GridSeparator()
+#define IMPLEMENT_SLIDER(_dataType)																		\
+	[&]()																								\
+	{																									\
+		const auto modified = ImGui::SliderScalar(label, _dataType, &v, &v_min, &v_max, format, flags); \
+		Draw::ItemActivityOutline();																	\
+		return modified;																				\
+	}();
+
+	bool Drag(const char* label, float& v,    float v_speed, float v_min,    float v_max,    const char* format, ImGuiSliderFlags flags) { return IMPLEMENT_DRAG(ImGuiDataType_Float);  }
+	bool Drag(const char* label, double& v,   float v_speed, double v_min,   double v_max,   const char* format, ImGuiSliderFlags flags) { return IMPLEMENT_DRAG(ImGuiDataType_Double); }
+	bool Drag(const char* label, int8_t& v,   float v_speed, int8_t v_min,   int8_t v_max,   const char* format, ImGuiSliderFlags flags) { return IMPLEMENT_DRAG(ImGuiDataType_S8);     }
+	bool Drag(const char* label, int16_t& v,  float v_speed, int16_t v_min,  int16_t v_max,  const char* format, ImGuiSliderFlags flags) { return IMPLEMENT_DRAG(ImGuiDataType_S16);    }
+	bool Drag(const char* label, int32_t& v,  float v_speed, int32_t v_min,  int32_t v_max,  const char* format, ImGuiSliderFlags flags) { return IMPLEMENT_DRAG(ImGuiDataType_S32);    }
+	bool Drag(const char* label, int64_t& v,  float v_speed, int64_t v_min,  int64_t v_max,  const char* format, ImGuiSliderFlags flags) { return IMPLEMENT_DRAG(ImGuiDataType_S64);    }
+	bool Drag(const char* label, uint8_t& v,  float v_speed, uint8_t v_min,  uint8_t v_max,  const char* format, ImGuiSliderFlags flags) { return IMPLEMENT_DRAG(ImGuiDataType_U8);     }
+	bool Drag(const char* label, uint16_t& v, float v_speed, uint16_t v_min, uint16_t v_max, const char* format, ImGuiSliderFlags flags) { return IMPLEMENT_DRAG(ImGuiDataType_U16);    }
+	bool Drag(const char* label, uint32_t& v, float v_speed, uint32_t v_min, uint32_t v_max, const char* format, ImGuiSliderFlags flags) { return IMPLEMENT_DRAG(ImGuiDataType_U32);    }
+	bool Drag(const char* label, uint64_t& v, float v_speed, uint64_t v_min, uint64_t v_max, const char* format, ImGuiSliderFlags flags) { return IMPLEMENT_DRAG(ImGuiDataType_U64);    }
+
+	bool Slider(const char* label, float& v,    float v_min,    float v_max,    const char* format, ImGuiSliderFlags flags)              { return IMPLEMENT_SLIDER(ImGuiDataType_Float);  }
+	bool Slider(const char* label, double& v,   double v_min,   double v_max,   const char* format, ImGuiSliderFlags flags)              { return IMPLEMENT_SLIDER(ImGuiDataType_Double); }
+	bool Slider(const char* label, int8_t& v,   int8_t v_min,   int8_t v_max,   const char* format, ImGuiSliderFlags flags)              { return IMPLEMENT_SLIDER(ImGuiDataType_S8);     }
+	bool Slider(const char* label, int16_t& v,  int16_t v_min,  int16_t v_max,  const char* format, ImGuiSliderFlags flags)              { return IMPLEMENT_SLIDER(ImGuiDataType_S16);    }
+	bool Slider(const char* label, int32_t& v,  int32_t v_min,  int32_t v_max,  const char* format, ImGuiSliderFlags flags)              { return IMPLEMENT_SLIDER(ImGuiDataType_S32);    }
+	bool Slider(const char* label, int64_t& v,  int64_t v_min,  int64_t v_max,  const char* format, ImGuiSliderFlags flags)              { return IMPLEMENT_SLIDER(ImGuiDataType_S64);    }
+	bool Slider(const char* label, uint8_t& v,  uint8_t v_min,  uint8_t v_max,  const char* format, ImGuiSliderFlags flags)              { return IMPLEMENT_SLIDER(ImGuiDataType_U8);     }
+	bool Slider(const char* label, uint16_t& v, uint16_t v_min, uint16_t v_max, const char* format, ImGuiSliderFlags flags)              { return IMPLEMENT_SLIDER(ImGuiDataType_U16);    }
+	bool Slider(const char* label, uint32_t& v, uint32_t v_min, uint32_t v_max, const char* format, ImGuiSliderFlags flags)              { return IMPLEMENT_SLIDER(ImGuiDataType_U32);    }
+	bool Slider(const char* label, uint64_t& v, uint64_t v_min, uint64_t v_max, const char* format, ImGuiSliderFlags flags)              { return IMPLEMENT_SLIDER(ImGuiDataType_U64);    }
+
+#undef IMPLEMENT_DRAG
+#undef IMPLEMENT_SLIDER
+
+	bool Drag(const char* label, glm::vec2& v, float v_speed, float v_min, float v_max, const char* format, ImGuiSliderFlags flags)
+	{
+		const auto modified = ImGui::DragFloat2(label, glm::value_ptr(v), v_speed, v_min, v_max, format, flags);
+		Draw::ItemActivityOutline();
+		return modified;
+	}
+
+	bool Drag(const char* label, glm::vec3& v, float v_speed, float v_min, float v_max, const char* format, ImGuiSliderFlags flags)
+	{
+		const auto modified = ImGui::DragFloat3(label, glm::value_ptr(v), v_speed, v_min, v_max, format, flags);
+		Draw::ItemActivityOutline();
+		return modified;
+	}
+
+	bool Drag(const char* label, glm::vec4& v, float v_speed, float v_min, float v_max, const char* format, ImGuiSliderFlags flags)
+	{
+		const auto modified = ImGui::DragFloat3(label, glm::value_ptr(v), v_speed, v_min, v_max, format, flags);
+		Draw::ItemActivityOutline();
+		return modified;
+	}
+
+	bool Slider(const char* label, glm::vec2& v, float v_min, float v_max, const char* format, ImGuiSliderFlags flags)
+	{
+		const auto modified = ImGui::SliderFloat2(label, glm::value_ptr(v), v_min, v_max, format, flags);
+		Draw::ItemActivityOutline();
+		return modified;
+	}
+
+	bool Slider(const char* label, glm::vec3& v, float v_min, float v_max, const char* format, ImGuiSliderFlags flags)
+	{
+		const auto modified = ImGui::SliderFloat3(label, glm::value_ptr(v), v_min, v_max, format, flags);
+		Draw::ItemActivityOutline();
+		return modified;
+	}
+
+	bool Slider(const char* label, glm::vec4& v, float v_min, float v_max, const char* format, ImGuiSliderFlags flags)
+	{
+		const auto modified = ImGui::SliderFloat3(label, glm::value_ptr(v), v_min, v_max, format, flags);
+		Draw::ItemActivityOutline();
+		return modified;
+	}
+
+	namespace details {
+
+		void GridSeparator()
 		{
 			ImGuiContext& g = *GImGui;
 			ImGuiWindow* window = g.CurrentWindow;
@@ -41,448 +113,159 @@ namespace Shark::UI {
 			window->DrawList->AddLine(bb.Min, ImVec2(bb.Max.x, bb.Min.y), ImGui::GetColorU32(ImGuiCol_Separator));
 		}
 
-		template<typename T>
-		static bool CheckboxFlagsT(const char* label, T* flags, T flags_value)
+		bool BeginControl(ImGuiID id)
 		{
-			bool all_on = (*flags & flags_value) == flags_value;
-			bool any_on = (*flags & flags_value) != 0;
-			bool pressed;
-			if (!all_on && any_on)
-			{
-				ImGuiContext& g = *GImGui;
-				ImGuiItemFlags backup_item_flags = g.CurrentItemFlags;
-				g.CurrentItemFlags |= ImGuiItemFlags_MixedValue;
-				pressed = ImGui::Checkbox(label, &all_on);
-				g.CurrentItemFlags = backup_item_flags;
-			}
-			else
-			{
-				pressed = ImGui::Checkbox(label, &all_on);
+			if (!ImGui::GetCurrentTable())
+				return false;
 
-			}
-			if (pressed)
-			{
-				if (all_on)
-					*flags |= flags_value;
-				else
-					*flags &= ~flags_value;
-			}
-			return pressed;
-		}
-
-		static float CalcMaxPopupHeightFromItemCount(int items_count)
-		{
-			ImGuiContext& g = *GImGui;
-			if (items_count <= 0)
-				return FLT_MAX;
-			return (g.FontSize + g.Style.ItemSpacing.y) * items_count - g.Style.ItemSpacing.y + (g.Style.WindowPadding.y * 2);
-		}
-
-	}
-
-	bool ControlHelperBegin(ImGuiID id)
-	{
-		if (!ImGui::GetCurrentTable())
-			return false;
-
-		ImGui::PushID(id);
-		ImGui::TableNextRow();
-		ImGui::TableNextColumn();
-
-		if (ImGui::TableGetRowIndex() > 0)
-		{
-			utils::GridSeparator();
+			ImGui::PushID(id);
 			ImGui::TableNextRow();
 			ImGui::TableNextColumn();
+
+			if (ImGui::TableGetRowIndex() > 0)
+			{
+				GridSeparator();
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+			}
+
+			ImGui::AlignTextToFramePadding();
+
+			return true;
 		}
 
-		ImGui::AlignTextToFramePadding();
+		void EndControl()
+		{
+			SK_CORE_ASSERT(ImGui::GetCurrentTable());
+			ImGui::PopID();
+		}
 
-		return true;
+		static std::pair<std::string, bool> GetDisplayName(AssetHandle handle, const AssetControlArgs& args)
+		{
+			if (!handle)
+				return { "", true };
+
+			if (!AssetManager::IsValidAssetHandle(handle))
+			{
+				return { "Invalid", false };
+			}
+
+			auto assetManager = Project::GetEditorAssetManager();
+
+			const bool isMemoryAsset = assetManager->IsMemoryAsset(handle);
+			const bool valid = isMemoryAsset || assetManager->HasExistingFilePath(handle);
+
+			if (!args.DisplayName.empty())
+				return { std::string(args.DisplayName), valid };
+
+			if (isMemoryAsset)
+				return { fmt::format("{}", handle), valid };
+
+			const auto& metadata = assetManager->GetMetadata(handle);
+			return { metadata.FilePath.string(), valid };
+		}
+
 	}
 
-	void ControlHelperEnd()
+	bool Control(std::string_view label, bool& value)
 	{
-		SK_CORE_ASSERT(ImGui::GetCurrentTable());
-		ImGui::PopID();
+		return Control(label, [&value]()
+		{
+			return Checkbox(GenerateID(), &value);
+		});
 	}
 
-	bool ControlHeader(std::string_view label, bool openByDefault, bool spanColumns)
+	bool Control(std::string_view label, const bool& value)
 	{
-		ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowOverlap;
-		if (openByDefault)
-			treeFlags |= ImGuiTreeNodeFlags_DefaultOpen;
-		if (spanColumns)
-			treeFlags |= ImGuiTreeNodeFlags_SpanAllColumns;
+		ScopedItemFlag readOnly(ImGuiItemFlags_ReadOnly);
 
-		ImGui::TableNextRow();
-		ImGui::TableNextColumn();
-		return ImGui::TreeNodeEx(label.data(), treeFlags);
+		bool temp = value;
+		return Control(label, temp);
 	}
 
-	bool Control(std::string_view label, bool& val)
+	bool Control(std::string_view label, char* buffer, size_t bufferSize)
 	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
+		return Control(label, [&]()
+		{
+			ImGui::SetNextItemWidth(-1.0f);
+			return InputText(GenerateID(), buffer, bufferSize);
+		});
+	}
+
+	bool Control(std::string_view label, std::string& value)
+	{
+		return Control(label, [&value]()
+		{
+			ImGui::SetNextItemWidth(-1.0f);
+			return InputText(GenerateID(), &value);
+		});
+	}
+
+	bool Control(std::string_view label, std::string_view value)
+	{
+		Control(label, [&value]()
+		{
+			ImGui::SetNextItemWidth(-1.0f);
+			// #Investigate should this be an input text
+			InputText(GenerateID(), const_cast<char*>(value.data()), value.size(), ImGuiInputTextFlags_ReadOnly);
 			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		const bool modified = UI::Checkbox(GenerateID(), &val);
-
-		ControlHelperEnd();
-		return modified;
+		});
+		return false;
 	}
 
-	void Control(std::string_view label, const bool& val)
+	bool Control(std::string_view label, glm::vec3& value, as_color_t)
 	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::PushItemFlag(ImGuiItemFlags_ReadOnly, true);
-		bool temp = val;
-		UI::Checkbox(GenerateID(), &temp);
-		ImGui::PopItemFlag();
-
-		ControlHelperEnd();
+		return Control(label, [&value]()
+		{
+			ImGui::SetNextItemWidth(-1.0f);
+			return ColorEdit3(GenerateID(), glm::value_ptr(value));
+		});
 	}
 
-	bool Control(std::string_view label, float& val, float speed, float min, float max, const char* fmt)
+	bool Control(std::string_view label, glm::vec4& value, as_color_t)
 	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::DragFloat(GenerateID(), &val, speed, min, max, fmt);
-
-		ControlHelperEnd();
-		return modified;
+		return Control(label, [&value]()
+		{
+			ImGui::SetNextItemWidth(-1.0f);
+			return ColorEdit4(GenerateID(), glm::value_ptr(value));
+		});
 	}
 
-	bool Control(std::string_view label, double& val, float speed, double min, double max, const char* fmt)
+	bool Control(std::string_view label, bool& value, const char* vTrue, const char* vFalse)
 	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
+		return Control(label, [&]()
+		{
+			bool modified = false;
+			const char* preview = value ? vTrue : vFalse;
+			const bool isMixedValue = GImGui->CurrentItemFlags & ImGuiItemFlags_MixedValue;
 
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
+			ImGui::SetNextItemWidth(-1.0f);
+			if (UI::BeginCombo("##combo", isMixedValue ? nullptr : preview))
+			{
+				if (ImGui::Selectable(vFalse, value == false))
+				{
+					value = false;
+					modified = true;
+				}
 
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::DragDouble(GenerateID(), &val, speed, (float)min, (float)max, fmt);
+				if (ImGui::Selectable(vTrue, value == true))
+				{
+					value = true;
+					modified = true;
+				}
+				UI::EndCombo();
+			}
 
-		ControlHelperEnd();
-		return modified;
+			if (isMixedValue)
+				UI::DrawTextAligned("--", ImVec2(0.5f, 0.5f), UI::GetItemRect());
+
+			return modified;
+		});
 	}
 
-	bool ControlSlider(std::string_view label, float& val, float min, float max, const char* fmt)
+	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle, const AssetControlArgs& args)
 	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::SliderFloat(GenerateID(), &val, min, max, fmt);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool ControlSlider(std::string_view label, int32_t& val, int32_t min, int32_t max, const char* fmt)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::SliderInt32(GenerateID(), &val, min, max, fmt);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool ControlSlider(std::string_view label, uint32_t& val, uint32_t min, uint32_t max, const char* fmt)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::SliderUInt32(GenerateID(), &val, min, max, fmt);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool Control(std::string_view label, int8_t& val, float speed, int8_t min, int8_t max, const char* fmt)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::DragInt8(GenerateID(), &val, speed, min, max, fmt);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool Control(std::string_view label, int16_t& val, float speed, int16_t min, int16_t max, const char* fmt)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::DragInt16(GenerateID(), &val, speed, min, max, fmt);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool Control(std::string_view label, int32_t& val, float speed, int32_t min, int32_t max, const char* fmt)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::DragInt32(GenerateID(), &val, speed, min, max, fmt);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool Control(std::string_view label, int64_t& val, float speed, int64_t min, int64_t max, const char* fmt)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::DragInt64(GenerateID(), &val, speed, min, max, fmt);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool Control(std::string_view label, uint8_t& val, float speed, uint8_t min, uint8_t max, const char* fmt)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::DragUInt8(GenerateID(), &val, speed, min, max, fmt);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool Control(std::string_view label, uint16_t& val, float speed, uint16_t min, uint16_t max, const char* fmt)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::DragUInt16(GenerateID(), &val, speed, min, max, fmt);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool Control(std::string_view label, uint32_t& val, float speed, uint32_t min, uint32_t max, const char* fmt, ImGuiSliderFlags flags)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::DragUInt32(GenerateID(), &val, speed, min, max, fmt);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool Control(std::string_view label, uint64_t& val, float speed, uint64_t min, uint64_t max, const char* fmt)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::DragUInt64(GenerateID(), &val, speed, min, max, fmt);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool Control(std::string_view label, glm::vec2& val, float speed, float min, float max, const char* fmt)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::DragFloat2(GenerateID(), glm::value_ptr(val), speed, min, max, fmt);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool Control(std::string_view label, glm::vec3& val, float speed, float min, float max, const char* fmt)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::DragFloat3(GenerateID(), glm::value_ptr(val), speed, min, max, fmt);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool Control(std::string_view label, glm::vec4& val, float speed, float min, float max, const char* fmt)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::DragFloat4(GenerateID(), glm::value_ptr(val), speed, min, max, fmt);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool Control(std::string_view label, glm::ivec2& val, float speed, int32_t min, int32_t max, const char* fmt)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::DragScalarN(GenerateID(), ImGuiDataType_S32, glm::value_ptr(val), val.length(), speed, &min, &max, fmt, 0);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool Control(std::string_view label, glm::ivec3& val, float speed, int32_t min, int32_t max, const char* fmt)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::DragScalarN(GenerateID(), ImGuiDataType_S32, glm::value_ptr(val), val.length(), speed, &min, &max, fmt, 0);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool Control(std::string_view label, glm::ivec4& val, float speed, int32_t min, int32_t max, const char* fmt)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::DragScalarN(GenerateID(), ImGuiDataType_S32, glm::value_ptr(val), val.length(), speed, &min, &max, fmt, 0);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool Control(std::string_view label, glm::uvec2& val, float speed, uint32_t min, uint32_t max, const char* fmt)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::DragScalarN(GenerateID(), ImGuiDataType_U32, glm::value_ptr(val), val.length(), speed, &min, &max, fmt, 0);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool Control(std::string_view label, glm::uvec3& val, float speed, uint32_t min, uint32_t max, const char* fmt)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::DragScalarN(GenerateID(), ImGuiDataType_U32, glm::value_ptr(val), val.length(), speed, &min, &max, fmt, 0);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool Control(std::string_view label, glm::uvec4& val, float speed, uint32_t min, uint32_t max, const char* fmt)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::DragScalarN(GenerateID(), ImGuiDataType_U32, glm::value_ptr(val), val.length(), speed, &min, &max, fmt, 0);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool Control(std::string_view label, glm::mat4& matrix, float speed, float min, float max, const char* fmt)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
+		if (!details::BeginControl(ImGui::GetID(label)))
 			return false;
 
 		ImGui::Text(label);
@@ -490,438 +273,149 @@ namespace Shark::UI {
 
 		bool modified = false;
 
-		ImGui::TableSetColumnIndex(1);
-		ImGui::SetNextItemWidth(-1.0f);
-		modified |= UI::DragFloat4(GenerateID(), glm::value_ptr(matrix[0]), speed, min, max, fmt);
-
-		ImGui::SetNextItemWidth(-1.0f);
-		modified |= UI::DragFloat4(GenerateID(), glm::value_ptr(matrix[1]), speed, min, max, fmt);
-
-		ImGui::SetNextItemWidth(-1.0f);
-		modified |= UI::DragFloat4(GenerateID(), glm::value_ptr(matrix[2]), speed, min, max, fmt);
-
-		ImGui::SetNextItemWidth(-1.0f);
-		modified |= UI::DragFloat4(GenerateID(), glm::value_ptr(matrix[3]), speed, min, max, fmt);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool Control(std::string_view label, char* buffer, uint64_t bufferSize)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::InputText(GenerateID(), buffer, bufferSize);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool Control(std::string_view label, const char* buffer, uint64_t bufferSize)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::InputText(GenerateID(), (char*)buffer, bufferSize, ImGuiItemFlags_ReadOnly);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool Control(std::string_view label, std::string& val)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::InputText(GenerateID(), &val);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool Control(std::string_view label, const std::string& val)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::InputText(GenerateID(), (char*)val.data(), val.size(), ImGuiInputTextFlags_ReadOnly);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool Control(std::string_view label, std::string_view val)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::InputText(GenerateID(), (char*)val.data(), val.size(), ImGuiInputTextFlags_ReadOnly);
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool ControlColor(std::string_view label, glm::vec3& color)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::ColorEdit3(GenerateID(), glm::value_ptr(color));
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool ControlColor(std::string_view label, glm::vec4& color)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		const bool modified = UI::ColorEdit4(GenerateID(), glm::value_ptr(color));
-
-		ControlHelperEnd();
-		return modified;
-	}
-
-	bool ControlCombo(std::string_view label, bool& value, const std::string_view falseValue, const std::string_view trueValue)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		bool changed = false;
-		std::string_view preview = value ? trueValue : falseValue;
-		ImGui::SetNextItemWidth(-1.0f);
-
-		ImGuiContext& g = *GImGui;
-		const bool isMixedValue = g.CurrentItemFlags & ImGuiItemFlags_MixedValue;
-
-		ImGui::SetNextItemWidth(-1.0f);
-		if (UI::BeginCombo("##combo", isMixedValue ? nullptr : preview.data()))
-		{
-			if (ImGui::Selectable(falseValue.data(), value == false))
-			{
-				value = false;
-				changed = true;
-			}
-
-			if (ImGui::Selectable(trueValue.data(), value == true))
-			{
-				value = true;
-				changed = true;
-			}
-			UI::EndCombo();
-		}
-
-		if (isMixedValue)
-			UI::DrawTextAligned("--", ImVec2(0.5f, 0.5f), UI::GetItemRect());
-
-		ControlHelperEnd();
-		return changed;
-	}
-
-	bool ControlAssetUnsave(std::string_view label, AssetHandle& assetHandle, const char* dragDropType)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		bool changed = false;
-		const auto& metadata = Project::GetEditorAssetManager()->GetMetadata(assetHandle);
-
-		std::string name;
-		if (metadata.IsMemoryAsset)
-			name = fmt::format("0x{:x}", assetHandle);
-		else
-			name = metadata.FilePath.string();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		ImGui::SetNextItemAllowOverlap();
-		UI::InputText(GenerateID(), name.data(), name.length(), ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_NoHorizontalScroll);
-
-		if (dragDropType)
-		{
-			if (ImGui::BeginDragDropTarget())
-			{
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dragDropType);
-				if (payload)
-				{
-					const AssetHandle handle = *(AssetHandle*)payload->Data;
-					assetHandle = handle;
-					changed = true;
-				}
-				ImGui::EndDragDropTarget();
-			}
-		}
-
-		bool clear = false;
-
-		{
-			const auto& style = ImGui::GetStyle();
-			const float fontSize = ImGui::GetFontSize();
-			const ImVec2 buttonSize = { fontSize + style.FramePadding.x * 2.0f, fontSize + style.FramePadding.y * 2.0f };
-
-			ImGui::SameLine(0, 0);
-			ShiftCursorX(-buttonSize.x);
-
-			clear = ImGui::InvisibleButton("clear_button", buttonSize);
-			UI::DrawImageButton(EditorResources::ClearIcon,
-								UI::Colors::WithMultipliedValue(UI::Colors::Theme::Text, 0.9f),
-								UI::Colors::WithMultipliedValue(UI::Colors::Theme::Text, 1.2f),
-								UI::Colors::Theme::TextDarker,
-								UI::RectExpand(UI::GetItemRect(), -style.FramePadding));
-		}
-
-		if (clear)
-		{
-			assetHandle = AssetHandle::Invalid;
-		}
-
-		ControlHelperEnd();
-		return changed || clear;
-	}
-
-	// TODO(moro): Ignores ImGuiItemFlag_Readonly
-	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle)
-	{
-		AssetControlSettings settings;
-		return ControlAsset(label, assetType, assetHandle, settings);
-	}
-
-	bool ControlAsset(std::string_view label, std::string_view name, AssetType assetType, AssetHandle& assetHandle)
-	{
-		AssetControlSettings settings;
-		settings.DisplayName = name;
-		return ControlAsset(label, assetType, assetHandle, settings);
-	}
-
-	static std::pair<std::string, bool> GetDisplayName(AssetHandle handle, AssetType assetType, const AssetControlSettings& settings)
-	{
-		if (!handle)
-			return { "", true };
-
-		bool isValid = AssetManager::IsValidAssetHandle(handle);
-		std::string displayName;
-
-		if (isValid)
-		{
-			auto assetManager = Project::GetEditorAssetManager();
-			const bool isMemoryAsset = assetManager->IsMemoryAsset(handle);
-
-			if (isMemoryAsset)
-			{
-				displayName = fmt::format("{}", handle);
-			}
-			if (settings.DisplayName.empty())
-			{
-				const auto& metadata = assetManager->GetMetadata(handle);
-				displayName = metadata.FilePath.string();
-			}
-			else
-			{
-				displayName = settings.DisplayName;
-			}
-
-			isValid = assetManager->IsMemoryAsset(handle) || assetManager->HasExistingFilePath(handle);
-		}
-
-		return { displayName, isValid };
-	}
-
-	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle, const AssetControlSettings& settings)
-	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		bool changed = false;
-
 		ImGui::InvisibleButton(label.data(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
 
 		auto& g = *GImGui;
-		bool mixed_value = (g.LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0;
-		if (mixed_value)
+		if ((g.LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0)
 		{
-			UI::DrawButton("--", ImVec2(0.5f, 0.5f), UI::GetItemRect());
+			DrawButton("--", ImVec2(0.5f, 0.5f), GetItemRect());
 		}
 		else
 		{
-			if (assetHandle && !AssetManager::IsValidAssetHandle(assetHandle))
-			{
-				UI::ScopedColor textColor(ImGuiCol_Text, UI::Colors::Theme::TextError);
-				UI::DrawButton("Null", UI::GetItemRect());
-			}
-			else
-			{
-				auto [displayName, isValid] = GetDisplayName(assetHandle, assetType, settings);
-				UI::ScopedColor textColor(ImGuiCol_Text, isValid ? settings.TextColor : UI::Colors::Theme::TextError);
+			auto [displayName, isValid] = details::GetDisplayName(assetHandle, args);
+			ScopedColor textColor(ImGuiCol_Text, isValid ? args.TextColor : Colors::Theme::TextError);
 
-				UI::DrawButton(displayName, ImVec2(0.0f, 0.5f), UI::GetItemRect());
-			}
-
+			DrawButton(displayName, ImVec2(0.0f, 0.5f), GetItemRect());
 		}
 
-		changed = Widgets::SearchAssetPopup(assetType, assetHandle);
+		modified = Widgets::SearchAssetPopup(assetType, assetHandle);
 
-		if (settings.DropType)
+		if (args.DropType)
 		{
 			if (ImGui::BeginDragDropTarget())
 			{
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(settings.DropType);
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(args.DropType);
 				if (payload)
 				{
-					const AssetHandle handle = *(AssetHandle*)payload->Data;
+					auto handle = *static_cast<const AssetHandle*>(payload->Data);
 					if (assetType == AssetManager::GetAssetType(handle))
 					{
 						assetHandle = handle;
-						changed = true;
+						modified = true;
 					}
 				}
 				ImGui::EndDragDropTarget();
 			}
 		}
 
-		ControlHelperEnd();
-		return changed;
+		details::EndControl();
+		return modified;
 	}
 
-	bool ControlEntity(std::string_view label, Ref<Scene> scene, UUID& entityID, const char* dragDropType)
+	bool ControlEntity(std::string_view label, Ref<Scene> scene, UUID& entityID, const EntityControlArgs& args)
 	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
+		if (!details::BeginControl(ImGui::GetID(label)))
 			return false;
 
 		ImGui::Text(label);
 		ImGui::TableNextColumn();
 
-		bool changed = false;
+		bool modified = false;
 
-		ImGui::SetNextItemAllowOverlap();
 		ImGui::InvisibleButton(label.data(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
-		ImGui::SetItemTooltip("%llu", entityID);
 
 		auto& g = *GImGui;
-		bool mixed_value = (g.LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0;
-		if (mixed_value)
+		if ((g.LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0)
 		{
-			UI::DrawButton("--", ImVec2(0.5f, 0.5f), UI::GetItemRect());
+			DrawButton("--", ImVec2(0.5f, 0.5f), GetItemRect());
 		}
 		else
 		{
 			if (entityID && !scene->IsValidEntityID(entityID))
 			{
-				UI::ScopedColor textColor(ImGuiCol_Text, UI::Colors::Theme::TextError);
-				UI::DrawButton("Null", UI::GetItemRect());
+				ScopedColor textColor(ImGuiCol_Text, Colors::Theme::TextError);
+				DrawButton("Invalid", GetItemRect());
 			}
 			else
 			{
 				Entity entity = scene->TryGetEntityByUUID(entityID);
-				const std::string& name = entity ? entity.GetName() : std::string{};
-				UI::DrawButton(name, ImVec2(0.0f, 0.5f), UI::GetItemRect());
+				
+				DrawButton(entity ? entity.GetName() : std::string_view{},
+							   ImVec2(0.0f, 0.5f),
+							   GetItemRect());
 			}
 		}
 
-		changed = Widgets::SearchEntityPopup(scene, entityID);
+		modified = Widgets::SearchEntityPopup(scene, entityID);
 
-		if (dragDropType)
+		if (args.DropType)
 		{
 			if (ImGui::BeginDragDropTarget())
 			{
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(dragDropType);
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(args.DropType);
 				if (payload)
 				{
-					UUID uuid = *(UUID*)payload->Data;
-					if (scene->IsValidEntityID(uuid))
+					auto id = *static_cast<const UUID*>(payload->Data);
+					if (scene->IsValidEntityID(id))
 					{
-						entityID = uuid;
-						changed = true;
+						entityID = id;
+						modified = true;
 					}
 				}
 				ImGui::EndDragDropTarget();
 			}
 		}
 
-		ControlHelperEnd();
-		return changed;
+		details::EndControl();
+		return modified;
 	}
 
-	bool ControlScript(std::string_view label, uint64_t& scriptID, const AssetControlSettings& settings)
+	bool ControlScript(std::string_view label, uint64_t& scriptID, const AssetControlArgs& args)
 	{
-		if (!ControlHelperBegin(ImGui::GetID(label)))
+		if (!details::BeginControl(ImGui::GetID(label)))
 			return false;
 
 		ImGui::Text(label);
 		ImGui::TableNextColumn();
 
-		ImGui::SetNextItemAllowOverlap();
-		ImGui::InvisibleButton(label.data(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeightWithSpacing() });
+		bool modified = false;
 
-		auto& scriptEngine = ScriptEngine::Get();
+		ImGui::InvisibleButton(label.data(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
 
 		auto& g = *GImGui;
-		bool mixed_value = (g.LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0;
-		if (mixed_value)
+		if ((g.LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0)
 		{
-			UI::DrawButton("--", ImVec2(0.5f, 0.5f), UI::GetItemRect());
+			DrawButton("--", ImVec2(0.5f, 0.5f), GetItemRect());
 		}
 		else
 		{
+			auto& scriptEngine = ScriptEngine::Get();
 			const bool validScript = scriptEngine.IsValidScriptID(scriptID);
+
 			if (scriptID && !validScript)
 			{
-				UI::ScopedColor textColor(ImGuiCol_Text, UI::Colors::Theme::TextError);
-				UI::DrawButton("Null", UI::GetItemRect());
-
+				ScopedColor textColor(ImGuiCol_Text, Colors::Theme::TextError);
+				DrawButton("Invalid", GetItemRect());
 			}
 			else if (validScript)
 			{
 				const auto& metadata = scriptEngine.GetScriptMetadata(scriptID);
-				UI::DrawButton(metadata.FullName, UI::GetItemRect());
+				DrawButton(metadata.FullName,
+							   ImVec2(0.0f, 0.5f),
+							   GetItemRect());
 			}
 			else
 			{
-				UI::DrawButton("", ImVec2(0.0f, 0.5f), UI::GetItemRect());
+				DrawButton("", GetItemRect());
 			}
 		}
 
-		bool changed = Widgets::SearchScriptPopup(scriptID);
+		modified = Widgets::SearchScriptPopup(scriptID);
 
-		ControlHelperEnd();
-		return changed;
+		// #TODO #scripting #assets add drag drop when script files are better supported
+
+		details::EndControl();
+		return modified;
 	}
 
 }
