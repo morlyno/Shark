@@ -17,7 +17,7 @@ namespace Shark {
 
 		~Scope() { Release(); }
 
-		explicit Scope(T* inst) { m_Instance = inst; }
+		Scope(T* inst) { m_Instance = inst; }
 
 		template<typename T2, std::enable_if_t<std::is_convertible<T2*, T*>::type::value, int> = 0>
 		Scope(Scope<T2>&& other) { Release(); m_Instance = other.m_Instance;other.m_Instance = nullptr; }
@@ -35,6 +35,8 @@ namespace Shark {
 
 		T* Raw() { return m_Instance; }
 		const T* Raw() const { return m_Instance; }
+
+		T* Detach() { return std::exchange(m_Instance, nullptr); }
 
 		template<typename... Args>
 		static Scope Create(Args&&... args) { return std::move(Scope(new(typeid(T).name()) T(std::forward<Args>(args)...))); }

@@ -8,6 +8,13 @@ namespace Shark {
 
 namespace Shark {
 
+	enum class SeekOrigin
+	{
+		Start,
+		End,
+		Current
+	};
+
 	class StreamReader
 	{
 	public:
@@ -16,7 +23,10 @@ namespace Shark {
 		virtual bool IsStreamGood() const = 0;
 		virtual uint64_t GetStreamPosition() = 0;
 		virtual void SetStreamPosition(uint64_t position) = 0;
-		virtual bool ReadData(char* destination, uint64_t size) = 0;
+		virtual void SetStreamPosition(uint64_t position, SeekOrigin origin) = 0;
+		virtual bool ReadData(void* destination, uint64_t size) = 0;
+		virtual bool ReadData(void* destination, uint64_t size, uint64_t& bytesRead) = 0;
+
 
 		bool ReadBuffer(Buffer& buffer);
 		bool ReadString(std::string& string);
@@ -24,7 +34,7 @@ namespace Shark {
 		template<typename T>
 		bool ReadRaw(T& data)
 		{
-			return ReadData((char*)&data, sizeof(T));
+			return ReadData(&data, sizeof(T));
 		}
 
 	};

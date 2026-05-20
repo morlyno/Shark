@@ -6,18 +6,9 @@ Scene:
       TagComponent:
         Name: Camera
       TransformComponent:
-        Translation:
-          - 1.21397305
-          - 1.87212205
-          - -5.63515949
-        Rotation:
-          - 0.261692196
-          - -0.0798142105
-          - -0
-        Scale:
-          - 1.00000012
-          - 1
-          - 0.99999994
+        Translation: [1.21397305, 1.87212205, -5.63515949]
+        Rotation: [0.261692196, -0.0798142105, -0]
+        Scale: [1.00000012, 1, 0.99999994]
       RelationshipComponent:
         Parent: 0
         Children:
@@ -32,18 +23,9 @@ Scene:
       TagComponent:
         Name: Red
       TransformComponent:
-        Translation:
-          - 0
-          - 0
-          - 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-        Scale:
-          - 1
-          - 1
-          - 1
+        Translation: [0, 0, 0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 0
         Children:
@@ -53,22 +35,17 @@ Scene:
         MaterialTable:
           0: 1821254970952682847
         Visible: true
+      AudioComponent:
+        Audio: 8056366398837571779
+        PlayOnWake: true
+        Loop: false
     - Entity: 15559333159995319189
       TagComponent:
         Name: Green
       TransformComponent:
-        Translation:
-          - 1.56728506
-          - 0
-          - 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-        Scale:
-          - 1
-          - 1
-          - 1
+        Translation: [1.56728506, 0, 0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 0
         Children:
@@ -80,20 +57,11 @@ Scene:
         Visible: true
     - Entity: 17618620851746294573
       TagComponent:
-        Name: Entity
+        Name: env
       TransformComponent:
-        Translation:
-          - 0
-          - 0
-          - 0
-        Rotation:
-          - 0
-          - 0
-          - 0
-        Scale:
-          - 1
-          - 1
-          - 1
+        Translation: [0, 0, 0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 0
         Children:
@@ -102,3 +70,7 @@ Scene:
         SceneEnvironment: 9087211806961695879
         Intensity: 1
         Lod: 0
+      AudioComponent:
+        Audio: 10370996040221218032
+        PlayOnWake: true
+        Loop: false

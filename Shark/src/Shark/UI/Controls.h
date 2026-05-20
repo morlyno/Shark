@@ -100,6 +100,7 @@ namespace Shark::UI {
 	bool Control(std::string_view label, const bool& value);
 	bool Control(std::string_view label, bool& value, const char* vTrue, const char* vFalse);
 	bool Control(std::string_view label, Concepts::Enum auto& value);
+	bool Control(std::string_view label, Concepts::Enum auto const& value);
 	
 	bool Control(std::string_view label, char* buffer, size_t bufferSize);
 	bool Control(std::string_view label, std::string& value);
@@ -124,6 +125,9 @@ namespace Shark::UI {
 	bool ControlEntity(std::string_view label, Ref<Scene> scene, UUID& entityID, const EntityControlArgs& args = {});
 	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle, const AssetControlArgs& args = {});
 	bool ControlScript(std::string_view label, uint64_t& scriptID, const AssetControlArgs& args = {});
+
+	bool ControlEntity(std::string_view label, Ref<Scene> scene, const UUID& entityID, const EntityControlArgs& args = {});
+	bool ControlAsset(std::string_view label, AssetType assetType, const AssetHandle& assetHandle, const AssetControlArgs& args = {});
 
 	// #TODO move to UICore.h
 	inline bool ControlHeader(std::string_view label, bool openByDefault = true, bool spanColumns = false)
@@ -213,6 +217,14 @@ namespace Shark::UI {
 		}
 		details::EndControl();
 		return modified;
+	}
+
+	bool Control(std::string_view label, Concepts::Enum auto const& value)
+	{
+		ScopedItemFlag readOnly(ImGuiItemFlags_ReadOnly);
+
+		auto temp = value;
+		return Control(label, temp);
 	}
 
 	bool Control(std::string_view label, std::invocable auto&& func)

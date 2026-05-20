@@ -136,6 +136,7 @@ namespace Shark {
 		m_PanelManager->AddPanel<ECSDebugPanel>(PanelCategory::View, "ECS Debug", false, nullptr);
 		m_PanelManager->AddPanel<IconSelector>(PanelCategory::Edit, "Icons Selector", false);
 		m_PanelManager->AddPanel<MaterialPanel>(PanelCategory::Edit, "Materials", true);
+		m_PanelManager->AddPanel<SoundPanel>(PanelCategory::View, "Sounds", false);
 
 		m_SceneRenderer = Ref<SceneRenderer>::Create(window.GetWidth(), window.GetHeight(), "Viewport Renderer");
 		m_PanelManager->GetPanel<SceneRendererPanel>()->SetRenderer(m_SceneRenderer);

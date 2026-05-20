@@ -15,7 +15,8 @@ namespace Shark {
 		Mesh,
 		Material,
 		Environment,
-		Prefab
+		Prefab,
+		AudioFile
 	};
 
 	inline const std::unordered_map<std::string, AssetType> AssetExtensionMap = {
@@ -33,7 +34,8 @@ namespace Shark {
 		{ ".skmesh", AssetType::Mesh },
 		{ ".skmat", AssetType::Material },
 		{ ".hdr", AssetType::Environment },
-		{ ".sfab", AssetType::Prefab }
+		{ ".sfab", AssetType::Prefab },
+		{ ".wav", AssetType::AudioFile }
 	};
 
 }

@@ -334,6 +334,13 @@ namespace Shark {
 		friend class ScriptEngine;
 	};
 
+	struct AudioComponent
+	{
+		AssetHandle Audio;
+		bool PlayOnWake = false;
+		bool Loop       = false;
+	};
+
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	//// Groups ///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////////
@@ -348,7 +355,8 @@ namespace Shark {
 			                             /* Light      */ PointLightComponent, DirectionalLightComponent, SkyComponent,
 			                             /* Camera     */ CameraComponent,
 			                             /* Physics 2D */ RigidBody2DComponent, BoxCollider2DComponent, CircleCollider2DComponent, DistanceJointComponent, HingeJointComponent, PrismaticJointComponent, PulleyJointComponent,
-			                             /* Script     */ ScriptComponent>;
+			                             /* Script     */ ScriptComponent,
+										 /* Audio      */ AudioComponent>;
 
 	// Every entity is required to have all of those components
 	using CoreComponents = ComponentGroup<IDComponent, TagComponent, TransformComponent, RelationshipComponent>;

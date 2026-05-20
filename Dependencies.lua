@@ -7,6 +7,10 @@ Dependencies = {
         IncludeDir = "%{wks.location}/Shark/dependencies/nvrhi/include"
     },
 
+    miniaudio = {
+        IncludeDir = "%{wks.location}/Shark/dependencies/miniaudio"
+    },
+
     spdlog = {
         IncludeDir = "%{wks.location}/Shark/dependencies/spdlog/include"
     },

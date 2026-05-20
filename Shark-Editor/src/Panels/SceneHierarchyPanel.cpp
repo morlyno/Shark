@@ -352,6 +352,7 @@ namespace Shark {
 		m_Components.push_back(COMPONENT_DATA_ARGS("Prismatic Joint 2D", PrismaticJointComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Pulley Joint 2D", PulleyJointComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Script", ScriptComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Audio", AudioComponent));
 		#undef COMPONENT_DATA_ARGS
 
 		SK_CORE_VERIFY(m_Components.size() == (vtll::size<AllComponents::Except<UserHiddenComponents, AutomationComponents, TagComponent>>::value));
@@ -1535,6 +1536,19 @@ namespace Shark {
 			}
 			UI::EndControlsGrid();
 
+		});
+
+		DrawComponetMultiSelect<AudioComponent>(entities, "Audio", [](AudioComponent& firstComponent, const std::vector<Entity>& entities)
+		{
+			UI::BeginControlsGrid();
+			utils::Multiselect(entities, &AudioComponent::Audio, [](AudioComponent& firstComponent, const auto&)
+			{
+				return UI::ControlAsset("Audio", AssetType::AudioFile, firstComponent.Audio);
+			});
+
+			utils::MultiselectControl(entities, &AudioComponent::PlayOnWake, "Play on wake");
+			utils::MultiselectControl(entities, &AudioComponent::Loop, "Loop");
+			UI::EndControlsGrid();
 		});
 
 		ImGui::Dummy({ 0, ImGui::GetFrameHeight() });

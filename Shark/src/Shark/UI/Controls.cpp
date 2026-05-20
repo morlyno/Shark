@@ -263,6 +263,77 @@ namespace Shark::UI {
 		});
 	}
 
+	bool ControlEntity(std::string_view label, Ref<Scene> scene, UUID& entityID, const EntityControlArgs& args)
+	{
+		if (!details::BeginControl(ImGui::GetID(label)))
+			return false;
+
+		ImGui::Text(label);
+		ImGui::TableNextColumn();
+
+		bool modified = false;
+
+		ImGui::InvisibleButton(label.data(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
+
+		auto& g = *GImGui;
+		if ((g.LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0)
+		{
+			DrawButton("--", ImVec2(0.5f, 0.5f), GetItemRect());
+		}
+		else
+		{
+			if (!scene)
+			{
+				if (entityID)
+					DrawButton(args.DisplayName.empty() ? fmt::to_string(entityID) : args.DisplayName, GetItemRect());
+				else
+					DrawButton("", GetItemRect());
+			}
+			else if (entityID && !scene->IsValidEntityID(entityID))
+			{
+				ScopedColor textColor(ImGuiCol_Text, Colors::Theme::TextError);
+				DrawButton("Invalid", GetItemRect());
+			}
+			else
+			{
+				Entity entity = scene->TryGetEntityByUUID(entityID);
+				
+				std::string_view displayName = "";
+				if (entity)
+				{
+					displayName = args.DisplayName.empty() ? entity.GetName() : args.DisplayName;
+				}
+
+				DrawButton(displayName,
+						   ImVec2(0.0f, 0.5f),
+						   GetItemRect());
+			}
+		}
+
+		modified = Widgets::SearchEntityPopup(scene, entityID);
+
+		if (args.DropType && (g.LastItemData.ItemFlags & ImGuiItemFlags_ReadOnly) != 0)
+		{
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(args.DropType);
+				if (payload)
+				{
+					auto id = *static_cast<const UUID*>(payload->Data);
+					if (scene->IsValidEntityID(id))
+					{
+						entityID = id;
+						modified = true;
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+		}
+
+		details::EndControl();
+		return modified;
+	}
+
 	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle, const AssetControlArgs& args)
 	{
 		if (!details::BeginControl(ImGui::GetID(label)))
@@ -290,7 +361,7 @@ namespace Shark::UI {
 
 		modified = Widgets::SearchAssetPopup(assetType, assetHandle);
 
-		if (args.DropType)
+		if (args.DropType && (g.LastItemData.ItemFlags & ImGuiItemFlags_ReadOnly) != 0)
 		{
 			if (ImGui::BeginDragDropTarget())
 			{
@@ -301,64 +372,6 @@ namespace Shark::UI {
 					if (assetType == AssetManager::GetAssetType(handle))
 					{
 						assetHandle = handle;
-						modified = true;
-					}
-				}
-				ImGui::EndDragDropTarget();
-			}
-		}
-
-		details::EndControl();
-		return modified;
-	}
-
-	bool ControlEntity(std::string_view label, Ref<Scene> scene, UUID& entityID, const EntityControlArgs& args)
-	{
-		if (!details::BeginControl(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		bool modified = false;
-
-		ImGui::InvisibleButton(label.data(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
-
-		auto& g = *GImGui;
-		if ((g.LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0)
-		{
-			DrawButton("--", ImVec2(0.5f, 0.5f), GetItemRect());
-		}
-		else
-		{
-			if (entityID && !scene->IsValidEntityID(entityID))
-			{
-				ScopedColor textColor(ImGuiCol_Text, Colors::Theme::TextError);
-				DrawButton("Invalid", GetItemRect());
-			}
-			else
-			{
-				Entity entity = scene->TryGetEntityByUUID(entityID);
-				
-				DrawButton(entity ? entity.GetName() : std::string_view{},
-							   ImVec2(0.0f, 0.5f),
-							   GetItemRect());
-			}
-		}
-
-		modified = Widgets::SearchEntityPopup(scene, entityID);
-
-		if (args.DropType)
-		{
-			if (ImGui::BeginDragDropTarget())
-			{
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(args.DropType);
-				if (payload)
-				{
-					auto id = *static_cast<const UUID*>(payload->Data);
-					if (scene->IsValidEntityID(id))
-					{
-						entityID = id;
 						modified = true;
 					}
 				}
@@ -416,6 +429,22 @@ namespace Shark::UI {
 
 		details::EndControl();
 		return modified;
+	}
+
+	bool ControlAsset(std::string_view label, AssetType assetType, const AssetHandle& assetHandle, const AssetControlArgs& args)
+	{
+		ScopedItemFlag readOnly(ImGuiItemFlags_ReadOnly);
+
+		AssetHandle handle = assetHandle;
+		return ControlAsset(label, assetType, handle, args);
+	}
+
+	bool ControlEntity(std::string_view label, Ref<Scene> scene, const UUID& entityID, const EntityControlArgs& args)
+	{
+		ScopedItemFlag readOnly(ImGuiItemFlags_ReadOnly);
+
+		UUID id = entityID;
+		return ControlEntity(label, scene, id, args);
 	}
 
 }

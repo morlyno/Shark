@@ -163,6 +163,9 @@ namespace Shark {
 			if (clear)
 				entityID = UUID::Invalid;
 
+			if (!scene)
+				return;
+
 			auto entities = scene->GetAllEntitysWith<IDComponent>();
 			for (auto ent : entities)
 			{

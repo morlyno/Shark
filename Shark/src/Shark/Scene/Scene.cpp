@@ -3,6 +3,7 @@
 
 #include "Shark/Core/SelectionManager.h"
 #include "Shark/Asset/AssetManager.h"
+#include "Shark/Audio/AudioEngine.h"
 
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Prefab.h"
@@ -213,6 +214,8 @@ namespace Shark {
 
 		}
 
+		Application::Get().GetAudioEngine()->OnScenePlay(this);
+
 		// Setup Cameras
 		bool activeCameraFound = false;
 		if (HasActiveCamera(true))
@@ -248,6 +251,8 @@ namespace Shark {
 		}
 
 		OnPhysics2DStop();
+
+		Application::Get().GetAudioEngine()->OnSceneStop(this);
 
 		m_Registry.on_construct<RigidBody2DComponent>().disconnect<&Scene::OnRigidBody2DComponentCreated>(this);
 		m_Registry.on_construct<BoxCollider2DComponent>().disconnect<&Scene::OnBoxCollider2DComponentCreated>(this);

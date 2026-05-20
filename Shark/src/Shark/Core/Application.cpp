@@ -5,6 +5,8 @@
 #include "Shark/Core/Timer.h"
 #include "Shark/Asset/AssetManager.h"
 
+#include "Shark/Audio/AudioEngine.h"
+
 #include "Shark/Input/Input.h"
 #include "Shark/Render/Renderer.h"
 #include "Shark/Scripting/ScriptEngine.h"
@@ -66,6 +68,7 @@ namespace Shark {
 		}
 
 		m_ScriptHost.Initialize();
+		m_AudioEngine = Scope<MiniAudioEngine>::Create();
 	}
 
 	Application::~Application()

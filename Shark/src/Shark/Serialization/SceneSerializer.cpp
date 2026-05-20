@@ -462,6 +462,16 @@ namespace Shark {
 			out << YAML::EndMap;
 		}
 
+		if (auto component = entity.TryGetComponent<AudioComponent>())
+		{
+			out << YAML::Key << "AudioComponent";
+			out << YAML::BeginMap;
+			out << YAML::Key << "Audio" << YAML::Value << component->Audio;
+			out << YAML::Key << "PlayOnWake" << YAML::Value << component->PlayOnWake;
+			out << YAML::Key << "Loop" << YAML::Value << component->Loop;
+			out << YAML::EndMap;
+		}
+
 		out << YAML::EndMap;
 	}
 
@@ -783,6 +793,15 @@ namespace Shark {
 				}
 			}
 		}
+
+		if (auto componentNode = entityNode["AudioComponent"])
+		{
+			auto& component = entity.AddOrReplaceComponent<AudioComponent>();
+			YAML::DeserializeProperty(componentNode, "Audio", component.Audio);
+			YAML::DeserializeProperty(componentNode, "PlayOnWake", component.PlayOnWake);
+			YAML::DeserializeProperty(componentNode, "Loop", component.Loop);
+		}
+
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////

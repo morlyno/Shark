@@ -728,6 +728,12 @@ ImportedAssets:
   - Handle: 15170366313244680277
     Type: Prefab
     FilePath: Prefab/BallTemplate.sfab
+  - Handle: 8056366398837571779
+    Type: AudioFile
+    FilePath: Audio/powerup.wav
+  - Handle: 10370996040221218032
+    Type: AudioFile
+    FilePath: Audio/waves-close-up.wav
 EditorAssets:
   - Handle: 13196250996000324786
     Type: Texture
