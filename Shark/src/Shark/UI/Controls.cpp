@@ -312,7 +312,7 @@ namespace Shark::UI {
 
 		modified = Widgets::SearchEntityPopup(scene, entityID);
 
-		if (args.DropType && (g.LastItemData.ItemFlags & ImGuiItemFlags_ReadOnly) != 0)
+		if (args.DropType && (g.LastItemData.ItemFlags & ImGuiItemFlags_ReadOnly) == 0)
 		{
 			if (ImGui::BeginDragDropTarget())
 			{
@@ -361,7 +361,7 @@ namespace Shark::UI {
 
 		modified = Widgets::SearchAssetPopup(assetType, assetHandle);
 
-		if (args.DropType && (g.LastItemData.ItemFlags & ImGuiItemFlags_ReadOnly) != 0)
+		if (args.DropType && (g.LastItemData.ItemFlags & ImGuiItemFlags_ReadOnly) == 0)
 		{
 			if (ImGui::BeginDragDropTarget())
 			{

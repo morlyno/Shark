@@ -2,6 +2,8 @@
 #include "Serializers.h"
 
 #include "Shark/Asset/Assets.h"
+#include "Shark/Audio/AudioEngine.h"
+#include "Shark/Audio/AudioFile.h"
 
 #include "Shark/Render/Font.h"
 #include "Shark/File/FileSystem.h"
@@ -57,6 +59,30 @@ namespace Shark {
 		context->SetStatus(AssetLoadStatus::Ready);
 
 		SK_CORE_INFO_TAG("Serialization", "Deserializing Font took {}ms", timer.ElapsedMilliSeconds());
+		return true;
+	}
+
+	bool AudioFileSerializer::Serialize(Ref<Asset> asset, const AssetMetaData& metadata)
+	{
+		return true;
+	}
+
+	bool AudioFileSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context)
+	{
+		Timer timer;
+
+		auto audioFile = Application::Get().GetAudioEngine()->QueryFileInfo(metadata.Handle);
+		if (!audioFile)
+		{
+			context->AddError(AssetLoadError::Unknown, "AudioEngine.QueryFileInfo return null");
+			return false;
+		}
+
+		asset = audioFile;
+		asset->Handle = metadata.Handle;
+		context->SetStatus(AssetLoadStatus::Ready);
+
+		SK_CORE_INFO_TAG("Serialization", "Loading AudioFile took {}", timer.Elapsed());
 		return true;
 	}
 

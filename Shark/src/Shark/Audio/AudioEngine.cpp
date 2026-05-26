@@ -2,13 +2,17 @@
 
 #define MINIAUDIO_IMPLEMENTATION
 #include "AudioEngine.h"
+#include "Shark/Asset/AssetManager.h"
+
 #include "Shark/Audio/Sound.h"
 #include "Shark/Audio/VFS.h"
+#include "Shark/Audio/AudioFile.h"
+
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Components.h"
+
 #include "Shark/Utils/String.h"
-#include <numeric>
 
 namespace Shark {
 
@@ -143,7 +147,7 @@ namespace Shark {
 		auto soundIndex = m_AvailableSounds.front();
 		m_AvailableSounds.pop();
 
-		QueryFileInfo(audioComponent.Audio);
+		//QueryFileInfo(audioComponent.Audio);
 		auto& object = m_Sounds.at(soundIndex);
 		object.EntityID = audioEntityID;
 		object.Audio = audioComponent.Audio;
@@ -208,7 +212,7 @@ namespace Shark {
 		SK_CORE_TRACE_TAG("Audio", "Freed sound at index {}", index);
 	}
 
-	void MiniAudioEngine::QueryFileInfo(AssetHandle handle)
+	Ref<AudioFile> MiniAudioEngine::QueryFileInfo(AssetHandle handle)
 	{
 		ScopedTimer timer("QueryFileInfo");
 
@@ -218,17 +222,34 @@ namespace Shark {
 		ma_decoder decoder;
 		ma_decoder_config config = ma_decoder_config_init_default();
 		result = ma_decoder_init_vfs(&m_VFS, filepath.c_str(), &config, &decoder);
-		SK_CORE_VERIFY(result == MA_SUCCESS, "Result: {}", result);
+		if (result != MA_SUCCESS)
+		{
+			SK_CORE_VERIFY(result == MA_SUCCESS, "Result: {}", result);
+			return nullptr;
+		}
 
 		ma_format format;
 		ma_uint32 channels;
 		ma_uint32 sampleRate;
 		result = ma_decoder_get_data_format(&decoder, &format, &channels, &sampleRate, nullptr, 0);
-		SK_CORE_VERIFY(result == MA_SUCCESS, "Result: {}", result);
+		if (result != MA_SUCCESS)
+		{
+			ma_decoder_uninit(&decoder);
+			SK_CORE_VERIFY(result == MA_SUCCESS, "Result: {}", result);
+			return nullptr;
+		}
 
 		ma_uint64 pcmLength;
 		result = ma_decoder_get_length_in_pcm_frames(&decoder, &pcmLength);
 		SK_CORE_VERIFY(result == MA_SUCCESS, "Result: {}", result);
+
+		ma_file_info info;
+		result = ma_vfs_info(decoder.data.vfs.pVFS, decoder.data.vfs.file, &info);
+		if (result != MA_SUCCESS)
+		{
+			ma_decoder_uninit(&decoder);
+			return nullptr;
+		}
 
 		SK_CORE_TRACE_TAG("Audio",
 						  "File info '{}'\n"
@@ -245,6 +266,21 @@ namespace Shark {
 						  static_cast<double>(pcmLength) / static_cast<double>(sampleRate));
 
 		ma_decoder_uninit(&decoder);
+
+		auto audioFile        = Ref<AudioFile>::Create();
+		audioFile->Lenght     = pcmLength;
+		audioFile->SampleRate = sampleRate;
+		audioFile->Channels   = static_cast<uint16_t>(channels);
+		audioFile->BitDepth   = static_cast<uint16_t>(ma_get_bytes_per_sample(format));
+		audioFile->FileSize   = info.sizeInBytes;
+		return audioFile;
+	}
+
+	bool MiniAudioEngine::IsStreaming(AssetHandle audio)
+	{
+		Ref<AudioFile> audioFile = AssetManager::GetAsset<AudioFile>(audio);
+
+		return audioFile->LenghtInSenconds() > 30.0;
 	}
 
 	void SoundObject::Uninitialize()

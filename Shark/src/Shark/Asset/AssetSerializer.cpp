@@ -29,6 +29,7 @@ namespace Shark {
 		s_Serializers[AssetType::Material] = Scope<MaterialSerializer>::Create();
 		s_Serializers[AssetType::Environment] = Scope<EnvironmentSerializer>::Create();
 		s_Serializers[AssetType::Prefab] = Scope<PrefabSerializer>::Create();
+		s_Serializers[AssetType::AudioFile] = Scope<AudioFileSerializer>::Create();
 	}
 
 	void AssetSerializer::ReleaseSerializers()

@@ -25,7 +25,10 @@ namespace Shark::Audio {
 		char sourceFile[std::numeric_limits<uint64_t>::digits10 + 2];
 		*fmt::format_to(sourceFile, "{}", audioAsset).out = '\0';
 
-		const uint32_t flags = MA_SOUND_FLAG_DECODE | MA_SOUND_FLAG_STREAM;
+		uint32_t flags = MA_SOUND_FLAG_DECODE;
+		if (audioEngine->IsStreaming(audioAsset))
+			flags |= MA_SOUND_FLAG_STREAM;
+
 		auto result = ma_sound_init_from_file(audioEngine->GetEngine(), sourceFile, flags, nullptr, nullptr, &m_Sound);
 		SK_CORE_ASSERT(result == MA_SUCCESS, "Failed to initialize sound '{}'", audioAsset);
 
@@ -70,6 +73,7 @@ namespace Shark::Audio {
 			return false;
 
 		StopSound(true);
+		return true;
 	}
 
 	bool Sound::Pause()

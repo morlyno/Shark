@@ -18,4 +18,11 @@ namespace Shark {
 		virtual bool TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context) override;
 	};
 
+	class AudioFileSerializer : public SerializerBase
+	{
+	public:
+		virtual bool Serialize(Ref<Asset> asset, const AssetMetaData& metadata) override;
+		virtual bool TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context) override;
+	};
+
 }

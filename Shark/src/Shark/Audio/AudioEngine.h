@@ -10,6 +10,7 @@
 
 namespace Shark {
 	class Scene;
+	class AudioFile;
 
 	namespace Audio {
 		class Sound;
@@ -38,16 +39,17 @@ namespace Shark {
 		void StartPlayback(UUID audioEntityID);
 
 		void StopAll();
+		auto GetAllSound() const { return std::span(m_Sounds); }
 
 		ma_engine* GetEngine() { return &m_Engine; }
 		Ref<Scene> GetActiveScene() const;
-		auto GetAllSound() const { return std::span(m_Sounds); }
+		Ref<AudioFile> QueryFileInfo(AssetHandle handle);
+
+		bool IsStreaming(AssetHandle audioFile);
 
 	private:
 		void OnSoundFinished(Audio::Sound* sound);
 		void FreeLowestPrioritySound();
-
-		void QueryFileInfo(AssetHandle handle);
 
 	private:
 		ma_engine m_Engine;
