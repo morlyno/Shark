@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "UIUtilities.h"
 
+#include "Shark/UI/UICore.h"
+
 #include <misc/cpp/imgui_stdlib.h>
 
 namespace Shark {
@@ -23,6 +25,16 @@ namespace Shark {
 	ImRect UI::RectExpand(const ImRect& rect, const ImVec2& xy)
 	{
 		return RectExpand(rect, xy.x, xy.y);
+	}
+
+	ImRect UI::RectExpand(const ImRect& rect, float left, float right, float top, float bottom)
+	{
+		ImRect result = rect;
+		result.Min.x -= left;
+		result.Min.y -= top;
+		result.Max.x += right;
+		result.Max.y += bottom;
+		return result;
 	}
 
 	ImRect UI::RectOffset(const ImRect& rect, float x, float y)
@@ -258,6 +270,60 @@ namespace Shark {
 	{
 		const bool modified = ImGui::Checkbox(label, v);
 		Draw::ItemActivityOutline();
+		return modified;
+	}
+
+	bool UI::CheckboxButton(const char* label, bool* v)
+	{
+		auto& style = ImGui::GetStyle();
+		auto window = ImGui::GetCurrentWindow();
+
+		auto textSize = ImGui::CalcTextSize(label);
+		auto checkmarkSize = ImGui::GetFontSize();
+
+		const ImVec2 size = ImVec2(checkmarkSize + style.ItemInnerSpacing.x + textSize.x, textSize.y);
+		const ImVec2 frameSize = ImVec2(size.x + style.FramePadding.x * 2.0f,
+										size.y + style.FramePadding.y * 2.0f);
+
+		bool modified = false;
+		if (ImGui::InvisibleButton(label, frameSize))
+		{
+			*v = !*v;
+			modified = true;
+		}
+
+		auto rect = GetItemRect();
+		DrawButton(rect);
+
+		auto checkmarkBB = RectFromSize(rect.Min + style.FramePadding, { checkmarkSize, checkmarkSize });
+		auto textBB = RectFromSize(ImVec2(checkmarkBB.Max.x + style.ItemInnerSpacing.x, checkmarkBB.Min.y),
+								   textSize);
+
+		if (*v)
+		{
+			const ImVec2 pos = rect.Min + style.FramePadding;
+			const ImRect check_bb(pos, pos + ImVec2(checkmarkSize, checkmarkSize));
+			const float pad = glm::max(1.0f, glm::trunc(checkmarkSize / 6.0f));
+			ImGui::RenderCheckMark(window->DrawList, check_bb.Min + ImVec2(pad, pad), ImGui::GetColorU32(ImGuiCol_CheckMark), checkmarkSize - pad * 2.0f);
+		}
+		else
+		{
+			const float pad = glm::max(1.0f, glm::trunc(checkmarkSize / 6.0f));
+			ImVec2 pos = checkmarkBB.Min + ImVec2(pad, pad);
+			float sz = checkmarkSize - pad * 2.0f;
+
+			float thickness = glm::max(sz / 5.0f, 1.0f);
+			sz -= thickness * 0.5f;
+			pos += ImVec2(thickness * 0.25f, thickness * 0.25f);
+
+			auto center = ImVec2(pos.x + sz * 0.5f, pos.y + sz * 0.5f);
+			auto offset = center.x - pos.x;
+
+			window->DrawList->AddLine(center + ImVec2(-offset, -offset), center + ImVec2(+offset, +offset), ImGui::GetColorU32(ImGuiCol_CheckMark), thickness);
+			window->DrawList->AddLine(center + ImVec2(-offset, +offset), center + ImVec2(+offset, -offset), ImGui::GetColorU32(ImGuiCol_CheckMark), thickness);
+		}
+
+		ImGui::RenderText(textBB.Min, label);
 		return modified;
 	}
 

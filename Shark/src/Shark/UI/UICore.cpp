@@ -315,7 +315,7 @@ namespace Shark::UI {
 		DrawItemFrame(RectFromSize(ImGui::GetCursorScreenPos(), size), bgColor, borderColor, rounding, drawFlags);
 	}
 
-	void DrawButton(std::string_view text, ImVec2 textAlign, ImU32 colorNormal, ImU32 colorHoverd, ImU32 colorPressed, ImRect rect)
+	void DrawButton(ImU32 colorNormal, ImU32 colorHoverd, ImU32 colorPressed, ImRect rect)
 	{
 		const auto& style = ImGui::GetStyle();
 		if (ImGui::IsItemActive())
@@ -326,6 +326,17 @@ namespace Shark::UI {
 			DrawBackground(rect, colorNormal, style.FrameRounding);
 
 		DrawBorder(rect, UI::Colors::Theme::BackgroundDark, style.FrameRounding);
+	}
+
+	void DrawButton(ImRect rect)
+	{
+		DrawButton(ImGui::GetColorU32(ImGuiCol_Button), ImGui::GetColorU32(ImGuiCol_ButtonHovered), ImGui::GetColorU32(ImGuiCol_ButtonActive), rect);
+	}
+
+	void DrawButton(std::string_view text, ImVec2 textAlign, ImU32 colorNormal, ImU32 colorHoverd, ImU32 colorPressed, ImRect rect)
+	{
+		const auto& style = ImGui::GetStyle();
+		DrawButton(colorNormal, colorHoverd, colorPressed, rect);
 		ImGui::RenderTextClipped(rect.Min + style.FramePadding, rect.Max - style.FramePadding, text.data(), text.data() + text.length(), nullptr, textAlign);
 	}
 

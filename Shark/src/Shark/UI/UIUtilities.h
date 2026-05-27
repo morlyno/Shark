@@ -226,6 +226,7 @@ namespace Shark::UI {
 	ImRect GetItemRect();
 	ImRect RectExpand(const ImRect& rect, float x, float y);
 	ImRect RectExpand(const ImRect& rect, const ImVec2& xy);
+	ImRect RectExpand(const ImRect& rect, float left, float right, float top, float bottom);
 	ImRect RectOffset(const ImRect& rect, float x, float y);
 	ImRect RectOffset(const ImRect& rect, const ImVec2& offset);
 	ImRect RectFromSize(const ImVec2& topLeft, const ImVec2& size);
@@ -309,6 +310,7 @@ namespace Shark::UI {
 	bool ColorEdit4(const char* label, float col[4], ImGuiColorEditFlags flags = 0);
 
 	bool Checkbox(const char* label, bool* v);
+	bool CheckboxButton(const char* label, bool* v);
 
 	bool InputText(const char* label, char* buf, size_t buf_size, ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = NULL, void* user_data = NULL);
 	bool InputText(const char* label, std::string* str, ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = nullptr, void* user_data = nullptr);

@@ -70,6 +70,9 @@ namespace Shark::UI {
 	void DrawItemFrame(ImRect rect, ImU32 bgColor = Colors::Theme::ControlField, ImU32 borderColor = Colors::Theme::BackgroundDark, float rounding = GImGui->Style.FrameRounding, ImDrawFlags drawFlags = 0);
 	void DrawItemFrame(ImVec2 size, ImU32 bgColor = Colors::Theme::ControlField, ImU32 borderColor = Colors::Theme::BackgroundDark, float rounding = GImGui->Style.FrameRounding, ImDrawFlags drawFlags = 0);
 
+	void DrawButton(ImU32 colorNormal, ImU32 colorHoverd, ImU32 colorPressed, ImRect rect);
+	void DrawButton(ImRect rect);
+
 	void DrawButton(std::string_view text, ImVec2 textAlign, ImU32 colorNormal, ImU32 colorHoverd, ImU32 colorPressed, ImRect rect);
 	void DrawButton(std::string_view text, ImVec2 textAlign, ImRect rect);
 	void DrawButton(std::string_view text, ImRect rect);
