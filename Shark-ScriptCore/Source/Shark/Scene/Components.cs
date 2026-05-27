@@ -524,4 +524,13 @@ namespace Shark
 		}
 	}
 
+	public class AudioComponent : Component
+	{
+		public unsafe bool IsPlaying() => InternalCalls.AudioComponent_IsPlaying(Entity.ID);
+		public unsafe bool Play()      => InternalCalls.AudioComponent_Play(Entity.ID);
+		public unsafe bool Stop()      => InternalCalls.AudioComponent_Stop(Entity.ID);
+		public unsafe bool Pause()     => InternalCalls.AudioComponent_Pause(Entity.ID);
+		public unsafe bool Resume()    => InternalCalls.AudioComponent_Resume(Entity.ID);
+	}
+
 }

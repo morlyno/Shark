@@ -36,7 +36,12 @@ namespace Shark {
 
 		void OnScenePlay(Ref<Scene> scene);
 		void OnSceneStop(Ref<Scene> scene);
-		void StartPlayback(UUID audioEntityID);
+
+		bool HasActiveSound(UUID entityID);
+		bool StartPlayback(UUID audioEntityID);
+		bool StopPlayback(UUID audioEntityID);
+		bool PausePlayback(UUID audioEntityID);
+		bool ResumePlayback(UUID audioEntityID);
 
 		void StopAll();
 		auto GetAllSound() const { return std::span(m_Sounds); }
@@ -59,6 +64,7 @@ namespace Shark {
 		uint32_t m_MaximumSounds = 0;
 		uint32_t m_SoundsPlaying = 0;
 		std::vector<SoundObject> m_Sounds;
+		std::vector<size_t> m_ActiveSounds;
 		std::queue<size_t> m_AvailableSounds;
 
 		Ref<Scene> m_ActiveScene;

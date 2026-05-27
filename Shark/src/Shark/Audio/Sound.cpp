@@ -81,6 +81,8 @@ namespace Shark::Audio {
 		if (!m_Ready)
 			return false;
 
+		// #audio should this be possible when sound is stopped
+
 		ma_sound_stop(&m_Sound);
 		m_PlayState = PlayState::Paused;
 		return true;

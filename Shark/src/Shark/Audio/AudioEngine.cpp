@@ -132,12 +132,27 @@ namespace Shark {
 		m_ActiveScene = nullptr;
 	}
 
-	void MiniAudioEngine::StartPlayback(UUID audioEntityID)
+	bool MiniAudioEngine::HasActiveSound(UUID entityID)
 	{
+		const auto i = std::ranges::find(m_Sounds, entityID, &SoundObject::EntityID);
+		if (i == m_Sounds.end())
+			return false;
+
+		return i->Sound->IsPlaying();
+	}
+
+	bool MiniAudioEngine::StartPlayback(UUID audioEntityID)
+	{
+		// #audio #Investigate StartPlayback called multiple times
+		// 
+		// starting multiple sound is possible like this
+		// but the can't be controlled independently
+		//
+
 		Entity entity = m_ActiveScene->GetEntityByID(audioEntityID);
 		auto& audioComponent = entity.GetComponent<AudioComponent>();
 		if (!audioComponent.Audio)
-			return;
+			return false;
 
 		if (m_AvailableSounds.empty())
 		{
@@ -155,19 +170,76 @@ namespace Shark {
 		object.Sound->Initialize(audioComponent.Audio, this);
 		object.Sound->SetLooping(audioComponent.Loop);
 		object.Sound->Play();
+
+		m_ActiveSounds.push_back(soundIndex);
 		m_SoundsPlaying += 1;
 
 		SK_CORE_INFO_TAG("Audio", "Started Playback of {} for {}", audioComponent.Audio, entity.GetName());
+		return object.Sound->IsReady() && object.Sound->IsPlaying();
+	}
+
+	bool MiniAudioEngine::StopPlayback(UUID audioEntityID)
+	{
+		auto range = std::ranges::remove_if(m_ActiveSounds, [this, audioEntityID](size_t soundID)
+		{
+			return m_Sounds[soundID].EntityID == audioEntityID;
+		});
+
+		for (auto id : std::views::reverse(range))
+		{
+			// NOTE: this removes the sound from active sounds and uninitializes it in the callback
+			//       thats why the range is reversed
+			SK_CORE_TRACE_TAG("Audio", "Stop Playback of {} for {}", m_Sounds[id].Audio, utils::TryGetEntityName(m_ActiveScene.Raw(), audioEntityID));
+			m_Sounds[id].Sound->Stop();
+		}
+
+		return true;
+	}
+
+	bool MiniAudioEngine::PausePlayback(UUID audioEntityID)
+	{
+		for (auto soundID : m_ActiveSounds)
+		{
+			auto& sound = m_Sounds[soundID];
+			if (sound.EntityID != audioEntityID)
+				continue;
+
+			SK_CORE_TRACE_TAG("Audio", "Pause Playback of {} for {}", m_Sounds[soundID].Audio, utils::TryGetEntityName(m_ActiveScene.Raw(), audioEntityID));
+			sound.Sound->Pause();
+		}
+
+		return true;
+	}
+
+	bool MiniAudioEngine::ResumePlayback(UUID audioEntityID)
+	{
+		for (auto soundID : m_ActiveSounds)
+		{
+			auto& sound = m_Sounds[soundID];
+			if (sound.EntityID != audioEntityID)
+				continue;
+
+			if (sound.Sound->GetPlayState() == Audio::PlayState::Paused)
+			{
+				SK_CORE_TRACE_TAG("Audio", "Resume Playback of {} for {}", m_Sounds[soundID].Audio, utils::TryGetEntityName(m_ActiveScene.Raw(), audioEntityID));
+				sound.Sound->Play();
+			}
+		}
+
+		return true;
 	}
 
 	void MiniAudioEngine::StopAll()
 	{
-		for (auto& sound : m_Sounds)
+		SK_CORE_TRACE_TAG("Audio", "Stop all sounds");
+		for (auto soundId : m_ActiveSounds)
 		{
-			sound.Sound->StopSound(false);
-			sound.Uninitialize();
+			m_Sounds[soundId].Sound->StopSound(false);
+			m_Sounds[soundId].Uninitialize();
+			m_AvailableSounds.push(soundId);
 		}
 
+		m_ActiveSounds.clear();
 		m_SoundsPlaying = 0;
 	}
 
@@ -184,10 +256,15 @@ namespace Shark {
 
 		const auto index = std::distance(m_Sounds.begin(), soundObject);
 
+		// #audio #Investigate system to reuse a sound if needed
+
 		SK_CORE_INFO_TAG("Audio", "Sound '{}' finished for {}", soundObject->Audio, utils::TryGetEntityName(m_ActiveScene.Raw(), soundObject->EntityID));
 		soundObject->Uninitialize();
 		m_AvailableSounds.push(index);
 		m_SoundsPlaying -= 1;
+
+		auto count = std::erase(m_ActiveSounds, index);
+		SK_CORE_ASSERT(count == 1);
 
 		SK_CORE_TRACE_TAG("Audio", "Sound available at index {}", index);
 	}
@@ -199,17 +276,19 @@ namespace Shark {
 		if (!m_AvailableSounds.empty())
 			return;
 
-		size_t index = 0;
+		size_t index = m_ActiveSounds.front();
 		auto& object = m_Sounds[index];
 
 		if (object.Sound->IsPlaying())
 			object.Sound->StopSound(false);
 
 		object.Uninitialize();
+		std::erase(m_ActiveSounds, index);
+		
 		m_AvailableSounds.push(index);
 		m_SoundsPlaying -= 1;
 
-		SK_CORE_TRACE_TAG("Audio", "Freed sound at index {}", index);
+		SK_CORE_WARN_TAG("Audio", "Freed sound at index {}", index);
 	}
 
 	Ref<AudioFile> MiniAudioEngine::QueryFileInfo(AssetHandle handle)

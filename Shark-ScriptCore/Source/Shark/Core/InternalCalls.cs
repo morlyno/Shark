@@ -229,10 +229,20 @@ namespace Shark
 
 		internal static unsafe delegate* unmanaged<ulong, NativeInstance<object>> ScriptComponent_GetInstance;
 
-		#endregion
+        #endregion
+
+        #region AudioComponent
+
+		internal static unsafe delegate* unmanaged<ulong, Bool32> AudioComponent_IsPlaying;
+		internal static unsafe delegate* unmanaged<ulong, Bool32> AudioComponent_Play;
+		internal static unsafe delegate* unmanaged<ulong, Bool32> AudioComponent_Stop;
+		internal static unsafe delegate* unmanaged<ulong, Bool32> AudioComponent_Pause;
+		internal static unsafe delegate* unmanaged<ulong, Bool32> AudioComponent_Resume;
+
+        #endregion
 
 #pragma warning restore CS0649
 
-	}
+    }
 
 }

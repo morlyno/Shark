@@ -6,6 +6,8 @@
 #include "Shark/Core/Project.h"
 #include "Shark/Asset/AssetManager.h"
 
+#include "Shark/Audio/AudioEngine.h"
+
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Components.h"
@@ -39,6 +41,11 @@ namespace Shark {
 		return currentScene->TryGetEntityByUUID(UUID::Make(entityID));
 	}
 
+	static MiniAudioEngine* GetAudioEngine()
+	{
+		return Application::Get().GetAudioEngine();
+	}
+
 	void ScriptGlue::Initialize(Coral::ManagedAssembly& assembly)
 	{
 		RegisterComponents(assembly);
@@ -68,6 +75,7 @@ namespace Shark {
 		SK_REGISTER_COMPONENT(RigidBody2DComponent);
 		SK_REGISTER_COMPONENT(BoxCollider2DComponent);
 		SK_REGISTER_COMPONENT(CircleCollider2DComponent);
+		SK_REGISTER_COMPONENT(AudioComponent);
 #undef SK_REGISTER_COMPONENT
 	}
 
@@ -221,6 +229,12 @@ namespace Shark {
 		ADD_ICALL(CircleCollider2DComponent_SetOffset);
 		ADD_ICALL(CircleCollider2DComponent_GetRotation);
 		ADD_ICALL(CircleCollider2DComponent_SetRotation);
+
+		ADD_ICALL(AudioComponent_IsPlaying);
+		ADD_ICALL(AudioComponent_Play);
+		ADD_ICALL(AudioComponent_Stop);
+		ADD_ICALL(AudioComponent_Pause);
+		ADD_ICALL(AudioComponent_Resume);
 		#undef ADD_ICALL
 
 		assembly.UploadInternalCalls();
@@ -1810,6 +1824,60 @@ namespace Shark {
 
 		#pragma endregion
 
+		
+		#pragma region AudioComponent
+
+		Coral::Bool32 AudioComponent_IsPlaying(uint64_t entityID)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<AudioComponent>());
+
+			auto audioEngine = GetAudioEngine();
+			return audioEngine->HasActiveSound(UUID::Make(entityID));
+		}
+
+		Coral::Bool32 AudioComponent_Play(uint64_t entityID)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<AudioComponent>());
+
+			auto audioEngine = GetAudioEngine();
+			return audioEngine->StartPlayback(UUID::Make(entityID));
+		}
+
+		Coral::Bool32 AudioComponent_Stop(uint64_t entityID)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<AudioComponent>());
+
+			auto audioEngine = GetAudioEngine();
+			return audioEngine->StopPlayback(UUID::Make(entityID));
+		}
+
+		Coral::Bool32 AudioComponent_Pause(uint64_t entityID)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<AudioComponent>());
+
+			auto audioEngine = GetAudioEngine();
+			return audioEngine->PausePlayback(UUID::Make(entityID));
+		}
+
+		Coral::Bool32 AudioComponent_Resume(uint64_t entityID)
+		{
+			Entity entity = GetEntity(entityID);
+			SK_ICALL_VERIFY_PARAMETER(entity);
+			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<AudioComponent>());
+
+			auto audioEngine = GetAudioEngine();
+			return audioEngine->ResumePlayback(UUID::Make(entityID));
+		}
+
+		#pragma endregion
 
 	}
 

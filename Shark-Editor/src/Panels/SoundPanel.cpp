@@ -8,10 +8,37 @@
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/Controls.h"
 
+#include "Shark/Asset/AssetManager.h"
 #include "Shark/File/FileSystem.h"
 
 
 namespace Shark {
+
+	namespace utils {
+
+		std::string GetAssetName(AssetHandle handle)
+		{
+			if (!handle)
+				return "";
+
+			if (!AssetManager::IsValidAssetHandle(handle))
+			{
+				return "Invalid";
+			}
+
+			auto assetManager = Project::GetEditorAssetManager();
+
+			const bool isMemoryAsset = assetManager->IsMemoryAsset(handle);
+			const bool valid = isMemoryAsset || assetManager->HasExistingFilePath(handle);
+
+			if (isMemoryAsset)
+				return fmt::format("{}", handle);
+
+			const auto& metadata = assetManager->GetMetadata(handle);
+			return metadata.FilePath.string();
+		}
+
+	}
 
 	void SoundPanel::OnImGuiRender(bool& isOpen)
 	{
@@ -24,15 +51,28 @@ namespace Shark {
 			const auto scene = audioEngine->GetActiveScene();
 			const auto sounds = audioEngine->GetAllSound();
 
-			uint32_t index = 0;
+			UI::CheckboxButton("Hide Inactive", &m_ShowActive);
+			ImGui::SameLine();
+			UI::CheckboxButton("Simple", &m_Simple);
+
+			uint32_t i = 0;
 			for (const auto& soundObject : sounds)
 			{
-				UI::BeginControlsGrid();
+				auto index = i++;
+				if (m_ShowActive && !soundObject.Sound->IsReady())
+					continue;
 
+				if (m_Simple)
+				{
+					std::string infoString = fmt::format("{} | {} | {}", index, utils::GetAssetName(soundObject.Audio), soundObject.Sound->GetPlayState());
+					ImGui::Text(infoString);
+					continue;
+				}
+
+				UI::BeginControlsGrid();
 				UI::ControlAsset("Asset", AssetType::AudioFile, soundObject.Audio);
 				UI::ControlEntity("Entity", scene, soundObject.EntityID);
 				UI::Control("State", soundObject.Sound->GetPlayState());
-				UI::Control("Finished", soundObject.Sound->Finished());
 
 				if (soundObject.Sound->IsReady())
 				{
