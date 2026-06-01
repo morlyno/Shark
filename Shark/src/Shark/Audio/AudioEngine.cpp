@@ -7,6 +7,7 @@
 #include "Shark/Audio/Sound.h"
 #include "Shark/Audio/VFS.h"
 #include "Shark/Audio/AudioFile.h"
+#include "Shark/Audio/SoundConfig.h"
 
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
@@ -25,6 +26,35 @@ namespace Shark {
 
 			auto entity = scene->TryGetEntityByUUID(entityID);
 			return entity ? entity.GetName() : std::string_view{};
+		}
+
+		static std::pair<Ref<SoundConfig>, AssetHandle> GetConfigAndSource(AssetHandle audioAsset)
+		{
+			auto assetType = AssetManager::GetAssetType(audioAsset);
+			switch (assetType)
+			{
+				case AssetType::SoundConfig:
+				{
+					auto soundConfig = AssetManager::GetAsset<SoundConfig>(audioAsset);
+					return {
+						soundConfig,
+						soundConfig->AudioSourceHandle
+					};
+				}
+				case AssetType::AudioFile:
+				{
+					return {
+						nullptr,
+						audioAsset
+					};
+				}
+			}
+
+			SK_CORE_ASSERT(false, "Invalid audio asset type '{}'", assetType);
+			return {
+				nullptr,
+				AssetHandle::Invalid
+			};
 		}
 
 	}
@@ -154,6 +184,18 @@ namespace Shark {
 		if (!audioComponent.Audio)
 			return false;
 
+		AssetHandle audioSource;
+		Ref<SoundConfig> soundConfig;
+
+		{
+			auto [sc, as] = utils::GetConfigAndSource(audioComponent.Audio);
+			if (as == AssetHandle::Invalid)
+				return false;
+
+			soundConfig = sc;
+			audioSource = as;
+		}
+
 		if (m_AvailableSounds.empty())
 		{
 			FreeLowestPrioritySound();
@@ -165,10 +207,13 @@ namespace Shark {
 		//QueryFileInfo(audioComponent.Audio);
 		auto& object = m_Sounds.at(soundIndex);
 		object.EntityID = audioEntityID;
-		object.Audio = audioComponent.Audio;
+		object.Audio = audioSource;
+		object.Config = soundConfig;
 		// #TODO #audio initialize sound on audio thread
-		object.Sound->Initialize(audioComponent.Audio, this);
-		object.Sound->SetLooping(audioComponent.Loop);
+		object.Sound->Initialize(audioSource, this);
+		object.Sound->ApplySoundConfig(soundConfig);
+		object.Sound->SetVolume(audioComponent.VolumeMultiplier);
+		object.Sound->SetPitch(audioComponent.PitchMultiplier);
 		object.Sound->Play();
 
 		m_ActiveSounds.push_back(soundIndex);

@@ -3,6 +3,7 @@
 
 #include "Shark/Core/Application.h"
 #include "Shark/Audio/AudioEngine.h"
+#include "Shark/Audio/SoundConfig.h"
 
 namespace Shark::Audio {
 
@@ -15,36 +16,49 @@ namespace Shark::Audio {
 	{
 	}
 
-	void Sound::Initialize(AssetHandle audioAsset, MiniAudioEngine* audioEngine)
+	bool Sound::Initialize(AssetHandle audioAsset, MiniAudioEngine* audioEngine)
 	{
 		ScopedTimer timer("Sound.Initialize");
 
 		m_Finished = false;
 		m_PlayState = PlayState::Stopped;
-
-		char sourceFile[std::numeric_limits<uint64_t>::digits10 + 2];
-		*fmt::format_to(sourceFile, "{}", audioAsset).out = '\0';
+		auto sourceFileID = fmt::to_string(audioAsset);
 
 		uint32_t flags = MA_SOUND_FLAG_DECODE;
 		if (audioEngine->IsStreaming(audioAsset))
 			flags |= MA_SOUND_FLAG_STREAM;
 
-		auto result = ma_sound_init_from_file(audioEngine->GetEngine(), sourceFile, flags, nullptr, nullptr, &m_Sound);
-		SK_CORE_ASSERT(result == MA_SUCCESS, "Failed to initialize sound '{}'", audioAsset);
+		auto result = ma_sound_init_from_file(audioEngine->GetEngine(), sourceFileID.c_str(), flags, nullptr, nullptr, &m_Sound);
+		if (result != MA_SUCCESS)
+		{
+			SK_CORE_ASSERT(result == MA_SUCCESS, "Failed to initialize sound '{}' with error {}", audioAsset, result);
+			m_Ready = false;
+			return false;
+		}
 
 		ma_sound_set_end_callback(&m_Sound, [](void* _This, ma_sound* sound)
 		{
 			// #TODO #audio this should be handled by an audio thread
-			Application::Get().SubmitToMainThread([This = static_cast<Sound*>(_This)]()
-			{
-				SK_CORE_TRACE_TAG("Audio", "Sound at end");
-				This->StopSound(true);
-			});
-
-			//static_cast<Sound*>(_This)->StopSound(true);
+			Application::Get().SubmitToMainThread([This = static_cast<Sound*>(_This)]() { This->StopSound(true); });
 		}, this);
 
-		m_Ready = result == MA_SUCCESS;	
+		
+
+		m_Ready = true;
+		return true;
+	}
+
+	void Sound::ApplySoundConfig(Ref<SoundConfig> soundConfig)
+	{
+		if (!soundConfig)
+			return;
+
+		m_Volume = soundConfig->VolumeMultiplier;
+		m_Pitch = soundConfig->PitchMultiplier;
+		ma_sound_set_volume(&m_Sound, soundConfig->VolumeMultiplier);
+		ma_sound_set_pitch(&m_Sound, soundConfig->PitchMultiplier);
+
+		SetLooping(soundConfig->IsLooping);
 	}
 
 	void Sound::Uninitialize()
@@ -120,6 +134,27 @@ namespace Shark::Audio {
 	{
 		m_Looping = loop;
 		ma_sound_set_looping(&m_Sound, loop);
+	}
+
+	void Sound::SetVolume(float multiplier)
+	{
+		// apply only the multiplier
+		ma_sound_set_volume(&m_Sound, m_Volume * multiplier);
+	}
+
+	void Sound::SetPitch(float multiplier)
+	{
+		ma_sound_set_pitch(&m_Sound, m_Pitch * multiplier);
+	}
+
+	float Sound::GetVolume() const
+	{
+		return ma_sound_get_volume(&m_Sound);
+	}
+
+	float Sound::GetPitch() const
+	{
+		return ma_sound_get_pitch(&m_Sound);
 	}
 
 }

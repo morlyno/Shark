@@ -3,6 +3,7 @@
 
 #include "Shark/Asset/AssetManager.h"
 #include "Shark/UI/Widgets.h"
+#include "Shark/Utils/Utilities.h"
 
 namespace Shark::UI {
 
@@ -336,6 +337,11 @@ namespace Shark::UI {
 
 	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle, const AssetControlArgs& args)
 	{
+		return ControlAsset(label, { { assetType } }, assetHandle, args);
+	}
+
+	bool ControlAsset(std::string_view label, std::span<const AssetType> assetTypes, AssetHandle& assetHandle, const AssetControlArgs& args)
+	{
 		if (!details::BeginControl(ImGui::GetID(label)))
 			return false;
 
@@ -359,7 +365,7 @@ namespace Shark::UI {
 			DrawButton(displayName, ImVec2(0.0f, 0.5f), GetItemRect());
 		}
 
-		modified = Widgets::SearchAssetPopup(assetType, assetHandle);
+		modified = Widgets::SearchAssetPopup(assetTypes, assetHandle);
 
 		if (args.DropType && (g.LastItemData.ItemFlags & ImGuiItemFlags_ReadOnly) == 0)
 		{
@@ -369,7 +375,7 @@ namespace Shark::UI {
 				if (payload)
 				{
 					auto handle = *static_cast<const AssetHandle*>(payload->Data);
-					if (assetType == AssetManager::GetAssetType(handle))
+					if (Contains(assetTypes, AssetManager::GetAssetType(handle)))
 					{
 						assetHandle = handle;
 						modified = true;

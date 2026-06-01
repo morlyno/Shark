@@ -2,17 +2,17 @@
 #include "AssetSerializer.h"
 
 #include "Shark/Core/Application.h"
-#include "Shark/Asset/AssetUtils.h"
 
-#include "Shark/Serialization/SerializerBase.h"
-#include "Shark/Serialization/SceneSerializer.h"
-#include "Shark/Serialization/TextureSerializer.h"
-#include "Shark/Serialization/Serializers.h"
-#include "Shark/Serialization/MeshSourceSerializer.h"
-#include "Shark/Serialization/MeshSerializer.h"
-#include "Shark/Serialization/MaterialSerializer.h"
+#include "Shark/Serialization/AudioSerializers.h"
 #include "Shark/Serialization/EnvironmentSerializer.h"
+#include "Shark/Serialization/MaterialSerializer.h"
+#include "Shark/Serialization/MeshSerializer.h"
+#include "Shark/Serialization/MeshSourceSerializer.h"
 #include "Shark/Serialization/PrefabSerializer.h"
+#include "Shark/Serialization/SceneSerializer.h"
+#include "Shark/Serialization/SerializerBase.h"
+#include "Shark/Serialization/Serializers.h"
+#include "Shark/Serialization/TextureSerializer.h"
 
 namespace Shark {
 
@@ -30,6 +30,7 @@ namespace Shark {
 		s_Serializers[AssetType::Environment] = Scope<EnvironmentSerializer>::Create();
 		s_Serializers[AssetType::Prefab] = Scope<PrefabSerializer>::Create();
 		s_Serializers[AssetType::AudioFile] = Scope<AudioFileSerializer>::Create();
+		s_Serializers[AssetType::SoundConfig] = Scope<SoundConfigSerializer>::Create();
 	}
 
 	void AssetSerializer::ReleaseSerializers()

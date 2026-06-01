@@ -16,7 +16,8 @@ namespace Shark {
 		Material,
 		Environment,
 		Prefab,
-		AudioFile
+		AudioFile,
+		SoundConfig
 	};
 
 	inline const std::unordered_map<std::string, AssetType> AssetExtensionMap = {
@@ -35,7 +36,8 @@ namespace Shark {
 		{ ".skmat", AssetType::Material },
 		{ ".hdr", AssetType::Environment },
 		{ ".sfab", AssetType::Prefab },
-		{ ".wav", AssetType::AudioFile }
+		{ ".wav", AssetType::AudioFile },
+		{ ".sksc", AssetType::SoundConfig }
 	};
 
 }

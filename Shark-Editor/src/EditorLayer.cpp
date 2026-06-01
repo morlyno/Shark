@@ -1,11 +1,13 @@
 ﻿#include "EditorLayer.h"
 
+#include "Shark/Core/Memory.h"
 #include "Shark/Core/Project.h"
 #include "Shark/Core/SelectionManager.h"
-#include "Shark/Core/Memory.h"
+
+#include "Shark/Audio/AudioEngine.h"
+#include "Shark/Asset/AssetUtils.h"
 
 #include "Shark/Scene/Components.h"
-#include "Shark/Asset/AssetUtils.h"
 #include "Shark/Scripting/ScriptEngine.h"
 
 #include "Shark/Serialization/ProjectSerializer.h"
@@ -19,22 +21,25 @@
 
 #include "EditorSettings.h"
 
-#include "Panels/EditorConsolePanel.h"
-#include "Panels/SceneHierarchyPanel.h"
-#include "Panels/ContentBrowser/ContentBrowserPanel.h"
-#include "Panels/PhysicsDebugPanel.h"
-#include "Panels/ScriptEnginePanel.h"
-#include "Panels/AssetsPanel.h"
-#include "Panels/ProjectSettingsPanel.h"
-#include "Panels/ShadersPanel.h"
-#include "Panels/SceneRendererPanel.h"
-#include "Panels/StatisticsPanel.h"
-#include "Panels/ECSDebugPanel.h"
-#include "Panels/IconSelector.h"
 #include "Panels/AssetEditorPanel.h"
-#include "Panels/Editors/TextureEditorPanel.h"
+#include "Panels/AssetsPanel.h"
+#include "Panels/ContentBrowser/ContentBrowserPanel.h"
+#include "Panels/ECSDebugPanel.h"
+#include "Panels/EditorConsolePanel.h"
+#include "Panels/IconSelector.h"
+#include "Panels/PhysicsDebugPanel.h"
+#include "Panels/ProjectSettingsPanel.h"
+#include "Panels/SceneHierarchyPanel.h"
+#include "Panels/SceneRendererPanel.h"
+#include "Panels/ScriptEnginePanel.h"
+#include "Panels/ShadersPanel.h"
+#include "Panels/SoundPanel.h"
+#include "Panels/StatisticsPanel.h"
+
 #include "Panels/Editors/MaterialEditorPanel.h"
 #include "Panels/Editors/PrefabEditorPanel.h"
+#include "Panels/Editors/SoundConfigEditor.h"
+#include "Panels/Editors/TextureEditorPanel.h"
 
 #include "Shark/Debug/Profiler.h"
 #include "Shark/Debug/enttDebug.h"
@@ -122,6 +127,13 @@ namespace Shark {
 			m_PanelManager->ShowPanel<AssetEditorManagerPanel>();
 			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>();
 			assetEditorManager->AddEditor<PrefabEditorPanel>(metadata);
+		});
+
+		contentBrowser->RegisterAssetActicatedCallback(AssetType::SoundConfig, [this](const AssetMetaData& metadata)
+		{
+			m_PanelManager->ShowPanel<AssetEditorManagerPanel>();
+			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>();
+			assetEditorManager->AddEditor<SoundConfigEditor>(metadata);
 		});
 
 		m_PanelManager->AddPanel<AssetEditorManagerPanel>(PanelCategory::Edit, "Assets Editor Manager", true);

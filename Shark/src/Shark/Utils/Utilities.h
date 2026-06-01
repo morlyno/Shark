@@ -19,4 +19,10 @@ namespace Shark {
 
 	}
 
+	template<std::ranges::range TRange>
+	bool Contains(const TRange& range, const typename TRange::value_type& value)
+	{
+		return std::ranges::find(range, value) != std::ranges::end(range);
+	}
+
 }

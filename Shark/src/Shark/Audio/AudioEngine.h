@@ -11,6 +11,7 @@
 namespace Shark {
 	class Scene;
 	class AudioFile;
+	class SoundConfig;
 
 	namespace Audio {
 		class Sound;
@@ -21,9 +22,10 @@ namespace Shark {
 
 	struct SoundObject
 	{
-		Audio::Sound* Sound = nullptr;
-		UUID EntityID       = UUID::Invalid;
-		AssetHandle Audio   = AssetHandle::Invalid;
+		Audio::Sound*    Sound    = nullptr;
+		UUID             EntityID = UUID::Invalid;
+		AssetHandle      Audio    = AssetHandle::Invalid;
+		Ref<SoundConfig> Config   = nullptr;
 
 		void Uninitialize();
 	};

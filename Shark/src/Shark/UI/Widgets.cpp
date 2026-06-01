@@ -127,29 +127,45 @@ namespace Shark {
 
 	bool UI::Widgets::SearchAssetPopup(AssetType assetType, AssetHandle& assetHandle)
 	{
+		return SearchAssetPopup({ { assetType } }, assetHandle);
+	}
+
+	bool UI::Widgets::SearchAssetPopup(std::span<const AssetType> assetTypes, AssetHandle& assetHandle)
+	{
 		static UI::TextFilter s_Filter("");
-		return ItemSearchPopup(s_Filter, [assetType, &assetHandle](UI::TextFilter& filter, bool clear, bool& changed)
+		return ItemSearchPopup(s_Filter, [&assetTypes, &assetHandle](UI::TextFilter& filter, bool clear, bool& changed)
 		{
 			if (clear)
 				assetHandle = AssetHandle::Invalid;
 
-			std::vector<AssetHandle> assets = AssetManager::GetAllAssetsOfType(assetType);
-
-			for (AssetHandle handle : assets)
+			for (auto assetType : assetTypes)
 			{
-				const AssetMetaData& metadata = Project::GetEditorAssetManager()->GetMetadata(handle);
-				if (metadata.IsMemoryAsset || metadata.IsEditorAsset)
-					continue;
-
-				std::string name = metadata.FilePath.stem().string();
-
-				if (!filter.PassesFilter(name))
-					continue;
-
-				if (ImGui::Selectable(name.c_str()))
+				if (assetTypes.size() > 1)
 				{
-					assetHandle = handle;
-					changed = true;
+					auto typeName = magic_enum::enum_name(assetType);
+					ImGui::SeparatorTextEx(0, typeName.data(), typeName.data() + typeName.size(), 0.0f);
+				}
+
+				std::vector<AssetHandle> assets = AssetManager::GetAllAssetsOfType(assetType);
+
+				for (AssetHandle handle : assets)
+				{
+					const AssetMetaData& metadata = Project::GetEditorAssetManager()->GetMetadata(handle);
+					if (metadata.IsMemoryAsset || metadata.IsEditorAsset)
+						continue;
+
+					std::string name = metadata.FilePath.stem().string();
+
+					if (!filter.PassesFilter(name))
+						continue;
+
+					// avoid conflicting ids for selectable
+					UI::ScopedID id(metadata.Handle);
+					if (ImGui::Selectable(name.c_str()))
+					{
+						assetHandle = handle;
+						changed = true;
+					}
 				}
 			}
 		});
@@ -175,6 +191,8 @@ namespace Shark {
 				if (!filter.PassesFilter(tag))
 					continue;
 
+				// avoid conflicting ids for selectable
+				UI::ScopedID id(entity.GetUUID());
 				if (ImGui::Selectable(tag.c_str(), entityID == entity.GetUUID()))
 				{
 					entityID = entity.GetUUID();

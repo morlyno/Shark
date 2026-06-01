@@ -737,6 +737,12 @@ ImportedAssets:
   - Handle: 10370996040221218032
     Type: AudioFile
     FilePath: Audio/waves-close-up.wav
+  - Handle: 2203992028633141813
+    Type: SoundConfig
+    FilePath: Audio/env_waves.sksc
+  - Handle: 17694917365070649434
+    Type: SoundConfig
+    FilePath: Audio/powerup.sksc
 EditorAssets:
   - Handle: 13196250996000324786
     Type: Texture

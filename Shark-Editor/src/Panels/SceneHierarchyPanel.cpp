@@ -108,8 +108,8 @@ namespace Shark {
 		//     - const TComponent&
 		//     - Entity, const TComponent&
 		//  - pointer to member of TComponent
-		template<typename TComponent, typename TProjection = std::identity, typename TComparator = std::ranges::equal_to>
-		static bool IsInconsistentProperty(std::span<const Entity> entities, TProjection projection = {}, TComparator comparator = {})
+		template<typename TComponent, typename TProjection = std::identity>
+		static bool IsInconsistentProperty(std::span<const Entity> entities, TProjection projection = {})
 		{
 			Entity firstEntity = entities[0];
 			const auto& firstComponent = firstEntity.GetComponent<TComponent>();
@@ -118,7 +118,7 @@ namespace Shark {
 			{
 				Entity entity = entities[i];
 				const auto& comp = entity.GetComponent<TComponent>();
-				if (!std::invoke(comparator, firstValue, std::invoke(projection, comp)))
+				if (firstValue != std::invoke(projection, comp))
 				{
 					return true;
 				}
@@ -1543,11 +1543,13 @@ namespace Shark {
 			UI::BeginControlsGrid();
 			utils::Multiselect(entities, &AudioComponent::Audio, [](AudioComponent& firstComponent, const auto&)
 			{
-				return UI::ControlAsset("Audio", AssetType::AudioFile, firstComponent.Audio);
+				return UI::ControlAsset("Audio", { { AssetType::SoundConfig, AssetType::AudioFile } }, firstComponent.Audio);
 			});
 
 			utils::MultiselectControl(entities, &AudioComponent::PlayOnWake, "Play on wake");
-			utils::MultiselectControl(entities, &AudioComponent::Loop, "Loop");
+			utils::MultiselectControl(entities, &AudioComponent::VolumeMultiplier, "Volume multiplier");
+			utils::MultiselectControl(entities, &AudioComponent::PitchMultiplier, "Pitch multiplier");
+
 			UI::EndControlsGrid();
 		});
 

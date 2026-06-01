@@ -4,6 +4,7 @@
 #include "Shark/Scene/Prefab.h"
 #include "Shark/Asset/Assets.h"
 #include "Shark/Asset/AssetUtils.h"
+#include "Shark/Audio/SoundConfig.h"
 #include "Shark/Event/ApplicationEvent.h"
 
 #include "Shark/UI/Widgets.h"
@@ -159,6 +160,9 @@ namespace Shark {
 
 							if (ImGui::MenuItem("Prefab"))
 								CreateAsset<Prefab>("New Prefab.sfab", true);
+
+							if (ImGui::MenuItem("SoundConfig"))
+								CreateAsset<SoundConfig>("New Sound Config.sksc", true);
 
 							ImGui::EndMenu();
 						}
@@ -1169,6 +1173,7 @@ namespace Shark {
 				NextDirectory(m_CurrentDirectory, false, false);
 			}
 
+			ImGui::EndDragDropTarget();
 		}
 
 		if (open)

@@ -107,7 +107,7 @@ namespace Shark::UI {
 	bool Control(std::string_view label, std::string_view value);
 
 	bool Control(std::string_view label, std::invocable auto&& func);
-	
+
 	struct EntityControlArgs
 	{
 		std::string_view DisplayName = {};
@@ -124,6 +124,7 @@ namespace Shark::UI {
 
 	bool ControlEntity(std::string_view label, Ref<Scene> scene, UUID& entityID, const EntityControlArgs& args = {});
 	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle, const AssetControlArgs& args = {});
+	bool ControlAsset(std::string_view label, std::span<const AssetType> assetTypes, AssetHandle& assetHandle, const AssetControlArgs& args = {});
 	bool ControlScript(std::string_view label, uint64_t& scriptID, const AssetControlArgs& args = {});
 
 	bool ControlEntity(std::string_view label, Ref<Scene> scene, const UUID& entityID, const EntityControlArgs& args = {});

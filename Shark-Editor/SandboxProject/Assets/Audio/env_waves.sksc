@@ -1,0 +1,5 @@
+SoundConfig:
+  AudioSourceHandle: 10370996040221218032
+  IsLooping: true
+  VolumeMultiplier: 1
+  PitchMultiplier: 1

@@ -31,6 +31,7 @@ namespace Shark::UI::Widgets {
 	bool ItemSearchPopup(UI::TextFilter& search, const TFunction& itemFunction);
 
 	bool SearchAssetPopup(AssetType assetType, AssetHandle& assetHandle);
+	bool SearchAssetPopup(std::span<const AssetType> assetType, AssetHandle& assetHandle);
 	bool SearchEntityPopup(Ref<Scene> scene, UUID& entityID);
 	bool SearchScriptPopup(uint64_t& scriptID);
 

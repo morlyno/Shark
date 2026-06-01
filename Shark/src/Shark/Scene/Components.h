@@ -336,9 +336,10 @@ namespace Shark {
 
 	struct AudioComponent
 	{
-		AssetHandle Audio;
-		bool PlayOnWake = false;
-		bool Loop       = false;
+		AssetHandle Audio            = AssetHandle::Invalid;
+		bool        PlayOnWake       = false;
+		float       VolumeMultiplier = 1.0f;
+		float       PitchMultiplier  = 1.0f;
 	};
 
 	///////////////////////////////////////////////////////////////////////////////////////////////

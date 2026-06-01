@@ -7,6 +7,7 @@
 
 namespace Shark {
 	class MiniAudioEngine;
+	class SoundConfig;
 }
 
 namespace Shark::Audio {
@@ -24,7 +25,8 @@ namespace Shark::Audio {
 		Sound(std::function<void(Sound*)> callback);
 		~Sound();
 
-		void Initialize(AssetHandle audioAsset, MiniAudioEngine* audioEngine);
+		bool Initialize(AssetHandle audioAsset, MiniAudioEngine* audioEngine);
+		void ApplySoundConfig(Ref<SoundConfig> soundConfig);
 		void Uninitialize();
 
 		bool IsReady() const { return m_Ready; }
@@ -33,7 +35,14 @@ namespace Shark::Audio {
 		bool Play();
 		bool Stop();
 		bool Pause();
+		
 		void SetLooping(bool loop);
+		void SetVolume(float multiplier);
+		void SetPitch(float multiplier);
+
+		bool IsLooping() const  { return m_Looping; }
+		float GetVolume() const;
+		float GetPitch() const;
 
 		bool IsPlaying();
 		bool Finished() const;
@@ -57,7 +66,8 @@ namespace Shark::Audio {
 		std::function<void(Sound*)> m_OnFinished;
 
 		bool m_Looping = false;
-		// #TODO #audio volume, pitch, fade in/out
+		float m_Volume = 1.0f;
+		float m_Pitch = 1.0f;
 
 		friend class MiniAudioEngine;
 	};
