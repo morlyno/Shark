@@ -7,6 +7,8 @@
 #include "Shark/Asset/AssetManager.h"
 
 #include "Shark/Audio/AudioEngine.h"
+#include "Shark/Audio/SoundConfig.h"
+#include "Shark/Audio/Sound.h"
 
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
@@ -27,12 +29,42 @@
 
 namespace Shark {
 
+	namespace InternalCalls {
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		//// Audio Component //////////////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+
+		Coral::Bool32 AudioComponent_IsPlaying(uint64_t entityID);
+		Coral::Bool32 AudioComponent_Play(uint64_t entityID);
+		Coral::Bool32 AudioComponent_Stop(uint64_t entityID);
+		Coral::Bool32 AudioComponent_Pause(uint64_t entityID);
+		Coral::Bool32 AudioComponent_Resume(uint64_t entityID);
+		float AudioComponent_GetVolumeMultiplier(uint64_t entityID);
+		void AudioComponent_SetVolumeMultiplier(uint64_t entityID, float multiplier);
+		float AudioComponent_GetPitchMultiplier(uint64_t entityID);
+		void AudioComponent_SetPitchMultiplier(uint64_t entityID, float multiplier);
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		//// Audio ////////////////////////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+
+		SoundID       Audio_StartPlayback(AssetHandle soundConfigHandle, uint64_t attachedEntityID, Coral::Bool32 useComponent);
+		void          Audio_StopPlayback(SoundID soundID);
+		void          Audio_PausePlayback(SoundID soundID);
+		void          Audio_ResumePlayback(SoundID soundID);
+		Coral::Bool32 Audio_IsPlaying(SoundID soundID);
+		Coral::Bool32 Audio_Finished(SoundID soundID);
+
+	}
+
 	static std::map<Coral::TypeId, bool(*)(Entity)> s_HasComponentFunctions;
 	static std::map<Coral::TypeId, void(*)(Entity)> s_AddComponentFunctions;
 	static std::map<Coral::TypeId, void(*)(Entity)> s_RemoveComponentFunctions;
 
 #define SK_ICALL_VERIFY_PARAMETER(_param) if (!(_param)) { SK_CONSOLE_ERROR("{} called with with invalid value for parameter '{}'", SK_FUNCTION_NAME, #_param); }
 #define SK_ICALL_VERIFY_PARAMETER_V(_param, _value) if (!(_value)) { SK_CONSOLE_ERROR("{} called with with invalid value for parameter '{}'", SK_FUNCTION_NAME, #_param); }
+#define SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(_entity, _component_t) SK_ICALL_VERIFY_PARAMETER(_entity); SK_ICALL_VERIFY_PARAMETER(_entity.HasComponent<_component_t>())
 
 	static Entity GetEntity(uint64_t entityID)
 	{
@@ -235,6 +267,17 @@ namespace Shark {
 		ADD_ICALL(AudioComponent_Stop);
 		ADD_ICALL(AudioComponent_Pause);
 		ADD_ICALL(AudioComponent_Resume);
+		ADD_ICALL(AudioComponent_GetVolumeMultiplier);
+		ADD_ICALL(AudioComponent_SetVolumeMultiplier);
+		ADD_ICALL(AudioComponent_GetPitchMultiplier);
+		ADD_ICALL(AudioComponent_SetPitchMultiplier);
+
+		ADD_ICALL(Audio_StartPlayback);
+		ADD_ICALL(Audio_StopPlayback);
+		ADD_ICALL(Audio_PausePlayback);
+		ADD_ICALL(Audio_ResumePlayback);
+		ADD_ICALL(Audio_IsPlaying);
+		ADD_ICALL(Audio_Finished);
 		#undef ADD_ICALL
 
 		assembly.UploadInternalCalls();
@@ -1824,61 +1867,153 @@ namespace Shark {
 
 		#pragma endregion
 
-		
-		#pragma region AudioComponent
 
-		Coral::Bool32 AudioComponent_IsPlaying(uint64_t entityID)
+	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////
+	//// Audio Component //////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////////
+
+	Coral::Bool32 InternalCalls::AudioComponent_IsPlaying(uint64_t entityID)
+	{
+		Entity entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_PARAMETER(entity);
+		SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<AudioComponent>());
+
+		auto audioEngine = GetAudioEngine();
+		return audioEngine->HasActiveSound(UUID::Make(entityID));
+	}
+
+	Coral::Bool32 InternalCalls::AudioComponent_Play(uint64_t entityID)
+	{
+		Entity entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_PARAMETER(entity);
+		SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<AudioComponent>());
+
+		auto audioEngine = GetAudioEngine();
+		return audioEngine->StartPlayback(UUID::Make(entityID));
+	}
+
+	Coral::Bool32 InternalCalls::AudioComponent_Stop(uint64_t entityID)
+	{
+		Entity entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_PARAMETER(entity);
+		SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<AudioComponent>());
+
+		auto audioEngine = GetAudioEngine();
+		return audioEngine->StopPlayback(UUID::Make(entityID));
+	}
+
+	Coral::Bool32 InternalCalls::AudioComponent_Pause(uint64_t entityID)
+	{
+		Entity entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_PARAMETER(entity);
+		SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<AudioComponent>());
+
+		auto audioEngine = GetAudioEngine();
+		return audioEngine->PausePlayback(UUID::Make(entityID));
+	}
+
+	Coral::Bool32 InternalCalls::AudioComponent_Resume(uint64_t entityID)
+	{
+		Entity entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_PARAMETER(entity);
+		SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<AudioComponent>());
+
+		auto audioEngine = GetAudioEngine();
+		return audioEngine->ResumePlayback(UUID::Make(entityID));
+	}
+
+	float InternalCalls::AudioComponent_GetVolumeMultiplier(uint64_t entityID)
+	{
+		Entity entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(entity, AudioComponent);
+
+		auto& component = entity.GetComponent<AudioComponent>();
+		return component.VolumeMultiplier;
+	}
+
+	void InternalCalls::AudioComponent_SetVolumeMultiplier(uint64_t entityID, float multiplier)
+	{
+		Entity entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(entity, AudioComponent);
+
+		auto& component = entity.GetComponent<AudioComponent>();
+		component.VolumeMultiplier = multiplier;
+
+		// #audio #Investigate should this happen here?
+		auto audioEngine = GetAudioEngine();
+		if (audioEngine->HasActiveSound(UUID::Make(entityID)))
 		{
-			Entity entity = GetEntity(entityID);
-			SK_ICALL_VERIFY_PARAMETER(entity);
-			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<AudioComponent>());
-
-			auto audioEngine = GetAudioEngine();
-			return audioEngine->HasActiveSound(UUID::Make(entityID));
+			auto sound = audioEngine->GetSound(UUID::Make(entityID));
+			SK_ICALL_VERIFY_PARAMETER(sound);
+			sound->SetVolume(multiplier);
 		}
+	}
 
-		Coral::Bool32 AudioComponent_Play(uint64_t entityID)
+	float InternalCalls::AudioComponent_GetPitchMultiplier(uint64_t entityID)
+	{
+		Entity entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(entity, AudioComponent);
+
+		auto& component = entity.GetComponent<AudioComponent>();
+		return component.PitchMultiplier;
+	}
+
+	void InternalCalls::AudioComponent_SetPitchMultiplier(uint64_t entityID, float multiplier)
+	{
+		Entity entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(entity, AudioComponent);
+
+		auto& component = entity.GetComponent<AudioComponent>();
+		component.PitchMultiplier = multiplier;
+
+		// #audio #Investigate should this happen here?
+		auto audioEngine = GetAudioEngine();
+		if (audioEngine->HasActiveSound(UUID::Make(entityID)))
 		{
-			Entity entity = GetEntity(entityID);
-			SK_ICALL_VERIFY_PARAMETER(entity);
-			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<AudioComponent>());
-
-			auto audioEngine = GetAudioEngine();
-			return audioEngine->StartPlayback(UUID::Make(entityID));
+			auto sound = audioEngine->GetSound(UUID::Make(entityID));
+			SK_ICALL_VERIFY_PARAMETER(sound);
+			sound->SetPitch(multiplier);
 		}
+	}
 
-		Coral::Bool32 AudioComponent_Stop(uint64_t entityID)
-		{
-			Entity entity = GetEntity(entityID);
-			SK_ICALL_VERIFY_PARAMETER(entity);
-			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<AudioComponent>());
+	///////////////////////////////////////////////////////////////////////////////////////////////////
+	//// Audio ////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////////
 
-			auto audioEngine = GetAudioEngine();
-			return audioEngine->StopPlayback(UUID::Make(entityID));
-		}
+	SoundID InternalCalls::Audio_StartPlayback(AssetHandle soundConfigHandle, uint64_t entityID, Coral::Bool32 useComponent)
+	{
+		SK_ICALL_VERIFY_PARAMETER(soundConfigHandle);
+		if (!AssetManager::IsValidAssetHandle(soundConfigHandle))
+			return SK_INVALID_SOUND_ID;
 
-		Coral::Bool32 AudioComponent_Pause(uint64_t entityID)
-		{
-			Entity entity = GetEntity(entityID);
-			SK_ICALL_VERIFY_PARAMETER(entity);
-			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<AudioComponent>());
+		return GetAudioEngine()->StartSoundPlayback(AssetManager::GetAsset<SoundConfig>(soundConfigHandle), UUID::Make(entityID), useComponent);
+	}
 
-			auto audioEngine = GetAudioEngine();
-			return audioEngine->PausePlayback(UUID::Make(entityID));
-		}
+	void InternalCalls::Audio_StopPlayback(SoundID soundID)
+	{
+		GetAudioEngine()->StopSoundPlayback(soundID);
+	}
 
-		Coral::Bool32 AudioComponent_Resume(uint64_t entityID)
-		{
-			Entity entity = GetEntity(entityID);
-			SK_ICALL_VERIFY_PARAMETER(entity);
-			SK_ICALL_VERIFY_PARAMETER(entity.HasComponent<AudioComponent>());
+	void InternalCalls::Audio_PausePlayback(SoundID soundID)
+	{
+		GetAudioEngine()->PauseSoundPlayback(soundID);
+	}
 
-			auto audioEngine = GetAudioEngine();
-			return audioEngine->ResumePlayback(UUID::Make(entityID));
-		}
+	void InternalCalls::Audio_ResumePlayback(SoundID soundID)
+	{
+		GetAudioEngine()->ResumeSoundPlayback(soundID);
+	}
 
-		#pragma endregion
+	Coral::Bool32 InternalCalls::Audio_IsPlaying(SoundID soundID)
+	{
+		return GetAudioEngine()->IsSoundPlaying(soundID);
+	}
 
+	Coral::Bool32 InternalCalls::Audio_Finished(SoundID soundID)
+	{
+		return GetAudioEngine()->IsSoundFinished(soundID);
 	}
 
 }

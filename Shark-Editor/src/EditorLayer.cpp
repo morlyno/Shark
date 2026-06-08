@@ -2031,6 +2031,9 @@ namespace Shark {
 
 	void EditorLayer::ReloadScriptEngineIfNeeded()
 	{
+		if (m_SceneState != SceneState::Edit)
+			return;
+
 		auto scriptModulePath = Project::GetActive()->GetScriptModulePath();
 		if (FileSystem::Exists(scriptModulePath))
 		{

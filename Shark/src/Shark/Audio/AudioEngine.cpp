@@ -196,36 +196,12 @@ namespace Shark {
 			audioSource = as;
 		}
 
-		if (m_AvailableSounds.empty())
-		{
-			FreeLowestPrioritySound();
-		}
-
-		auto soundIndex = m_AvailableSounds.front();
-		m_AvailableSounds.pop();
-
-		//QueryFileInfo(audioComponent.Audio);
-		auto& object = m_Sounds.at(soundIndex);
-		object.EntityID = audioEntityID;
-		object.Audio = audioSource;
-		object.Config = soundConfig;
-		// #TODO #audio initialize sound on audio thread
-		object.Sound->Initialize(audioSource, this);
-		object.Sound->ApplySoundConfig(soundConfig);
-		object.Sound->SetVolume(audioComponent.VolumeMultiplier);
-		object.Sound->SetPitch(audioComponent.PitchMultiplier);
-		object.Sound->Play();
-
-		m_ActiveSounds.push_back(soundIndex);
-		m_SoundsPlaying += 1;
-
-		SK_CORE_INFO_TAG("Audio", "Started Playback of {} for {}", audioComponent.Audio, entity.GetName());
-		return object.Sound->IsReady() && object.Sound->IsPlaying();
+		return StartPlayback(audioSource, soundConfig, audioEntityID, &audioComponent) != SK_INVALID_SOUND_ID;
 	}
 
 	bool MiniAudioEngine::StopPlayback(UUID audioEntityID)
 	{
-		auto range = std::ranges::remove_if(m_ActiveSounds, [this, audioEntityID](size_t soundID)
+		auto range = std::ranges::remove_if(m_ActiveSounds, [this, audioEntityID](SoundID soundID)
 		{
 			return m_Sounds[soundID].EntityID == audioEntityID;
 		});
@@ -274,6 +250,75 @@ namespace Shark {
 		return true;
 	}
 
+	SoundID MiniAudioEngine::StartSoundPlayback(Ref<SoundConfig> soundConfig, UUID attachedEntityID, bool useComponent)
+	{
+		if (!soundConfig->AudioSourceHandle)
+			return SK_INVALID_SOUND_ID;
+
+		AudioComponent* component = nullptr;
+
+		if (useComponent)
+		{
+			Entity entity = m_ActiveScene->TryGetEntityByUUID(attachedEntityID);
+			if (entity && entity.HasComponent<AudioComponent>())
+			{
+				component = &entity.GetComponent<AudioComponent>();
+				// #audio should component audio source and sound config audio source match?
+			}
+		}
+
+		return StartPlayback(soundConfig->AudioSourceHandle, soundConfig, attachedEntityID, component);
+	}
+
+	void MiniAudioEngine::StopSoundPlayback(SoundID soundID)
+	{
+		if (soundID >= m_MaximumSounds)
+			return;
+
+		auto& soundObject = m_Sounds[soundID];
+		soundObject.Sound->Stop();
+	}
+
+	void MiniAudioEngine::PauseSoundPlayback(SoundID soundID)
+	{
+		if (soundID >= m_MaximumSounds)
+			return;
+
+		auto& soundObject = m_Sounds[soundID];
+		soundObject.Sound->Pause();
+	}
+
+	void MiniAudioEngine::ResumeSoundPlayback(SoundID soundID)
+	{
+		if (soundID >= m_MaximumSounds)
+			return;
+
+		auto& soundObject = m_Sounds[soundID];
+		if (soundObject.Sound->GetPlayState() == Audio::PlayState::Paused)
+		{
+			// Only resume when sound was paused
+			soundObject.Sound->Play();
+		}
+	}
+
+	bool MiniAudioEngine::IsSoundPlaying(SoundID soundID)
+	{
+		if (soundID >= m_MaximumSounds)
+			return false;
+
+		auto& soundObject = m_Sounds[soundID];
+		return soundObject.Sound->IsPlaying();
+	}
+
+	bool MiniAudioEngine::IsSoundFinished(SoundID soundID)
+	{
+		if (soundID >= m_MaximumSounds)
+			return false;
+
+		auto& soundObject = m_Sounds[soundID];
+		return soundObject.Sound->Finished();
+	}
+
 	void MiniAudioEngine::StopAll()
 	{
 		SK_CORE_TRACE_TAG("Audio", "Stop all sounds");
@@ -286,6 +331,15 @@ namespace Shark {
 
 		m_ActiveSounds.clear();
 		m_SoundsPlaying = 0;
+	}
+
+	Audio::Sound* MiniAudioEngine::GetSound(UUID entityID) const
+	{
+		const auto soundObject = std::ranges::find(m_Sounds, entityID, &SoundObject::EntityID);
+		if (soundObject == m_Sounds.end())
+			return nullptr;
+
+		return soundObject->Sound;
 	}
 
 	Ref<Scene> MiniAudioEngine::GetActiveScene() const
@@ -321,19 +375,54 @@ namespace Shark {
 		if (!m_AvailableSounds.empty())
 			return;
 
-		size_t index = m_ActiveSounds.front();
-		auto& object = m_Sounds[index];
+		SoundID id = m_ActiveSounds.front();
+		auto& object = m_Sounds[id];
 
 		if (object.Sound->IsPlaying())
 			object.Sound->StopSound(false);
 
 		object.Uninitialize();
-		std::erase(m_ActiveSounds, index);
+		std::erase(m_ActiveSounds, id);
 		
-		m_AvailableSounds.push(index);
+		m_AvailableSounds.push(id);
 		m_SoundsPlaying -= 1;
 
-		SK_CORE_WARN_TAG("Audio", "Freed sound at index {}", index);
+		SK_CORE_WARN_TAG("Audio", "Freed sound at index {}", id);
+	}
+
+	SoundID MiniAudioEngine::StartPlayback(AssetHandle audioSource, Ref<SoundConfig> soundConfig, UUID attachedEntityID, AudioComponent* component)
+	{
+		if (!audioSource)
+			return SK_INVALID_SOUND_ID;
+
+		if (m_AvailableSounds.empty())
+		{
+			FreeLowestPrioritySound();
+		}
+
+		auto soundID = m_AvailableSounds.front();
+		m_AvailableSounds.pop();
+
+		auto& object = m_Sounds.at(soundID);
+		object.EntityID = attachedEntityID;
+		object.Audio = audioSource;
+		object.Config = soundConfig;
+
+		// #TODO #audio initialize sound on audio thread
+		object.Sound->Initialize(audioSource, this);
+		object.Sound->ApplySoundConfig(soundConfig);
+
+		if (component)
+		{
+			object.Sound->SetVolume(component->VolumeMultiplier);
+			object.Sound->SetPitch(component->PitchMultiplier);
+		}
+
+		object.Sound->Play();
+		m_ActiveSounds.push_back(soundID);
+
+		SK_CORE_INFO_TAG("Audio", "Started Playback of {} for {}", audioSource, utils::TryGetEntityName(m_ActiveScene.Raw(), attachedEntityID));
+		return soundID;
 	}
 
 	Ref<AudioFile> MiniAudioEngine::QueryFileInfo(AssetHandle handle)

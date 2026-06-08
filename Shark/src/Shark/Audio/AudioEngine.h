@@ -12,13 +12,18 @@ namespace Shark {
 	class Scene;
 	class AudioFile;
 	class SoundConfig;
+	struct AudioComponent;
 
 	namespace Audio {
 		class Sound;
 	}
 }
 
+#define SK_INVALID_SOUND_ID static_cast<uint64_t>(~0);
+
 namespace Shark {
+
+	using SoundID = uint64_t;
 
 	struct SoundObject
 	{
@@ -45,8 +50,16 @@ namespace Shark {
 		bool PausePlayback(UUID audioEntityID);
 		bool ResumePlayback(UUID audioEntityID);
 
+		SoundID StartSoundPlayback(Ref<SoundConfig> soundConfig, UUID attachedEntityID, bool useComponent = true);
+		void    StopSoundPlayback(SoundID soundID);
+		void    PauseSoundPlayback(SoundID soundID);
+		void    ResumeSoundPlayback(SoundID soundID);
+		bool    IsSoundPlaying(SoundID soundID);
+		bool    IsSoundFinished(SoundID soundID);
+
 		void StopAll();
 		auto GetAllSound() const { return std::span(m_Sounds); }
+		Audio::Sound* GetSound(UUID entityID) const;
 
 		ma_engine* GetEngine() { return &m_Engine; }
 		Ref<Scene> GetActiveScene() const;
@@ -58,6 +71,8 @@ namespace Shark {
 		void OnSoundFinished(Audio::Sound* sound);
 		void FreeLowestPrioritySound();
 
+		SoundID StartPlayback(AssetHandle audioSource, Ref<SoundConfig> soundConfig, UUID attachedEntityID, AudioComponent* component);
+
 	private:
 		ma_engine m_Engine;
 		ma_log m_Log;
@@ -66,8 +81,8 @@ namespace Shark {
 		uint32_t m_MaximumSounds = 0;
 		uint32_t m_SoundsPlaying = 0;
 		std::vector<SoundObject> m_Sounds;
-		std::vector<size_t> m_ActiveSounds;
-		std::queue<size_t> m_AvailableSounds;
+		std::vector<SoundID> m_ActiveSounds;
+		std::queue<SoundID> m_AvailableSounds;
 
 		Ref<Scene> m_ActiveScene;
 	};

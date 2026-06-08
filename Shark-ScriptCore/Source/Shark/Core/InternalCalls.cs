@@ -231,18 +231,25 @@ namespace Shark
 
         #endregion
 
-        #region AudioComponent
+		internal static unsafe delegate* unmanaged<ulong,        Bool32> AudioComponent_IsPlaying;
+		internal static unsafe delegate* unmanaged<ulong,        Bool32> AudioComponent_Play;
+		internal static unsafe delegate* unmanaged<ulong,        Bool32> AudioComponent_Stop;
+		internal static unsafe delegate* unmanaged<ulong,        Bool32> AudioComponent_Pause;
+		internal static unsafe delegate* unmanaged<ulong,        Bool32> AudioComponent_Resume;
+		internal static unsafe delegate* unmanaged<ulong,        float>  AudioComponent_GetVolumeMultiplier;
+		internal static unsafe delegate* unmanaged<ulong, float, void>   AudioComponent_SetVolumeMultiplier;
+		internal static unsafe delegate* unmanaged<ulong,        float>  AudioComponent_GetPitchMultiplier;
+		internal static unsafe delegate* unmanaged<ulong, float, void>   AudioComponent_SetPitchMultiplier;
 
-		internal static unsafe delegate* unmanaged<ulong, Bool32> AudioComponent_IsPlaying;
-		internal static unsafe delegate* unmanaged<ulong, Bool32> AudioComponent_Play;
-		internal static unsafe delegate* unmanaged<ulong, Bool32> AudioComponent_Stop;
-		internal static unsafe delegate* unmanaged<ulong, Bool32> AudioComponent_Pause;
-		internal static unsafe delegate* unmanaged<ulong, Bool32> AudioComponent_Resume;
-
-        #endregion
+		internal static unsafe delegate* unmanaged<AssetHandle, ulong, Bool32, SoundID> Audio_StartPlayback;
+		internal static unsafe delegate* unmanaged<SoundID,                    void>    Audio_StopPlayback;
+		internal static unsafe delegate* unmanaged<SoundID,                    void>    Audio_PausePlayback;
+		internal static unsafe delegate* unmanaged<SoundID,                    void>    Audio_ResumePlayback;
+		internal static unsafe delegate* unmanaged<SoundID,                    Bool32>  Audio_IsPlaying;
+		internal static unsafe delegate* unmanaged<SoundID,                    Bool32>  Audio_Finished;
 
 #pragma warning restore CS0649
 
-    }
+	}
 
 }

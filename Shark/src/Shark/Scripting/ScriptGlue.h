@@ -276,16 +276,6 @@ namespace Shark {
 
 		#pragma endregion
 
-		#pragma region AudioComponent
-
-		Coral::Bool32 AudioComponent_IsPlaying(uint64_t entityID);
-		Coral::Bool32 AudioComponent_Play(uint64_t entityID);
-		Coral::Bool32 AudioComponent_Stop(uint64_t entityID);
-		Coral::Bool32 AudioComponent_Pause(uint64_t entityID);
-		Coral::Bool32 AudioComponent_Resume(uint64_t entityID);
-
-		#pragma endregion
-
 	}
 
 }

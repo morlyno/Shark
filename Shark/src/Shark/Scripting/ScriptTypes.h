@@ -30,6 +30,7 @@ namespace Shark {
 		String, // Coral::String, Coral::ScopedString / NativeString
 		Entity, // UUID, uint64_t
 		Prefab, // AssetHandle
+		SoundConfig
 	};
 
 	inline uint64_t GetDataTypeSize(ManagedFieldType type)
@@ -52,6 +53,7 @@ namespace Shark {
 			case ManagedFieldType::Vector4: return sizeof(float) * 4;
 			case ManagedFieldType::String: return sizeof(Coral::String);
 			case ManagedFieldType::Entity: return sizeof(UUID);
+			case ManagedFieldType::SoundConfig: return sizeof(UUID);
 		}
 		return 0;
 	}

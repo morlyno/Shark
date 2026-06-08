@@ -47,6 +47,7 @@ namespace Shark {
 		uint32_t m_MaxMessages = 10000;
 
 		bool m_ClearOnPlay = false;
+		bool m_BringToFront = false;
 
 		bool m_ShowMessageInspector = false;
 		Message m_InspectorMessage;

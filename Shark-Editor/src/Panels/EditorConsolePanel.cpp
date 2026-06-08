@@ -67,10 +67,16 @@ namespace Shark {
 		if (!shown)
 			return;
 
+		Log::GetConsoleSink()->flush();
+
+		if (m_BringToFront)
+		{
+			ImGui::SetNextWindowFocus();
+			m_BringToFront = false;
+		}
+
 		if (ImGui::Begin(m_PanelName, &shown, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
 		{
-			Log::GetConsoleSink()->flush();
-
 			DrawMenuBar();
 			DrawMessages();
 		}
@@ -106,6 +112,9 @@ namespace Shark {
 		msg.Level = message.MessageLevel;
 		msg.Time = fmt::format("{:%H:%M:%S}", std::chrono::floor<std::chrono::seconds>(message.Time));
 		msg.Message = std::move(message.Message);
+
+		if (message.MessageLevel == LogLevel::Error || message.MessageLevel == LogLevel::Critical)
+			m_BringToFront = true;
 
 		const size_t messageLength = std::min({ msg.Message.length(), Message::MaxFiendlyMessageLength, msg.Message.find_first_of("\r\n") });
 		msg.FriendlyMessage = std::string_view(msg.Message).substr(0, messageLength);

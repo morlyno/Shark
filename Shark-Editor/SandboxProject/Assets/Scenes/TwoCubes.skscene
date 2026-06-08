@@ -38,7 +38,8 @@ Scene:
       AudioComponent:
         Audio: 8056366398837571779
         PlayOnWake: true
-        Loop: false
+        VolumeMultiplier: 1
+        PitchMultiplier: 1
     - Entity: 15559333159995319189
       TagComponent:
         Name: Green
@@ -70,7 +71,31 @@ Scene:
         SceneEnvironment: 9087211806961695879
         Intensity: 1
         Lod: 0
+      ScriptComponent:
+        ScriptID: 4463699784789421196
+        Fields:
+          - ID: 6580474285419937967
+            Name: Volume
+            Type: Float
+            Value: 1
+          - ID: 1398893027973534737
+            Name: Pitch
+            Type: Float
+            Value: 1
+          - ID: 2707737354266497140
+            Name: Sound
+            Type: SoundConfig
+            Value: 17694917365070649434
+          - ID: 6490527280379914749
+            Name: SetVolume
+            Type: Bool
+            Value: false
+          - ID: 8563857727002700671
+            Name: SetPitch
+            Type: Bool
+            Value: false
       AudioComponent:
         Audio: 10370996040221218032
         PlayOnWake: true
-        Loop: false
+        VolumeMultiplier: 1
+        PitchMultiplier: 1

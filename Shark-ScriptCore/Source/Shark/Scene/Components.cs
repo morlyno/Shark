@@ -531,6 +531,16 @@ namespace Shark
 		public unsafe bool Stop()      => InternalCalls.AudioComponent_Stop(Entity.ID);
 		public unsafe bool Pause()     => InternalCalls.AudioComponent_Pause(Entity.ID);
 		public unsafe bool Resume()    => InternalCalls.AudioComponent_Resume(Entity.ID);
+		public unsafe float VolumeMultiplier
+        {
+			get => InternalCalls.AudioComponent_GetVolumeMultiplier(Entity.ID);
+			set => InternalCalls.AudioComponent_SetVolumeMultiplier(Entity.ID, value);
+		}
+		public unsafe float PitchMultiplier
+        {
+			get => InternalCalls.AudioComponent_GetPitchMultiplier(Entity.ID);
+			set => InternalCalls.AudioComponent_SetPitchMultiplier(Entity.ID, value);
+		}
 	}
 
 }

@@ -1522,6 +1522,19 @@ namespace Shark {
 						}
 						break;
 					}
+					case ManagedFieldType::SoundConfig:
+					{
+						if (!m_Context->IsRunning())
+						{
+							AssetHandle val = storage.GetValue<AssetHandle>();
+							if (UI::ControlAsset(storage.GetName(), AssetType::SoundConfig, val))
+							{
+								storage.SetValue(val);
+								changed = true;
+							}
+						}
+						break;
+					}
 					//case ManagedFieldType::Component: changed = FieldControl.operator()<uint64_t>(storage); break;
 					case ManagedFieldType::Vector2: changed = FieldControl.operator()<glm::vec2>(storage); break;
 					case ManagedFieldType::Vector3: changed = FieldControl.operator()<glm::vec3>(storage); break;
