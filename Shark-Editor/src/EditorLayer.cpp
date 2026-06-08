@@ -233,7 +233,17 @@ namespace Shark {
 				case SceneState::Play:
 				{
 					m_ActiveScene->OnUpdateRuntime(ts);
-					m_ActiveScene->OnRenderRuntime(m_SceneRenderer);
+
+					if (m_RuntimeEditorCameraActive)
+					{
+						m_EditorCamera.SetActive(m_ViewportHovered || m_ViewportFocused && Input::GetCursorMode() == CursorMode::Locked);
+						m_EditorCamera.OnUpdate(ts);
+						m_ActiveScene->OnRenderEditor(m_SceneRenderer, m_EditorCamera);
+					}
+					else
+					{
+						m_ActiveScene->OnRenderRuntime(m_SceneRenderer);
+					}
 					break;
 				}
 				case SceneState::Simulate:
@@ -280,6 +290,15 @@ namespace Shark {
 			auto& app = Application::Get();
 			app.CloseApplication();
 			return true;
+		}
+
+		if (m_SceneState == SceneState::Play)
+		{
+			if (event.GetKeyCode() == KeyCode::Escape && event.GetModifierKeys().Shift)
+			{
+				EnableRuntimeEditorCamera(!m_RuntimeEditorCameraActive);
+				return true;
+			}
 		}
 
 		// Disable hot keys when the scene state is not Edit
@@ -1687,6 +1706,33 @@ namespace Shark {
 		m_DebugRenderer->EndScene();
 	}
 
+	void EditorLayer::EnableRuntimeEditorCamera(bool enabled)
+	{
+		if (enabled && !m_RuntimeEditorCameraActive)
+		{
+			m_RuntimeCursorMode = Input::GetCursorMode();
+			Input::SetCursorMode(CursorMode::Normal);
+
+			if (auto cameraEntity = m_ActiveScene->GetActiveCameraEntity())
+			{
+				auto worldTransform = m_ActiveScene->GetWorldSpaceTransform(cameraEntity);
+				m_EditorCamera.SetPosition(worldTransform.Translation,
+										   glm::quat(glm::vec3(worldTransform.Rotation.x, worldTransform.Rotation.y, 0.0f)) * glm::vec3(0.0f, 0.0f, 1.0f),
+										   std::nullopt,
+										   false);
+			}
+		}
+		else
+		{
+			Input::SetCursorMode(m_RuntimeCursorMode);
+			m_EditorCamera.SetActive(false);
+		}
+
+		m_RuntimeEditorCameraActive = enabled;
+		Input::SetRuntimeInput(!m_RuntimeEditorCameraActive);
+		SK_CORE_INFO_TAG("Editor", "Set RuntimeEditMode to {} (RuntimeInput {}, backup CursorMode {})", m_RuntimeEditorCameraActive, Input::RuntimeInputEnabled(), m_RuntimeCursorMode);
+	}
+
 	glm::mat4 EditorLayer::GetActiveViewProjection() const
 	{
 		SK_PROFILE_FUNCTION();
@@ -1797,6 +1843,8 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 		SK_CORE_ASSERT(m_SceneState == SceneState::Edit);
+
+		EnableRuntimeEditorCamera(false);
 
 		m_SceneState = SceneState::Play;
 		m_RenderGizmo = false;

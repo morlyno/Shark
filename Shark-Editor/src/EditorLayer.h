@@ -62,6 +62,7 @@ namespace Shark {
 		void UpdateMainWindow();
 
 		void DebugRender();
+		void EnableRuntimeEditorCamera(bool enabled);
 
 		glm::mat4 GetActiveViewProjection() const;
 
@@ -95,6 +96,8 @@ namespace Shark {
 
 		uint64_t m_ScriptEngineLastModifiedTime = 0;
 
+		bool m_RuntimeEditorCameraActive = false;
+		CursorMode m_RuntimeCursorMode = CursorMode::Normal;
 		EditorCamera m_EditorCamera;
 		Ref<StagingImage2D> m_MousePickingImage;
 		Ref<RenderCommandBuffer> m_CopyCommandBuffer;

@@ -24,6 +24,7 @@ namespace Shark {
 		glm::vec2 MouseScroll = glm::vec2(0.0f);
 		glm::vec2 m_MousePosition;
 		CursorMode m_CursorMode = CursorMode::Normal;
+		bool m_RuntimeInputEnabled = true;
 	};
 	static InputData* s_InputData = nullptr;
 
@@ -289,6 +290,16 @@ namespace Shark {
 	float Input::GetYPosition()
 	{
 		return s_InputData->m_MousePosition.y;
+	}
+
+	bool Input::RuntimeInputEnabled()
+	{
+		return s_InputData->m_RuntimeInputEnabled;
+	}
+
+	void Input::SetRuntimeInput(bool enabled)
+	{
+		s_InputData->m_RuntimeInputEnabled = enabled;
 	}
 
 #if 0

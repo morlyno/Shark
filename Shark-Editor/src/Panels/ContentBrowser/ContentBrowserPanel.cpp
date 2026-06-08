@@ -1,14 +1,17 @@
 ﻿#include "ContentBrowserPanel.h"
 
 #include "Shark/Core/SelectionManager.h"
-#include "Shark/Scene/Prefab.h"
+#include "Shark/Event/ApplicationEvent.h"
+
 #include "Shark/Asset/Assets.h"
 #include "Shark/Asset/AssetUtils.h"
 #include "Shark/Audio/SoundConfig.h"
-#include "Shark/Event/ApplicationEvent.h"
+#include "Shark/Scene/Prefab.h"
 
 #include "Shark/UI/Widgets.h"
 #include "Shark/UI/EditorResources.h"
+
+#include "Shark/Utils/Utilities.h"
 
 #include "EditorSettings.h"
 
@@ -398,6 +401,12 @@ namespace Shark {
 	{
 		SK_CORE_ASSERT(!m_ChangesBlocked);
 
+		// #TODO add ignore settings
+		m_IgnoredDirectories = {
+			project->GetAssetsDirectory() / "Scripts/Intermediates",
+			project->GetAssetsDirectory() / "Scripts/obj"
+		};
+
 		m_ProjectConfig = project;
 		m_ReloadScheduled = false;
 		m_BaseDirectory = nullptr;
@@ -469,6 +478,9 @@ namespace Shark {
 		{
 			if (entry.is_directory())
 			{
+				if (Contains(m_IgnoredDirectories, entry.path()))
+					continue;
+
 				directory->SubDirectories.emplace_back(Ref<DirectoryInfo>::Create(directory, entry.path()));
 				continue;
 			}

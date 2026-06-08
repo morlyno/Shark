@@ -32,6 +32,7 @@ namespace Shark {
 		void Resize(float width, float height);
 
 		void Focus(const glm::vec3& focusPoint);
+		void SetPosition(const glm::vec3& position, const glm::vec3& forwardDirection, std::optional<float> focusDistance = std::nullopt, bool animate = true);
 		//void SetDistance(float distance);
 
 		float GetDistance() const { return m_Distance; }

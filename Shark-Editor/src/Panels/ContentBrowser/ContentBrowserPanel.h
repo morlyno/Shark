@@ -288,6 +288,8 @@ namespace Shark {
 		UUID m_SelectionID = UUID::Generate();
 		Ref<Scene> m_SceneContext;
 
+		std::vector<std::filesystem::path> m_IgnoredDirectories;
+
 		CBItemList m_CurrentItems;
 
 		Ref<DirectoryInfo> m_BaseDirectory;

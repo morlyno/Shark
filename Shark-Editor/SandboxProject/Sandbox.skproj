@@ -4,13 +4,11 @@ Project:
   StartupScene: 13360362835884526046
   ScriptModulePath: Assets/Scripts/Binaries/Sandbox.dll
   Physics:
-    Gravity:
-      - 0
-      - -9.81000042
+    Gravity: [0, -9.81]
     VelocityIterations: 8
     PositionIterations: 3
-    FixedTimeStep: 0.00400000019
-    MaxTimestep: 0.00800000038
+    FixedTimeStep: 0.004
+    MaxTimestep: 0.008
   Log:
     - Name: ""
       Enabled: true

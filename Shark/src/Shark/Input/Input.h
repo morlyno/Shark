@@ -57,6 +57,8 @@ namespace Shark {
 		static float GetXPosition();
 		static float GetYPosition();
 
+		static bool RuntimeInputEnabled();
+		static void SetRuntimeInput(bool enabled);
 	public:
 #if 0
 		static const std::map<KeyCode, KeyState>& GetKeyStates();

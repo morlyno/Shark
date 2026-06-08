@@ -33,7 +33,7 @@ namespace Shark {
 		
 		m_LastMousePosition = mouse;
 
-		if (!m_Active)
+		if (!m_Active && !m_Animated)
 		{
 			if (m_CameraMode != CameraMode::None)
 			{
@@ -46,66 +46,69 @@ namespace Shark {
 
 		CameraMode currentMode = CameraMode::None;
 
-		if (m_CameraMode == CameraMode::Fly)
+		if (m_Active)
 		{
-			currentMode = CameraMode::Fly;
-			const float speed = CameraSpeed();
-
-			auto movement = glm::zero<glm::vec3>();
-			if (Input::IsKeyDown(KeyCode::W)) movement += speed * ts * GetForwardDirection();
-			if (Input::IsKeyDown(KeyCode::S)) movement -= speed * ts * GetForwardDirection();
-			if (Input::IsKeyDown(KeyCode::A)) movement -= speed * ts * GetRightDirection();
-			if (Input::IsKeyDown(KeyCode::D)) movement += speed * ts * GetRightDirection();
-			if (Input::IsKeyDown(KeyCode::E)) movement += speed * ts * glm::vec3(0.0f, 1.0f, 0.0f);
-			if (Input::IsKeyDown(KeyCode::Q)) movement += speed * ts * glm::vec3(0.0f, -1.0f, 0.0f);
-
-			m_Position += movement;
-			m_PositionDelta += movement;
-			m_Animated = true;
-
-			auto yaw = mouseDelta.x * m_MouseSensitivity * ts;
-			auto pitch = mouseDelta.y * m_MouseSensitivity * ts;
-
-			m_Yaw += yaw;
-			m_Pitch += pitch;
-			m_FocusPoint = m_Position + GetForwardDirection() * m_Distance;
-		}
-		else if (m_CameraMode == CameraMode::Arcball)
-		{
-			currentMode = CameraMode::Arcball;
-			auto delta = mouseDelta * 0.003f;
-
-			if (Input::IsMouseDown(MouseButton::Left))
+			if (m_CameraMode == CameraMode::Fly)
 			{
-				Input::SetCursorMode(CursorMode::Locked);
-				auto yaw = delta.x * 0.5f;
-				auto pitch = delta.y * 0.5f;
+				currentMode = CameraMode::Fly;
+				const float speed = CameraSpeed();
 
-				m_Yaw += yaw;
-				m_Pitch += pitch;
-				m_Position = m_FocusPoint - GetForwardDirection() * m_Distance;
-			}
-			else if (Input::IsMouseDown(MouseButton::Right))
-			{
-				Input::SetCursorMode(CursorMode::Locked);
-				MouseZoom(delta.y * ZoomSpeed(), true);
-			}
-			else if (Input::IsMouseDown(MouseButton::Middle))
-			{
-				Input::SetCursorMode(CursorMode::Locked);
-				auto worldHeight = 2.0f * m_Distance * glm::tan(m_VerticalFOV * 0.5f);
-				auto worldWidth = worldHeight * (m_ViewportWidth / m_ViewportHeight);
+				auto movement = glm::zero<glm::vec3>();
+				if (Input::IsKeyDown(KeyCode::W)) movement += speed * ts * GetForwardDirection();
+				if (Input::IsKeyDown(KeyCode::S)) movement -= speed * ts * GetForwardDirection();
+				if (Input::IsKeyDown(KeyCode::A)) movement -= speed * ts * GetRightDirection();
+				if (Input::IsKeyDown(KeyCode::D)) movement += speed * ts * GetRightDirection();
+				if (Input::IsKeyDown(KeyCode::E)) movement += speed * ts * glm::vec3(0.0f, 1.0f, 0.0f);
+				if (Input::IsKeyDown(KeyCode::Q)) movement += speed * ts * glm::vec3(0.0f, -1.0f, 0.0f);
 
-				float x = worldWidth / m_ViewportWidth;
-				float y = worldHeight / m_ViewportHeight;
-
-				auto movement = -GetRightDirection() * mouseDelta.x * x +
-					            GetUpwardsDirection() * mouseDelta.y * y;
-
-				m_FocusPoint += movement;
 				m_Position += movement;
 				m_PositionDelta += movement;
 				m_Animated = true;
+
+				auto yaw = mouseDelta.x * m_MouseSensitivity * ts;
+				auto pitch = mouseDelta.y * m_MouseSensitivity * ts;
+
+				m_Yaw += yaw;
+				m_Pitch += pitch;
+				m_FocusPoint = m_Position + GetForwardDirection() * m_Distance;
+			}
+			else if (m_CameraMode == CameraMode::Arcball)
+			{
+				currentMode = CameraMode::Arcball;
+				auto delta = mouseDelta * 0.003f;
+
+				if (Input::IsMouseDown(MouseButton::Left))
+				{
+					Input::SetCursorMode(CursorMode::Locked);
+					auto yaw = delta.x * 0.5f;
+					auto pitch = delta.y * 0.5f;
+
+					m_Yaw += yaw;
+					m_Pitch += pitch;
+					m_Position = m_FocusPoint - GetForwardDirection() * m_Distance;
+				}
+				else if (Input::IsMouseDown(MouseButton::Right))
+				{
+					Input::SetCursorMode(CursorMode::Locked);
+					MouseZoom(delta.y * ZoomSpeed(), true);
+				}
+				else if (Input::IsMouseDown(MouseButton::Middle))
+				{
+					Input::SetCursorMode(CursorMode::Locked);
+					auto worldHeight = 2.0f * m_Distance * glm::tan(m_VerticalFOV * 0.5f);
+					auto worldWidth = worldHeight * (m_ViewportWidth / m_ViewportHeight);
+
+					float x = worldWidth / m_ViewportWidth;
+					float y = worldHeight / m_ViewportHeight;
+
+					auto movement = -GetRightDirection() * mouseDelta.x * x +
+						GetUpwardsDirection() * mouseDelta.y * y;
+
+					m_FocusPoint += movement;
+					m_Position += movement;
+					m_PositionDelta += movement;
+					m_Animated = true;
+				}
 			}
 		}
 
@@ -219,6 +222,32 @@ namespace Shark {
 		m_YawDelta = glm::mod(yaw - m_Yaw + glm::pi<float>(), glm::two_pi<float>()) - glm::pi<float>();
 		m_Animated = true;
 
+		m_FocusPoint = focusPoint;
+		m_Position = position;
+		m_Pitch = pitch;
+		m_Yaw = yaw;
+	}
+
+	void EditorCamera::SetPosition(const glm::vec3& position, const glm::vec3& forwardDirection, std::optional<float> focusDistance, bool animate)
+	{
+		auto direction = glm::normalize(forwardDirection);
+		auto distance = focusDistance.value_or(m_Distance);
+		auto focusPoint = position + direction * distance;
+		auto pitch = glm::asin(-direction.y);
+		auto yaw = glm::atan(direction.x, direction.z);
+
+		if (animate)
+		{
+			m_PositionDelta = position - m_Position;
+			m_PitchDelta = pitch - m_Pitch;
+			m_YawDelta = glm::mod(yaw - m_Yaw + glm::pi<float>(), glm::two_pi<float>()) - glm::pi<float>();
+		}
+
+		// always set m_Animated true to update view matrix
+		// this will update for one frame as all deltas are 0
+		m_Animated = true;
+
+		m_Distance = glm::distance(focusPoint, position);
 		m_FocusPoint = focusPoint;
 		m_Position = position;
 		m_Pitch = pitch;

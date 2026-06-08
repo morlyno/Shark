@@ -108,7 +108,7 @@ namespace std::ranges {
 			}
 		}
 		else if constexpr (input_range<range_reference_t<_Rng>>) {
-			const auto _Xform = [](auto&& _Elem) _STATIC_CALL_OPERATOR{
+			const auto _Xform = [](auto&& _Elem) {
 				return _RANGES to<range_value_t<_Container>>(_STD forward<decltype(_Elem)>(_Elem));
 			};
 			return _RANGES to<_Container>(views::transform(ref_view{ _Range }, _Xform), _STD forward<_Types>(_Args)...);
@@ -129,8 +129,8 @@ namespace std::ranges {
 		_STL_INTERNAL_STATIC_ASSERT(!view<_Container>);
 
 		template <input_range _Rng, class... _Types>
-		_NODISCARD _STATIC_CALL_OPERATOR constexpr auto operator()(
-			_Rng&& _Range, _Types&&... _Args) _CONST_CALL_OPERATOR
+		_NODISCARD constexpr auto operator()(
+			_Rng&& _Range, _Types&&... _Args) const
 			requires requires { _RANGES to<_Container>(_STD forward<_Rng>(_Range), _STD forward<_Types>(_Args)...); }
 		{
 			return _RANGES to<_Container>(_STD forward<_Rng>(_Range), _STD forward<_Types>(_Args)...);
@@ -190,8 +190,8 @@ namespace std::ranges {
 	struct _To_template_fn {
 		template <input_range _Rng, class... _Types,
 			class _Deduced = remove_pointer_t<decltype(_To_helper<_Container, _Rng, _Types...>())>>
-			_NODISCARD _STATIC_CALL_OPERATOR constexpr auto operator()(
-				_Rng&& _Range, _Types&&... _Args) _CONST_CALL_OPERATOR {
+			_NODISCARD constexpr auto operator()(
+				_Rng&& _Range, _Types&&... _Args) const {
 			return _RANGES to<_Deduced>(_STD forward<_Rng>(_Range), _STD forward<_Types>(_Args)...);
 		}
 	};
