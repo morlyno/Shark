@@ -1,7 +1,6 @@
 #include "NodeGraphEditor.h"
 
 #include "Shark/UI/UICore.h"
-#include "NodeGraph/Nodes.h"
 
 #include "NodeGraph/Utilities/builders.h"
 #include "NodeGraph/Utilities/drawing.h"
@@ -396,8 +395,15 @@ namespace Shark {
 				//drawList->AddCircleFilled(ImGui::GetMousePosOnOpeningCurrentPopup(), 10.0f, 0xFFFF00FF);
 
 				GraphEditor::Node* node = nullptr;
-				if (ImGui::MenuItem("Add"))
-					node = CreateAddNode();
+				if (ImGui::BeginMenu("Math"))
+				{
+					if (ImGui::MenuItem("Add"))
+						node = CreateNode<Nodes::Add>();
+					if (ImGui::MenuItem("Multiply"))
+						node = CreateNode<Nodes::Multiply>();
+
+					ImGui::EndMenu();
+				}
 
 
 				if (node)
@@ -527,22 +533,22 @@ namespace Shark {
 		for (size_t index = 0;
 			auto& editorNode : m_Nodes)
 		{
-			if (editorNode.Name == "Add")
+			if (!m_NodeAllocators.contains(editorNode.Name))
 			{
-				const size_t nodeIndex = index++;
-				nodeGraph->Nodes.push_back(new Nodes::Add(editorNode.GetID()));
+				SK_CORE_ASSERT(false);
+				continue;
+			}
 
-				for (auto& input : editorNode.Inputs)
-					if (!IsPinLinked(input.ID))
-						loosePins.push_back({ nodeIndex, &input, input.Identifier });
-				for (auto& output : editorNode.Outputs)
-					if (!IsPinLinked(output.ID))
-						looseOutputPins.push_back({ nodeIndex, &output, output.Identifier });
-			}
-			else
-			{
-				SK_CORE_VERIFY(false);
-			}
+			const size_t nodeIndex = index++;
+			//nodeGraph->Nodes.push_back(new Nodes::Add(editorNode.GetID()));
+			nodeGraph->Nodes.push_back(m_NodeAllocators.at(editorNode.Name)(editorNode.GetID()));
+
+			for (auto& input : editorNode.Inputs)
+				if (!IsPinLinked(input.ID))
+					loosePins.push_back({ nodeIndex, &input, input.Identifier });
+			for (auto& output : editorNode.Outputs)
+				if (!IsPinLinked(output.ID))
+					looseOutputPins.push_back({ nodeIndex, &output, output.Identifier });
 		}
 
 		const auto FindNodeByID = [&nodes = nodeGraph->Nodes](UUID id) -> const Node*
@@ -737,33 +743,6 @@ namespace Shark {
 		}
 
 		return false;
-	}
-
-	GraphEditor::Node* NodeGraphEditor::CreateAddNode()
-	{
-		auto& node = m_Nodes.emplace_back();
-		node.ID = UUID::Generate().Value();
-		node.Name = "Add";
-		node.Inputs.push_back({
-			.ID = GetNextID(),
-			.NodeID = node.ID,
-			.Name = "Value 1",
-			.Identifier = Nodes::Add::IDs::Input1
-		});
-		node.Inputs.push_back({
-			.ID = GetNextID(),
-			.NodeID = node.ID,
-			.Name = "Value 2",
-			.Identifier = Nodes::Add::IDs::Input2
-		});
-		node.Outputs.push_back({
-			.ID = GetNextID(),
-			.NodeID = node.ID,
-			.Kind = ax::NodeEditor::PinKind::Output,
-			.Name = "Result",
-			.Identifier = Nodes::Add::IDs::Output
-		});
-		return &node;
 	}
 
 }

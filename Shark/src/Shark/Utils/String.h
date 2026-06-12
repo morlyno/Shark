@@ -70,4 +70,40 @@ namespace Shark::String {
 
 	bool IsDefaultFormat(const std::filesystem::path& path);
 
+	constexpr void Trim(std::string_view& str, std::string_view chars = " ")
+	{
+		size_t start = str.find_first_not_of(chars);
+		size_t end = str.find_last_not_of(chars);
+
+		if (start == std::string_view::npos)
+			start = 0;
+
+		if (end == std::string_view::npos)
+			end = str.size() - 1;
+
+		str = str.substr(start, end - start + 1);
+	}
+
+	template<size_t N>
+	constexpr std::array<std::string_view, N> SplitString(std::string_view source, std::string_view delimiter)
+	{
+		std::array<std::string_view, N> tokens;
+		if (source.empty())
+			return tokens;
+
+		size_t start = source.find_first_not_of(delimiter);
+		size_t end = 0;
+		size_t i = 0;
+		while (end != std::wstring_view::npos)
+		{
+			end = source.find(delimiter, start);
+			tokens[i] = source.substr(start, end - start);
+
+			start = source.find_first_not_of(delimiter, end + 1);
+			i++;
+		}
+
+		return tokens;
+	}
+
 }

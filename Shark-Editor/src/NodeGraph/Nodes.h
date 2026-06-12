@@ -2,10 +2,9 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Core/UUID.h"
+#include "Shark/Core/Reflection.h"
 #include "NodeGraph/Identifier.h"
-#include "Shark/Utils/std.h"
-
-#include <random>
+#include "Shark/Utils/String.h"
 
 namespace Shark {
 
@@ -58,13 +57,7 @@ namespace Shark {
 
 			float Result;
 
-			Add(UUID id)
-				: Node(id)
-			{
-				AddInput(IDs::Input1, Value1);
-				AddInput(IDs::Input2, Value2);
-				AddOutput(IDs::Output, Result);
-			}
+			Add(UUID id);
 
 			virtual void Process() override
 			{
@@ -80,6 +73,55 @@ namespace Shark {
 
 		};
 
+		struct Multiply : public Node
+		{
+			float* Value1 = nullptr;
+			float* Value2 = nullptr;
+
+			float Result;
+
+			Multiply(UUID id);
+
+			virtual void Process() override
+			{
+				Result = *Value1 * *Value2;
+			}
+		};
+
 	}
+
+	struct ReflectionInputTag {};
+	struct ReflectionOutputTag {};
+
+	template<typename T>
+	struct NodeType;
+
+#define REFLECT_INPUTS(...) __VA_ARGS__
+#define REFLECT_OUTPUTS(...) __VA_ARGS__
+
+#define REFLECT_NODE(_node, _inputs, _outputs)						  \
+	REFLECT_TYPE_TAGGED(_node, ReflectionInputTag, _inputs);		  \
+	REFLECT_TYPE_TAGGED(_node, ReflectionOutputTag, _outputs);		  \
+																	  \
+	template<>														  \
+	struct NodeType<_node>											  \
+	{																  \
+		using Inputs = Reflection::Type<_node, ReflectionInputTag>;	  \
+		using Outputs = Reflection::Type<_node, ReflectionOutputTag>; \
+	};
+
+	REFLECT_NODE(
+		Nodes::Add,
+		REFLECT_INPUTS(&Nodes::Add::Value1,
+					   &Nodes::Add::Value2),
+		REFLECT_OUTPUTS(&Nodes::Add::Result)
+	);
+
+	REFLECT_NODE(
+		Nodes::Multiply,
+		REFLECT_INPUTS(&Nodes::Multiply::Value1,
+					   &Nodes::Multiply::Value2),
+		REFLECT_OUTPUTS(&Nodes::Multiply::Result)
+	);
 
 }
