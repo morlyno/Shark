@@ -21,6 +21,10 @@ Dependencies = {
     ImGuizmo = {
         IncludeDir = "%{wks.location}/Shark/dependencies/ImGuizmo"
     },
+    ImGuiNodeEditor = {
+        LibName = "imgui-node-editor",
+        IncludeDir = "%{wks.location}/Shark/dependencies/imgui-node-editor"
+    },
     stb_image = {
         IncludeDir = "%{wks.location}/Shark/dependencies/stb_image"
     },

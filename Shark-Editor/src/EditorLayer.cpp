@@ -41,6 +41,8 @@
 #include "Panels/Editors/SoundConfigEditor.h"
 #include "Panels/Editors/TextureEditorPanel.h"
 
+#include "NodeGraph/NodeGraphEditor.h"
+
 #include "Shark/Debug/Profiler.h"
 #include "Shark/Debug/enttDebug.h"
 
@@ -149,6 +151,7 @@ namespace Shark {
 		m_PanelManager->AddPanel<IconSelector>(PanelCategory::Edit, "Icons Selector", false);
 		m_PanelManager->AddPanel<MaterialPanel>(PanelCategory::Edit, "Materials", true);
 		m_PanelManager->AddPanel<SoundPanel>(PanelCategory::View, "Sounds", false);
+		m_PanelManager->AddPanel<NodeGraphEditor>(PanelCategory::Edit, "Node Graph", false);
 
 		m_SceneRenderer = Ref<SceneRenderer>::Create(window.GetWidth(), window.GetHeight(), "Viewport Renderer");
 		m_PanelManager->GetPanel<SceneRendererPanel>()->SetRenderer(m_SceneRenderer);

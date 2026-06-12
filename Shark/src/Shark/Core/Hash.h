@@ -20,6 +20,7 @@ namespace Shark {
 		static uint64_t CombineFNV(uint64_t seed, const Buffer values);
 
 		static uint64_t GenerateFNV(const std::string_view str);
+		static uint64_t GenerateFNV(const char* str);
 		static uint64_t GenerateFNV(const Buffer buffer);
 
 		static void HashCombine(uint64_t& seed, uint64_t hash);
@@ -30,6 +31,19 @@ namespace Shark {
 		{
 			return GenerateFNV(Buffer::FromValue<TValue>(value));
 		}
+
+		static constexpr uint64_t ConstexprHash(std::string_view str)
+		{
+			uint64_t seed = FNVBase;
+			const char* first = str.data();
+			for (uint64_t i = 0; i < str.length(); i++)
+			{
+				seed ^= first[i];
+				seed *= FNVPrime;
+			}
+			return seed;
+		}
+
 	};
 
 	template<typename T>
