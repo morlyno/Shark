@@ -2,16 +2,42 @@
 
 namespace Shark::Reflection {
 
+	namespace details {
+
+		template<typename C, typename T>
+		T MemberReturnType(T C::*);
+
+	}
+
 	template<auto... TMembers>
 	struct MemberList
 	{
 		static constexpr size_t MemberCount = sizeof...(TMembers);
+
+		using Tuple = decltype(std::tuple(TMembers...));
+
+		template<size_t Index>
+		using Type = decltype(
+			MemberReturnType(
+				decltype(
+					std::get<Index>(Tuple{})
+				){}
+			)
+		);
 
 		template<typename TFunc>
 		static constexpr auto Apply(TFunc&& func)
 		{
 			func(TMembers...);
 		}
+
+		template<typename TFunc>
+		static constexpr auto ForEachTypeIndexed(TFunc&& func)
+		{
+			size_t index = 0;
+			(func.operator() < decltype(details::MemberReturnType(TMembers)) > (index++), ...);
+		}
+
 	};
 
 	template<typename T, typename Tag>
@@ -21,7 +47,7 @@ namespace Shark::Reflection {
 
 #define REFLECT_TYPE_TAGGED(_class, _tag, ...)																														   \
 	template<>																																						   \
-	struct ::Shark::Reflection::Type<_class, _tag> : ::Shark::Reflection::MemberList<__VA_ARGS__>																					   \
+	struct ::Shark::Reflection::Type<_class, _tag> : ::Shark::Reflection::MemberList<__VA_ARGS__>																	   \
 	{																																								   \
 	private:																																						   \
 		static constexpr std::string_view ClassString = #_class;																									   \

@@ -103,6 +103,9 @@ Dependencies = {
     StrToNum = {
         IncludeDir = "%{wks.location}/Shark/dependencies/StrToNum"
     },
+    choc = {
+        IncludeDir = "%{wks.location}/Shark/dependencies/choc"
+    },
 
     D3D11 = {
         Windows = { LibName = "d3d11" }

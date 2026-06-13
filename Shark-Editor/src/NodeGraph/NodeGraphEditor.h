@@ -9,6 +9,9 @@
 
 #include <imgui_node_editor.h>
 
+#include <choc/containers/choc_Value.h>
+#include <choc/text/choc_StringUtilities.h>
+
 namespace Shark {
 
 	namespace GraphEditor {
@@ -19,11 +22,21 @@ namespace Shark {
 			Bool,
 			Int,
 			Float,
-			String,
-			Object,
-			Function,
-			Delegate,
 		};
+
+		template<typename T>
+		static constexpr PinType GetPinType()
+		{
+			if constexpr (std::is_same_v<T, bool>)
+				return PinType::Bool;
+			else if constexpr (std::is_same_v<T, int>)
+				return PinType::Int;
+			else if constexpr (std::is_same_v<T, float>)
+				return PinType::Float;
+			else
+				static_assert(false, "Invalid type");
+		}
+
 
 		struct Pin
 		{
@@ -33,8 +46,8 @@ namespace Shark {
 			std::string             Name;
 
 			Identifier Identifier;
-			PinType Type = PinType::Float;
-			float Value = 0.0f;
+			PinType Type;
+			choc::value::Value Value;
 
 			UUID GetNodeID() const { return UUID::Make(NodeID.Get()); }
 		};
@@ -71,8 +84,8 @@ namespace Shark {
 	public:
 		std::vector<Node*> Nodes;
 
-		std::vector<float> LocalVariables;
-		std::vector<float*> OutputVariables;
+		std::vector<choc::value::Value> LocalVariables;
+		std::vector<choc::value::ValueView> OutputVariables;
 		std::vector<std::string> DebugOutputNames;
 	};
 
@@ -94,12 +107,21 @@ namespace Shark {
 		Scope<NodeGraph> CompileGraph();
 
 	private:
+		struct Input
+		{
+			std::string Name;
+			choc::value::Value Value;
+			GraphEditor::PinType Type;
+		};
+
 		uint64_t GetNextID() { return UUID::Generate().Value(); }
 
 		GraphEditor::Node* FindNode(ax::NodeEditor::NodeId id);
 		GraphEditor::Link* FindLink(ax::NodeEditor::LinkId id);
 		GraphEditor::Link* FindLink(ax::NodeEditor::PinId id);
 		GraphEditor::Pin* FindPin(ax::NodeEditor::PinId id);
+
+		void RemoveLinks(ax::NodeEditor::PinId id);
 
 		bool IsPinLinked(ax::NodeEditor::PinId id) const;
 		bool CanCreateLink(GraphEditor::Pin* pinA, GraphEditor::Pin* pinB);
@@ -112,8 +134,9 @@ namespace Shark {
 
 			auto& node = m_Nodes.emplace_back();
 			node.ID = GetNextID();
-			node.Name = N::Inputs::Class;
+			node.Name = choc::text::replace(N::Inputs::Class, "<", " (", ">", ")");
 
+#if 1
 			for (auto member : N::Inputs::Members)
 			{
 				node.Inputs.push_back({
@@ -121,7 +144,7 @@ namespace Shark {
 					.NodeID = node.ID,
 					.Kind = ax::NodeEditor::PinKind::Input,
 					.Name = std::string(member),
-					.Identifier = member
+					.Identifier = member,
 				});
 			}
 
@@ -135,14 +158,30 @@ namespace Shark {
 					.Identifier = member
 				});
 			}
+#endif
+
+			N::Inputs::ForEachTypeIndexed([&]<typename TInput>(size_t index)
+			{
+				node.Inputs[index].Type = GraphEditor::GetPinType<std::remove_pointer_t<TInput>>();
+				//node.Inputs[index].Value = choc::value::Value(choc::value::Type::createPrimitive<std::remove_pointer_t<TInput>>());
+			});
+
+			N::Outputs::ForEachTypeIndexed([&]<typename TOutput>(size_t index)
+			{
+				node.Outputs[index].Type = GraphEditor::GetPinType<std::remove_pointer_t<TOutput>>();
+				//node.Inputs[index].Value = choc::value::Type::createPrimitive<T>();
+			});
 
 			if (!m_NodeAllocators.contains(node.Name))
 				m_NodeAllocators[node.Name] = [](UUID id) -> Node* { return new T(id); };
 
 			return &node;
 		}
+		GraphEditor::Node* SpawnInputNode(std::string_view inputName);
 
-		GraphEditor::Node* SpanInputNode(std::string_view inputName);
+		bool DrawPinValueEdit(GraphEditor::Pin* pin);
+		void ChangeInputType(Input& input, GraphEditor::PinType type);
+		void RenameInput(Input& input, const std::string& newName);
 
 	private:
 		ax::NodeEditor::EditorContext* m_Context;
@@ -150,7 +189,7 @@ namespace Shark {
 		std::vector<GraphEditor::Node> m_Nodes;
 		std::vector<GraphEditor::Link> m_Links;
 
-		std::vector<std::pair<std::string, float>> m_InputVariables;
+		std::vector<Input> m_InputVariables;
 
 		ax::NodeEditor::NodeId contextNodeId = 0;
 		ax::NodeEditor::LinkId contextLinkId = 0;
@@ -165,6 +204,8 @@ namespace Shark {
 		ImGuiID m_DockspaceID;
 		ImGuiWindowClass m_WindowClass;
 		size_t m_SelectedInput = ~0;
+
+		std::string m_RenameBuffer;
 
 		std::string m_PropertiesWindowID;
 	};
