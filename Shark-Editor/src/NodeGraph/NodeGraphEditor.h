@@ -83,13 +83,13 @@ namespace Shark {
 		static const char* GetStaticID() { return "NodeGraphEditor"; }
 
 	public:
-		NodeGraphEditor();
-		~NodeGraphEditor();
-
 		virtual bool OnShowPanel() override;
 		virtual bool OnHidePanel() override;
 
 		virtual void OnImGuiRender(bool& isOpen) override;
+		void Draw();
+		void DrawCanvas();
+		void DrawVariables();
 
 		Scope<NodeGraph> CompileGraph();
 
@@ -106,7 +106,7 @@ namespace Shark {
 		bool WouldCreateLoop(GraphEditor::Pin* startPin, GraphEditor::Pin* endPin);
 
 		template<typename T>
-		GraphEditor::Node* CreateNode()
+		GraphEditor::Node* SpawnNode()
 		{
 			using N = Shark::NodeType<T>;
 
@@ -142,11 +142,15 @@ namespace Shark {
 			return &node;
 		}
 
+		GraphEditor::Node* SpanInputNode(std::string_view inputName);
+
 	private:
 		ax::NodeEditor::EditorContext* m_Context;
 
 		std::vector<GraphEditor::Node> m_Nodes;
 		std::vector<GraphEditor::Link> m_Links;
+
+		std::vector<std::pair<std::string, float>> m_InputVariables;
 
 		ax::NodeEditor::NodeId contextNodeId = 0;
 		ax::NodeEditor::LinkId contextLinkId = 0;
@@ -156,8 +160,13 @@ namespace Shark {
 		GraphEditor::Pin* newLinkPin = nullptr;
 
 		Scope<NodeGraph> m_NodeGraph;
-
 		std::unordered_map<std::string, Node* (*)(UUID)> m_NodeAllocators;
+
+		ImGuiID m_DockspaceID;
+		ImGuiWindowClass m_WindowClass;
+		size_t m_SelectedInput = ~0;
+
+		std::string m_PropertiesWindowID;
 	};
 
 }
