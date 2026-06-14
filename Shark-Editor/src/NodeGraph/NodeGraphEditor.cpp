@@ -3,6 +3,7 @@
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/Controls.h"
 
+#include "NodeGraph/Nodes/Math.h"
 #include "NodeGraph/Utilities/builders.h"
 #include "NodeGraph/Utilities/drawing.h"
 #include "NodeGraph/Utilities/widgets.h"
@@ -55,6 +56,13 @@ namespace Shark {
 		m_Context = ax::NodeEditor::CreateEditor(&config);
 
 		m_PropertiesWindowID = fmt::format("Properties##{}", m_PanelName);
+
+		m_Factory = Scope<GraphEditor::Factory>::Create();
+		m_Factory->AddNode("Math", "Add (int)", std::bind_front(&NodeGraphEditor::SpawnNode<Nodes::Add<int>>, this));
+		m_Factory->AddNode("Math", "Add (float)", std::bind_front(&NodeGraphEditor::SpawnNode<Nodes::Add<float>>, this));
+		m_Factory->AddNode("Math", "Multiply (int)", std::bind_front(&NodeGraphEditor::SpawnNode<Nodes::Multiply<int>>, this));
+		m_Factory->AddNode("Math", "Multiply (float)", std::bind_front(&NodeGraphEditor::SpawnNode<Nodes::Multiply<float>>, this));
+
 		return true;
 	}
 
@@ -417,24 +425,18 @@ namespace Shark {
 			//drawList->AddCircleFilled(ImGui::GetMousePosOnOpeningCurrentPopup(), 10.0f, 0xFFFF00FF);
 
 			GraphEditor::Node* node = nullptr;
-			if (ImGui::BeginMenu("Math"))
-			{
-				const auto menuItem = [](const char* label, const char* extra = nullptr)
-				{
-					const bool pressed = ImGui::MenuItem(label);
-					if (extra)
-						UI::DrawTextAligned(extra, { 1, 0 }, UI::GetItemRect());
-					return pressed;
-				};
 
-				if (menuItem("Add##int", "int"))
-					node = SpawnNode<Nodes::Add<int>>();
-				if (menuItem("Add##float", "float"))
-					node = SpawnNode<Nodes::Add<float>>();
-				if (menuItem("Multiply##int", "int"))
-					node = SpawnNode<Nodes::Multiply<int>>();
-				if (menuItem("Multiply##float", "float"))
-					node = SpawnNode<Nodes::Multiply<float>>();
+			const auto& registry = m_Factory->GetRegistry();
+			for (const auto& [categoryName, category] : registry)
+			{
+				if (!ImGui::BeginMenu("Math"))
+					continue;
+
+				for (const auto& [type, _] : category)
+				{
+					if (ImGui::MenuItem(type.c_str()))
+						node = m_Factory->SpawnNode(categoryName, type);
+				}
 
 				ImGui::Dummy({ 100.0f, 0.0f });
 				ImGui::EndMenu();

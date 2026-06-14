@@ -60,78 +60,7 @@ namespace Shark {
 				InitializeInputs(static_cast<T*>(this));
 			}
 
-		protected:
 			using Base = TypedNode<T>;
-		};
-
-	}
-
-	namespace Nodes {
-
-		template<typename T>
-		struct Add;
-
-		template<>
-		struct Add<float> : public Details::TypedNode<Add<float>>
-		{
-			float* Value1 = nullptr;
-			float* Value2 = nullptr;
-
-			float Result;
-
-			using Base::Base;
-			virtual void Process() override
-			{
-				Result = *Value1 + *Value2;
-			}
-		};
-
-		template<>
-		struct Add<int> : public Details::TypedNode<Add<int>>
-		{
-			int* Value1 = nullptr;
-			int* Value2 = nullptr;
-
-			int Result;
-
-			using Base::Base;
-			virtual void Process() override
-			{
-				Result = *Value1 + *Value2;
-			}
-		};
-
-		template<typename T>
-		struct Multiply;
-
-		template<>
-		struct Multiply<float> : public Details::TypedNode<Multiply<float>>
-		{
-			float* Value1 = nullptr;
-			float* Value2 = nullptr;
-
-			float Result;
-
-			using Base::Base;
-			virtual void Process() override
-			{
-				Result = *Value1 * *Value2;
-			}
-		};
-
-		template<>
-		struct Multiply<int> : public Details::TypedNode<Multiply<int>>
-		{
-			int* Value1 = nullptr;
-			int* Value2 = nullptr;
-
-			int Result;
-
-			using Base::Base;
-			virtual void Process() override
-			{
-				Result = *Value1 * *Value2;
-			}
 		};
 
 	}
@@ -145,44 +74,16 @@ namespace Shark {
 #define REFLECT_INPUTS(...) __VA_ARGS__
 #define REFLECT_OUTPUTS(...) __VA_ARGS__
 
-#define REFLECT_NODE(_node, _inputs, _outputs)						  \
-	REFLECT_TYPE_TAGGED(_node, ReflectionInputTag, _inputs);		  \
-	REFLECT_TYPE_TAGGED(_node, ReflectionOutputTag, _outputs);		  \
-																	  \
-	template<>														  \
-	struct NodeType<_node>											  \
-	{																  \
-		using Inputs = Reflection::Type<_node, ReflectionInputTag>;	  \
-		using Outputs = Reflection::Type<_node, ReflectionOutputTag>; \
+#define REFLECT_NODE(_node, _inputs, _outputs)							  \
+	REFLECT_TYPE_TAGGED(_node, ::Shark::ReflectionInputTag, _inputs);	  \
+	REFLECT_TYPE_TAGGED(_node, ::Shark::ReflectionOutputTag, _outputs);	  \
+																		  \
+	template<>															  \
+	struct NodeType<_node>												  \
+	{																	  \
+		using Inputs = Reflection::Type<_node, ReflectionInputTag>;		  \
+		using Outputs = Reflection::Type<_node, ReflectionOutputTag>;	  \
 	};
-
-	REFLECT_NODE(
-		Nodes::Add<float>,
-		REFLECT_INPUTS(&Nodes::Add<float>::Value1,
-					   &Nodes::Add<float>::Value2),
-		REFLECT_OUTPUTS(&Nodes::Add<float>::Result)
-	);
-
-	REFLECT_NODE(
-		Nodes::Add<int>,
-		REFLECT_INPUTS(&Nodes::Add<int>::Value1,
-					   &Nodes::Add<int>::Value2),
-		REFLECT_OUTPUTS(&Nodes::Add<int>::Result)
-	);
-
-	REFLECT_NODE(
-		Nodes::Multiply<float>,
-		REFLECT_INPUTS(&Nodes::Multiply<float>::Value1,
-					   &Nodes::Multiply<float>::Value2),
-		REFLECT_OUTPUTS(&Nodes::Multiply<float>::Result)
-	);
-
-	REFLECT_NODE(
-		Nodes::Multiply<int>,
-		REFLECT_INPUTS(&Nodes::Multiply<int>::Value1,
-					   &Nodes::Multiply<int>::Value2),
-		REFLECT_OUTPUTS(&Nodes::Multiply<int>::Result)
-	);
 
 }
 
