@@ -1,15 +1,17 @@
 #include "skpch.h"
 #include "SceneRenderer.h"
 
+#include "Shark/Asset/AssetManager.h"
 #include "Shark/Scene/Scene.h"
 
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/Renderer2D.h"
 #include "Shark/Math/Math.h"
+#include "Shark/Utils/Utilities.h"
 
 #include "Shark/Debug/Profiler.h"
 #include <glm/gtx/optimum_pow.hpp>
-#include "Shark/Asset/AssetManager.h"
+#include <algorithm>
 
 namespace Shark {
 
@@ -70,10 +72,12 @@ namespace Shark {
 		if (m_NeedsResize && m_Specification.Width != 0 && m_Specification.Height != 0)
 		{
 			m_GeometryPass->GetTargetFramebuffer()->Resize(m_Specification.Width, m_Specification.Height);
+			m_GeometryAnimatedPass->GetTargetFramebuffer()->Resize(m_Specification.Width, m_Specification.Height);
 			m_SkyboxPass->GetTargetFramebuffer()->Resize(m_Specification.Width, m_Specification.Height);
 			m_CompositePass->GetTargetFramebuffer()->Resize(m_Specification.Width, m_Specification.Height);
 
 			m_SelectedGeometryPass->GetTargetFramebuffer()->Resize(m_Specification.Width, m_Specification.Height);
+			m_SelectedGeometryAnimatedPass->GetTargetFramebuffer()->Resize(m_Specification.Width, m_Specification.Height);
 			m_TempFramebuffers[0]->Resize(m_Specification.Width, m_Specification.Height);
 			m_TempFramebuffers[1]->Resize(m_Specification.Width, m_Specification.Height);
 			m_JumpFloodInitPass->GetTargetFramebuffer()->Resize(m_Specification.Width, m_Specification.Height);
@@ -83,9 +87,11 @@ namespace Shark {
 
 			// Update invalidated binding sets
 			m_GeometryPass->UpdateDescriptors();
+			m_GeometryAnimatedPass->UpdateDescriptors();
 			m_SkyboxPass->UpdateDescriptors();
 			m_CompositePass->UpdateDescriptors();
 			m_SelectedGeometryPass->UpdateDescriptors();
+			m_SelectedGeometryAnimatedPass->UpdateDescriptors();
 			m_JumpFloodInitPass->UpdateDescriptors();
 			m_JumpFloodPass[0]->UpdateDescriptors();
 			m_JumpFloodPass[1]->UpdateDescriptors();
@@ -104,6 +110,8 @@ namespace Shark {
 
 		m_DrawList.clear();
 		m_SelectedDrawList.clear();
+		m_MeshBoneTransforms.clear();
+		m_BoneTransformBufferSize = 0;
 	}
 
 	void SceneRenderer::EndScene()
@@ -154,12 +162,14 @@ namespace Shark {
 		m_Scene = nullptr;
 	}
 
-	void SceneRenderer::SubmitMesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<PBRMaterial> material, const glm::mat4& transform, int id)
+	void SceneRenderer::SubmitMesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<PBRMaterial> material, const glm::mat4& transform, std::span<const glm::mat4> boneTransforms, UUID contextID, bool isSelected, int id)
 	{
 		SK_CORE_VERIFY(mesh);
 		SK_CORE_VERIFY(material);
 
 		m_MaterialsToUpdate.emplace(material);
+
+		const auto& submesh = meshSource->GetSubmesh(submeshIndex);
 
 		auto& meshData = m_DrawList.emplace_back();
 		meshData.Mesh = mesh;
@@ -168,27 +178,41 @@ namespace Shark {
 		meshData.Material = material;
 		meshData.Transform = transform;
 		meshData.ID = id;
-	}
+		meshData.IsRigged = submesh.IsRigged;
+		meshData.ContextID = contextID;
 
-	void SceneRenderer::SubmitSelectedMesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<PBRMaterial> material, const glm::mat4& transform)
-	{
-		SK_CORE_VERIFY(mesh);
-		SK_CORE_VERIFY(material);
+		if (isSelected)
+		{
+			m_SelectedDrawList.emplace_back(meshData);
+		}
 
-		m_MaterialsToUpdate.emplace(material);
+		if (submesh.IsRigged && !m_MeshBoneTransforms.contains(contextID))
+		{
+			auto& meshBoneTransforms = m_MeshBoneTransforms[contextID];
+			meshBoneTransforms.Transforms.reserve(meshSource->GetBoneInfos().size());
+			meshBoneTransforms.Stride = meshSource->GetBoneInfos().size();
+			m_BoneTransformBufferSize += meshBoneTransforms.Stride;
 
-		auto& drawCommand = m_SelectedDrawList.emplace_back();
-		drawCommand.Mesh = mesh;
-		drawCommand.MeshSource = meshSource;
-		drawCommand.SubmeshIndex = submeshIndex;
-		drawCommand.Material = material;
-		drawCommand.Transform = transform;
-		drawCommand.ID = -1;
+			if (boneTransforms.empty())
+			{
+				std::fill_n(std::back_inserter(meshBoneTransforms.Transforms), meshBoneTransforms.Stride, glm::identity<glm::mat4>());
+			}
+			else
+			{
+				const auto& boneInfos = meshSource->GetBoneInfos();
+				for (size_t i = 0; i < meshBoneTransforms.Stride; i++)
+				{
+					meshBoneTransforms.Transforms.push_back(boneTransforms[boneInfos[i].BoneIndex] * boneInfos[i].InverseBindPose);
+				}
+			}
+		}
 	}
 
 	void SceneRenderer::PreRender()
 	{
 		SK_PROFILE_FUNCTION();
+
+		bool updateDescriptors = false;
 
 		for (Ref<PBRMaterial> material : m_MaterialsToUpdate)
 		{
@@ -200,6 +224,10 @@ namespace Shark {
 		m_GeometryPass->SetInput("u_IrradianceMap", environment->GetIrradianceMap());
 		m_GeometryPass->SetInput("u_RadianceMap", environment->GetRadianceMap());
 		m_GeometryPass->Update();
+
+		m_GeometryAnimatedPass->SetInput("u_IrradianceMap", environment->GetIrradianceMap());
+		m_GeometryAnimatedPass->SetInput("u_RadianceMap", environment->GetRadianceMap());
+		m_GeometryAnimatedPass->Update();
 
 		m_SkyboxPass->SetInput("u_EnvironmentMap", environment->GetRadianceMap());
 		m_SkyboxPass->Update();
@@ -261,6 +289,38 @@ namespace Shark {
 		{
 			buffer->RT_Upload(Buffer::FromValue(outlineSettings));
 		});
+
+		auto frameIndex = Renderer::GetCurrentFrameIndex();
+
+		size_t index = 0;
+		auto& uploadBuffer = m_BoneTransformsUploadBuffer[frameIndex % 2];
+		uploadBuffer.resize(m_BoneTransformBufferSize);
+		for (auto& [contextID, boneTransforms] : m_MeshBoneTransforms)
+		{
+			boneTransforms.BaseIndex = index;
+			memcpy(uploadBuffer.data() + index, boneTransforms.Transforms.data(), boneTransforms.Transforms.size() * sizeof(glm::mat4));
+			index += boneTransforms.Stride;
+		}
+
+		updateDescriptors |= m_SBBoneTransforms->ResizeAuto(m_BoneTransformBufferSize);
+
+		if (m_BoneTransformBufferSize > 0)
+		{
+			Renderer::Submit([instance = Ref(this), buffer = m_SBBoneTransforms]()
+			{
+				auto frameIndex = Renderer::RT_GetCurrentFrameIndex();
+				buffer->RT_Upload(Buffer::FromArray(instance->m_BoneTransformsUploadBuffer[frameIndex % 2]));
+			});
+		}
+
+		if (updateDescriptors)
+		{
+			// #TODO resizing buffers is not detected by the InputManager
+			// maybe add some king of notification system to resources and input managers
+			m_GeometryPass->UpdateDescriptors();
+			m_GeometryAnimatedPass->UpdateDescriptors();
+		}
+
 	}
 
 	void SceneRenderer::GeometryPass()
@@ -270,13 +330,20 @@ namespace Shark {
 		m_CommandBuffer->BeginMarker("Geometry Pass");
 		m_CommandBuffer->BeginTimer("GeometryPass");
 
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		//// Geometry /////////////////////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+
 		Renderer::BeginRenderPass(m_CommandBuffer, m_GeometryPass);
 		for (const auto& mesh : m_DrawList)
 		{
+			if (mesh.IsRigged)
+				continue;
+
 			MeshPushConstant pcMesh;
 			pcMesh.Transform = mesh.Transform;
 			pcMesh.ID = mesh.ID;
-			Renderer::RenderSubmesh(m_CommandBuffer, m_GeometryPipeline, mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, mesh.Material->GetMaterial(), Buffer::FromValue(pcMesh));
+			Renderer::RenderSubmesh(m_CommandBuffer, m_GeometryPipeline, mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, mesh.Material->GetMaterial(), false, Buffer::FromValue(pcMesh));
 
 			m_Statistics.DrawCalls++;
 			m_Statistics.VertexCount += mesh.MeshSource->GetSubmeshes()[mesh.SubmeshIndex].VertexCount;
@@ -284,10 +351,38 @@ namespace Shark {
 		}
 		Renderer::EndRenderPass(m_CommandBuffer, m_GeometryPass);
 
+
+		Renderer::BeginRenderPass(m_CommandBuffer, m_GeometryAnimatedPass);
+		for (const auto& mesh : m_DrawList)
+		{
+			// #Investigate animated draw list?
+			if (!mesh.IsRigged)
+				continue;
+
+			MeshPushConstant pcMesh;
+			pcMesh.Transform = mesh.Transform;
+			pcMesh.ID = mesh.ID;
+			pcMesh.BoneBase = m_MeshBoneTransforms.at(mesh.ContextID).BaseIndex;
+			pcMesh.BoneStride = m_MeshBoneTransforms.at(mesh.ContextID).Stride;
+			Renderer::RenderSubmesh(m_CommandBuffer, m_GeometryAnimatedPipeline, mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, mesh.Material->GetMaterial(), true, Buffer::FromValue(pcMesh));
+
+			m_Statistics.DrawCalls++;
+			m_Statistics.VertexCount += mesh.MeshSource->GetSubmeshes()[mesh.SubmeshIndex].VertexCount;
+			m_Statistics.IndexCount += mesh.MeshSource->GetSubmeshes()[mesh.SubmeshIndex].IndexCount;
+		}
+		Renderer::EndRenderPass(m_CommandBuffer, m_GeometryAnimatedPass);
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		//// Selected Geometry ////////////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+
 		Renderer::BeginRenderPass(m_CommandBuffer, m_SelectedGeometryPass);
 		for (const auto& mesh : m_SelectedDrawList)
 		{
-			Renderer::RenderSubmesh(m_CommandBuffer, m_SelectedGeometryPipeline, mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, nullptr, Buffer::FromValue(mesh.Transform));
+			if (mesh.IsRigged)
+				continue;
+
+			Renderer::RenderSubmesh(m_CommandBuffer, m_SelectedGeometryPipeline, mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, nullptr, false, Buffer::FromValue(mesh.Transform));
 
 			m_Statistics.DrawCalls++;
 			m_Statistics.VertexCount += mesh.MeshSource->GetSubmeshes()[mesh.SubmeshIndex].VertexCount;
@@ -295,6 +390,30 @@ namespace Shark {
 		}
 		Renderer::EndRenderPass(m_CommandBuffer, m_SelectedGeometryPass);
 
+		Renderer::BeginRenderPass(m_CommandBuffer, m_SelectedGeometryAnimatedPass);
+		for (const auto& mesh : m_SelectedDrawList)
+		{
+			if (!mesh.IsRigged)
+				continue;
+
+			struct PC
+			{
+				glm::mat4 Transform;
+				uint32_t BoneBase;
+				uint32_t BoneStride;
+				float P0, P1;
+			} pc;
+
+			pc.Transform = mesh.Transform;
+			pc.BoneBase = m_MeshBoneTransforms.at(mesh.ContextID).BaseIndex;
+			pc.BoneStride = m_MeshBoneTransforms.at(mesh.ContextID).Stride;
+			Renderer::RenderSubmesh(m_CommandBuffer, m_SelectedGeometryAnimatedPipeline, mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, nullptr, false, { &pc, sizeof pc });
+
+			m_Statistics.DrawCalls++;
+			m_Statistics.VertexCount += mesh.MeshSource->GetSubmeshes()[mesh.SubmeshIndex].VertexCount;
+			m_Statistics.IndexCount += mesh.MeshSource->GetSubmeshes()[mesh.SubmeshIndex].IndexCount;
+		}
+		Renderer::EndRenderPass(m_CommandBuffer, m_SelectedGeometryAnimatedPass);
 
 		m_CommandBuffer->EndTimer();
 		m_CommandBuffer->EndMarker();
@@ -365,6 +484,7 @@ namespace Shark {
 		m_SBPointLights       = StorageBuffer::Create(sizeof(PointLight), 16, "Point Lights");
 		m_SBDirectionalLights = StorageBuffer::Create(sizeof(DirectionalLight), LightEnvironment::MaxDirectionLights, "Directional Lights");
 
+		m_SBBoneTransforms = StorageBuffer::Create(sizeof(glm::mat4), 128, "Bone Transforms");
 
 		VertexLayout layout = {
 			{ VertexDataType::Float3, "Position" },
@@ -376,6 +496,11 @@ namespace Shark {
 
 		VertexLayout skyboxLayout = {
 			{ VertexDataType::Float3, "Position" }
+		};
+
+		VertexLayout boneInfluenceLayout = {
+			{ VertexDataType::Int4, "BoneIDs" },
+			{ VertexDataType::Float4, "BoneWeights"}
 		};
 
 		FrameBufferSpecification mainFBSpecification;
@@ -426,8 +551,37 @@ namespace Shark {
 			m_GeometryPass->SetInput("u_RadianceMap", Renderer::GetBlackTextureCube());
 			m_GeometryPass->SetInput("u_BRDFLUTTexture", Renderer::GetBRDFLUTTexture());
 			m_GeometryPass->SetInput("u_EnvironmentSampler", Renderer::GetLinearClampSampler());
+			m_GeometryPass->SetInput("u_BoneTransforms", m_SBBoneTransforms);
 			SK_CORE_VERIFY(m_GeometryPass->Validate());
 			m_GeometryPass->Bake();
+		}
+
+		// Geometry animated
+		{
+			PipelineSpecification specification;
+			specification.Shader = Renderer::GetShaderLibrary()->Get("SharkPBR-Animated");
+			specification.Layout = layout;
+			specification.BoneInfluenceLayout = boneInfluenceLayout;
+			specification.DebugName = "PBR Animated";
+			m_GeometryAnimatedPipeline = Pipeline::Create(specification, loadFramebuffer->GetFramebufferInfo());
+
+			RenderPassSpecification renderPassSpecification;
+			renderPassSpecification.Shader = specification.Shader;
+			renderPassSpecification.TargetFramebuffer = loadFramebuffer;
+			renderPassSpecification.DebugName = specification.DebugName;
+
+			m_GeometryAnimatedPass = RenderPass::Create(renderPassSpecification);
+			m_GeometryAnimatedPass->SetInput("u_Camera", m_CBCamera);
+			m_GeometryAnimatedPass->SetInput("u_Scene", m_CBScene);
+			m_GeometryAnimatedPass->SetInput("u_PointLights", m_SBPointLights);
+			m_GeometryAnimatedPass->SetInput("u_DirectionalLights", m_SBDirectionalLights);
+			m_GeometryAnimatedPass->SetInput("u_IrradianceMap", Renderer::GetBlackTextureCube());
+			m_GeometryAnimatedPass->SetInput("u_RadianceMap", Renderer::GetBlackTextureCube());
+			m_GeometryAnimatedPass->SetInput("u_BRDFLUTTexture", Renderer::GetBRDFLUTTexture());
+			m_GeometryAnimatedPass->SetInput("u_EnvironmentSampler", Renderer::GetLinearClampSampler());
+			m_GeometryAnimatedPass->SetInput("u_BoneTransforms", m_SBBoneTransforms);
+			SK_CORE_VERIFY(m_GeometryAnimatedPass->Validate());
+			m_GeometryAnimatedPass->Bake();
 		}
 
 		// Skybox
@@ -466,7 +620,7 @@ namespace Shark {
 			PipelineSpecification pipelineSpecification;
 			pipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("SelectedGeometry");
 			pipelineSpecification.Layout = layout;
-			pipelineSpecification.DebugName = framebufferSpecification.DebugName;
+			pipelineSpecification.DebugName = "Selected Geometry";
 
 			pipelineSpecification.EnableStencil = true;
 			pipelineSpecification.StencilRef = 1;
@@ -485,6 +639,21 @@ namespace Shark {
 			m_SelectedGeometryPass->SetInput("u_Camera", m_CBCamera);
 			SK_CORE_VERIFY(m_SelectedGeometryPass->Validate());
 			m_SelectedGeometryPass->Bake();
+
+
+			pipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("SelectedGeometry-Animated");
+			pipelineSpecification.BoneInfluenceLayout = boneInfluenceLayout;
+			pipelineSpecification.DebugName = "Selected Geometry - Animated";
+			m_SelectedGeometryAnimatedPipeline = Pipeline::Create(pipelineSpecification, framebuffer->GetFramebufferInfo());
+
+			renderPassSpecification.Shader = pipelineSpecification.Shader;
+			renderPassSpecification.TargetFramebuffer = framebuffer->GetLoadFramebuffer();
+			renderPassSpecification.DebugName = pipelineSpecification.DebugName;
+			m_SelectedGeometryAnimatedPass = RenderPass::Create(renderPassSpecification);
+			m_SelectedGeometryAnimatedPass->SetInput("u_Camera", m_CBCamera);
+			m_SelectedGeometryAnimatedPass->SetInput("u_BoneTransforms", m_SBBoneTransforms);
+			SK_CORE_VERIFY(m_SelectedGeometryAnimatedPass->Validate());
+			m_SelectedGeometryAnimatedPass->Bake();
 		}
 
 		// Composite

@@ -353,6 +353,7 @@ namespace Shark {
 		m_Components.push_back(COMPONENT_DATA_ARGS("Pulley Joint 2D", PulleyJointComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Script", ScriptComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Audio", AudioComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Animation", AnimationComponent));
 		#undef COMPONENT_DATA_ARGS
 
 		SK_CORE_VERIFY(m_Components.size() == (vtll::size<AllComponents::Except<UserHiddenComponents, AutomationComponents, TagComponent>>::value));
@@ -1075,6 +1076,7 @@ namespace Shark {
 			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, utils::IsInconsistentProperty<MeshComponent>(entities, &MeshComponent::Mesh));
 			if (UI::ControlAsset("Mesh", AssetType::Mesh, firstComponent.Mesh))
 			{
+				// #Investigate option to allow async loading for this
 				auto mesh = AssetManager::GetAsset<Mesh>(firstComponent.Mesh);
 				for (auto entity : entities)
 				{
@@ -1564,6 +1566,96 @@ namespace Shark {
 			utils::MultiselectControl(entities, &AudioComponent::PitchMultiplier, "Pitch multiplier");
 
 			UI::EndControlsGrid();
+		});
+
+		DrawComponetMultiSelect<AnimationComponent>(entities, "Animation", [this](AnimationComponent& firstComponent, const std::vector<Entity>& entities)
+		{
+			bool allValid = true;
+			for (auto entity : entities)
+			{
+				// This component only works with a valid mesh component present
+				if (auto* meshComponent = entity.TryGetComponent<MeshComponent>();
+					meshComponent && meshComponent->Mesh)
+				{
+					auto& component = entity.GetComponent<AnimationComponent>();
+					if (component.m_Mesh != meshComponent->Mesh)
+						component.Reset(meshComponent->Mesh);
+					continue;
+				}
+
+				UI::ScopedColor text(ImGuiCol_Text, UI::Colors::Theme::TextError);
+				UI::ScopedFont font("Large");
+				if (entities.size() == 1)
+					ImGui::Text("Valid mesh component is required");
+				else
+					ImGui::Text("Entity %s requires a valid mesh component", entity.GetName().c_str());
+
+				allValid = false;
+			}
+
+			if (!allValid)
+				return;
+
+			UI::BeginControlsGrid();
+
+			const bool isMixedMesh = utils::IsInconsistentProperty<MeshComponent>(entities, &MeshComponent::Mesh);
+			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, isMixedMesh);
+			UI::ControlAsset("Mesh", AssetType::Mesh, std::as_const(firstComponent.m_Mesh));
+
+			if (!isMixedMesh)
+			{
+				auto mesh = AssetManager::GetAssetAsync<Mesh>(firstComponent.m_Mesh);
+				auto meshSource = mesh ? AssetManager::GetAssetAsync<MeshSource>(mesh->GetMeshSource()) : nullptr;
+
+				if (meshSource)
+				{
+					const auto& animationNames = meshSource->GetAnimationNames();
+					const bool changed = utils::Multiselect(entities, &AnimationComponent::AnimationIndex, [this, &animationNames](AnimationComponent& firstComponent, const auto& entities)
+					{
+						return UI::Control("Animation", [&]()
+						{
+							std::string_view preview = "";
+							if (firstComponent.AnimationIndex < animationNames.size())
+								preview = animationNames[firstComponent.AnimationIndex];
+
+							ImGui::InvisibleButton("##animIndexButton", { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
+							UI::DrawButton(preview, UI::GetItemRect());
+
+							return UI::Widgets::ItemSearchPopup(m_AnimationSearchFilter, [animationNames, &index = firstComponent.AnimationIndex](UI::TextFilter& filter, bool clear, bool& changed)
+							{
+								for (size_t i = 0; i < animationNames.size(); i++)
+								{
+									if (!filter.PassesFilter(animationNames[i]))
+										continue;
+
+									UI::ScopedID id(animationNames[i]);
+									if (ImGui::Selectable(animationNames[i].c_str(), i == index))
+									{
+										index = i;
+										changed = true;
+									}
+								}
+							}, false);
+						});
+					});
+
+					if (changed)
+					{
+						for (Entity entity : entities)
+						{
+							auto& component = entity.GetComponent<AnimationComponent>();
+							component.Reset(component.m_Mesh);
+						}
+					}
+
+					utils::MultiselectControl(entities, &AnimationComponent::Loop, "Loop");
+					utils::MultiselectControl(entities, &AnimationComponent::m_UpdateTime, "Update Time");
+					utils::MultiselectControl(entities, &AnimationComponent::m_TimePosition, "Time position", UI::as_slider(0.0f, 1.0f));
+				}
+			}
+
+			UI::EndControlsGrid();
+
 		});
 
 		ImGui::Dummy({ 0, ImGui::GetFrameHeight() });

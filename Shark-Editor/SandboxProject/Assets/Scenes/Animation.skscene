@@ -1,0 +1,905 @@
+Scene:
+  Name: Untitled
+  ActiveCamera: 0
+  Entities:
+    - Entity: 107731758757022703
+      TagComponent:
+        Name: Mosin_Nagant_Izhevsk_1930
+      TransformComponent:
+        Translation: [0, 0, -0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 8211256653248858293
+        Children:
+          - 9852689923266378128
+          - 6917234248789370761
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 177606634120750040
+      TagComponent:
+        Name: R_fng_5_3
+      TransformComponent:
+        Translation: [-1.4184512e-07, 0.018592143, 1.4789718e-07]
+        Rotation: [-0.013899639, 0.49499413, 0.12157129]
+        Scale: [1.0000002, 1.0000001, 1.0000004]
+      RelationshipComponent:
+        Parent: 2282768290552683998
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 511605240622630655
+      TagComponent:
+        Name: extra_5
+      TransformComponent:
+        Translation: [0.04964946, -0.24650866, -0.0252684]
+        Rotation: [9.731622e-09, 0, 0]
+        Scale: [1, 0.99999994, 1]
+      RelationshipComponent:
+        Parent: 4401142541559479110
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 1512837692221178805
+      TagComponent:
+        Name: L_hand4
+      TransformComponent:
+        Translation: [7.038962e-05, 3.3867935e-05, 9.77441e-05]
+        Rotation: [1.2462326, 0.08486985, -0.21755862]
+        Scale: [1.0000001, 0.99999994, 1.0000002]
+      RelationshipComponent:
+        Parent: 13287404832390727152
+        Children:
+          - 14340973316416410127
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 1860110298079866096
+      TagComponent:
+        Name: R_hand1
+      TransformComponent:
+        Translation: [2.436705e-09, -3.1666094e-08, -2.4046107e-08]
+        Rotation: [1.5810657, 0.13001226, 0.035043683]
+        Scale: [0.9999999, 1.0000001, 1]
+      RelationshipComponent:
+        Parent: 12228355340439121316
+        Children:
+          - 5476086382002251480
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 2068434371117317496
+      TagComponent:
+        Name: R_fng_4_2
+      TransformComponent:
+        Translation: [-7.84342e-09, 0.026739746, 5.0827786e-08]
+        Rotation: [0.45674527, 0.10312466, 0.41354418]
+        Scale: [1, 0.9999999, 0.9999999]
+      RelationshipComponent:
+        Parent: 8699692149830699301
+        Children:
+          - 15416291111124687296
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 2282768290552683998
+      TagComponent:
+        Name: R_fng_5_2
+      TransformComponent:
+        Translation: [3.2434336e-08, 0.019843874, 1.2195383e-07]
+        Rotation: [0.34673953, -0.19015469, 0.41458136]
+        Scale: [0.9999997, 1, 0.9999999]
+      RelationshipComponent:
+        Parent: 5476086382002251480
+        Children:
+          - 177606634120750040
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 2325506008263956533
+      TagComponent:
+        Name: R_fng_2_1
+      TransformComponent:
+        Translation: [5.0497615e-08, 0.11363145, 2.101198e-08]
+        Rotation: [0.13208443, 0.100013815, -0.22416872]
+        Scale: [1, 0.99999964, 0.99999994]
+      RelationshipComponent:
+        Parent: 3209432553270262407
+        Children:
+          - 17428373015202676963
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 2532371842227911018
+      TagComponent:
+        Name: bullets
+      TransformComponent:
+        Translation: [0, 0, -0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 8211256653248858293
+        Children:
+          []
+      SubmeshComponent:
+        Mesh: 8876102494381855316
+        SubmeshIndex: 1
+        Material: 0
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 2927725181110423448
+      TagComponent:
+        Name: extra_3
+      TransformComponent:
+        Translation: [0.026270092, 0.011125806, -0.025268402]
+        Rotation: [9.731622e-09, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 4401142541559479110
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 2987688600009323745
+      TagComponent:
+        Name: L_fng_2_3
+      TransformComponent:
+        Translation: [-2.130855e-09, 0.022940975, 3.932092e-08]
+        Rotation: [0.42983127, 0.11665353, -0.07589304]
+        Scale: [1, 1.0000001, 1.0000001]
+      RelationshipComponent:
+        Parent: 7556899433672580802
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 3209432553270262407
+      TagComponent:
+        Name: R_hand4
+      TransformComponent:
+        Translation: [1.4719436e-08, 3.3696544e-08, 6.176958e-08]
+        Rotation: [1.1785367, -0.3397701, -0.028344886]
+        Scale: [0.9999999, 1, 1]
+      RelationshipComponent:
+        Parent: 12228355340439121316
+        Children:
+          - 2325506008263956533
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 3259196839823647730
+      TagComponent:
+        Name: L_fng_1_2
+      TransformComponent:
+        Translation: [-5.3898546e-08, 0.019141594, 5.4132176e-08]
+        Rotation: [-0.26402307, 0.029401835, -0.15451737]
+        Scale: [0.99999976, 0.9999999, 0.99999994]
+      RelationshipComponent:
+        Parent: 3892104833235320112
+        Children:
+          - 8926062449935394306
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 3560427649527635513
+      TagComponent:
+        Name: L_hand3
+      TransformComponent:
+        Translation: [7.063622e-05, 3.358089e-05, 9.778924e-05]
+        Rotation: [1.3287079, -0.16508782, -0.08251515]
+        Scale: [0.99999994, 1.0000001, 1.0000005]
+      RelationshipComponent:
+        Parent: 13287404832390727152
+        Children:
+          - 9032845424671221940
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 3642897463479760668
+      TagComponent:
+        Name: L_hand2
+      TransformComponent:
+        Translation: [7.056755e-05, 3.363129e-05, 9.7526594e-05]
+        Rotation: [1.4540259, -0.29447526, 0.010998984]
+        Scale: [0.9999999, 1, 1.0000002]
+      RelationshipComponent:
+        Parent: 13287404832390727152
+        Children:
+          - 12261311028725845244
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 3892104833235320112
+      TagComponent:
+        Name: L_fng_1_1
+      TransformComponent:
+        Translation: [5.2399074e-08, 0.09135755, -5.9433482e-08]
+        Rotation: [-0.23179121, 0.14134072, 0.45404136]
+        Scale: [0.9999999, 0.9999999, 0.99999976]
+      RelationshipComponent:
+        Parent: 5147623305082348231
+        Children:
+          - 3259196839823647730
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 4146745921982908464
+      TagComponent:
+        Name: R_fng_3_2
+      TransformComponent:
+        Translation: [-5.632595e-08, 0.031170124, 1.10157636e-07]
+        Rotation: [0.4582162, -0.04983141, 0.12753792]
+        Scale: [1.0000001, 0.9999999, 0.99999994]
+      RelationshipComponent:
+        Parent: 4410738110807057799
+        Children:
+          - 14606623727311068311
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 4172843803675569628
+      TagComponent:
+        Name: mag
+      TransformComponent:
+        Translation: [0.0012010913, 0.07274432, 0.18801035]
+        Rotation: [1.2506639, 1.497915e-08, -6.810402e-07]
+        Scale: [1, 1, 1.0000001]
+      RelationshipComponent:
+        Parent: 17848162533929123770
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 4348410194169033494
+      TagComponent:
+        Name: L_fng_4_3
+      TransformComponent:
+        Translation: [-1.2108303e-08, 0.025323145, -5.15393e-08]
+        Rotation: [0.114342265, 0.030564405, -0.049954507]
+        Scale: [1.0000002, 1.0000002, 1.0000002]
+      RelationshipComponent:
+        Parent: 14869371931812933126
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 4401142541559479110
+      TagComponent:
+        Name: chest
+      TransformComponent:
+        Translation: [0, 0, -1.1000001]
+        Rotation: [-1.5707965, 0, 0]
+        Scale: [1, 0.99999994, 0.99999994]
+      RelationshipComponent:
+        Parent: 11996937202072178671
+        Children:
+          - 17849187055992103957
+          - 14239943386099568939
+          - 17848162533929123770
+          - 12228355340439121316
+          - 13287404832390727152
+          - 5199581934634545983
+          - 12641982090299653426
+          - 14013828570867399705
+          - 2927725181110423448
+          - 13198954939929959731
+          - 511605240622630655
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 4410738110807057799
+      TagComponent:
+        Name: R_fng_3_1
+      TransformComponent:
+        Translation: [-3.9229217e-08, 0.10868001, 1.8939193e-08]
+        Rotation: [0.34549174, 0.022890627, 0.00034306315]
+        Scale: [1, 0.9999995, 0.99999964]
+      RelationshipComponent:
+        Parent: 10540953578501531400
+        Children:
+          - 4146745921982908464
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 4661115449578082334
+      TagComponent:
+        Name: env
+      TransformComponent:
+        Translation: [0, 0, 0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          []
+      SkyComponent:
+        SceneEnvironment: 10210776309822430915
+        Intensity: 1
+        Lod: 0
+    - Entity: 4962204607482391241
+      TagComponent:
+        Name: R_vol
+      TransformComponent:
+        Translation: [-4.1587267e-09, 0.23941231, 1.462616e-07]
+        Rotation: [-0.89017457, 0.3770377, 0.6684347]
+        Scale: [1.0000002, 1, 1]
+      RelationshipComponent:
+        Parent: 17849187055992103957
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 5147623305082348231
+      TagComponent:
+        Name: L_hand5
+      TransformComponent:
+        Translation: [0.0061626066, 0.00042610295, -0.004000955]
+        Rotation: [1.7685561, 0.46598095, -0.08187108]
+        Scale: [0.99999976, 0.9999998, 0.99999994]
+      RelationshipComponent:
+        Parent: 13287404832390727152
+        Children:
+          - 3892104833235320112
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 5199581934634545983
+      TagComponent:
+        Name: camera
+      TransformComponent:
+        Translation: [0.009592604, 0.11395192, -0.02794206]
+        Rotation: [9.731622e-09, -2.3841847e-07, -2.3202013e-15]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 4401142541559479110
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 5476086382002251480
+      TagComponent:
+        Name: R_fng_5_1
+      TransformComponent:
+        Translation: [-8.703438e-08, 0.097332455, 8.0278966e-08]
+        Rotation: [0.37402558, -0.07361698, 0.27593043]
+        Scale: [1.0000001, 1, 0.99999994]
+      RelationshipComponent:
+        Parent: 1860110298079866096
+        Children:
+          - 2282768290552683998
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 6917234248789370761
+      TagComponent:
+        Name: Mosin_Nagant_Izhevsk_1930-1
+      TransformComponent:
+        Translation: [0, 0, 0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 107731758757022703
+        Children:
+          []
+      SubmeshComponent:
+        Mesh: 8876102494381855316
+        SubmeshIndex: 3
+        Material: 0
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 7095585861295108044
+      TagComponent:
+        Name: hammer
+      TransformComponent:
+        Translation: [-0.00037678532, 0.07103343, -3.4415516e-05]
+        Rotation: [1.2562019, 9.1923596e-08, -4.529439e-07]
+        Scale: [1, 1, 1.0000001]
+      RelationshipComponent:
+        Parent: 17848162533929123770
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 7402976955482460538
+      TagComponent:
+        Name: L_fng_3_3
+      TransformComponent:
+        Translation: [-2.7283145e-08, 0.025885722, -2.3956012e-08]
+        Rotation: [0.225348, 0.16484879, -0.16249008]
+        Scale: [1, 0.9999999, 0.9999998]
+      RelationshipComponent:
+        Parent: 10487616002003608881
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 7509038359865921979
+      TagComponent:
+        Name: muz
+      TransformComponent:
+        Translation: [-0.00035417045, 0.3575188, 0.85354125]
+        Rotation: [1.2162133, 1.5445565e-07, -2.2455004e-07]
+        Scale: [1.0000001, 1.0000002, 1.0000001]
+      RelationshipComponent:
+        Parent: 17848162533929123770
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 7556899433672580802
+      TagComponent:
+        Name: L_fng_2_2
+      TransformComponent:
+        Translation: [7.819642e-08, 0.025891138, 4.8174954e-08]
+        Rotation: [0.5050442, 0.103575654, -0.089035556]
+        Scale: [0.99999994, 0.99999976, 1]
+      RelationshipComponent:
+        Parent: 14340973316416410127
+        Children:
+          - 2987688600009323745
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 8148436572167842409
+      TagComponent:
+        Name: R_fng_1_3
+      TransformComponent:
+        Translation: [3.2347174e-08, 0.019543778, -2.444778e-07]
+        Rotation: [0.1164265, -0.0026933406, -0.039418224]
+        Scale: [0.99999976, 0.99999994, 1]
+      RelationshipComponent:
+        Parent: 17745148304348846472
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 8211256653248858293
+      TagComponent:
+        Name: mosin
+      TransformComponent:
+        Translation: [0, 0, 0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          - 16530812319186337687
+          - 2532371842227911018
+          - 107731758757022703
+          - 11996937202072178671
+      MeshComponent:
+        Mesh: 8876102494381855316
+    - Entity: 8699692149830699301
+      TagComponent:
+        Name: R_fng_4_1
+      TransformComponent:
+        Translation: [5.9973715e-08, 0.10368258, 5.970133e-08]
+        Rotation: [0.39417344, -0.045517568, 0.1321335]
+        Scale: [0.99999976, 0.99999946, 0.9999996]
+      RelationshipComponent:
+        Parent: 16168406352984161270
+        Children:
+          - 2068434371117317496
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 8851089428475737960
+      TagComponent:
+        Name: slide
+      TransformComponent:
+        Translation: [-0.00053221453, 0.09889319, 0.082458265]
+        Rotation: [1.216219, 1.5323172e-07, -2.2582134e-07]
+        Scale: [1.0000001, 1.0000002, 1.0000002]
+      RelationshipComponent:
+        Parent: 17848162533929123770
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 8926062449935394306
+      TagComponent:
+        Name: L_fng_1_3
+      TransformComponent:
+        Translation: [3.381341e-08, 0.019543255, 2.5161258e-08]
+        Rotation: [0.15584841, 0.020393908, 0.123260476]
+        Scale: [0.9999998, 1, 1.0000002]
+      RelationshipComponent:
+        Parent: 3259196839823647730
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 9032845424671221940
+      TagComponent:
+        Name: L_fng_3_1
+      TransformComponent:
+        Translation: [8.5345924e-08, 0.10868004, 6.446302e-08]
+        Rotation: [0.8230629, 0.4912334, -0.30526337]
+        Scale: [1, 0.99999994, 0.9999998]
+      RelationshipComponent:
+        Parent: 3560427649527635513
+        Children:
+          - 10487616002003608881
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 9778258197316456858
+      TagComponent:
+        Name: L_vol
+      TransformComponent:
+        Translation: [6.9598734e-08, 0.23941223, 3.4782808e-08]
+        Rotation: [0.5332624, 0.22497307, -0.8414587]
+        Scale: [1.0000005, 1, 1.0000001]
+      RelationshipComponent:
+        Parent: 14239943386099568939
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 9852689923266378128
+      TagComponent:
+        Name: Mosin_Nagant_Izhevsk_1930-0
+      TransformComponent:
+        Translation: [0, 0, 0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 107731758757022703
+        Children:
+          []
+      SubmeshComponent:
+        Mesh: 8876102494381855316
+        SubmeshIndex: 2
+        Material: 0
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 10487616002003608881
+      TagComponent:
+        Name: L_fng_3_2
+      TransformComponent:
+        Translation: [1.11705685e-08, 0.031169983, 1.9965789e-07]
+        Rotation: [0.46515623, 0.1718457, -0.06590872]
+        Scale: [0.9999997, 0.99999994, 1.0000001]
+      RelationshipComponent:
+        Parent: 9032845424671221940
+        Children:
+          - 7402976955482460538
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 10540953578501531400
+      TagComponent:
+        Name: R_hand3
+      TransformComponent:
+        Translation: [1.344169e-08, 8.40499e-08, -1.3615086e-07]
+        Rotation: [1.2232643, -0.12578833, -0.035995536]
+        Scale: [1, 1.0000001, 1.0000001]
+      RelationshipComponent:
+        Parent: 12228355340439121316
+        Children:
+          - 4410738110807057799
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 11251688969245021329
+      TagComponent:
+        Name: R_fng_1_1
+      TransformComponent:
+        Translation: [-5.8305126e-08, 0.09135728, -1.2740384e-07]
+        Rotation: [0.043816846, 0.0570162, -0.5670601]
+        Scale: [0.9999999, 0.9999999, 1.0000002]
+      RelationshipComponent:
+        Parent: 18104762365002122820
+        Children:
+          - 17745148304348846472
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 11996937202072178671
+      TagComponent:
+        Name: Root
+      TransformComponent:
+        Translation: [0, 0, -0]
+        Rotation: [1.5707965, 0, 0]
+        Scale: [1, 1.0000001, 1.0000001]
+      RelationshipComponent:
+        Parent: 8211256653248858293
+        Children:
+          - 4401142541559479110
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 12228355340439121316
+      TagComponent:
+        Name: R_wrist
+      TransformComponent:
+        Translation: [0.10023265, 0.025019985, 0.050781757]
+        Rotation: [0.39468983, 0.32051337, -0.49176395]
+        Scale: [1.0000001, 1.0000001, 1.0000001]
+      RelationshipComponent:
+        Parent: 4401142541559479110
+        Children:
+          - 1860110298079866096
+          - 16168406352984161270
+          - 10540953578501531400
+          - 3209432553270262407
+          - 18104762365002122820
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 12261311028725845244
+      TagComponent:
+        Name: L_fng_4_1
+      TransformComponent:
+        Translation: [1.4418075e-07, 0.10368274, 7.043358e-08]
+        Rotation: [0.90927786, 0.38907734, -0.4650693]
+        Scale: [1, 1.0000001, 1]
+      RelationshipComponent:
+        Parent: 3642897463479760668
+        Children:
+          - 14869371931812933126
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 12510900845559568874
+      TagComponent:
+        Name: R_fng_2_3
+      TransformComponent:
+        Translation: [1.4501159e-08, 0.022940766, -5.6206485e-08]
+        Rotation: [0.04937921, 0.037335824, -0.04594463]
+        Scale: [0.99999994, 0.9999994, 0.9999998]
+      RelationshipComponent:
+        Parent: 17428373015202676963
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 12641982090299653426
+      TagComponent:
+        Name: extra_1
+      TransformComponent:
+        Translation: [-0.00046388802, 0.011125806, -0.025268402]
+        Rotation: [9.731622e-09, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 4401142541559479110
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 12840775918783987190
+      TagComponent:
+        Name: L_fng_5_2
+      TransformComponent:
+        Translation: [1.8948025e-08, 0.01984366, -1.1048146e-07]
+        Rotation: [0.3840161, 0.26482496, -0.35578412]
+        Scale: [0.9999999, 0.99999994, 0.99999994]
+      RelationshipComponent:
+        Parent: 12896253982642379685
+        Children:
+          - 16239432869374457285
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 12896253982642379685
+      TagComponent:
+        Name: L_fng_5_1
+      TransformComponent:
+        Translation: [-2.3279595e-08, 0.09733265, -5.1878715e-08]
+        Rotation: [0.8317332, 0.23867685, -0.5238062]
+        Scale: [0.99999994, 0.9999999, 1]
+      RelationshipComponent:
+        Parent: 13174077671266388691
+        Children:
+          - 12840775918783987190
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 13174077671266388691
+      TagComponent:
+        Name: L_hand1
+      TransformComponent:
+        Translation: [-0.001202705, -0.0010462084, 0.0010649336]
+        Rotation: [1.6531066, -0.39090934, 0.049858026]
+        Scale: [0.9999999, 0.9999999, 0.9999998]
+      RelationshipComponent:
+        Parent: 13287404832390727152
+        Children:
+          - 12896253982642379685
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 13198954939929959731
+      TagComponent:
+        Name: extra_4
+      TransformComponent:
+        Translation: [-0.047248274, 0.011125806, -0.025268402]
+        Rotation: [9.731622e-09, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 4401142541559479110
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 13287404832390727152
+      TagComponent:
+        Name: L_wris
+      TransformComponent:
+        Translation: [0.05383528, -0.035223115, 0.36987594]
+        Rotation: [0.49197876, -0.009514587, 2.6324675]
+        Scale: [1.0000005, 1.0000007, 0.9999999]
+      RelationshipComponent:
+        Parent: 4401142541559479110
+        Children:
+          - 13174077671266388691
+          - 3642897463479760668
+          - 3560427649527635513
+          - 1512837692221178805
+          - 5147623305082348231
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 14013828570867399705
+      TagComponent:
+        Name: extra_2
+      TransformComponent:
+        Translation: [-0.02425335, 0.011125806, -0.025268402]
+        Rotation: [9.731622e-09, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 4401142541559479110
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 14239943386099568939
+      TagComponent:
+        Name: L_arm
+      TransformComponent:
+        Translation: [-0.17951225, -0.08603264, 0.1064208]
+        Rotation: [2.0879917, -0.6669992, 2.0026915]
+        Scale: [1, 0.99999976, 1.0000002]
+      RelationshipComponent:
+        Parent: 4401142541559479110
+        Children:
+          - 9778258197316456858
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 14340973316416410127
+      TagComponent:
+        Name: L_fng_2_1
+      TransformComponent:
+        Translation: [-3.1821298e-08, 0.11363136, 2.4213383e-08]
+        Rotation: [0.4358862, 0.19322781, 0.1631861]
+        Scale: [0.99999976, 0.99999964, 0.99999994]
+      RelationshipComponent:
+        Parent: 1512837692221178805
+        Children:
+          - 7556899433672580802
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 14606623727311068311
+      TagComponent:
+        Name: R_fng_3_3
+      TransformComponent:
+        Translation: [-3.6419728e-08, 0.025885498, 3.392907e-07]
+        Rotation: [0.0035205118, 0.08103509, 0.049032822]
+        Scale: [0.9999999, 1, 0.99999994]
+      RelationshipComponent:
+        Parent: 4146745921982908464
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 14869371931812933126
+      TagComponent:
+        Name: L_fng_4_2
+      TransformComponent:
+        Translation: [1.8370903e-08, 0.026739998, 9.279064e-08]
+        Rotation: [0.5166476, 0.49638334, -0.104862735]
+        Scale: [1, 0.9999996, 0.9999999]
+      RelationshipComponent:
+        Parent: 12261311028725845244
+        Children:
+          - 4348410194169033494
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 15416291111124687296
+      TagComponent:
+        Name: R_fng_4_3
+      TransformComponent:
+        Translation: [-1.7350274e-08, 0.025323544, -8.219968e-08]
+        Rotation: [0.057950653, -0.06940118, 0.10814028]
+        Scale: [1.0000002, 1.0000002, 1.0000001]
+      RelationshipComponent:
+        Parent: 2068434371117317496
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 16168406352984161270
+      TagComponent:
+        Name: R_hand2
+      TransformComponent:
+        Translation: [9.016539e-09, -1.7955004e-07, -4.663421e-08]
+        Rotation: [1.3595243, 0.036406014, -0.025236068]
+        Scale: [0.99999994, 1.0000001, 1.0000001]
+      RelationshipComponent:
+        Parent: 12228355340439121316
+        Children:
+          - 8699692149830699301
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 16239432869374457285
+      TagComponent:
+        Name: L_fng_5_3
+      TransformComponent:
+        Translation: [-3.25543e-08, 0.018592268, -7.565065e-08]
+        Rotation: [0.0071866023, 0.48993862, -0.12521909]
+        Scale: [1.0000002, 0.99999994, 1.0000001]
+      RelationshipComponent:
+        Parent: 12840775918783987190
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 16530812319186337687
+      TagComponent:
+        Name: armmesh
+      TransformComponent:
+        Translation: [0, 0, -0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 8211256653248858293
+        Children:
+          []
+      SubmeshComponent:
+        Mesh: 8876102494381855316
+        SubmeshIndex: 0
+        Material: 0
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 17428373015202676963
+      TagComponent:
+        Name: R_fng_2_2
+      TransformComponent:
+        Translation: [-6.441912e-08, 0.025891144, -2.0637119e-08]
+        Rotation: [0.5936778, -0.018109407, 0.1000502]
+        Scale: [0.9999997, 0.9999999, 0.99999994]
+      RelationshipComponent:
+        Parent: 2325506008263956533
+        Children:
+          - 12510900845559568874
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 17745148304348846472
+      TagComponent:
+        Name: R_fng_1_2
+      TransformComponent:
+        Translation: [-1.7131688e-08, 0.01914139, -1.7185316e-07]
+        Rotation: [-0.014989219, 0.013763563, -0.062092386]
+        Scale: [1.0000002, 1.0000001, 0.9999999]
+      RelationshipComponent:
+        Parent: 11251688969245021329
+        Children:
+          - 8148436572167842409
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 17848162533929123770
+      TagComponent:
+        Name: grip
+      TransformComponent:
+        Translation: [0.073131874, -0.011818739, 0.113265045]
+        Rotation: [0.31824493, -0.010926444, 0.030394223]
+        Scale: [1, 0.99999994, 0.9999999]
+      RelationshipComponent:
+        Parent: 4401142541559479110
+        Children:
+          - 7095585861295108044
+          - 8851089428475737960
+          - 7509038359865921979
+          - 4172843803675569628
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 17849187055992103957
+      TagComponent:
+        Name: R_arm
+      TransformComponent:
+        Translation: [0.24520208, 0.09141466, -0.24396788]
+        Rotation: [2.1768064, -0.13300991, 0.0043294197]
+        Scale: [1, 0.9999999, 0.9999999]
+      RelationshipComponent:
+        Parent: 4401142541559479110
+        Children:
+          - 4962204607482391241
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293
+    - Entity: 18104762365002122820
+      TagComponent:
+        Name: R_hand5
+      TransformComponent:
+        Translation: [4.163187e-09, -1.9046151e-08, 1.12990186e-07]
+        Rotation: [1.4788294, -0.83180493, 0.113113396]
+        Scale: [1.0000001, 1.0000001, 1]
+      RelationshipComponent:
+        Parent: 12228355340439121316
+        Children:
+          - 11251688969245021329
+      MeshFilterComponent:
+        RootEntityID: 8211256653248858293

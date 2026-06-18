@@ -56,6 +56,21 @@ namespace Shark {
 		Coral::Bool32 Audio_IsPlaying(SoundID soundID);
 		Coral::Bool32 Audio_Finished(SoundID soundID);
 
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		//// Animation Component //////////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+
+		void          AnimationComponent_SetAnimationByIndex(uint64_t entityID, uint64_t bnimationIndex);
+		void          AnimationComponent_SetAnimationByName(uint64_t entityID, Coral::String animationName);
+		uint64_t      AnimationComponent_GetAnimationIndex(uint64_t entityID);
+		Coral::Bool32 AnimationComponent_GetLoop(uint64_t entityID);
+		void          AnimationComponent_SetLoop(uint64_t entityID, Coral::Bool32 loop);
+		float         AnimationComponent_GetTimePosition(uint64_t entityID);
+		void          AnimationComponent_SetTimePosition(uint64_t entityID, float position);
+		Coral::Bool32 AnimationComponent_IsPlaying(uint64_t entityID);
+		void          AnimationComponent_SetPlaying(uint64_t entityID, Coral::Bool32 play);
+		Coral::Bool32 AnimationComponent_IsFinished(uint64_t entityID);
+
 	}
 
 	static std::map<Coral::TypeId, bool(*)(Entity)> s_HasComponentFunctions;
@@ -108,6 +123,7 @@ namespace Shark {
 		SK_REGISTER_COMPONENT(BoxCollider2DComponent);
 		SK_REGISTER_COMPONENT(CircleCollider2DComponent);
 		SK_REGISTER_COMPONENT(AudioComponent);
+		SK_REGISTER_COMPONENT(AnimationComponent);
 #undef SK_REGISTER_COMPONENT
 	}
 
@@ -278,6 +294,17 @@ namespace Shark {
 		ADD_ICALL(Audio_ResumePlayback);
 		ADD_ICALL(Audio_IsPlaying);
 		ADD_ICALL(Audio_Finished);
+
+		ADD_ICALL(AnimationComponent_SetAnimationByIndex);
+		ADD_ICALL(AnimationComponent_SetAnimationByName);
+		ADD_ICALL(AnimationComponent_GetAnimationIndex);
+		ADD_ICALL(AnimationComponent_GetLoop);
+		ADD_ICALL(AnimationComponent_SetLoop);
+		ADD_ICALL(AnimationComponent_GetTimePosition);
+		ADD_ICALL(AnimationComponent_SetTimePosition);
+		ADD_ICALL(AnimationComponent_IsPlaying);
+		ADD_ICALL(AnimationComponent_SetPlaying);
+		ADD_ICALL(AnimationComponent_IsFinished);
 		#undef ADD_ICALL
 
 		assembly.UploadInternalCalls();
@@ -2014,6 +2041,123 @@ namespace Shark {
 	Coral::Bool32 InternalCalls::Audio_Finished(SoundID soundID)
 	{
 		return GetAudioEngine()->IsSoundFinished(soundID);
+	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////
+	//// Animation Component //////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////////
+
+	void InternalCalls::AnimationComponent_SetAnimationByIndex(uint64_t entityID, uint64_t animationIndex)
+	{
+		auto entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(entity, AnimationComponent);
+
+		auto& component = entity.GetComponent<AnimationComponent>();
+		component.AnimationIndex = animationIndex;
+	}
+
+	void InternalCalls::AnimationComponent_SetAnimationByName(uint64_t entityID, Coral::String animationName)
+	{
+		auto entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(entity, AnimationComponent);
+
+		auto currentScene = ScriptEngine::Get().GetCurrentSceen();
+		currentScene->AddTask([entity, currentScene, name = std::string(animationName)]() mutable
+		{
+			if (!currentScene->IsValidEntity(entity))
+				return true;
+
+			auto& component = entity.GetComponent<AnimationComponent>();
+
+			Ref<Mesh> mesh;
+			Ref<MeshSource> meshSource;
+			if (!(mesh = AssetManager::GetAssetAsync<Mesh>(component.m_Mesh)) ||
+				!(meshSource = AssetManager::GetAssetAsync<MeshSource>(mesh->GetMeshSource())))
+			{
+				return false;
+			}
+
+			auto index = meshSource->FindAnimation(name);
+			if (index)
+				component.AnimationIndex = *index;
+
+			return true;
+		});
+	}
+
+	uint64_t InternalCalls::AnimationComponent_GetAnimationIndex(uint64_t entityID)
+	{
+		auto entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(entity, AnimationComponent);
+
+		auto& component = entity.GetComponent<AnimationComponent>();
+		return component.AnimationIndex;
+	}
+
+	Coral::Bool32 InternalCalls::AnimationComponent_GetLoop(uint64_t entityID)
+	{
+		auto entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(entity, AnimationComponent);
+
+		auto& component = entity.GetComponent<AnimationComponent>();
+		return component.Loop;
+	}
+
+	void InternalCalls::AnimationComponent_SetLoop(uint64_t entityID, Coral::Bool32 loop)
+	{
+		auto entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(entity, AnimationComponent);
+
+		auto& component = entity.GetComponent<AnimationComponent>();
+		component.Loop = loop;
+		component.m_Finished = false;
+	}
+
+	float InternalCalls::AnimationComponent_GetTimePosition(uint64_t entityID)
+	{
+		auto entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(entity, AnimationComponent);
+
+		auto& component = entity.GetComponent<AnimationComponent>();
+		return component.m_TimePosition;
+	}
+
+	void InternalCalls::AnimationComponent_SetTimePosition(uint64_t entityID, float position)
+	{
+		auto entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(entity, AnimationComponent);
+
+		auto& component = entity.GetComponent<AnimationComponent>();
+		// Scene::UpdateAnimations can't handle negative positions
+		component.m_TimePosition = std::max(0.0f, position);
+		component.m_Finished = false;
+	}
+
+	Coral::Bool32 InternalCalls::AnimationComponent_IsPlaying(uint64_t entityID)
+	{
+		auto entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(entity, AnimationComponent);
+
+		auto& component = entity.GetComponent<AnimationComponent>();
+		return component.m_UpdateTime;
+	}
+
+	void InternalCalls::AnimationComponent_SetPlaying(uint64_t entityID, Coral::Bool32 play)
+	{
+		auto entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(entity, AnimationComponent);
+
+		auto& component = entity.GetComponent<AnimationComponent>();
+		component.m_UpdateTime = play;
+	}
+
+	Coral::Bool32 InternalCalls::AnimationComponent_IsFinished(uint64_t entityID)
+	{
+		auto entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(entity, AnimationComponent);
+
+		auto& component = entity.GetComponent<AnimationComponent>();
+		return component.m_Finished;
 	}
 
 }

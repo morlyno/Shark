@@ -92,6 +92,7 @@ namespace Shark {
 
 		bool m_ActivateSerach = false;
 		UI::TextFilter m_SearchFilter;
+		UI::TextFilter m_AnimationSearchFilter;
 
 		struct RangeSelectRequest
 		{

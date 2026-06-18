@@ -59,8 +59,8 @@ namespace Shark {
 		uint32_t GetVertexSize() const;
 		uint32_t GetElementCount() const;
 
-		std::vector<VertexElement>::iterator begin();
-		std::vector<VertexElement>::iterator end();
+		std::vector<VertexElement>::const_iterator begin() const;
+		std::vector<VertexElement>::const_iterator end() const;
 
 	private:
 		void CalcOffsetAndSize();

@@ -543,4 +543,36 @@ namespace Shark
 		}
 	}
 
+	public class AnimationComponent : Component
+	{
+		public unsafe ulong AnimationIndex
+		{
+			get => InternalCalls.AnimationComponent_GetAnimationIndex(Entity.ID);
+			set => InternalCalls.AnimationComponent_SetAnimationByIndex(Entity.ID, value);
+		}
+
+		public unsafe bool Loop
+		{
+			get => InternalCalls.AnimationComponent_GetLoop(Entity.ID);
+			set => InternalCalls.AnimationComponent_SetLoop(Entity.ID, value);
+		}
+
+		public unsafe float PlaybackPosition
+		{
+			get => InternalCalls.AnimationComponent_GetTimePosition(Entity.ID);
+			set => InternalCalls.AnimationComponent_SetTimePosition(Entity.ID, value);
+		}
+
+		public unsafe bool Play
+		{
+			get => InternalCalls.AnimationComponent_IsPlaying(Entity.ID);
+			set => InternalCalls.AnimationComponent_SetPlaying(Entity.ID, value);
+		}
+
+		public unsafe bool Finished() => InternalCalls.AnimationComponent_IsFinished(Entity.ID);
+		public unsafe void SetAnimation(ulong index) => InternalCalls.AnimationComponent_SetAnimationByIndex(Entity.ID, index);
+		public unsafe void SetAnimation(string name) => InternalCalls.AnimationComponent_SetAnimationByName(Entity.ID, name);
+		
+	}
+
 }

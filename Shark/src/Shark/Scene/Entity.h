@@ -73,9 +73,9 @@ namespace Shark {
 		SK_DEPRECATED("Use Entity::Name() instead")
 			std::string& GetName() { return GetComponent<TagComponent>().Tag; }
 
-		operator bool() { return IsValid(); }
-		operator entt::entity() { return m_EntityHandle; }
-		operator uint32_t() { return (uint32_t)m_EntityHandle; }
+		operator bool() const { return IsValid(); }
+		operator entt::entity() const { return m_EntityHandle; }
+		operator uint32_t() const { return (uint32_t)m_EntityHandle; }
 		bool operator==(const Entity& rhs) { return m_EntityHandle == rhs.m_EntityHandle && m_Scene == rhs.m_Scene; }
 		bool operator!=(const Entity& rhs) { return !(*this == rhs); }
 

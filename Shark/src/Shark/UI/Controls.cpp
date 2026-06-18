@@ -365,11 +365,11 @@ namespace Shark::UI {
 			DrawButton(displayName, ImVec2(0.0f, 0.5f), GetItemRect());
 		}
 
-		modified = Widgets::SearchAssetPopup(assetTypes, assetHandle);
-
-		if (args.DropType && (g.LastItemData.ItemFlags & ImGuiItemFlags_ReadOnly) == 0)
+		if ((g.LastItemData.ItemFlags & ImGuiItemFlags_ReadOnly) == 0)
 		{
-			if (ImGui::BeginDragDropTarget())
+			modified = Widgets::SearchAssetPopup(assetTypes, assetHandle);
+
+			if (args.DropType && ImGui::BeginDragDropTarget())
 			{
 				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(args.DropType);
 				if (payload)

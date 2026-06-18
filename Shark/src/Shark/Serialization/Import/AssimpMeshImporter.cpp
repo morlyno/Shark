@@ -1,9 +1,14 @@
 #include "skpch.h"
 #include "AssimpMeshImporter.h"
 
+#include "Shark/Animation/Animation.h"
+#include "Shark/Animation/Skeleton.h"
+#include "Shark/Render/MeshSource.h"
 #include "Shark/Render/Renderer.h"
+
 #include "Shark/Serialization/Import/TextureImporter.h"
 
+#include "Shark/Math/Math.h"
 #include "Shark/File/FileSystem.h"
 #include "Shark/Debug/Profiler.h"
 
@@ -161,9 +166,6 @@ namespace Shark {
 				}
 			}
 
-			meshSource->m_VertexBuffer = VertexBuffer::Create(Buffer::FromArray(meshSource->m_Vertices));
-			meshSource->m_IndexBuffer = IndexBuffer::Create(Buffer::FromArray(meshSource->m_Indices));
-
 			MeshNode& rootNode = meshSource->m_Nodes.emplace_back();
 			TraverseNodes(meshSource, scene->mRootNode, 0);
 		}
@@ -301,7 +303,404 @@ namespace Shark {
 			}
 		}
 
+		meshSource->m_Skeleton = ImportSkeleton(scene);
+		meshSource->m_AnimationNames.reserve(scene->mNumAnimations);
+		meshSource->m_Animations.reserve(scene->mNumAnimations);
+
+		if (meshSource->m_Skeleton)
+		{
+			meshSource->m_BoneInfluences.resize(meshSource->m_Vertices.size());
+			for (size_t meshIndex = 0; meshIndex < scene->mNumMeshes; meshIndex++)
+			{
+				auto* mesh = scene->mMeshes[meshIndex];
+				Submesh& submesh = meshSource->m_Submeshes[meshIndex];
+
+				if (mesh->mNumBones == 0)
+					continue;
+
+				submesh.IsRigged = true;
+				for (size_t aiBoneIndex = 0; aiBoneIndex < mesh->mNumBones; aiBoneIndex++)
+				{
+					auto* bone = mesh->mBones[aiBoneIndex];
+					const size_t boneIndex = meshSource->m_Skeleton->GetBoneIndex(bone->mName.C_Str());
+					if (boneIndex == Skeleton::NullIndex)
+						continue;
+
+					size_t boneInfoIndex = Skeleton::NullIndex;
+					for (size_t i = 0; i < meshSource->m_BoneInfos.size(); i++)
+					{
+						if (meshSource->m_BoneInfos[i].BoneIndex != boneIndex)
+							continue;
+
+						boneInfoIndex = i;
+						break;
+					}
+
+					if (boneInfoIndex == Skeleton::NullIndex)
+					{
+						boneInfoIndex = meshSource->m_BoneInfos.size();
+						meshSource->m_BoneInfos.push_back({ utils::AssimpMatrixToGLM(bone->mOffsetMatrix), boneIndex });
+					}
+
+					for (size_t weightIndex = 0; weightIndex < bone->mNumWeights; weightIndex++)
+					{
+						int vertexID = submesh.BaseVertex + bone->mWeights[weightIndex].mVertexId;
+						float weight = std::clamp(bone->mWeights[weightIndex].mWeight, 0.0f, 1.0f);
+						if (weight <= 0.0f)
+							continue;
+
+						auto& boneInfluence = meshSource->m_BoneInfluences[vertexID];
+						for (size_t i = 0; i < 4; i++)
+						{
+							if (boneInfluence.Weight[i] == 0.0f)
+							{
+								boneInfluence.BoneInfoIndices[i] = static_cast<uint32_t>(boneInfoIndex);
+								SK_CORE_ASSERT(boneInfluence.BoneInfoIndices[i] < meshSource->GetBoneInfos().size());
+								boneInfluence.Weight[i] = weight;
+								break;
+							}
+						}
+					}
+				}
+			}
+
+			for (auto& influence : meshSource->m_BoneInfluences)
+			{
+				float weight = 0.0f;
+				for (size_t i = 0; i < 4; i++)
+					weight += influence.Weight[i];
+
+				if (weight <= 0.0f)
+					continue;
+
+				for (size_t i = 0; i < 4; i++)
+					influence.Weight[i] /= weight;
+			}
+
+
+		}
+
+		for (size_t i = 0; i < scene->mNumAnimations; i++)
+		{
+			meshSource->m_AnimationNames.emplace_back(scene->mAnimations[i]->mName.C_Str());
+			meshSource->m_Animations.emplace_back(ImportAnimation(scene, i, *meshSource->m_Skeleton));
+		}
+
+		if (!meshSource->m_Vertices.empty())
+			meshSource->m_VertexBuffer = VertexBuffer::Create(Buffer::FromArray(meshSource->m_Vertices));
+
+		if (!meshSource->m_BoneInfluences.empty())
+			meshSource->m_BoneInfluenceBuffer = VertexBuffer::Create({ meshSource->m_BoneInfluences.data(), meshSource->m_BoneInfluences.size() * sizeof(BoneInfluence) });
+
+		if (!meshSource->m_Indices.empty())
+			meshSource->m_IndexBuffer = IndexBuffer::Create(Buffer::FromArray(meshSource->m_Indices));
+
 		return meshSource;
+	}
+
+	Scope<Skeleton> AssimpMeshImporter::ImportSkeleton(const aiScene* scene)
+	{
+		std::set<std::string_view> bones;
+
+		for (size_t meshIndex = 0; meshIndex < scene->mNumMeshes; meshIndex++)
+		{
+			auto* mesh = scene->mMeshes[meshIndex];
+			auto numBones = mesh->mNumBones;
+			for (size_t boneIndex = 0; boneIndex < mesh->mNumBones; boneIndex++)
+			{
+				bones.emplace(mesh->mBones[boneIndex]->mName.C_Str());
+			}
+		}
+
+		if (bones.empty())
+			return nullptr;
+
+		auto skeleton = Scope<Skeleton>::Create();
+		TraverseNodes(scene->mRootNode, skeleton.Raw(), bones);
+		skeleton->Initialize();
+
+		return skeleton;
+	}
+
+	static std::vector<Channel> ImportChannels(aiAnimation* animation, const Skeleton& skeleton)
+	{
+		std::vector<Channel> channels;
+
+		std::unordered_map<std::string_view, size_t> boneIndices;
+		std::unordered_set<size_t> rootBoneIndices;
+
+		for (size_t i = 0; i < skeleton.GetBoneCount(); ++i)
+		{
+			boneIndices[skeleton.GetBoneName(i)] = i;
+			if (skeleton.GetParentBoneIndex(i) == Skeleton::NullIndex)
+				rootBoneIndices.emplace(i);
+		}
+
+		std::map<size_t, aiNodeAnim*> validChannels;
+		for (auto i = 0; i < animation->mNumChannels; i++)
+		{
+			auto* nodeAnim = animation->mChannels[i];
+
+			const auto it = boneIndices.find(nodeAnim->mNodeName.C_Str());
+			if (it != boneIndices.end())
+				validChannels.emplace(it->second, nodeAnim);
+		}
+
+		channels.resize(skeleton.GetBoneCount());
+
+		double firstFrameDelta = std::numeric_limits<double>::max();
+		double animationDuration = animation->mDuration;
+		for (size_t i = 0; i < channels.size(); i++)
+		{
+			if (!validChannels.contains(i))
+				continue;
+
+			auto* nodeAnim = validChannels.at(i);
+			if (nodeAnim->mNumPositionKeys > 0)
+				firstFrameDelta = std::min(firstFrameDelta, nodeAnim->mPositionKeys[0].mTime);
+
+			if (nodeAnim->mNumRotationKeys > 0)
+				firstFrameDelta = std::min(firstFrameDelta, nodeAnim->mRotationKeys[0].mTime);
+
+			if (nodeAnim->mNumScalingKeys > 0)
+				firstFrameDelta = std::min(firstFrameDelta, nodeAnim->mScalingKeys[0].mTime);
+		}
+
+		animation->mDuration -= firstFrameDelta;
+		if (animation->mDuration <= 0.0)
+			animationDuration = 1.0f;
+
+		for (size_t boneIndex = 0; boneIndex < channels.size(); boneIndex++)
+		{
+			Channel& channel = channels[boneIndex];
+			channel.Index = boneIndex;
+
+			if (!validChannels.contains(boneIndex))
+			{
+				const auto translation = skeleton.GetBoneTranslation(boneIndex);
+				const auto rotation = skeleton.GetBoneRotation(boneIndex);
+				const auto scale = skeleton.GetBoneScale(boneIndex);
+
+				channel.Translations = { { 0.0f, translation }, { 1.0f, translation } };
+				channel.Rotations    = { { 0.0f, rotation    }, { 1.0f, rotation    } };
+				channel.Scales       = { { 0.0f, scale       }, { 1.0f, scale       } };
+				continue;
+			}
+
+			auto* nodeAmin = validChannels.at(boneIndex);
+			channel.Translations.reserve(nodeAmin->mNumPositionKeys + 2);
+			channel.Rotations.reserve(nodeAmin->mNumRotationKeys+ 2);
+			channel.Scales.reserve(nodeAmin->mNumScalingKeys + 2);
+
+			/////////////////////////////////////////////////
+			//// Position
+
+			for (size_t keyIndex = 0; keyIndex < nodeAmin->mNumPositionKeys; keyIndex++)
+			{
+				auto key = nodeAmin->mPositionKeys[keyIndex];
+				float frameTime = std::clamp(static_cast<float>((key.mTime - firstFrameDelta) / animation->mDuration), 0.0f, 1.0f);
+
+				if (keyIndex == 0 && frameTime > 0.0f)
+				{
+					channel.Translations.push_back({
+						0.0f,
+						glm::vec3(
+							static_cast<float>(key.mValue.x),
+							static_cast<float>(key.mValue.y),
+							static_cast<float>(key.mValue.z)
+						)
+					});
+				}
+				
+				channel.Translations.push_back({
+					frameTime,
+					glm::vec3(
+						static_cast<float>(key.mValue.x),
+						static_cast<float>(key.mValue.y),
+						static_cast<float>(key.mValue.z)
+					)
+				});
+			}
+
+			if (channel.Translations.empty())
+			{
+				channel.Translations = {
+					{ 0.0f, glm::vec3(0.0f) },
+					{ 1.0f, glm::vec3(0.0f) }
+				};
+			}
+			else if (channel.Translations.back().FrameTime < 1.0f)
+			{
+				channel.Translations.push_back({
+					1.0f,
+					channel.Translations.back().Value
+				});
+			}
+
+			/////////////////////////////////////////////////
+			//// Rotation
+
+			for (size_t keyIndex = 0; keyIndex < nodeAmin->mNumRotationKeys; keyIndex++)
+			{
+				auto key = nodeAmin->mRotationKeys[keyIndex];
+				float frameTime = std::clamp(static_cast<float>((key.mTime - firstFrameDelta) / animation->mDuration), 0.0f, 1.0f);
+
+				if (keyIndex == 0 && frameTime > 0.0f)
+				{
+					channel.Rotations.push_back({
+						0.0f,
+						glm::quat(
+							static_cast<float>(key.mValue.w),
+							static_cast<float>(key.mValue.x),
+							static_cast<float>(key.mValue.y),
+							static_cast<float>(key.mValue.z)
+						)
+					});
+				}
+				
+				channel.Rotations.push_back({
+					frameTime,
+					glm::quat(
+						static_cast<float>(key.mValue.w),
+						static_cast<float>(key.mValue.x),
+						static_cast<float>(key.mValue.y),
+						static_cast<float>(key.mValue.z)
+					)
+				});
+			}
+
+			if (channel.Rotations.empty())
+			{
+				channel.Rotations = {
+					{ 0.0f, glm::identity<glm::quat>() },
+					{ 1.0f, glm::identity<glm::quat>() }
+				};
+			}
+			else if (channel.Rotations.back().FrameTime < 1.0f)
+			{
+				channel.Rotations.push_back({
+					1.0f,
+					channel.Rotations.back().Value
+				});
+			}
+
+			/////////////////////////////////////////////////
+			//// Scale
+
+			for (size_t keyIndex = 0; keyIndex < nodeAmin->mNumScalingKeys; keyIndex++)
+			{
+				auto key = nodeAmin->mScalingKeys[keyIndex];
+				float frameTime = std::clamp(static_cast<float>((key.mTime - firstFrameDelta) / animation->mDuration), 0.0f, 1.0f);
+
+				float scale = static_cast<float>(key.mValue.x);
+				if (glm::epsilonNotEqual(key.mValue.x, key.mValue.y, 0.00001f) || glm::epsilonNotEqual(key.mValue.y, key.mValue.z, 0.00001f))
+				{
+					scale = static_cast<float>((key.mValue.x + key.mValue.y + key.mValue.y) / 3.0);
+					SK_CORE_ERROR_TAG("Animation", "Non uniform scale! [{}, {}, {}] => {}", key.mValue.x, key.mValue.y, key.mValue.z, scale);
+				}
+
+				if (keyIndex == 0 && frameTime > 0.0f)
+				{
+					channel.Scales.push_back({
+						0.0f,
+						scale
+					});
+				}
+
+				channel.Scales.push_back({
+					frameTime,
+					scale
+				});
+			}
+
+			if (channel.Scales.empty())
+			{
+				channel.Scales = {
+					{ 0.0f, 1.0f },
+					{ 1.0f, 1.0f }
+				};
+			}
+			else if (channel.Scales.back().FrameTime < 1.0f)
+			{
+				channel.Scales.push_back({
+					1.0f,
+					channel.Scales.back().Value
+				});
+			}
+		}
+
+		return channels;
+	}
+
+	void SanitizeChannels(std::vector<Channel>& channels)
+	{
+		size_t desiredFrames = 2;
+		for (const auto& channel : channels)
+			desiredFrames = std::max({ desiredFrames, channel.Translations.size(), channel.Rotations.size(), channel.Scales.size() });
+
+		const float frameInterval = 1.0f / static_cast<float>(desiredFrames - 1);
+
+		for (auto& channel : channels)
+		{
+			Channel newChannel;
+			newChannel.Translations.reserve(desiredFrames);
+			newChannel.Rotations.reserve(desiredFrames);
+			newChannel.Scales.reserve(desiredFrames);
+
+			newChannel.Translations.emplace_back(channel.Translations.front());
+			newChannel.Rotations.emplace_back(channel.Rotations.front());
+			newChannel.Scales.emplace_back(channel.Scales.front());
+
+			size_t translationIndex = 0;
+			size_t rotationIndex = 0;
+			size_t scaleIndex = 0;
+
+			for (size_t i = 1; i < desiredFrames - 1; i++)
+			{
+				const float frameTime = i * frameInterval;
+
+				while (translationIndex < channel.Translations.size() && channel.Translations[translationIndex].FrameTime < frameTime)
+					translationIndex++;
+
+				while (rotationIndex < channel.Rotations.size() && channel.Rotations[rotationIndex].FrameTime < frameTime)
+					rotationIndex++;
+
+				while (scaleIndex < channel.Scales.size() && channel.Scales[scaleIndex].FrameTime < frameTime)
+					scaleIndex++;
+
+				const float translationT = (frameTime - channel.Translations[translationIndex - 1].FrameTime) / (channel.Translations[translationIndex].FrameTime - channel.Translations[translationIndex - 1].FrameTime);
+				const float rotationT    = (frameTime - channel.Rotations   [rotationIndex    - 1].FrameTime) / (channel.Rotations   [rotationIndex   ].FrameTime - channel.Rotations   [rotationIndex    - 1].FrameTime);
+				const float scaleT       = (frameTime - channel.Scales      [scaleIndex       - 1].FrameTime) / (channel.Scales      [scaleIndex      ].FrameTime - channel.Scales      [scaleIndex       - 1].FrameTime);
+
+				newChannel.Translations.push_back({ frameTime, glm::mix(channel.Translations[translationIndex - 1].Value, channel.Translations[translationIndex].Value, translationT) });
+				newChannel.Rotations   .push_back({ frameTime, glm::mix(channel.Rotations   [rotationIndex    - 1].Value, channel.Rotations   [rotationIndex   ].Value, rotationT)    });
+				newChannel.Scales      .push_back({ frameTime, glm::mix(channel.Scales      [scaleIndex       - 1].Value, channel.Scales      [scaleIndex      ].Value, scaleT)       });
+			}
+
+			newChannel.Translations.push_back(channel.Translations.back());
+			newChannel.Rotations.push_back(channel.Rotations.back());
+			newChannel.Scales.push_back(channel.Scales.back());
+
+			channel = std::move(newChannel);
+		}
+
+	}
+
+	Scope<Animation> AssimpMeshImporter::ImportAnimation(const aiScene* scene, uint32_t animationIndex, const Skeleton& skeleton)
+	{
+		if (!scene || animationIndex >= scene->mNumAnimations)
+			return nullptr;
+
+		aiAnimation* animation = scene->mAnimations[animationIndex];
+		auto channels = ImportChannels(animation, skeleton);
+
+		SanitizeChannels(channels);
+
+		auto samplingRate = animation->mTicksPerSecond;
+		if (samplingRate < 0.0001)
+			samplingRate = 1.0;
+
+		return Scope<Animation>::Create(&skeleton, std::move(channels), animation->mDuration / samplingRate);
 	}
 
 	void AssimpMeshImporter::TraverseNodes(Ref<MeshSource> meshSource, aiNode* assimpNode, uint32_t nodeIndex, const glm::mat4& parentTransform, uint32_t level)
@@ -369,6 +768,71 @@ namespace Shark {
 		Renderer::MT::GenerateMips(texture->GetImage());
 
 		return context->AddMemoryOnlyAsset(texture);
+	}
+
+	static bool NodeContainsBone(aiNode* node, std::set<std::string_view>& bones)
+	{
+		if (!node)
+			return false;
+
+		if (bones.contains(node->mName.C_Str()))
+			return true;
+
+		for (uint32_t i = 0; i < node->mNumChildren; i++)
+		{
+			if (NodeContainsBone(node->mChildren[i], bones))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	static void TraverseBone(aiNode* node, Skeleton* skeleton, size_t parentIndex, std::set<std::string_view>& bones)
+	{
+		glm::vec3 translation, scale;
+		glm::quat rotation;
+
+		{
+			glm::mat4 transform = utils::AssimpMatrixToGLM(node->mTransformation);
+			Math::DecomposeTransform(transform, translation, rotation, scale);
+		}
+
+		if (glm::epsilonNotEqual(scale.x, scale.y, 0.00001f) || glm::epsilonNotEqual(scale.y, scale.z, 0.00001f))
+		{
+			SK_CORE_ERROR_TAG("Animation", "Non uniform scale! {} => {}", scale, (scale.x + scale.y + scale.y) / 3.0f);
+			scale.x = (scale.x + scale.y + scale.y) / 3.0f;
+		}
+
+		const size_t boneIndex = skeleton->AddBone(node->mName.C_Str(), parentIndex, translation, rotation, scale.x);
+		for (auto i = 0; i < node->mNumChildren; i++)
+		{
+			auto* childNode = node->mChildren[i];
+			if (NodeContainsBone(childNode, bones))
+				TraverseBone(childNode, skeleton, boneIndex, bones);
+		}
+	}
+
+	void AssimpMeshImporter::TraverseNodes(aiNode* node, Skeleton* skeleton, std::set<std::string_view>& bones)
+	{
+		uint32_t boneChildCount = 0;
+		for (auto i = 0; i < node->mNumChildren; i++)
+		{
+			if (NodeContainsBone(node, bones))
+				boneChildCount++;
+
+			if (boneChildCount > 1)
+				break;
+		}
+
+		if (bones.contains(node->mName.C_Str()) || boneChildCount > 1)
+		{
+			TraverseBone(node, skeleton, ~0, bones);
+			return;
+		}
+
+		for (auto i = 0; i < node->mNumChildren; i++)
+			TraverseNodes(node->mChildren[i], skeleton, bones);
 	}
 
 }

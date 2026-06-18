@@ -6,23 +6,49 @@ namespace Shark {
 
 	namespace Projection {
 
-		struct ProjectionToAddress
-		{
-			template<typename T>
-			T* operator()(T& val)
+		namespace Type {
+
+			struct ToAddress
 			{
-				return &val;
-			}
-		};
+				template<typename T>
+				T* operator()(T& val)
+				{
+					return &val;
+				}
+			};
 
-		static constexpr ProjectionToAddress ToAddress;
+			struct Invoke
+			{
+				template<typename TFunc, typename... TArgs>
+				auto operator()(TFunc&& func, TArgs&&... args)
+				{
+					return std::invoke(std::forward<TFunc>(func), std::forward<TArgs>(args)...);
+				}
+			};
 
+		}
+
+		static constexpr Type::ToAddress ToAddress;
+		static constexpr Type::Invoke Invoke;
 	}
 
 	template<std::ranges::range TRange>
 	bool Contains(const TRange& range, const typename TRange::value_type& value)
 	{
 		return std::ranges::find(range, value) != std::ranges::end(range);
+	}
+
+	template<typename T>
+	bool ReserveAtLeast(std::vector<T>& vec, size_t requestedCapacity)
+	{
+		if (vec.capacity() < requestedCapacity)
+		{
+			size_t newCapacity = vec.capacity() + vec.capacity() / 2;
+			if (newCapacity < requestedCapacity)
+				newCapacity = requestedCapacity;
+
+			vec.reserve(newCapacity);
+		}
 	}
 
 }

@@ -474,6 +474,17 @@ namespace Shark {
 			out << YAML::EndMap;
 		}
 
+		if (auto component = entity.TryGetComponent<AnimationComponent>())
+		{
+			out << YAML::Key << "AnimationComponent";
+			out << YAML::BeginMap;
+			// #Investigate should this be serialized
+			out << YAML::Key << "Mesh" << YAML::Value << component->m_Mesh;
+			out << YAML::Key << "AnimationIndex" << YAML::Value << component->AnimationIndex;
+			out << YAML::Key << "Loop" << YAML::Value << component->Loop;
+			out << YAML::EndMap;
+		}
+
 		out << YAML::EndMap;
 	}
 
@@ -534,6 +545,29 @@ namespace Shark {
 		{
 			auto& component = entity.AddOrReplaceComponent<MeshComponent>();
 			SK_DESERIALIZE_PROPERTY(componentNode, "Mesh", component.Mesh, AssetHandle::Invalid);
+
+			m_Scene->AddTask([entity, scene = m_Scene]() mutable
+			{
+				if (!entity)
+					return true;
+
+				auto& meshComponent = entity.GetComponent<MeshComponent>();
+
+				Ref<Mesh> mesh;
+				Ref<MeshSource> meshSource;
+
+				if (!(mesh = AssetManager::GetAssetAsync<Mesh>(meshComponent.Mesh)) ||
+					!(meshSource = AssetManager::GetAssetAsync<MeshSource>(mesh->GetMeshSource())))
+				{
+					// #TODO handle failed load
+					return false;
+				}
+
+				if (meshSource->HasSkeleton())
+					meshComponent.BoneEntityIDs = scene->FindBoneEntityIDs(entity, meshSource->GetSkeleton());
+
+				return true;
+			});
 		}
 
 		if (auto componentNode = entityNode["SubmeshComponent"])
@@ -812,6 +846,21 @@ namespace Shark {
 			YAML::DeserializeProperty(componentNode, "PlayOnWake", component.PlayOnWake);
 			YAML::DeserializeProperty(componentNode, "VolumeMultiplier", component.VolumeMultiplier);
 			YAML::DeserializeProperty(componentNode, "PitchMultiplier", component.PitchMultiplier);
+		}
+
+		if (auto componentNode = entityNode["AnimationComponent"])
+		{
+			auto& component = entity.AddOrReplaceComponent<AnimationComponent>();
+			YAML::DeserializeProperty(componentNode, "AnimationIndex", component.AnimationIndex);
+			YAML::DeserializeProperty(componentNode, "Loop", component.Loop);
+
+			if (componentNode["Mesh"])
+				YAML::DeserializeProperty(componentNode, "Mesh", component.m_Mesh);
+
+			if (auto* meshComponent = entity.TryGetComponent<MeshComponent>())
+				component.m_Mesh = meshComponent->Mesh;
+
+			// m_Animation is set in Scene::OnScenePlay
 		}
 
 	}

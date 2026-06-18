@@ -56,6 +56,7 @@ namespace Shark {
 	{
 	public:
 		static Ref<FrameBuffer> Create(const FrameBufferSpecification& specification) { return Ref<FrameBuffer>::Create(specification); }
+		Ref<FrameBuffer> GetLoadFramebuffer(bool allowCached = true) const;
 
 		void Resize(uint32_t width, uint32_t height, bool force = false);
 
@@ -95,6 +96,8 @@ namespace Shark {
 
 		nvrhi::FramebufferHandle m_FramebufferHandle;
 		nvrhi::Viewport m_Viewport;
+
+		mutable Weak<FrameBuffer> m_LoadFramebuffer;
 	};
 
 }

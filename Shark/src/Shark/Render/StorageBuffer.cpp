@@ -27,4 +27,14 @@ namespace Shark {
 		ResizeBuffer((uint64_t)m_Count * m_StructSize);
 	}
 
+	bool StorageBuffer::ResizeAuto(uint32_t requiredCount)
+	{
+		if (m_Count > requiredCount)
+			return false;
+
+		uint32_t count = m_Count * 2;
+		Resize(std::max(count, requiredCount));
+		return true;
+	}
+
 }

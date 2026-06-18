@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "MeshSourceSerializer.h"
 
+#include "Shark/Render/MeshSource.h"
+
 #include "Shark/File/FileSystem.h"
 #include "Shark/Serialization/Import/AssimpMeshImporter.h"
 

@@ -101,7 +101,7 @@ namespace Shark::UI {
 	bool Control(std::string_view label, bool& value, const char* vTrue, const char* vFalse);
 	bool Control(std::string_view label, Concepts::Enum auto& value);
 	bool Control(std::string_view label, Concepts::Enum auto const& value);
-	
+
 	bool Control(std::string_view label, char* buffer, size_t bufferSize);
 	bool Control(std::string_view label, std::string& value);
 	bool Control(std::string_view label, std::string_view value);

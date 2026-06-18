@@ -1,4 +1,7 @@
 ImportedAssets:
+  - Handle: 1311152330091211498
+    Type: Scene
+    FilePath: Scenes/Animation.skscene
   - Handle: 4025171883711522889
     Type: Scene
     FilePath: Scenes/Cube.skscene
@@ -386,6 +389,54 @@ ImportedAssets:
   - Handle: 11322478862781101585
     Type: Texture
     FilePath: Meshes/Source/cerberus_fbx/cerberus.fbm/cerberus_R.png
+  - Handle: 10295498252982194673
+    Type: Texture
+    FilePath: Meshes/Source/mosin/E_bullet_3_ddna.jpg
+  - Handle: 14817795390536046204
+    Type: Texture
+    FilePath: Meshes/Source/mosin/E_bullet_3_diff.jpg
+  - Handle: 8841792063896507648
+    Type: Texture
+    FilePath: Meshes/Source/mosin/E_bullet_3_diff.png
+  - Handle: 11668163048820002836
+    Type: Texture
+    FilePath: Meshes/Source/mosin/E_bullet_3_spec.jpg
+  - Handle: 2313622457876959077
+    Type: Texture
+    FilePath: Meshes/Source/mosin/arms1_Mat_ddna.jpg
+  - Handle: 1000777208533621378
+    Type: Texture
+    FilePath: Meshes/Source/mosin/arms1_Mat_diff.jpg
+  - Handle: 18129741012070512791
+    Type: Texture
+    FilePath: Meshes/Source/mosin/arms1_Mat_spec.jpg
+  - Handle: 2008903643350208869
+    Type: Texture
+    FilePath: Meshes/Source/mosin/arms1_Mat_spec.png
+  - Handle: 11014414575887092518
+    Type: Texture
+    FilePath: Meshes/Source/mosin/mat0_c.jpg
+  - Handle: 3178165623510387803
+    Type: Texture
+    FilePath: Meshes/Source/mosin/mat0_r.jpg
+  - Handle: 5622575123720244137
+    Type: Texture
+    FilePath: Meshes/Source/mosin/mat0_r.png
+  - Handle: 1500472860724010986
+    Type: Texture
+    FilePath: Meshes/Source/mosin/mat1_diff.jpg
+  - Handle: 6300654686744911179
+    Type: Texture
+    FilePath: Meshes/Source/mosin/mat1_n.png
+  - Handle: 2410257017652810139
+    Type: Texture
+    FilePath: Meshes/Source/mosin/mat1_r.jpg
+  - Handle: 10016135639175762005
+    Type: Texture
+    FilePath: Meshes/Source/mosin/mat1_r.png
+  - Handle: 1898115376591172246
+    Type: Texture
+    FilePath: Meshes/Source/stormtrooper/Stormtrooper_D.png
   - Handle: 389760130929310853
     Type: Texture
     FilePath: Texture/Cerberus/cerberus_A.sktex
@@ -518,6 +569,9 @@ ImportedAssets:
   - Handle: 15495282146033534384
     Type: Texture
     FilePath: Texture/clarens_night_01_4k.png
+  - Handle: 14040766698817623401
+    Type: ScriptFile
+    FilePath: Scripts/Source/AnimationTest.cs
   - Handle: 18016793634625287177
     Type: ScriptFile
     FilePath: Scripts/Source/AudioTest.cs
@@ -614,6 +668,15 @@ ImportedAssets:
   - Handle: 15152399178846611395
     Type: MeshSource
     FilePath: Meshes/Source/cerberus_fbx/cerberus.fbx
+  - Handle: 10298696817247799027
+    Type: MeshSource
+    FilePath: Meshes/Source/mosin/mosin.gltf
+  - Handle: 4377233057981621194
+    Type: MeshSource
+    FilePath: Meshes/Source/stormtrooper/stormtrooper.gltf
+  - Handle: 14066669202339065697
+    Type: MeshSource
+    FilePath: Test/Knight.glb
   - Handle: 4372713327045032286
     Type: Mesh
     FilePath: Meshes/CerberusPacked.skmesh
@@ -638,6 +701,9 @@ ImportedAssets:
   - Handle: 2608668310550125016
     Type: Mesh
     FilePath: Meshes/Defaults/Torus.skmesh
+  - Handle: 11686632601999347549
+    Type: Mesh
+    FilePath: Meshes/Knight.skmesh
   - Handle: 3345831159094587027
     Type: Mesh
     FilePath: Meshes/Sword.skmesh
@@ -650,6 +716,9 @@ ImportedAssets:
   - Handle: 14878245583165526856
     Type: Mesh
     FilePath: Meshes/cerberus ( 1)
+  - Handle: 8876102494381855316
+    Type: Mesh
+    FilePath: Meshes/mosin.skmesh
   - Handle: 17138360873427703421
     Type: Mesh
     FilePath: Meshes/muro.skmesh
@@ -662,6 +731,9 @@ ImportedAssets:
   - Handle: 12434088705897559964
     Type: Mesh
     FilePath: Meshes/sponza.skmesh
+  - Handle: 6912604271052633305
+    Type: Mesh
+    FilePath: Meshes/stormtrooper.skmesh
   - Handle: 17581796770601634440
     Type: Mesh
     FilePath: Meshes/suzanne.skmesh

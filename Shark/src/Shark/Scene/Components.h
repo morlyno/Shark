@@ -112,6 +112,7 @@ namespace Shark {
 	struct MeshComponent
 	{
 		AssetHandle Mesh;
+		std::vector<UUID> BoneEntityIDs;
 	};
 
 	struct MeshFilterComponent
@@ -342,6 +343,26 @@ namespace Shark {
 		float       PitchMultiplier  = 1.0f;
 	};
 
+	// This component only works when there is a mesh component on the same entity
+	struct AnimationComponent
+	{
+		size_t AnimationIndex = 0;
+		bool Loop = true;
+
+		// Runtime
+		AssetHandle m_Mesh = AssetHandle::Invalid;
+		float m_TimePosition = 0.0f;
+		bool m_Finished = false;
+		bool m_UpdateTime = true;
+
+		void Reset(AssetHandle mesh)
+		{
+			m_Mesh = mesh;
+			m_TimePosition = 0.0f;
+			m_Finished = false;
+		}
+	};
+
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	//// Groups ///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////////
@@ -357,7 +378,8 @@ namespace Shark {
 			                             /* Camera     */ CameraComponent,
 			                             /* Physics 2D */ RigidBody2DComponent, BoxCollider2DComponent, CircleCollider2DComponent, DistanceJointComponent, HingeJointComponent, PrismaticJointComponent, PulleyJointComponent,
 			                             /* Script     */ ScriptComponent,
-										 /* Audio      */ AudioComponent>;
+										 /* Audio      */ AudioComponent,
+										 /* Animation  */ AnimationComponent>;
 
 	// Every entity is required to have all of those components
 	using CoreComponents = ComponentGroup<IDComponent, TagComponent, TransformComponent, RelationshipComponent>;
@@ -414,6 +436,9 @@ namespace Shark {
 
 		template<typename... Seq>
 		using ExceptCoreAnd = Except<CoreComponents, Seq...>;
+
+		using AsTuple = std::tuple<TComponents...>;
+		using AsConstPointerTuple = std::tuple<const TComponents*...>;
 	};
 	
 	template<typename TFunc, typename... TComponents>
@@ -435,6 +460,31 @@ namespace Shark {
 	inline static void ForEach(vtll::type_list<TComponents...> componentGroup, TFunc func)
 	{
 		ForEach<TFunc, TComponents...>(func);
+	}
+
+	namespace Internal {
+
+		template<typename TFunc, typename... TComponents, size_t... TIndices>
+		inline static void ForEachIndexed(TFunc&& func, std::integer_sequence<size_t, TIndices...> sequence)
+		{
+			([&]()
+			{
+				func.template operator() < TComponents, TIndices > ();
+			}(), ...);
+		}
+
+	}
+
+	template<typename TFunc, typename... TComponents>
+	inline static void ForEachIndexed(TFunc&& func)
+	{
+		Internal::ForEachIndexed<TFunc, TComponents...>(std::forward<TFunc>(func), std::make_index_sequence<sizeof...(TComponents)>{});
+	}
+
+	template<typename TFunc, typename... TComponents>
+	inline static void ForEachIndexed(ComponentGroup<TComponents...> componentGroup, TFunc&& func)
+	{
+		Internal::ForEachIndexed<TFunc, TComponents...>(std::forward<TFunc>(func), std::make_index_sequence<sizeof...(TComponents)>{});
 	}
 
 }

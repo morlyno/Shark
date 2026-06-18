@@ -132,11 +132,12 @@ namespace Shark {
 		Entity InstantiateMesh(Ref<Mesh> mesh);
 		Entity InstantiateStaticMesh(Ref<Mesh> mesh);
 		void RebuildMeshEntityHierarchy(Entity entity);
+		std::vector<UUID> FindBoneEntityIDs(Entity rootEntity, const Skeleton& skeleton) const;
 
 		Entity GetEntityByID(UUID id) const;
 		Entity TryGetEntityByUUID(UUID uuid) const;
 		Entity FindEntityByTag(const std::string& tag);
-		Entity FindChildEntityByName(Entity entity, const std::string& name, bool recusive);
+		Entity FindChildEntityByName(Entity entity, const std::string& name, bool recusive) const;
 
 		bool IsValidEntity(Entity entity) const;
 		bool IsValidEntityID(UUID entityID) const;
@@ -185,6 +186,12 @@ namespace Shark {
 			m_PostUpdateQueue.emplace_back(func);
 		}
 
+		template<typename TFunc>
+		void AddTask(TFunc&& func)
+		{
+			m_TaskList.emplace_back(std::forward<TFunc>(func));
+		}
+
 		void Step(uint32_t frames) { m_StepFrames = frames; }
 		void SetPaused(bool paused) { m_Paused = paused; }
 		bool IsPaused() const { return m_Paused; }
@@ -201,6 +208,8 @@ namespace Shark {
 		void OnPhysics2DPlay(bool connectWithScriptingAPI);
 		void OnPhysics2DStop();
 		void OnPhysicsStep(TimeStep fixedTimeStep);
+
+		void UpdateAnimations(TimeStep ts);
 
 		void OnRigidBody2DComponentCreated(entt::registry& registry, entt::entity ent);
 		void OnBoxCollider2DComponentCreated(entt::registry& registry, entt::entity ent);
@@ -242,8 +251,10 @@ namespace Shark {
 		LightEnvironment m_LightEnvironment;
 
 		std::vector<std::function<void()>> m_PostUpdateQueue;
+		std::vector<std::function<bool()>> m_TaskList;
 
 		ScriptStorage m_ScriptStorage;
+
 
 		friend class Entity;
 		friend class SceneHierarchyPanel;

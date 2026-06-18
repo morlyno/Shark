@@ -68,8 +68,7 @@ namespace Shark {
 		void BeginScene(Ref<Scene> scene, const SceneRendererCamera& camera);
 		void EndScene();
 
-		void SubmitMesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<PBRMaterial> material, const glm::mat4& transform, int id);
-		void SubmitSelectedMesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<PBRMaterial> material, const glm::mat4& transform);
+		void SubmitMesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<PBRMaterial> material, const glm::mat4& transform, std::span<const glm::mat4> boneTransforms, UUID contextID, bool isSelected, int id);
 
 		Ref<Renderer2D> GetRenderer2D() const { return m_Renderer2D; }
 		Ref<Image2D> GetFinalPassImage() const { return m_CompositePass->GetOutput(0); }
@@ -133,7 +132,9 @@ namespace Shark {
 		{
 			glm::mat4 Transform;
 			int ID;
-			float P0, P1, P2;
+			uint32_t BoneBase;
+			uint32_t BoneStride;
+			float P0;
 		};
 
 		struct CBOutlineSettings
@@ -151,6 +152,9 @@ namespace Shark {
 			Ref<PBRMaterial> Material;
 			glm::mat4 Transform;
 			int ID;
+			
+			bool IsRigged = false;
+			UUID ContextID;
 		};
 
 	private:
@@ -168,6 +172,7 @@ namespace Shark {
 		Ref<StorageBuffer> m_SBPointLights;
 		Ref<StorageBuffer> m_SBDirectionalLights;
 		Ref<ConstantBuffer> m_CBOutlineSettings;
+		Ref<StorageBuffer> m_SBBoneTransforms;
 
 		Ref<Renderer2D> m_Renderer2D;
 		Ref<RenderCommandBuffer> m_CommandBuffer;
@@ -181,13 +186,28 @@ namespace Shark {
 		std::vector<DrawCommand> m_SelectedDrawList;
 		std::set<Ref<PBRMaterial>> m_MaterialsToUpdate;
 
+		struct BoneTransformData
+		{
+			std::vector<glm::mat4> Transforms;
+			size_t BaseIndex = 0;
+			size_t Stride = 0;
+		};
+
+		size_t m_BoneTransformBufferSize = 0;
+		std::vector<glm::mat4> m_BoneTransformsUploadBuffer[2];
+		std::unordered_map<UUID, BoneTransformData> m_MeshBoneTransforms;
+
 		Ref<RenderPass> m_GeometryPass;
+		Ref<RenderPass> m_GeometryAnimatedPass;
 		Ref<RenderPass> m_SelectedGeometryPass;
+		Ref<RenderPass> m_SelectedGeometryAnimatedPass;
 		Ref<RenderPass> m_SkyboxPass;
 		Ref<RenderPass> m_CompositePass;
 
 		Ref<Pipeline> m_GeometryPipeline;
+		Ref<Pipeline> m_GeometryAnimatedPipeline;
 		Ref<Pipeline> m_SelectedGeometryPipeline;
+		Ref<Pipeline> m_SelectedGeometryAnimatedPipeline;
 		Ref<Pipeline> m_SkyboxPipeline;
 		Ref<Pipeline> m_CompositePipeline;
 

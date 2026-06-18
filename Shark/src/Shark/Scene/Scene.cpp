@@ -15,6 +15,7 @@
 
 #include "Shark/Math/Math.h"
 #include "Shark/File/FileSystem.h"
+#include "Shark/Utils/Utilities.h"
 
 #include "Shark/Debug/enttDebug.h"
 #include "Shark/Debug/Profiler.h"
@@ -282,6 +283,9 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("Scene::OnUpdateRuntime");
 
+		// run tasks and erase completed ones
+		m_TaskList.erase(std::remove_if(m_TaskList.begin(), m_TaskList.end(), Projection::Invoke), m_TaskList.end());
+
 		if (m_Paused)
 		{
 			if (m_StepFrames == 0)
@@ -327,6 +331,8 @@ namespace Shark {
 			}
 		}
 
+		UpdateAnimations(ts);
+
 		for (const auto& fn : m_PostUpdateQueue)
 			fn();
 		m_PostUpdateQueue.clear();
@@ -335,12 +341,25 @@ namespace Shark {
 	void Scene::OnUpdateEditor(TimeStep ts)
 	{
 		SK_PROFILE_FUNCTION();
+
+		// run tasks and erase completed ones
+		m_TaskList.erase(std::remove_if(m_TaskList.begin(), m_TaskList.end(), Projection::Invoke), m_TaskList.end());
+
+		static bool updateAnimations = true;
+		if (updateAnimations)
+		{
+			UpdateAnimations(ts);
+		}
+
 	}
 
 	void Scene::OnUpdateSimulate(TimeStep ts)
 	{
 		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("Scene::OnUpdateSimulate");
+
+		// run tasks and erase completed ones
+		m_TaskList.erase(std::remove_if(m_TaskList.begin(), m_TaskList.end(), Projection::Invoke), m_TaskList.end());
 
 		if (m_Paused)
 		{
@@ -473,6 +492,22 @@ namespace Shark {
 
 		renderer->BeginScene(this, camera);
 
+		std::unordered_map<UUID, std::vector<glm::mat4>> boneTransformCache;
+		const auto BuildBoneTransformCache = [&boneTransformCache, this](UUID id, const std::vector<UUID>& boneEntityIDs, const Skeleton& skeleton)
+		{
+			auto& cache = boneTransformCache[id];
+			cache.resize(skeleton.GetBoneCount());
+
+			for (size_t i = 0; i < std::min(skeleton.GetBoneCount(), boneEntityIDs.size()); i++)
+			{
+				auto boneEntity = TryGetEntityByUUID(boneEntityIDs[i]);
+				Debug::EntityView debugView{ boneEntity };
+				glm::mat4 localTransform = boneEntity ? boneEntity.Transform().CalcTransform() : skeleton.GetRestposeTransformMatrix(i);
+				auto parentIndex = skeleton.GetParentBoneIndex(i);
+				cache[i] = parentIndex == Skeleton::NullIndex ? localTransform : cache[parentIndex] * localTransform;
+			}
+		};
+
 		// Meshes
 		{
 			auto entities = GetAllEntitysWith<SubmeshComponent>();
@@ -494,6 +529,9 @@ namespace Shark {
 				}
 
 				Entity entity = { ent, this };
+				const bool isSelected = SelectionManager::IsEntityOrAncestorSelected(GetID(), entity);
+				const UUID contextID = entity.GetComponent<MeshFilterComponent>().RootEntityID;
+
 				glm::mat4 transform = GetWorldSpaceTransformMatrix(entity);
 
 				const auto& submeshes = meshSource->GetSubmeshes();
@@ -504,10 +542,21 @@ namespace Shark {
 				if (!material)
 					continue;
 
-				renderer->SubmitMesh(mesh, meshSource, submeshComponent.SubmeshIndex, material, transform, (int)ent);
-				if (SelectionManager::IsEntityOrAncestorSelected(GetID(), entity))
-					renderer->SubmitSelectedMesh(mesh, meshSource, submeshComponent.SubmeshIndex, material, transform);
+				if (submesh.IsRigged)
+				{
+					Entity root = TryGetEntityByUUID(contextID);
+					if (root && root.HasAll<MeshComponent, AnimationComponent>())
+					{
+						auto& meshComponent = root.GetComponent<MeshComponent>();
+						if (meshComponent.BoneEntityIDs.empty())
+							continue;
 
+						if (!boneTransformCache.contains(contextID) || boneTransformCache.at(contextID).size() != meshComponent.BoneEntityIDs.size())
+							BuildBoneTransformCache(contextID, meshComponent.BoneEntityIDs, meshSource->GetSkeleton());
+					}
+				}
+
+				renderer->SubmitMesh(mesh, meshSource, submeshComponent.SubmeshIndex, material, transform, boneTransformCache[contextID], contextID, isSelected, (int)ent);
 			}
 		}
 
@@ -548,9 +597,7 @@ namespace Shark {
 						if (!material)
 							continue;
 
-						renderer->SubmitMesh(mesh, meshSource, submeshIndex, material, rootTransform * node.Transform, (int)ent);
-						if (isSelected)
-							renderer->SubmitSelectedMesh(mesh, meshSource, submeshIndex, material, rootTransform * node.Transform);
+						renderer->SubmitMesh(mesh, meshSource, submeshIndex, material, rootTransform * node.Transform, {}, UUID::Invalid, isSelected, (int)ent);
 					}
 				}
 			}
@@ -627,6 +674,13 @@ namespace Shark {
 
 		for (UUID childID : entity.Children())
 		{
+			if (!IsValidEntityID(childID))
+			{
+				DEBUG_ENTITY_N(entityDebug, entity);
+				SK_CORE_ERROR_TAG("Scene", "Entity {} has invalid child with id {}", entity.GetName(), childID);
+				continue;
+			}
+
 			Entity childDuplicate = DuplicateEntity(GetEntityByID(childID));
 			childDuplicate.SetParent(newEntity);
 		}
@@ -643,6 +697,37 @@ namespace Shark {
 				scriptComponent.Instance = scriptEngine.Instantiate(newEntity.GetUUID(), m_ScriptStorage);
 				scriptComponent.Instance->InvokeMethod("OnCreate");
 			}
+		}
+
+		if (newEntity.HasComponent<MeshComponent>())
+		{
+			entity.GetComponent<MeshComponent>().BoneEntityIDs.clear();
+
+			m_TaskList.emplace_back([scene = this, entity]() mutable
+			{
+				if (!entity)
+				{
+					// entity could have been destroyed by now
+					return true;
+				}
+
+				auto& meshComponent = entity.GetComponent<MeshComponent>();
+
+				Ref<Mesh> mesh;
+				Ref<MeshSource> meshSource;
+
+				if (!(mesh = AssetManager::GetAssetAsync<Mesh>(meshComponent.Mesh)) ||
+					!(meshSource = AssetManager::GetAssetAsync<MeshSource>(mesh->GetMeshSource())))
+				{
+					// #TODO handle failed load
+					return false;
+				}
+
+				if (meshSource->HasSkeleton())
+					meshComponent.BoneEntityIDs = scene->FindBoneEntityIDs(entity, meshSource->GetSkeleton());
+
+				return true;
+			});
 		}
 
 		return newEntity;
@@ -821,6 +906,8 @@ namespace Shark {
 		if (auto meshSource = AssetManager::GetAsset<MeshSource>(mesh->GetMeshSource()))
 		{
 			BuildMeshEntityHierarchy(rootEntity, mesh, meshSource->GetRootNode());
+			if (meshSource->HasSkeleton())
+				rootEntity.GetComponent<MeshComponent>().BoneEntityIDs = FindBoneEntityIDs(rootEntity, meshSource->GetSkeleton());
 		}
 		return rootEntity;
 	}
@@ -855,8 +942,33 @@ namespace Shark {
 			if (auto meshSource = AssetManager::GetAsset<MeshSource>(mesh->GetMeshSource()))
 			{
 				BuildMeshEntityHierarchy(entity, mesh, meshSource->GetRootNode());
+				meshComponent.BoneEntityIDs = FindBoneEntityIDs(entity, meshSource->GetSkeleton());
 			}
 		}
+	}
+
+	std::vector<UUID> Scene::FindBoneEntityIDs(Entity rootEntity, const Skeleton& skeleton) const
+	{
+		std::vector<UUID> boneEntityIds;
+
+		const auto& boneNames = skeleton.GetBoneNames();
+		boneEntityIds.reserve(boneNames.size());
+
+		for (const auto& name : boneNames)
+		{
+			auto boneEntity = FindChildEntityByName(rootEntity, name, true);
+
+			if (!boneEntity)
+			{
+				// list must match bones even when there is no entity
+				boneEntityIds.push_back(UUID::Invalid);
+				continue;
+			}
+
+			boneEntityIds.push_back(boneEntity.GetUUID());
+		}
+
+		return boneEntityIds;
 	}
 
 	Entity Scene::GetEntityByID(UUID id) const
@@ -880,9 +992,15 @@ namespace Shark {
 			return;
 		}
 
+		UUID rootID;
+		if (parent.HasComponent<MeshFilterComponent>())
+			rootID = parent.GetComponent<MeshFilterComponent>().RootEntityID;
+		else if (parent.HasComponent<MeshComponent>())
+			rootID = parent.GetUUID();
+
 		Entity nodeEntity = CreateChildEntity(parent, node.Name);
 		nodeEntity.Transform().SetTransform(node.LocalTransform);
-		nodeEntity.AddComponent<MeshFilterComponent>();
+		nodeEntity.AddComponent<MeshFilterComponent>(rootID);
 
 		if (node.Submeshes.size() == 1)
 		{
@@ -896,7 +1014,7 @@ namespace Shark {
 				const auto& submesh = meshSource->GetSubmeshes()[submeshIndex];
 				Entity childEntity = CreateChildEntity(nodeEntity, submesh.MeshName);
 
-				childEntity.AddComponent<MeshFilterComponent>();
+				childEntity.AddComponent<MeshFilterComponent>(rootID);
 				childEntity.AddComponent<SubmeshComponent>(mesh->Handle, submeshIndex);
 			}
 		}
@@ -970,7 +1088,7 @@ namespace Shark {
 		return Entity{};
 	}
 
-	Entity Scene::FindChildEntityByName(Entity entity, const std::string& name, bool recusive)
+	Entity Scene::FindChildEntityByName(Entity entity, const std::string& name, bool recusive) const
 	{
 		for (UUID id : entity.Children())
 		{
@@ -979,7 +1097,10 @@ namespace Shark {
 				return child;
 
 			if (recusive)
-				FindChildEntityByName(child, name, recusive);
+			{
+				if (auto result = FindChildEntityByName(child, name, recusive))
+					return result;
+			}
 		}
 
 		return Entity{};
@@ -1289,6 +1410,82 @@ namespace Shark {
 				scriptComponent.Instance->InvokeMethod("OnPhysicsUpdate", (float)fixedTimeStep);
 		}
 
+	}
+
+	void Scene::UpdateAnimations(TimeStep ts)
+	{
+		auto entities = GetAllEntitysWith<AnimationComponent>();
+		for (auto ent : entities)
+		{
+			Entity entity{ ent, this };
+
+			auto& component = entity.GetComponent<AnimationComponent>();
+			if (component.m_Finished && !component.Loop || !entity.HasComponent<MeshComponent>())
+				continue;
+
+			Ref<Mesh> mesh;
+			Ref<MeshSource> meshSource;
+
+			if (!(mesh = AssetManager::GetAssetAsync<Mesh>(component.m_Mesh)) ||
+				!(meshSource = AssetManager::GetAssetAsync<MeshSource>(mesh->GetMeshSource())) ||
+				component.AnimationIndex >= meshSource->GetAnimationCount())
+			{
+				continue;
+			}
+
+			auto& meshComponent = entity.GetComponent<MeshComponent>();
+			Animation& animation = meshSource->GetAnimation(component.AnimationIndex);
+			const auto& channels = animation.GetChannels();
+
+			if (component.m_UpdateTime)
+				component.m_TimePosition += ts / animation.GetDuration();
+
+			if (component.m_TimePosition > 1.0f)
+			{
+				if (component.Loop)
+				{
+					component.m_TimePosition -= glm::floor(component.m_TimePosition);
+				}
+				else
+				{
+					component.m_TimePosition = 1.0f;
+					component.m_Finished = true;
+				}
+			}
+
+			const size_t index = static_cast<size_t>(component.m_TimePosition * (animation.GetFrameCount() - 1));
+			SK_CORE_ASSERT(index < animation.GetFrameCount());
+
+
+			const float frameInterval = 1.0f / static_cast<float>(animation.GetFrameCount() - 1);
+			const size_t startIndex = index;
+			const size_t endIndex = component.Loop ? // wrap or clamp end index
+									(index + 1) % animation.GetFrameCount() :
+									std::min(index + 1, animation.GetFrameCount() - 1);
+
+			for (size_t i = 0; i < channels.size(); i++)
+			{
+				Entity entity = TryGetEntityByUUID(meshComponent.BoneEntityIDs[i]);
+				if (!entity)
+				{
+					//SK_CORE_ERROR_TAG("Animation", "Failed to find entity for bone {}", i);
+					continue;
+				}
+
+				const Channel& channel = channels[i];
+				const float t = (component.m_TimePosition - channel.Translations[startIndex].FrameTime) / frameInterval;
+
+				const auto mix     = [t, startIndex, endIndex](const auto& frames) { return glm::mix(frames[startIndex].Value, frames[endIndex].Value, t); };
+				// Spherical linear interpolation for quaternions because mix/lerp is oriented
+				const auto mixQuat = [t, startIndex, endIndex](const auto& frames) { return glm::slerp(frames[startIndex].Value, frames[endIndex].Value, t); };
+
+				auto& dest = entity.Transform();
+				dest.Translation = mix(channel.Translations);
+				dest.Rotation = glm::eulerAngles(mixQuat(channel.Rotations));
+				dest.Scale.xyz = mix(channel.Scales);
+			}
+
+		}
 	}
 
 	void Scene::OnRigidBody2DComponentCreated(entt::registry& registry, entt::entity ent)

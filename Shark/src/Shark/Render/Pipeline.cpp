@@ -147,16 +147,23 @@ namespace Shark {
 		pipelineDesc.bindingLayouts = m_Specification.Shader->GetBindingLayouts();
 
 		std::vector<nvrhi::VertexAttributeDesc> attributes;
-		for (const auto& element : m_Specification.Layout)
+		for (size_t bufferIndex = 0;
+			const auto& layout : { m_Specification.Layout, m_Specification.BoneInfluenceLayout })
 		{
-			auto desc = nvrhi::VertexAttributeDesc()
-				.setName(element.Semantic)
-				.setFormat(utils::ConvertVertexDataType(element.Type))
-				.setOffset(element.Offset)
-				.setElementStride(m_Specification.Layout.GetVertexSize())
-				.setIsInstanced(false);
+			for (const auto& element : layout)
+			{
+				auto desc = nvrhi::VertexAttributeDesc()
+					.setName(element.Semantic)
+					.setFormat(utils::ConvertVertexDataType(element.Type))
+					.setOffset(element.Offset)
+					.setElementStride(layout.GetVertexSize())
+					.setIsInstanced(false)
+					.setBufferIndex(bufferIndex);
 
-			attributes.push_back(desc);
+				attributes.push_back(desc);
+			}
+
+			bufferIndex += 1;
 		}
 
 		auto device = Application::Get().GetDeviceManager()->GetDevice();

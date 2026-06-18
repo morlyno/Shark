@@ -28,7 +28,7 @@ namespace Shark::UI::Widgets {
 	bool InputDirectory(DialogType dialogType, std::filesystem::path& path, const std::filesystem::path& defaultPath = {});
 	
 	template<typename TFunction>
-	bool ItemSearchPopup(UI::TextFilter& search, const TFunction& itemFunction);
+	bool ItemSearchPopup(UI::TextFilter& search, const TFunction& itemFunction, bool clearButton = true);
 
 	bool SearchAssetPopup(AssetType assetType, AssetHandle& assetHandle);
 	bool SearchAssetPopup(std::span<const AssetType> assetType, AssetHandle& assetHandle);
@@ -149,7 +149,7 @@ bool Shark::UI::Widgets::Search(TString& searchString, const char* hint, bool* g
 }
 
 template<typename TFunction>
-bool Shark::UI::Widgets::ItemSearchPopup(UI::TextFilter& search, const TFunction& itemFunction)
+bool Shark::UI::Widgets::ItemSearchPopup(UI::TextFilter& search, const TFunction& itemFunction, bool clearButton)
 {
 	const auto CalcMaxPopupHeightFromItemCount = [](int items_count)
 	{
@@ -195,7 +195,7 @@ bool Shark::UI::Widgets::ItemSearchPopup(UI::TextFilter& search, const TFunction
 										ImGuiCol_ButtonHovered, UI::Colors::WithMultipliedValue(UI::Colors::Theme::Background, 1.1f),
 										ImGuiCol_ButtonActive, UI::Colors::Theme::BackgroundDark);
 
-			if (ImGui::Button("Clear", ImVec2(-1.0f, 0.0f)))
+			if (clearButton && ImGui::Button("Clear", ImVec2(-1.0f, 0.0f)))
 			{
 				clear = true;
 				ImGui::CloseCurrentPopup();
