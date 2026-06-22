@@ -1,6 +1,12 @@
 import os
 import subprocess
 
+import CheckPython
+CheckPython.ValidatePackages()
+
+import Vulkan
+import Dotnet
+
 import colorama
 from colorama import Style
 from colorama import Back
@@ -13,6 +19,14 @@ os.chdir("./../")
 print(f"{Style.BRIGHT}{Back.GREEN}Setting SHARK_DIR to {os.getcwd()}{Style.RESET_ALL}")
 subprocess.call(["setx", "SHARK_DIR", os.getcwd()])
 os.environ['SHARK_DIR'] = os.getcwd()
+
+if not Vulkan.ValidateVulkanSDK():
+    exit()
+
+Vulkan.ValidateVulkanDebugLibs()
+
+if not Dotnet.ValidateDotnet():
+    exit()
 
 subprocess.call(["git", "submodule", "update", "--init", "--recursive"])
 
