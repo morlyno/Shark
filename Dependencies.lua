@@ -21,6 +21,10 @@ Dependencies = {
     ImGuizmo = {
         IncludeDir = "%{wks.location}/Shark/dependencies/ImGuizmo"
     },
+    ImGuiNodeEditor = {
+        LibName = "imgui-node-editor",
+        IncludeDir = "%{wks.location}/Shark/dependencies/imgui-node-editor"
+    },
     stb_image = {
         IncludeDir = "%{wks.location}/Shark/dependencies/stb_image"
     },
@@ -98,6 +102,9 @@ Dependencies = {
     },
     StrToNum = {
         IncludeDir = "%{wks.location}/Shark/dependencies/StrToNum"
+    },
+    choc = {
+        IncludeDir = "%{wks.location}/Shark/dependencies/choc"
     },
 
     D3D11 = {

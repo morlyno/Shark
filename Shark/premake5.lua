@@ -26,6 +26,8 @@ project "Shark"
         "dependencies/tracy/client/*.hpp",
         "dependencies/tracy/TracyClient.cpp",
 
+        "dependencies/choc/**.h",
+
         "dependencies/glm/util/glm.natvis"
     }
 

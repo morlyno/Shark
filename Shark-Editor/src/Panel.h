@@ -28,6 +28,7 @@ namespace Shark {
 		virtual void OnProjectChanged(Ref<ProjectConfig> projectConfig) {}
 
 		virtual const char* GetPanelID() const = 0;
+		//static const char* GetStaticID();
 
 		const char* GetName() const { return m_PanelName; }
 		void SetName(const char* name) { m_PanelName = name; }

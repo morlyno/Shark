@@ -28,3 +28,6 @@
 [submodule "Shark/dependencies/NVRHI"]
 	path = Shark/dependencies/NVRHI
 	url = https://github.com/morlyno/NVRHI.git
+[submodule "Shark/dependencies/imgui-node-editor"]
+	path = Shark/dependencies/imgui-node-editor
+	url = https://github.com/morlyno/imgui-node-editor.git
