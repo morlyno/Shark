@@ -1051,7 +1051,7 @@ namespace
         {
             BoolStorageType b;
             std::memcpy (std::addressof (b), src, sizeof (b));
-            return b != 0;
+            return (b & 0xff) != 0;
         }
         else
         {

@@ -60,6 +60,8 @@ namespace Shark::String {
 	void StripBack(std::wstring_view& str, std::wstring_view chars);
 	void StripFront(std::wstring_view& str, std::wstring_view chars);
 
+	std::string SplitAtUppercase(std::string str);
+
 	std::string BytesToString(uint64_t bytes);
 
 	std::filesystem::path FormatWindowsCopy(const std::filesystem::path& path);

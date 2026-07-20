@@ -313,6 +313,21 @@ namespace Shark::String {
 			str = {};
 	}
 
+	std::string SplitAtUppercase(std::string str)
+	{
+		size_t i = 0;
+		for (size_t i = 0; i < str.length(); i++)
+		{
+			if (std::isupper(str[i]))
+			{
+				str.insert(i, 1, ' ');
+				i += 1;
+			}
+		}
+
+		return std::move(str);
+	}
+
 	std::string BytesToString(uint64_t bytes)
 	{
 		static constexpr uint64_t TB = 1024ull * 1024 * 1024 * 1024;

@@ -2,45 +2,61 @@
 
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/Controls.h"
+#include "Shark/UI/Widgets.h"
 
-#include "NodeGraph/Nodes/Math.h"
+#include "NodeGraph/ProcessNode.h"
+#include "NodeGraph/NodeContext.h"
+#include "NodeGraph/Nodes/MathNodes.h"
+#include "NodeGraph/Nodes/EntityNodes.h"
+#include "NodeGraph/Nodes/TriggerNodes.h"
+#include "NodeGraph/Nodes/DebugNodes.h"
+
+#include "NodeGraph/Factory.h"
+#include "NodeGraph/CoreTypes.h"
+#include "NodeGraph/EditorNodes.h"
+
 #include "NodeGraph/Utilities/builders.h"
 #include "NodeGraph/Utilities/drawing.h"
 #include "NodeGraph/Utilities/widgets.h"
+#include <functional>
 
-namespace Shark {
+namespace Shark::NodeGraph::Editor {
 
-	static ImColor GetIconColor(GraphEditor::PinType type)
+#if 0
+	static ImColor GetIconColor(Editor::PinType type)
 	{
 		switch (type)
 		{
 			default:
-			case GraphEditor::PinType::Flow:     return ImColor(255, 255, 255);
-			case GraphEditor::PinType::Bool:     return ImColor(220, 48, 48);
-			case GraphEditor::PinType::Int:      return ImColor(68, 201, 156);
-			case GraphEditor::PinType::Float:    return ImColor(147, 226, 74);
-			//case GraphEditor::PinType::String:   return ImColor(124, 21, 153);
-			//case GraphEditor::PinType::Object:   return ImColor(51, 150, 215);
-			//case GraphEditor::PinType::Function: return ImColor(218, 0, 183);
-			//case GraphEditor::PinType::Delegate: return ImColor(255, 48, 48);
+			case Editor::PinType::Flow:     return ImColor(255, 255, 255);
+			case Editor::PinType::Bool:     return ImColor(220, 48, 48);
+			case Editor::PinType::Int:      return ImColor(68, 201, 156);
+			case Editor::PinType::Float:    return ImColor(147, 226, 74);
+			//case Editor::PinType::String:   return ImColor(124, 21, 153);
+			//case Editor::PinType::Object:   return ImColor(51, 150, 215);
+			//case Editor::PinType::Function: return ImColor(218, 0, 183);
+			//case Editor::PinType::Delegate: return ImColor(255, 48, 48);
 		}
 	};
+#endif
 
-	static void DrawPinIcon(const GraphEditor::Pin& pin, bool connected, int alpha)
+	static void DrawPinIcon(const Editor::Pin& pin, bool connected, int alpha)
 	{
 		ax::Drawing::IconType iconType;
-		ImColor  color = GetIconColor(pin.Type);
+		ImColor color = pin.Color;
 		color.Value.w = alpha / 255.0f;
-		switch (pin.Type)
+		switch (pin.PinType)
 		{
-			case GraphEditor::PinType::Flow:     iconType = ax::Drawing::IconType::Flow;   break;
-			case GraphEditor::PinType::Bool:     iconType = ax::Drawing::IconType::Circle; break;
-			case GraphEditor::PinType::Int:      iconType = ax::Drawing::IconType::Circle; break;
-			case GraphEditor::PinType::Float:    iconType = ax::Drawing::IconType::Circle; break;
-			//case GraphEditor::PinType::String:   iconType = ax::Drawing::IconType::Circle; break;
-			//case GraphEditor::PinType::Object:   iconType = ax::Drawing::IconType::Circle; break;
-			//case GraphEditor::PinType::Function: iconType = ax::Drawing::IconType::Circle; break;
-			//case GraphEditor::PinType::Delegate: iconType = ax::Drawing::IconType::Square; break;
+			case Editor::CoreTypes::EPinType::Flow:     iconType = ax::Drawing::IconType::Flow;   break;
+			case Editor::CoreTypes::EPinType::Bool:     iconType = ax::Drawing::IconType::Circle; break;
+			case Editor::CoreTypes::EPinType::Int:      iconType = ax::Drawing::IconType::Circle; break;
+			case Editor::CoreTypes::EPinType::Float:    iconType = ax::Drawing::IconType::Circle; break;
+			case Editor::CoreTypes::EPinType::Vec3:     iconType = ax::Drawing::IconType::Circle; break;
+			case Editor::CoreTypes::EPinType::EntityID:	iconType = ax::Drawing::IconType::Circle; break;
+			//case Editor::PinType::String:   iconType = ax::Drawing::IconType::Circle; break;
+			//case Editor::PinType::Object:   iconType = ax::Drawing::IconType::Circle; break;
+			//case Editor::PinType::Function: iconType = ax::Drawing::IconType::Circle; break;
+			//case Editor::PinType::Delegate: iconType = ax::Drawing::IconType::Square; break;
 			default:
 				return;
 		}
@@ -48,20 +64,117 @@ namespace Shark {
 		ax::Widgets::Icon(ImVec2(24.0f, 24.0f), iconType, connected, color, ImColor(32, 32, 32, alpha));
 	};
 
+	static const char* GetSimpleNodeIcon(const Node& node)
+	{
+		if (choc::text::contains(node.Name, "Add")) return "+";
+		if (choc::text::contains(node.Name, "Multiply")) return "*";
+		if (choc::text::contains(node.Name, "Get")) return "get";
+		return node.Name.c_str();
+	}
+
+	static std::string_view TypeToString(const choc::value::Type& type)
+	{
+		if (type.isObjectWithClassName("EntityID")) return "EntityID";
+
+		if (type.isBool())    return "Bool";
+		if (type.isInt32())   return "Int";
+		if (type.isFloat32()) return "Float";
+		
+		SK_CORE_ASSERT(false, "Unknown Type");
+		return "<unknown>";
+	}
+
+	static choc::value::Type StringToType(std::string_view name)
+	{
+		if (name == "EntityID") return AsType<Types::EntityID>();
+
+		if (name == "Bool")   return choc::value::Type::createBool();
+		if (name == "Int")   return choc::value::Type::createInt32();
+		if (name == "Float") return choc::value::Type::createFloat32();
+
+		SK_CORE_ASSERT(false, "Unknown Type '{}'", name);
+		return choc::value::Type::createVoid();
+	}
+
+	static bool ControlValue(std::string_view label, choc::value::ValueView value)
+	{
+		if (value.isBool())
+			return UI::Control(label, *static_cast<bool*>(value.getRawData()));
+		if (value.isInt32())
+			return UI::Control(label, *static_cast<int*>(value.getRawData()));
+		if (value.isFloat32())
+			return UI::Control(label, *static_cast<float*>(value.getRawData()));
+
+		UI::Control(label, "Unknown value type");
+		return false;
+	}
+
+	template<typename TProcNode>
+	static std::pair<std::string, AbstractFactory::Entry> CreateRegistryEntry(const NodeSettings& settings = {})
+	{
+		return {
+			choc::text::replace(NodeType<TProcNode>::Inputs::Class, "<", " (", ">", ")"),
+			{
+				std::bind_front(CoreTypes::SpawnNode<TProcNode>, settings),
+				[](UUID id) -> ProcessNode* { return new TProcNode(id); }
+			}
+		};
+	}
+
 	bool NodeGraphEditor::OnShowPanel()
 	{
 		ax::NodeEditor::Config config;
 		config.UserPointer = this;
 
 		m_Context = ax::NodeEditor::CreateEditor(&config);
-
 		m_PropertiesWindowID = fmt::format("Properties##{}", m_PanelName);
 
-		m_Factory = Scope<GraphEditor::Factory>::Create();
-		m_Factory->AddNode("Math", "Add (int)", std::bind_front(&NodeGraphEditor::SpawnNode<Nodes::Add<int>>, this));
-		m_Factory->AddNode("Math", "Add (float)", std::bind_front(&NodeGraphEditor::SpawnNode<Nodes::Add<float>>, this));
-		m_Factory->AddNode("Math", "Multiply (int)", std::bind_front(&NodeGraphEditor::SpawnNode<Nodes::Multiply<int>>, this));
-		m_Factory->AddNode("Math", "Multiply (float)", std::bind_front(&NodeGraphEditor::SpawnNode<Nodes::Multiply<float>>, this));
+#if 1
+#define FACTORY_NODE(_procNode, ...) CreateRegistryEntry<_procNode>(__VA_ARGS__)
+
+		const NodeSettings Simple       = { .IsSimple = true };
+		const NodeSettings SimpleNoEdit = { .IsSimple = true, .CanEditPins = false };
+		const NodeSettings NoEdit       = { .CanEditPins = false };
+
+		m_Factory = Scope<Editor::CoreFactory>::Create(
+			Editor::AbstractFactory::Registry{
+				{
+					"Math",
+					{
+						FACTORY_NODE(Nodes::Add<int>, Simple),
+						FACTORY_NODE(Nodes::Add<float>, Simple),
+						FACTORY_NODE(Nodes::Multiply<int>, Simple),
+						FACTORY_NODE(Nodes::Multiply<float>, Simple),
+						FACTORY_NODE(Nodes::Get, SimpleNoEdit),
+						FACTORY_NODE(Nodes::Random<int>),
+						FACTORY_NODE(Nodes::Random<float>),
+					}
+				},
+				{
+					"Trigger",
+					{
+						FACTORY_NODE(Nodes::BoolTrigger),
+					}
+				},
+				{
+					"Scene",
+					{
+						FACTORY_NODE(Nodes::EntityTransform)
+					}
+				},
+				{
+					"Debug",
+					{
+						FACTORY_NODE(Nodes::Test)
+					}
+				}
+			}
+		);
+
+#undef FACTORY_NODE
+#endif
+
+		m_InputTypeNames = { "Bool", "Int", "Float", "EntityID" };
 
 		return true;
 	}
@@ -114,16 +227,22 @@ namespace Shark {
 				}
 
 				SK_CORE_DEBUG("NodeGraph outputs:");
-				for (auto& output : m_NodeGraph->OutputVariables)
+				for (size_t i = 0; i < m_NodeGraph->OutputVariables.size(); i++)
 				{
+					auto& output = m_NodeGraph->OutputVariables[i];
+					std::string_view name = "<none>";
+
+					if (i < m_NodeGraph->DebugOutputNames.size())
+						name = m_NodeGraph->DebugOutputNames[i];
+
 					if (output.isBool())
-						SK_CORE_DEBUG(" - {}", output.getBool());
+						SK_CORE_DEBUG(" - {} {}", name, output.getBool());
 					else if (output.isInt32())
-						SK_CORE_DEBUG(" - {}", output.getInt32());
+						SK_CORE_DEBUG(" - {} {}", name, output.getInt32());
 					else if (output.isFloat32())
-						SK_CORE_DEBUG(" - {}", output.getFloat32());
+						SK_CORE_DEBUG(" - {} {}", name, output.getFloat32());
 					else
-						SK_CORE_DEBUG(" - Unknown type");
+						SK_CORE_DEBUG(" - {} Unknown type", name);
 				}
 			}
 
@@ -150,13 +269,18 @@ namespace Shark {
 		{
 			builder.Begin(node.ID);
 
-			builder.Header(node.Color);
-			ImGui::Spring(0);
-			ImGui::TextUnformatted(node.Name.c_str());
-			ImGui::Spring(1);
-			ImGui::Dummy(ImVec2(0, 28));
-			ImGui::Spring(0);
-			builder.EndHeader();
+			if (!node.Settings.IsSimple)
+			{
+				builder.Header(node.Color);
+				ImGui::Spring(0);
+				ImGui::TextUnformatted(node.Name.c_str());
+				ImGui::Spring(1);
+				ImGui::Text("%d", node.EvaluationIndex);
+				ImGui::Spring(0);
+				ImGui::Dummy(ImVec2(0, 28));
+				ImGui::Spring(0);
+				builder.EndHeader();
+			}
 
 			for (auto& input : node.Inputs)
 			{
@@ -168,13 +292,14 @@ namespace Shark {
 				ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
 				DrawPinIcon(input, IsPinLinked(input.ID), (int)(alpha * 255));
 				ImGui::Spring(0);
-				if (!input.Name.empty())
+
+				if (!node.Settings.IsSimple && !input.Name.empty())
 				{
 					ImGui::TextUnformatted(input.Name.c_str());
 					ImGui::Spring(0);
 				}
 
-				if (!IsPinLinked(input.ID))
+				if (node.Settings.DrawPinEdit(input.Identifier) && !IsPinLinked(input.ID))
 				{
 					DrawPinValueEdit(&input);
 					ImGui::Spring(0);
@@ -182,6 +307,15 @@ namespace Shark {
 
 				ImGui::PopStyleVar();
 				builder.EndInput();
+			}
+
+			if (node.Settings.IsSimple)
+			{
+				builder.Middle();
+
+				ImGui::Spring(1, 0);
+				ImGui::TextUnformatted(GetSimpleNodeIcon(node));
+				ImGui::Spring(1, 0);
 			}
 
 			for (auto& output : node.Outputs)
@@ -261,7 +395,7 @@ namespace Shark {
 							showLabel("x Cannot connect to self", ImColor(45, 32, 32, 180));
 							ne::RejectNewItem(ImColor(255, 0, 0), 1.0f);
 						}
-						else if (endPin->Type != startPin->Type)
+						else if (endPin->PinType != startPin->PinType)
 						{
 							showLabel("x Incompatible Pin Type", ImColor(45, 32, 32, 180));
 							ne::RejectNewItem(ImColor(255, 128, 128), 1.0f);
@@ -277,8 +411,8 @@ namespace Shark {
 								}
 								else
 								{
-									m_Links.emplace_back(GraphEditor::Link(GetNextID(), startPinId, endPinId));
-									m_Links.back().Color = GetIconColor(startPin->Type);
+									m_Links.emplace_back(Editor::Link(GetNextID(), startPinId, endPinId));
+									m_Links.back().Color = startPin->Color;
 								}
 							}
 						}
@@ -351,6 +485,13 @@ namespace Shark {
 			ImGui::OpenPopup("Create New Node");
 			newNodeLinkPin = nullptr;
 		}
+
+		if (m_EntityPinPopup.Open)
+		{
+			ImGui::OpenPopupEx(m_EntityPinPopup.PopupID);
+			m_EntityPinPopup.Open = false;
+		}
+
 		ne::Resume();
 
 		ne::Suspend();
@@ -424,18 +565,21 @@ namespace Shark {
 			//auto drawList = ImGui::GetWindowDrawList();
 			//drawList->AddCircleFilled(ImGui::GetMousePosOnOpeningCurrentPopup(), 10.0f, 0xFFFF00FF);
 
-			GraphEditor::Node* node = nullptr;
+			Editor::Node* node = nullptr;
 
 			const auto& registry = m_Factory->GetRegistry();
 			for (const auto& [categoryName, category] : registry)
 			{
-				if (!ImGui::BeginMenu("Math"))
+				if (!ImGui::BeginMenu(categoryName.c_str()))
 					continue;
 
 				for (const auto& [type, _] : category)
 				{
 					if (ImGui::MenuItem(type.c_str()))
-						node = m_Factory->SpawnNode(categoryName, type);
+					{
+						node = &m_Nodes.emplace_back();
+						m_Factory->SpawnNode(categoryName, type, *node);
+					}
 				}
 
 				ImGui::Dummy({ 100.0f, 0.0f });
@@ -460,8 +604,8 @@ namespace Shark {
 							if (startPin->Kind == ne::PinKind::Input)
 								std::swap(startPin, endPin);
 
-							m_Links.emplace_back(GraphEditor::Link(GetNextID(), startPin->ID, endPin->ID));
-							m_Links.back().Color = GetIconColor(startPin->Type);
+							m_Links.emplace_back(Editor::Link(GetNextID(), startPin->ID, endPin->ID));
+							m_Links.back().Color = startPin->Color;
 							break;
 						}
 					}
@@ -472,6 +616,29 @@ namespace Shark {
 		}
 		else
 			createNewNode = false;
+
+		if (m_EntityPinPopup.EntityPin)
+		{
+			Pin* pin = m_EntityPinPopup.EntityPin;
+
+			UUID value;
+			bool isEntityObject = false;
+			if (isEntityObject = pin->Value.isObjectWithClassName("EntityID"))
+				value = UUID::Make(pin->Value["ID"].getInt64());
+
+			if (UI::Widgets::SearchEntityPopup(m_Scene, value, m_EntityPinPopup.PopupID))
+			{
+				if (!isEntityObject)
+					pin->Value = choc::value::Value(AsType<Types::EntityID>());
+
+				pin->Value["ID"].set(static_cast<int64_t>(value.Value()));
+			}
+
+			if (!ImGui::IsPopupOpen(m_EntityPinPopup.PopupID, 0))
+				m_EntityPinPopup.Set(nullptr);
+
+		}
+
 		ImGui::PopStyleVar();
 		ne::Resume();
 
@@ -497,7 +664,7 @@ namespace Shark {
 		{
 			if (ImGui::Button("Add Input"))
 			{
-				m_InputVariables.emplace_back("New Input", choc::value::createFloat32(0.0f), GraphEditor::PinType::Float);
+				m_InputVariables.emplace_back("New Input", choc::value::createFloat32(0.0f));
 			}
 
 			for (size_t i = 0; i < m_InputVariables.size(); i++)
@@ -534,36 +701,37 @@ namespace Shark {
 					RenameInput(input, m_RenameBuffer);
 				}
 
-				auto inputType = input.Type;
-				if (UI::Control("Type", inputType))
+				auto typeName = TypeToString(input.Value.getType());
+				if (UI::Control("Type", typeName, m_InputTypeNames))
 				{
-					ChangeInputType(input, inputType);
+					ChangeInputType(input, StringToType(typeName));
 				}
 
 				const auto drawControl = []<typename T>(choc::value::Value& value)
 				{
-					T v = value.isVoid() ? T{} : value.get<T>();
+					T v = value.get<T>();
 					if (UI::Control("Value", v))
-					{
-						if (value.isVoid())
-							value = choc::value::createPrimitive(v);
-						else
-							value.getViewReference().set(v);
-					}
+						value.getViewReference().set(v);
 				};
 
-				switch (input.Type)
+				if (input.Value.isPrimitive())
 				{
-					case GraphEditor::PinType::Bool: drawControl.operator() < bool > (input.Value); break;
-					case GraphEditor::PinType::Int: drawControl.operator() < int > (input.Value); break;
-					case GraphEditor::PinType::Float: drawControl.operator() < float > (input.Value); break;
-						//case GraphEditor::PinType::String: drawControl.operator()<std::string>(input.Value); break;
-					default:
+					ControlValue("Value", input.Value);
+				}
+				else if (input.Value.isObjectWithClassName("EntityID"))
+				{
+					UUID v = UUID::Make(input.Value["ID"].getInt64());
+
+					if (UI::ControlEntity("Value", m_Scene, v))
+						input.Value["ID"].set(static_cast<int64_t>(v.Value()));
+				}
+				else
+				{
+					UI::Control("Value", []
 					{
-						UI::ScopedStyle text(ImGuiCol_Text, UI::Colors::Theme::TextError);
+						UI::ScopedColor text(ImGuiCol_Text, UI::Colors::Theme::TextError);
 						ImGui::Text("Unknown type");
-						break;
-					}
+					});
 				}
 
 				UI::EndControlsGrid();
@@ -572,14 +740,14 @@ namespace Shark {
 		ImGui::End();
 	}
 
-	Scope<NodeGraph> NodeGraphEditor::CompileGraph()
+	Scope<Graph> NodeGraphEditor::CompileGraph()
 	{
-		auto nodeGraph = Scope<NodeGraph>::Create();
+		auto nodeGraph = Scope<Graph>::Create();
 
 		struct LoosePin
 		{
 			size_t NodeIndex;
-			GraphEditor::Pin* GraphPin;
+			Editor::Pin* GraphPin;
 			Identifier Pin;
 		};
 
@@ -587,7 +755,7 @@ namespace Shark {
 		std::vector<LoosePin> looseOutputPins;
 		std::unordered_map<UUID, std::set<UUID>> dependencies;
 
-		std::unordered_map<GraphEditor::Pin*, choc::value::ValueView> inputVariablePins;
+		std::unordered_map<Editor::Pin*, choc::value::ValueView> inputVariablePins;
 
 		for (size_t index = 0;
 			auto& editorNode : m_Nodes)
@@ -600,15 +768,12 @@ namespace Shark {
 				continue;
 			}
 
-			if (!m_NodeAllocators.contains(editorNode.Name))
-			{
-				SK_CORE_ASSERT(false);
-				continue;
-			}
+			ProcessNode* process = m_Factory->AllocateProcess(editorNode.Category, editorNode.Name, editorNode.GetID());
+			SK_CORE_VERIFY(process);
 
 			const size_t nodeIndex = index++;
 			//nodeGraph->Nodes.push_back(new Nodes::Add(editorNode.GetID()));
-			nodeGraph->Nodes.push_back(m_NodeAllocators.at(editorNode.Name)(editorNode.GetID()));
+			nodeGraph->Nodes.push_back(process);
 
 			for (auto& input : editorNode.Inputs)
 				if (!IsPinLinked(input.ID))
@@ -618,7 +783,7 @@ namespace Shark {
 					looseOutputPins.push_back({ nodeIndex, &output, output.Identifier });
 		}
 
-		const auto FindNodeByID = [&nodes = nodeGraph->Nodes](UUID id) -> Node*
+		const auto FindNodeByID = [&nodes = nodeGraph->Nodes](UUID id) -> ProcessNode*
 		{
 			for (auto* node : nodes)
 				if (node->ID == id)
@@ -646,10 +811,20 @@ namespace Shark {
 
 			SK_CORE_ASSERT(startNode && endNode);
 
-			choc::value::ValueView& output = startNode->GetOutput(startPin->Identifier);
-			choc::value::ValueView& input = endNode->GetInput(endPin->Identifier);
+			if (endNode->IsInputEvent(endPin->Identifier))
+			{
+				ProcessNode::OutputEvent& output = startNode->GetOutputEvent(startPin->Identifier);
+				ProcessNode::InputEvent& input = endNode->GetInputEvent(endPin->Identifier);
 
-			input = output;
+				output.AddTarget(input);
+			}
+			else
+			{
+				choc::value::ValueView& output = startNode->GetOutput(startPin->Identifier);
+				choc::value::ValueView& input = endNode->GetInput(endPin->Identifier);
+
+				input = output;
+			}
 
 			auto& inputNodes = dependencies[endPin->GetNodeID()];
 			inputNodes.emplace(startPin->GetNodeID());
@@ -660,7 +835,12 @@ namespace Shark {
 		for (auto& loosePin : loosePins)
 		{
 			auto* node = nodeGraph->Nodes[loosePin.NodeIndex];
+			if (node->IsInputEvent(loosePin.Pin))
+				continue;
+
 			choc::value::ValueView& input = node->GetInput(loosePin.Pin);
+			if (input.getRawData())
+				continue;
 
 			if (loosePin.GraphPin->Value.isVoid())
 				loosePin.GraphPin->Value = choc::value::Value(input.getType());
@@ -672,6 +852,9 @@ namespace Shark {
 		for (auto& loosePin : looseOutputPins)
 		{
 			auto* node = nodeGraph->Nodes[loosePin.NodeIndex];
+			if (node->IsOutputEvent(loosePin.Pin))
+				continue;
+
 			nodeGraph->OutputVariables.push_back(node->GetOutput(loosePin.Pin));
 			nodeGraph->DebugOutputNames.push_back(loosePin.GraphPin->Name);
 		}
@@ -680,7 +863,7 @@ namespace Shark {
 		// sort nodes
 		// this assumes there are no loops in the graph
 
-		const auto graphIsLess = [&dependencies](const Node* lhs, const Node* rhs)
+		const auto graphIsLess = [&dependencies](const ProcessNode* lhs, const ProcessNode* rhs)
 		{
 			const bool lhsHasDeps = dependencies.contains(lhs->ID);
 			const bool rhsHasDeps = dependencies.contains(rhs->ID);
@@ -726,13 +909,31 @@ namespace Shark {
 
 		std::ranges::sort(nodeGraph->Nodes, graphIsLess);
 
+		NodeContextSpecification spec;
+		spec.ActiveScene = m_Scene;
+		NodeContext context(spec);
+
 		for (auto& node : nodeGraph->Nodes)
-			node->Initialize();
+			node->Initialize(&context);
+
+		for (auto& editorNode : m_Nodes)
+		{
+			auto id = editorNode.GetID();
+
+			for (int i = 0; i < nodeGraph->Nodes.size(); i++)
+			{
+				if (nodeGraph->Nodes[i]->ID == id)
+				{
+					editorNode.EvaluationIndex = i;
+					break;
+				}
+			}
+		}
 
 		return nodeGraph;
 	}
 
-	Shark::GraphEditor::Node* NodeGraphEditor::FindNode(ax::NodeEditor::NodeId id)
+	Node* NodeGraphEditor::FindNode(ax::NodeEditor::NodeId id)
 	{
 		for (auto& node : m_Nodes)
 			if (node.ID == id)
@@ -741,7 +942,7 @@ namespace Shark {
 		return nullptr;
 	}
 
-	Shark::GraphEditor::Link* NodeGraphEditor::FindLink(ax::NodeEditor::LinkId id)
+	Link* NodeGraphEditor::FindLink(ax::NodeEditor::LinkId id)
 	{
 		for (auto& link : m_Links)
 			if (link.ID == id)
@@ -750,7 +951,7 @@ namespace Shark {
 		return nullptr;
 	}
 
-	Shark::GraphEditor::Link* NodeGraphEditor::FindLink(ax::NodeEditor::PinId id)
+	Link* NodeGraphEditor::FindLink(ax::NodeEditor::PinId id)
 	{
 		for (auto& link : m_Links)
 			if (link.StartPinID == id || link.EndPinID == id)
@@ -759,7 +960,7 @@ namespace Shark {
 		return nullptr;
 	}
 
-	Shark::GraphEditor::Pin* NodeGraphEditor::FindPin(ax::NodeEditor::PinId id)
+	Pin* NodeGraphEditor::FindPin(ax::NodeEditor::PinId id)
 	{
 		if (!id)
 			return nullptr;
@@ -805,15 +1006,15 @@ namespace Shark {
 		return false;
 	}
 
-	bool NodeGraphEditor::CanCreateLink(GraphEditor::Pin* pinA, GraphEditor::Pin* pinB)
+	bool NodeGraphEditor::CanCreateLink(Editor::Pin* pinA, Editor::Pin* pinB)
 	{
-		if (!pinA || !pinB || pinA == pinB || pinA->Kind == pinB->Kind || pinA->Type != pinB->Type || pinA->NodeID == pinB->NodeID)
+		if (!pinA || !pinB || pinA == pinB || pinA->Kind == pinB->Kind || pinA->PinType != pinB->PinType || pinA->NodeID == pinB->NodeID)
 			return false;
 
 		return true;
 	}
 
-	bool NodeGraphEditor::WouldCreateLoop(GraphEditor::Pin* startPin, GraphEditor::Pin* endPin)
+	bool NodeGraphEditor::WouldCreateLoop(Editor::Pin* startPin, Editor::Pin* endPin)
 	{
 		// startPin is output pin
 		// endPin is input pin
@@ -840,7 +1041,7 @@ namespace Shark {
 		return false;
 	}
 
-	GraphEditor::Node* NodeGraphEditor::SpawnInputNode(std::string_view inputName)
+	Editor::Node* NodeGraphEditor::SpawnInputNode(std::string_view inputName)
 	{
 		const auto input = std::ranges::find(m_InputVariables, inputName, &Input::Name);
 		if (input == m_InputVariables.end())
@@ -850,31 +1051,34 @@ namespace Shark {
 		node.ID = GetNextID();
 		node.Name = "Input";
 
-		node.Outputs.push_back({
-			.ID = GetNextID(),
-			.NodeID = node.ID,
-			.Kind = ax::NodeEditor::PinKind::Output,
-			.Name = std::string(inputName),
-			.Type = input->Type
-		});
+		auto& pin = node.Outputs.emplace_back();
+		m_Factory->InitializePin(pin, input->Value.getType());
+		pin.ID = GetNextID();
+		pin.NodeID = node.ID;
+		pin.Kind = ax::NodeEditor::PinKind::Output;
+		pin.Name = std::string(inputName);
 
 		return &node;
 	}
 
-	bool NodeGraphEditor::DrawPinValueEdit(GraphEditor::Pin* pin)
+	bool NodeGraphEditor::DrawPinValueEdit(Editor::Pin* pin)
 	{
 		bool modified = false;
 
-		switch (pin->Type)
+		switch (pin->PinType)
 		{
-			case GraphEditor::PinType::Bool:
+			case CoreTypes::EPinType::Flow:
+				break;
+
+			case CoreTypes::EPinType::Bool:
 			{
-				bool value = pin->Value.isVoid() ? false : pin->Value.get<bool>();
+				bool value = pin->Value.getWithDefault<bool>(false);
+
 				if (modified = UI::Checkbox("##bool", &value))
 					pin->Value = choc::value::createBool(value);
 				break;
 			}
-			case GraphEditor::PinType::Int:
+			case Editor::CoreTypes::EPinType::Int:
 			{
 				int value = pin->Value.isVoid() ? 0 : pin->Value.get<int>();
 
@@ -886,7 +1090,7 @@ namespace Shark {
 					pin->Value = choc::value::createInt32(value);
 				break;
 			}
-			case GraphEditor::PinType::Float:
+			case Editor::CoreTypes::EPinType::Float:
 			{
 				float value = pin->Value.isVoid() ? 0.0f : pin->Value.get<float>();
 
@@ -896,6 +1100,35 @@ namespace Shark {
 
 				if (modified = UI::DragFloat("##float", &value, 0.05f))
 					pin->Value = choc::value::createFloat32(value);
+
+				break;
+			}
+			case Editor::CoreTypes::EPinType::Vec3:
+			{
+				glm::vec3 value;
+				if (pin->Value.isArray() && pin->Value.size() == 3)
+				{
+					value.x = pin->Value[0].getFloat32();
+					value.y = pin->Value[1].getFloat32();
+					value.t = pin->Value[2].getFloat32();
+				}
+
+				if (modified = UI::DragFloat3("##float3", glm::value_ptr(value)))
+					pin->Value = AsValue(value);
+				break;
+			}
+			case Editor::CoreTypes::EPinType::EntityID:
+			{
+				UUID value;
+
+				if (pin->Value.isObjectWithClassName("EntityID"))
+					value = UUID::Make(pin->Value["ID"].getInt64());
+
+				const ImVec2 size = ImGui::CalcTextSize("0123456789ABCDEF") + ImGui::GetStyle().FramePadding * 2.0f;
+
+				if (UI::Widgets::EntityButton("##entity_id", size, m_Scene, value))
+					m_EntityPinPopup.Set(pin);
+
 				break;
 			}
 			default:
@@ -906,28 +1139,28 @@ namespace Shark {
 		return modified;
 	}
 
-	void NodeGraphEditor::ChangeInputType(Input& input, GraphEditor::PinType type)
+	void NodeGraphEditor::ChangeInputType(Input& input, const choc::value::Type& newType)
 	{
-		if (input.Type == type)
+		auto& currentType = input.Value.getType();
+		if (currentType == newType)
 			return;
 
 		for (auto& node : m_Nodes)
 		{
-			if (node.Name != "Input" && node.Outputs[0].Name != input.Name)
+			if (node.Name != "Input" || node.Outputs[0].Name != input.Name)
 				continue;
 
 			for (auto& output : node.Outputs)
 			{
 				RemoveLinks(output.ID);
 
-				output.Type = type;
-				output.Value = choc::value::Value();
+				m_Factory->InitializePin(output, newType);
+				output.Value = choc::value::Value(newType);
 			}
 
 		}
 
-		input.Type = type;
-		input.Value = choc::value::Value();
+		input.Value = choc::value::Value(newType);
 	}
 
 	void NodeGraphEditor::RenameInput(Input& input, const std::string& newName)
@@ -939,6 +1172,11 @@ namespace Shark {
 
 			node.Outputs[0].Name = newName;
 		}
+	}
+
+	void NodeGraphEditor::SetContext(Ref<Scene> context)
+	{
+		m_Scene = context;
 	}
 
 }

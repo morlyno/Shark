@@ -6,71 +6,71 @@
 #include <imgui_node_editor.h>
 #include <choc/containers/choc_Value.h>
 
-namespace Shark {
+namespace Shark::NodeGraph::Editor {
 
-	namespace GraphEditor {
+	struct Pin
+	{
+		ax::NodeEditor::PinId   ID;
+		ax::NodeEditor::NodeId  NodeID;
+		ax::NodeEditor::PinKind Kind = ax::NodeEditor::PinKind::Input;
+		std::string             Name;
 
-		enum class PinType
+		Identifier Identifier;
+		choc::value::Value Value;
+
+		int PinType = -1;
+		ImColor Color = IM_COL32_WHITE;
+
+		UUID GetNodeID() const { return UUID::Make(NodeID.Get()); }
+
+		template<typename TDesc>
+		void SetDesc()
 		{
-			Flow,
-			Bool,
-			Int,
-			Float,
-		};
-
-		template<typename T>
-		static constexpr PinType GetPinType()
-		{
-			if constexpr (std::is_same_v<T, bool>)
-				return PinType::Bool;
-			else if constexpr (std::is_same_v<T, int>)
-				return PinType::Int;
-			else if constexpr (std::is_same_v<T, float>)
-				return PinType::Float;
-			else
-				static_assert(false, "Invalid type");
+			PinType = TDesc::PinType;
+			Color = TDesc::Color;
 		}
 
+	};
 
-		struct Pin
-		{
-			ax::NodeEditor::PinId   ID;
-			ax::NodeEditor::NodeId  NodeID;
-			ax::NodeEditor::PinKind Kind = ax::NodeEditor::PinKind::Input;
-			std::string             Name;
+	struct NodeSettings
+	{
+		bool IsSimple = false;
+		bool CanEditPins = true;
+		std::unordered_map<Identifier, bool> EditPinOverrides;
 
-			Identifier Identifier;
-			PinType Type;
-			choc::value::Value Value;
+		bool DrawPinEdit(Identifier id) const { return EditPinOverrides.contains(id) ? EditPinOverrides.at(id) : CanEditPins; }
 
-			UUID GetNodeID() const { return UUID::Make(NodeID.Get()); }
-		};
+		NodeSettings& Simple(bool simple) { IsSimple = simple; return *this; }
+		NodeSettings& EditPins(bool edit) { CanEditPins = edit; return *this; }
+		NodeSettings& AddOverride(Identifier id, bool editable) { EditPinOverrides[id] = editable; return *this; }
+	};
 
-		struct Node
-		{
-			ax::NodeEditor::NodeId ID;
-			std::string Name;
-			std::vector<Pin> Inputs;
-			std::vector<Pin> Outputs;
-			ImColor Color;
-			ImVec2 Size;
+	struct Node
+	{
+		ax::NodeEditor::NodeId ID;
+		std::string Name, Category;
+		std::vector<Pin> Inputs;
+		std::vector<Pin> Outputs;
+		ImColor Color;
+		ImVec2 Size;
+		NodeSettings Settings;
 
-			std::string State;
-			std::string SavedState;
+		std::string State;
+		std::string SavedState;
 
-			UUID GetID() const { return UUID::Make(ID.Get()); }
-		};
+		int EvaluationIndex = -1;
 
-		struct Link
-		{
-			ax::NodeEditor::LinkId ID;
+		UUID GetID() const { return UUID::Make(ID.Get()); }
+	};
 
-			ax::NodeEditor::PinId StartPinID;
-			ax::NodeEditor::PinId EndPinID;
+	struct Link
+	{
+		ax::NodeEditor::LinkId ID;
 
-			ImColor Color;
-		};
+		ax::NodeEditor::PinId StartPinID;
+		ax::NodeEditor::PinId EndPinID;
 
-	}
+		ImColor Color;
+	};
 
 }

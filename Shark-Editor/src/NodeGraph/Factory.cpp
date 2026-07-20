@@ -1,28 +1,52 @@
 #include "skpch.h"
 #include "Factory.h"
 
-namespace Shark {
+#include "NodeGraph/EditorNodes.h"
+#include "NodeGraph/CoreTypes.h"
 
-	void GraphEditor::Factory::AddNode(const std::string& category, const std::string& type, std::function<Node*()> spawner)
+namespace Shark::NodeGraph::Editor {
+
+	CoreFactory::CoreFactory(Registry registry)
+		: m_Registry(std::move(registry))
 	{
-		auto& cat = m_Registry[category];
-		SK_CORE_VERIFY(cat.contains(type) == false);
-
-		cat[type] = std::move(spawner);
 	}
 
-	GraphEditor::Node* GraphEditor::Factory::SpawnNode(std::string_view category, std::string_view type)
+	ProcessNode* CoreFactory::AllocateProcess(std::string_view category, std::string_view type, UUID id) const
+	{
+		const auto cat = m_Registry.find(category);
+		if (cat == m_Registry.end())
+			return nullptr;
+
+		const auto entry = cat->second.find(type);
+		if (entry == cat->second.end())
+			return nullptr;
+
+		return entry->second.ProcessAllocator(id);
+	}
+
+	bool CoreFactory::CoreSpawnNode(std::string_view category, std::string_view type, Node& outNode, UUID id) const
 	{
 		const auto cat = m_Registry.find(category);
 		if (cat != m_Registry.end())
 		{
-			const auto spawner = cat->second.find(type);
-			if (spawner != cat->second.end())
+			const auto entry = cat->second.find(type);
+			if (entry != cat->second.end())
 			{
-				return spawner->second();
+				entry->second.Spawner(category, outNode, id);
+				return true;
 			}
 		}
-		return nullptr;
+		return false;
+	}
+
+	bool CoreFactory::CoreInitializePin(Pin& outPin, int pinType) const
+	{
+		return CoreTypes::InitializePin(outPin, static_cast<CoreTypes::EPinType>(pinType));
+	}
+
+	bool CoreFactory::CoreInitializePin(Pin& outPin, const choc::value::Type& type) const
+	{
+		return CoreTypes::InitiailizePin(outPin, type);
 	}
 
 }

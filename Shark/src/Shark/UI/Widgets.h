@@ -5,15 +5,48 @@
 #include "Shark/UI/TextFilter.h"
 
 namespace Shark {
-
 	class Scene;
+}
 
-	namespace UI {
-		enum class DialogType
+namespace Shark::UI {
+
+	enum class DialogType
+	{
+		Open, Save
+	};
+
+	struct EntityButtonArgs
+	{
+		std::string_view DisplayName = {};
+		bool Interactive             = false;
+
+		// #TODO not supported for entities
+		//ImU32            TextColor   = Colors::Theme::Text;
+	};
+
+	struct InputEntityArgs
+	{
+		std::string_view DisplayName = {};
+		ImU32            TextColor   = Colors::Theme::Text;
+		const char*      DropType    = "Entity";
+
+		operator EntityButtonArgs() const
 		{
-			Open, Save
-		};
-	}
+			return {
+				.DisplayName = DisplayName,
+				.Interactive = true,
+				//.TextColor = TextColor,
+			};
+		}
+	};
+
+	struct InputAssetArgs
+	{
+		std::string_view DisplayName = {};
+		ImU32            TextColor   = Colors::Theme::Text;
+		const char*      DropType    = "Asset";
+	};
+
 }
 
 namespace Shark::UI::Widgets {
@@ -28,12 +61,16 @@ namespace Shark::UI::Widgets {
 	bool InputDirectory(DialogType dialogType, std::filesystem::path& path, const std::filesystem::path& defaultPath = {});
 	
 	template<typename TFunction>
-	bool ItemSearchPopup(UI::TextFilter& search, const TFunction& itemFunction);
+	bool ItemSearchPopup(UI::TextFilter& search, const TFunction& itemFunction, ImGuiID customPopupID = 0);
 
 	bool SearchAssetPopup(AssetType assetType, AssetHandle& assetHandle);
 	bool SearchAssetPopup(std::span<const AssetType> assetType, AssetHandle& assetHandle);
-	bool SearchEntityPopup(Ref<Scene> scene, UUID& entityID);
+	bool SearchEntityPopup(Ref<Scene> scene, UUID& entityID, ImGuiID customID = 0);
 	bool SearchScriptPopup(uint64_t& scriptID);
+
+	bool EntityButton(std::string_view strID, const ImVec2& size, Ref<Scene> scene, UUID& entityID, const EntityButtonArgs& args = {});
+	bool InputEntity(std::string_view strID, const ImVec2& size, Ref<Scene> scene, UUID& entityID, const InputEntityArgs& args = {});
+	bool InputAsset(std::string_view strID, const ImVec2& size, std::span<const AssetType> assetTypes, AssetHandle& assetHandle, const InputAssetArgs& args = {});
 
 }
 
@@ -149,7 +186,7 @@ bool Shark::UI::Widgets::Search(TString& searchString, const char* hint, bool* g
 }
 
 template<typename TFunction>
-bool Shark::UI::Widgets::ItemSearchPopup(UI::TextFilter& search, const TFunction& itemFunction)
+bool Shark::UI::Widgets::ItemSearchPopup(UI::TextFilter& search, const TFunction& itemFunction, ImGuiID customPopupID)
 {
 	const auto CalcMaxPopupHeightFromItemCount = [](int items_count)
 	{
@@ -159,7 +196,7 @@ bool Shark::UI::Widgets::ItemSearchPopup(UI::TextFilter& search, const TFunction
 		return (g.FontSize + g.Style.ItemSpacing.y) * items_count - g.Style.ItemSpacing.y + (g.Style.WindowPadding.y * 2);
 	};
 
-	ImGuiID popupID = ImGui::GetID("##selectAssetPopup"sv);
+	ImGuiID popupID = customPopupID ? customPopupID : ImGui::GetID("##selectAssetPopup"sv);
 	if (ImGui::IsItemActivated())
 	{
 		search.Clear();

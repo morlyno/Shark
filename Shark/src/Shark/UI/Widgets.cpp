@@ -8,8 +8,40 @@
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/UIUtilities.h"
 #include "Shark/Utils/PlatformUtils.h"
+#include "Shark/Utils/Utilities.h"
+
+#include <imgui_node_editor.h>
 
 namespace Shark {
+
+	namespace details {
+
+		static std::pair<std::string, bool> GetDisplayName(AssetHandle handle, const UI::InputAssetArgs& args)
+		{
+			if (!handle)
+				return { "", true };
+
+			if (!AssetManager::IsValidAssetHandle(handle))
+			{
+				return { "Invalid", false };
+			}
+
+			auto assetManager = Project::GetEditorAssetManager();
+
+			const bool isMemoryAsset = assetManager->IsMemoryAsset(handle);
+			const bool valid = isMemoryAsset || assetManager->HasExistingFilePath(handle);
+
+			if (!args.DisplayName.empty())
+				return { std::string(args.DisplayName), valid };
+
+			if (isMemoryAsset)
+				return { fmt::format("{}", handle), valid };
+
+			const auto& metadata = assetManager->GetMetadata(handle);
+			return { metadata.FilePath.string(), valid };
+		}
+
+	}
 
 	bool UI::Widgets::Search(TextFilter& filter, const char* hint, bool* grabFocus, bool clearOnGrab)
 	{
@@ -171,7 +203,7 @@ namespace Shark {
 		});
 	}
 
-	bool UI::Widgets::SearchEntityPopup(Ref<Scene> scene, UUID& entityID)
+	bool UI::Widgets::SearchEntityPopup(Ref<Scene> scene, UUID& entityID, ImGuiID customID)
 	{
 		static UI::TextFilter s_Filter("");
 		return ItemSearchPopup(s_Filter, [scene, &entityID](UI::TextFilter& filter, bool clear, bool& changed)
@@ -199,7 +231,7 @@ namespace Shark {
 					changed = true;
 				}
 			}
-		});
+		}, customID);
 	}
 
 	bool UI::Widgets::SearchScriptPopup(uint64_t& scriptID)
@@ -225,6 +257,127 @@ namespace Shark {
 				}
 			}
 		});
+	}
+
+	bool UI::Widgets::EntityButton(std::string_view strID, const ImVec2& size, Ref<Scene> scene, UUID& entityID, const EntityButtonArgs& args)
+	{
+		bool pressed = false;
+
+		{
+			//UI::ScopedDisabled diabled(!args.Interactive);
+
+			pressed = ImGui::InvisibleButton(strID.data(), size);
+		}
+
+		auto& g = *GImGui;
+		if ((g.LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0)
+		{
+			DrawButton("--", ImVec2(0.5f, 0.5f), GetItemRect());
+		}
+		else
+		{
+			if (!scene)
+			{
+				if (entityID)
+					DrawButton(args.DisplayName.empty() ? fmt::to_string(entityID) : args.DisplayName, GetItemRect());
+				else
+					DrawButton("", GetItemRect());
+			}
+			else if (entityID && !scene->IsValidEntityID(entityID))
+			{
+				ScopedColor textColor(ImGuiCol_Text, Colors::Theme::TextError);
+				DrawButton("Invalid", GetItemRect());
+			}
+			else
+			{
+				Entity entity = scene->TryGetEntityByUUID(entityID);
+
+				std::string_view displayName = "";
+				if (entity)
+				{
+					displayName = args.DisplayName.empty() ? entity.GetName() : args.DisplayName;
+				}
+
+				DrawButton(displayName,
+						   ImVec2(0.0f, 0.5f),
+						   GetItemRect());
+			}
+		}
+
+		return pressed;
+	}
+
+	bool UI::Widgets::InputEntity(std::string_view strID, const ImVec2& size, Ref<Scene> scene, UUID& entityID, const InputEntityArgs& args)
+	{
+		auto& g = *GImGui;
+		ScopedID id(strID);
+		bool modified = false;
+
+		Widgets::EntityButton(strID, size, scene, entityID, args);
+		modified = Widgets::SearchEntityPopup(scene, entityID);
+
+		if (args.DropType && (g.LastItemData.ItemFlags & ImGuiItemFlags_ReadOnly) == 0)
+		{
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(args.DropType);
+				if (payload)
+				{
+					auto id = *static_cast<const UUID*>(payload->Data);
+					if (scene->IsValidEntityID(id))
+					{
+						entityID = id;
+						modified = true;
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+		}
+
+		return modified;
+	}
+
+	bool UI::Widgets::InputAsset(std::string_view strID, const ImVec2& size, std::span<const AssetType> assetTypes, AssetHandle& assetHandle, const InputAssetArgs& args)
+	{
+		bool modified = false;
+		ScopedID id(strID);
+
+		ImGui::InvisibleButton(strID.data(), size);
+
+		auto& g = *GImGui;
+		if ((g.LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0)
+		{
+			DrawButton("--", ImVec2(0.5f, 0.5f), GetItemRect());
+		}
+		else
+		{
+			auto [displayName, isValid] = details::GetDisplayName(assetHandle, args);
+			ScopedColor textColor(ImGuiCol_Text, isValid ? args.TextColor : Colors::Theme::TextError);
+
+			DrawButton(displayName, ImVec2(0.0f, 0.5f), GetItemRect());
+		}
+
+		modified = Widgets::SearchAssetPopup(assetTypes, assetHandle);
+
+		if (args.DropType && (g.LastItemData.ItemFlags & ImGuiItemFlags_ReadOnly) == 0)
+		{
+			if (ImGui::BeginDragDropTarget())
+			{
+				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(args.DropType);
+				if (payload)
+				{
+					auto handle = *static_cast<const AssetHandle*>(payload->Data);
+					if (Contains(assetTypes, AssetManager::GetAssetType(handle)))
+					{
+						assetHandle = handle;
+						modified = true;
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+		}
+
+		return modified;
 	}
 
 }

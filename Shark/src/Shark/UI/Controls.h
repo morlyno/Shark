@@ -2,8 +2,10 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Enum.h"
-#include "Shark/UI/UICore.h"
 #include "Shark/Asset/Asset.h"
+
+#include "Shark/UI/UICore.h"
+#include "Shark/UI/Widgets.h"
 
 namespace Shark {
 	class Scene;
@@ -106,21 +108,15 @@ namespace Shark::UI {
 	bool Control(std::string_view label, std::string& value);
 	bool Control(std::string_view label, std::string_view value);
 
+	bool Control(std::string_view label, std::string& selectedString, std::span<const std::string> strings);
+	bool Control(std::string_view label, std::string& selectedString, std::span<const std::string_view> strings);
+	bool Control(std::string_view label, std::string_view& selectedString, std::span<const std::string> strings);
+	bool Control(std::string_view label, std::string_view& selectedString, std::span<const std::string_view> strings);
+
 	bool Control(std::string_view label, std::invocable auto&& func);
 
-	struct EntityControlArgs
-	{
-		std::string_view DisplayName = {};
-		ImU32            TextColor   = Colors::Theme::Text;
-		const char*      DropType    = "Entity";
-	};
-
-	struct AssetControlArgs
-	{
-		std::string_view DisplayName = {};
-		ImU32            TextColor   = Colors::Theme::Text;
-		const char*      DropType    = "Asset";
-	};
+	using EntityControlArgs = InputEntityArgs;
+	using AssetControlArgs = InputAssetArgs;
 
 	bool ControlEntity(std::string_view label, Ref<Scene> scene, UUID& entityID, const EntityControlArgs& args = {});
 	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle, const AssetControlArgs& args = {});
@@ -236,10 +232,15 @@ namespace Shark::UI {
 		ImGui::Text(label);
 		ImGui::TableNextColumn();
 
-		const bool result = func();
+		bool modified = false;
+
+		if constexpr (std::same_as<std::invoke_result_t<decltype(func)>, bool>)
+			modified = func();
+		else
+			func();
 
 		details::EndControl();
-		return result;
+		return modified;
 	}
 
 }

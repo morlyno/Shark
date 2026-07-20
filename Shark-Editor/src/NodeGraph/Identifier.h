@@ -18,7 +18,7 @@ namespace Shark {
 		{
 		}
 
-		uint64_t ID;
+		uint64_t ID = 0;
 		std::string_view DebugID;
 
 		constexpr bool operator==(const Identifier& other) const { return ID == other.ID; }

@@ -166,52 +166,44 @@ namespace Shark::UI {
 			return { metadata.FilePath.string(), valid };
 		}
 
-	}
 
-	bool Control(std::string_view label, bool& value)
-	{
-		return Control(label, [&value]()
+		template<typename TSelected, typename TString>
+		bool StringComboControl(std::string_view label, TSelected& selectedString, std::span<const TString> strings)
 		{
-			return Checkbox(GenerateID(), &value);
-		});
-	}
+			if (!details::BeginControl(ImGui::GetID(label)))
+				return false;
 
-	bool Control(std::string_view label, const bool& value)
-	{
-		ScopedItemFlag readOnly(ImGuiItemFlags_ReadOnly);
+			ImGui::Text(label);
+			ImGui::TableNextColumn();
 
-		bool temp = value;
-		return Control(label, temp);
-	}
+			std::string_view preview = selectedString;
+			bool modified = false;
 
-	bool Control(std::string_view label, char* buffer, size_t bufferSize)
-	{
-		return Control(label, [&]()
-		{
 			ImGui::SetNextItemWidth(-1.0f);
-			return InputText(GenerateID(), buffer, bufferSize);
-		});
-	}
+			if (BeginCombo(GenerateID(), preview.data()))
+			{
+				for (size_t i = 0; i < strings.size(); i++)
+				{
+					const std::string_view name = strings[i];
+					const bool isSelected = name == preview;
 
-	bool Control(std::string_view label, std::string& value)
-	{
-		return Control(label, [&value]()
-		{
-			ImGui::SetNextItemWidth(-1.0f);
-			return InputText(GenerateID(), &value);
-		});
-	}
+					if (ImGui::Selectable(name.data(), isSelected))
+					{
+						selectedString = strings[i];
+						modified = true;
+					}
 
-	bool Control(std::string_view label, std::string_view value)
-	{
-		Control(label, [&value]()
-		{
-			ImGui::SetNextItemWidth(-1.0f);
-			// #Investigate should this be an input text
-			InputText(GenerateID(), const_cast<char*>(value.data()), value.size(), ImGuiInputTextFlags_ReadOnly);
-			return false;
-		});
-		return false;
+					if (isSelected)
+						ImGui::SetItemDefaultFocus();
+				}
+
+				EndCombo();
+			}
+			details::EndControl();
+			return modified;
+		}
+
+
 	}
 
 	bool Control(std::string_view label, glm::vec3& value, as_color_t)
@@ -230,6 +222,22 @@ namespace Shark::UI {
 			ImGui::SetNextItemWidth(-1.0f);
 			return ColorEdit4(GenerateID(), glm::value_ptr(value));
 		});
+	}
+
+	bool Control(std::string_view label, bool& value)
+	{
+		return Control(label, [&value]()
+		{
+			return Checkbox(GenerateID(), &value);
+		});
+	}
+
+	bool Control(std::string_view label, const bool& value)
+	{
+		ScopedItemFlag readOnly(ImGuiItemFlags_ReadOnly);
+
+		bool temp = value;
+		return Control(label, temp);
 	}
 
 	bool Control(std::string_view label, bool& value, const char* vTrue, const char* vFalse)
@@ -264,6 +272,56 @@ namespace Shark::UI {
 		});
 	}
 
+	bool Control(std::string_view label, char* buffer, size_t bufferSize)
+	{
+		return Control(label, [&]()
+		{
+			ImGui::SetNextItemWidth(-1.0f);
+			return InputText(GenerateID(), buffer, bufferSize);
+		});
+	}
+
+	bool Control(std::string_view label, std::string& value)
+	{
+		return Control(label, [&value]()
+		{
+			ImGui::SetNextItemWidth(-1.0f);
+			return InputText(GenerateID(), &value);
+		});
+	}
+
+	bool Control(std::string_view label, std::string_view value)
+	{
+		Control(label, [&value]()
+		{
+			ImGui::SetNextItemWidth(-1.0f);
+			// #Investigate should this be an input text
+			InputText(GenerateID(), const_cast<char*>(value.data()), value.size(), ImGuiInputTextFlags_ReadOnly);
+			return false;
+		});
+		return false;
+	}
+
+	bool Control(std::string_view label, std::string& selectedString, std::span<const std::string> strings)
+	{
+		return details::StringComboControl(label, selectedString, strings);
+	}
+
+	bool Control(std::string_view label, std::string& selectedString, std::span<const std::string_view> strings)
+	{
+		return details::StringComboControl(label, selectedString, strings);
+	}
+
+	bool Control(std::string_view label, std::string_view& selectedString, std::span<const std::string> strings)
+	{
+		return details::StringComboControl(label, selectedString, strings);
+	}
+
+	bool Control(std::string_view label, std::string_view& selectedString, std::span<const std::string_view> strings)
+	{
+		return details::StringComboControl(label, selectedString, strings);
+	}
+
 	bool ControlEntity(std::string_view label, Ref<Scene> scene, UUID& entityID, const EntityControlArgs& args)
 	{
 		if (!details::BeginControl(ImGui::GetID(label)))
@@ -272,64 +330,7 @@ namespace Shark::UI {
 		ImGui::Text(label);
 		ImGui::TableNextColumn();
 
-		bool modified = false;
-
-		ImGui::InvisibleButton(label.data(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
-
-		auto& g = *GImGui;
-		if ((g.LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0)
-		{
-			DrawButton("--", ImVec2(0.5f, 0.5f), GetItemRect());
-		}
-		else
-		{
-			if (!scene)
-			{
-				if (entityID)
-					DrawButton(args.DisplayName.empty() ? fmt::to_string(entityID) : args.DisplayName, GetItemRect());
-				else
-					DrawButton("", GetItemRect());
-			}
-			else if (entityID && !scene->IsValidEntityID(entityID))
-			{
-				ScopedColor textColor(ImGuiCol_Text, Colors::Theme::TextError);
-				DrawButton("Invalid", GetItemRect());
-			}
-			else
-			{
-				Entity entity = scene->TryGetEntityByUUID(entityID);
-				
-				std::string_view displayName = "";
-				if (entity)
-				{
-					displayName = args.DisplayName.empty() ? entity.GetName() : args.DisplayName;
-				}
-
-				DrawButton(displayName,
-						   ImVec2(0.0f, 0.5f),
-						   GetItemRect());
-			}
-		}
-
-		modified = Widgets::SearchEntityPopup(scene, entityID);
-
-		if (args.DropType && (g.LastItemData.ItemFlags & ImGuiItemFlags_ReadOnly) == 0)
-		{
-			if (ImGui::BeginDragDropTarget())
-			{
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(args.DropType);
-				if (payload)
-				{
-					auto id = *static_cast<const UUID*>(payload->Data);
-					if (scene->IsValidEntityID(id))
-					{
-						entityID = id;
-						modified = true;
-					}
-				}
-				ImGui::EndDragDropTarget();
-			}
-		}
+		bool modified = Widgets::InputEntity(label, { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() }, scene, entityID, args);
 
 		details::EndControl();
 		return modified;
@@ -348,42 +349,7 @@ namespace Shark::UI {
 		ImGui::Text(label);
 		ImGui::TableNextColumn();
 
-		bool modified = false;
-
-		ImGui::InvisibleButton(label.data(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
-
-		auto& g = *GImGui;
-		if ((g.LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0)
-		{
-			DrawButton("--", ImVec2(0.5f, 0.5f), GetItemRect());
-		}
-		else
-		{
-			auto [displayName, isValid] = details::GetDisplayName(assetHandle, args);
-			ScopedColor textColor(ImGuiCol_Text, isValid ? args.TextColor : Colors::Theme::TextError);
-
-			DrawButton(displayName, ImVec2(0.0f, 0.5f), GetItemRect());
-		}
-
-		modified = Widgets::SearchAssetPopup(assetTypes, assetHandle);
-
-		if (args.DropType && (g.LastItemData.ItemFlags & ImGuiItemFlags_ReadOnly) == 0)
-		{
-			if (ImGui::BeginDragDropTarget())
-			{
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(args.DropType);
-				if (payload)
-				{
-					auto handle = *static_cast<const AssetHandle*>(payload->Data);
-					if (Contains(assetTypes, AssetManager::GetAssetType(handle)))
-					{
-						assetHandle = handle;
-						modified = true;
-					}
-				}
-				ImGui::EndDragDropTarget();
-			}
-		}
+		bool modified = Widgets::InputAsset(label, { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() }, assetTypes, assetHandle, args);
 
 		details::EndControl();
 		return modified;
@@ -437,20 +403,20 @@ namespace Shark::UI {
 		return modified;
 	}
 
-	bool ControlAsset(std::string_view label, AssetType assetType, const AssetHandle& assetHandle, const AssetControlArgs& args)
-	{
-		ScopedItemFlag readOnly(ImGuiItemFlags_ReadOnly);
-
-		AssetHandle handle = assetHandle;
-		return ControlAsset(label, assetType, handle, args);
-	}
-
 	bool ControlEntity(std::string_view label, Ref<Scene> scene, const UUID& entityID, const EntityControlArgs& args)
 	{
 		ScopedItemFlag readOnly(ImGuiItemFlags_ReadOnly);
 
 		UUID id = entityID;
 		return ControlEntity(label, scene, id, args);
+	}
+
+	bool ControlAsset(std::string_view label, AssetType assetType, const AssetHandle& assetHandle, const AssetControlArgs& args)
+	{
+		ScopedItemFlag readOnly(ImGuiItemFlags_ReadOnly);
+
+		AssetHandle handle = assetHandle;
+		return ControlAsset(label, assetType, handle, args);
 	}
 
 }
