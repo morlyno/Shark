@@ -346,18 +346,16 @@ namespace Shark {
 	// This component only works when there is a mesh component on the same entity
 	struct AnimationComponent
 	{
-		size_t AnimationIndex = 0;
+		AssetHandle Animation;
 		bool Loop = true;
+		bool Update = true;
 
 		// Runtime
-		AssetHandle m_Mesh = AssetHandle::Invalid;
 		float m_TimePosition = 0.0f;
 		bool m_Finished = false;
-		bool m_UpdateTime = true;
 
-		void Reset(AssetHandle mesh)
+		void Reset()
 		{
-			m_Mesh = mesh;
 			m_TimePosition = 0.0f;
 			m_Finished = false;
 		}

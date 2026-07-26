@@ -478,10 +478,9 @@ namespace Shark {
 		{
 			out << YAML::Key << "AnimationComponent";
 			out << YAML::BeginMap;
-			// #Investigate should this be serialized
-			out << YAML::Key << "Mesh" << YAML::Value << component->m_Mesh;
-			out << YAML::Key << "AnimationIndex" << YAML::Value << component->AnimationIndex;
+			out << YAML::Key << "Animation" << YAML::Value << component->Animation;
 			out << YAML::Key << "Loop" << YAML::Value << component->Loop;
+			out << YAML::Key << "Update" << YAML::Value << component->Update;
 			out << YAML::EndMap;
 		}
 
@@ -851,16 +850,9 @@ namespace Shark {
 		if (auto componentNode = entityNode["AnimationComponent"])
 		{
 			auto& component = entity.AddOrReplaceComponent<AnimationComponent>();
-			YAML::DeserializeProperty(componentNode, "AnimationIndex", component.AnimationIndex);
+			YAML::DeserializeProperty(componentNode, "Animation", component.Animation);
 			YAML::DeserializeProperty(componentNode, "Loop", component.Loop);
-
-			if (componentNode["Mesh"])
-				YAML::DeserializeProperty(componentNode, "Mesh", component.m_Mesh);
-
-			if (auto* meshComponent = entity.TryGetComponent<MeshComponent>())
-				component.m_Mesh = meshComponent->Mesh;
-
-			// m_Animation is set in Scene::OnScenePlay
+			YAML::DeserializeProperty(componentNode, "Update", component.Update);
 		}
 
 	}
@@ -872,8 +864,6 @@ namespace Shark {
 	bool SceneAssetSerializer::Serialize(Ref<Asset> asset, const AssetMetaData& metadata)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_INFO_TAG("Serialization", "Serializing Scene to {}", metadata.FilePath);
-		ScopedTimer timer("Serializing Scene");
 
 		SceneSerializer serializer(asset.As<Scene>());
 		serializer.Serialize(GetAssetFilesystemPath(metadata));
@@ -883,8 +873,6 @@ namespace Shark {
 	bool SceneAssetSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_INFO_TAG("Serialization", "Deserializing Scene from {}", metadata.FilePath);
-		ScopedTimer timer("Loading Scene");
 
 		Ref<Scene> scene = Ref<Scene>::Create();
 		SceneSerializer serializer(scene);

@@ -319,6 +319,8 @@ namespace Shark {
 			// maybe add some king of notification system to resources and input managers
 			m_GeometryPass->UpdateDescriptors();
 			m_GeometryAnimatedPass->UpdateDescriptors();
+			m_SelectedGeometryPass->UpdateDescriptors();
+			m_SelectedGeometryAnimatedPass->UpdateDescriptors();
 		}
 
 	}

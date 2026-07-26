@@ -1414,14 +1414,12 @@ namespace Shark {
 
 	void Scene::UpdateAnimations(TimeStep ts)
 	{
-		auto entities = GetAllEntitysWith<AnimationComponent>();
-		for (auto ent : entities)
+#if 0
+		const auto UpdateAnimationLagacy = [this, ts](Entity entity)
 		{
-			Entity entity{ ent, this };
-
 			auto& component = entity.GetComponent<AnimationComponent>();
 			if (component.m_Finished && !component.Loop || !entity.HasComponent<MeshComponent>())
-				continue;
+				return;
 
 			Ref<Mesh> mesh;
 			Ref<MeshSource> meshSource;
@@ -1430,12 +1428,18 @@ namespace Shark {
 				!(meshSource = AssetManager::GetAssetAsync<MeshSource>(mesh->GetMeshSource())) ||
 				component.AnimationIndex >= meshSource->GetAnimationCount())
 			{
-				continue;
+				return;
 			}
 
 			auto& meshComponent = entity.GetComponent<MeshComponent>();
 			Animation& animation = meshSource->GetAnimation(component.AnimationIndex);
 			const auto& channels = animation.GetChannels();
+
+			Animation* targetAnimation = nullptr;
+			if (component.AnimationIndex != component.TargetAnimationIndex)
+			{
+				targetAnimation = &meshSource->GetAnimation(component.TargetAnimationIndex);
+			}
 
 			if (component.m_UpdateTime)
 				component.m_TimePosition += ts / animation.GetDuration();
@@ -1456,12 +1460,11 @@ namespace Shark {
 			const size_t index = static_cast<size_t>(component.m_TimePosition * (animation.GetFrameCount() - 1));
 			SK_CORE_ASSERT(index < animation.GetFrameCount());
 
-
 			const float frameInterval = 1.0f / static_cast<float>(animation.GetFrameCount() - 1);
 			const size_t startIndex = index;
 			const size_t endIndex = component.Loop ? // wrap or clamp end index
-									(index + 1) % animation.GetFrameCount() :
-									std::min(index + 1, animation.GetFrameCount() - 1);
+				(index + 1) % animation.GetFrameCount() :
+				std::min(index + 1, animation.GetFrameCount() - 1);
 
 			for (size_t i = 0; i < channels.size(); i++)
 			{
@@ -1475,14 +1478,119 @@ namespace Shark {
 				const Channel& channel = channels[i];
 				const float t = (component.m_TimePosition - channel.Translations[startIndex].FrameTime) / frameInterval;
 
-				const auto mix     = [t, startIndex, endIndex](const auto& frames) { return glm::mix(frames[startIndex].Value, frames[endIndex].Value, t); };
+				const auto mix = [t, startIndex, endIndex](const auto& frames) { return glm::mix(frames[startIndex].Value, frames[endIndex].Value, t); };
 				// Spherical linear interpolation for quaternions because mix/lerp is oriented
 				const auto mixQuat = [t, startIndex, endIndex](const auto& frames) { return glm::slerp(frames[startIndex].Value, frames[endIndex].Value, t); };
 
+				Transform transform;
+				transform.Translation = mix(channel.Translations);
+				transform.Rotation = mixQuat(channel.Rotations);
+				transform.Scale = mix(channel.Scales);
+
+				if (targetAnimation)
+				{
+					const auto& targetChannel = targetAnimation->GetChannels()[i];
+
+					Transform targetTransform;
+					targetTransform.Translation = mix(targetChannel.Translations);
+					targetTransform.Rotation = mixQuat(targetChannel.Rotations);
+					targetTransform.Scale = mix(targetChannel.Scales);
+
+					transform.Translation = glm::mix(transform.Translation, targetTransform.Translation, component.Blend);
+					transform.Rotation = glm::slerp(transform.Rotation, targetTransform.Rotation, component.Blend);
+					transform.Scale = glm::mix(transform.Scale, targetTransform.Scale, component.Blend);
+				}
+
 				auto& dest = entity.Transform();
-				dest.Translation = mix(channel.Translations);
-				dest.Rotation = glm::eulerAngles(mixQuat(channel.Rotations));
-				dest.Scale.xyz = mix(channel.Scales);
+				dest.Translation = transform.Translation;
+				dest.Rotation = glm::eulerAngles(transform.Rotation);
+				dest.Scale.xyz = transform.Scale;
+			}
+
+		};
+#endif
+
+		auto entities = GetAllEntitysWith<AnimationComponent>();
+		for (auto ent : entities)
+		{
+			Entity entity{ ent, this };
+			if (!entity.HasComponent<MeshComponent>())
+				continue;
+
+			auto& component = entity.GetComponent<AnimationComponent>();
+			auto& meshComponent = entity.GetComponent<MeshComponent>();
+			if (!component.Animation || meshComponent.BoneEntityIDs.empty())
+			{
+				// Try legacy method first
+				//UpdateAnimationLagacy(entity);
+				continue;
+			}
+
+			auto animation = AssetManager::GetAssetAsync<AnimationAsset>(component.Animation);
+			if (!animation)
+				continue;
+
+
+			const Skeleton* skeleton;
+			const Animation* animationClip;
+			if (!(animationClip = animation->GetAnimationAsync()) ||
+				!(skeleton = animation->GetSkeletonAsync()))
+				continue;
+
+			SK_CORE_VERIFY(skeleton == animationClip->GetSkeleton());
+
+			if (component.Update)
+				component.m_TimePosition += ts / animationClip->GetDuration();
+
+			if (component.m_TimePosition > 1.0f)
+			{
+				if (component.Loop)
+				{
+					component.m_TimePosition -= glm::floor(component.m_TimePosition);
+				}
+				else
+				{
+					component.m_TimePosition = 1.0f;
+					component.m_Finished = true;
+				}
+			}
+
+			const size_t index = static_cast<size_t>(component.m_TimePosition * (animationClip->GetFrameCount() - 1));
+			SK_CORE_ASSERT(index < animationClip->GetFrameCount());
+
+
+			const float frameInterval = 1.0f / static_cast<float>(animationClip->GetFrameCount() - 1);
+			const size_t startIndex = index;
+			const size_t endIndex = component.Loop ? // wrap or clamp end index
+				(index + 1) % animationClip->GetFrameCount() :
+				std::min(index + 1, animationClip->GetFrameCount() - 1);
+
+			const auto& channels = animationClip->GetChannels();
+			for (size_t i = 0; i < channels.size(); i++)
+			{
+				Entity entity = TryGetEntityByUUID(meshComponent.BoneEntityIDs[i]);
+				if (!entity)
+				{
+					//SK_CORE_ERROR_TAG("Animation", "Failed to find entity for bone {}", i);
+					continue;
+				}
+
+				const Channel& channel = channels[i];
+				const float t = (component.m_TimePosition - channel.Translations[startIndex].FrameTime) / frameInterval;
+
+				const auto mix = [t, startIndex, endIndex](const auto& frames) { return glm::mix(frames[startIndex].Value, frames[endIndex].Value, t); };
+				// Spherical linear interpolation for quaternions because mix/lerp is oriented
+				const auto mixQuat = [t, startIndex, endIndex](const auto& frames) { return glm::slerp(frames[startIndex].Value, frames[endIndex].Value, t); };
+
+				Transform transform;
+				transform.Translation = mix(channel.Translations);
+				transform.Rotation = mixQuat(channel.Rotations);
+				transform.Scale = mix(channel.Scales);
+
+				auto& dest = entity.Transform();
+				dest.Translation = transform.Translation;
+				dest.Rotation = glm::eulerAngles(transform.Rotation);
+				dest.Scale.xyz = transform.Scale;
 			}
 
 		}

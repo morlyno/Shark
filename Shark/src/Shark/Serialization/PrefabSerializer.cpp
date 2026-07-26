@@ -18,9 +18,6 @@ namespace Shark {
 	bool PrefabSerializer::Serialize(Ref<Asset> asset, const AssetMetaData& metadata)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_VERIFY(asset);
-		SK_CORE_INFO_TAG("Serialization", "Serializing Prefab to {}", metadata.FilePath);
-		ScopedTimer timer("Serializing Prefab");
 
 		std::string result = SerializeToYAML(asset.As<Prefab>());
 		if (result.empty())
@@ -35,8 +32,6 @@ namespace Shark {
 	bool PrefabSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_INFO_TAG("Serialization", "Deserializing Prefab from {}", metadata.FilePath);
-		ScopedTimer timer("Loading Prefab");
 
 		const auto filesystemPath = context->GetFilesystemPath(metadata);
 		if (!FileSystem::Exists(filesystemPath))

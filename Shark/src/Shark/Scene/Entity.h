@@ -70,8 +70,8 @@ namespace Shark {
 		TransformComponent& Transform() { return GetComponent<TransformComponent>(); }
 		const TransformComponent& Transform() const { return GetComponent<TransformComponent>(); }
 
-		SK_DEPRECATED("Use Entity::Name() instead")
-			std::string& GetName() { return GetComponent<TagComponent>().Tag; }
+		std::string& GetName() { return GetComponent<TagComponent>().Tag; }
+		const std::string& GetName() const { return GetComponent<TagComponent>().Tag; }
 
 		operator bool() const { return IsValid(); }
 		operator entt::entity() const { return m_EntityHandle; }

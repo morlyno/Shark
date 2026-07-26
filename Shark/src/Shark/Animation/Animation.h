@@ -1,10 +1,12 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Asset/Asset.h"
 #include "Shark/Animation/Transform.h"
 
 namespace Shark {
 	class Skeleton;
+	class MeshSource;
 }
 
 namespace Shark {
@@ -40,6 +42,33 @@ namespace Shark {
 		float m_Duration;
 
 		friend class AssimpMeshImporter;
+	};
+
+	class AnimationAsset : public Asset
+	{
+	public:
+		AnimationAsset() = default;
+		~AnimationAsset() = default;
+
+		const std::string& GetName() const { return m_Name; }
+		AssetHandle GetAnimationSource() const { return m_AnimationSource; }
+		AssetHandle GetSkeletonSource() const { return m_SkeletonSource; }
+
+		// Can return nullptr when the MeshSource is not loaded yet
+		const Animation* GetAnimationAsync() const;
+		const Skeleton* GetSkeletonAsync() const;
+
+	public:
+		static AssetType GetStaticType() { return AssetType::Animation; }
+		virtual AssetType GetAssetType() const override { return GetStaticType(); }
+
+	private:
+		AssetHandle m_AnimationSource;
+		AssetHandle m_SkeletonSource;
+		std::string m_Name;
+
+		friend class AnimationSerializer;
+		friend class AnimationEditor;
 	};
 
 }

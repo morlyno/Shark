@@ -17,9 +17,6 @@ namespace Shark {
 	bool EnvironmentSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_INFO_TAG("Serialization", "Loading EnvironmentMap from {}", metadata.FilePath);
-
-		ScopedTimer timer("Loading EnvironmentMap");
 
 		const auto filesystemPath = context->GetFilesystemPath(metadata);
 		if (!FileSystem::Exists(filesystemPath))

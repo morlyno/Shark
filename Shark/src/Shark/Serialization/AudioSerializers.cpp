@@ -23,13 +23,11 @@ namespace Shark {
 	bool AudioFileSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_INFO_TAG("Serialization", "Serializing SoundConfig to {}", metadata.FilePath);
-		ScopedTimer timer("Serializing SoundConfig");
 
 		auto audioFile = Application::Get().GetAudioEngine()->QueryFileInfo(metadata.Handle);
 		if (!audioFile)
 		{
-			context->AddError(AssetLoadError::Unknown, "AudioEngine.QueryFileInfo return null");
+			context->AddError(AssetLoadError::Unknown, "AudioEngine.QueryFileInfo returned null");
 			return false;
 		}
 
@@ -42,8 +40,6 @@ namespace Shark {
 	bool SoundConfigSerializer::Serialize(Ref<Asset> asset, const AssetMetaData& metadata)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_INFO_TAG("Serialization", "Serializing SoundConfig to {}", metadata.FilePath);
-		ScopedTimer timer("Serializing SoundConfig");
 
 		std::string result = SerializeToYAML(asset.As<SoundConfig>());
 		if (result.empty())
@@ -61,8 +57,6 @@ namespace Shark {
 	bool SoundConfigSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_INFO_TAG("Serialization", "Loading SoundConfig from {}", metadata.FilePath);
-		ScopedTimer timer("Loading SoundConfig");
 
 		const auto filesystemPath = context->GetFilesystemPath(metadata);
 		if (!FileSystem::Exists(filesystemPath))

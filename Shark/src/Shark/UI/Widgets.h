@@ -5,35 +5,77 @@
 #include "Shark/UI/TextFilter.h"
 
 namespace Shark {
-
 	class Scene;
-
-	namespace UI {
-		enum class DialogType
-		{
-			Open, Save
-		};
-	}
 }
 
-namespace Shark::UI::Widgets {
+namespace Shark::UI {
 
-	template<typename TString>
-	bool Search(TString& searchString, const char* hint = "Search...", bool* grabFocus = nullptr, bool clearOnGrab = false);
-	bool Search(TextFilter& filter, const char* hint = "Search...", bool* grabFocus = nullptr, bool clearOnGrab = false);
+	enum class DialogType
+	{
+		Open, Save
+	};
 
-	bool InputFile(DialogType dialogType, std::string& path, const std::string& filters = "*.*|*.*", const std::filesystem::path& defaultPath = {});
-	bool InputFile(DialogType dialogType, std::filesystem::path& path, const std::string& filters = "*.*|*.*", const std::filesystem::path& defaultPath = {});
-	bool InputDirectory(DialogType dialogType, std::string& path, const std::filesystem::path& defaultPath = {});
-	bool InputDirectory(DialogType dialogType, std::filesystem::path& path, const std::filesystem::path& defaultPath = {});
-	
-	template<typename TFunction>
-	bool ItemSearchPopup(UI::TextFilter& search, const TFunction& itemFunction, bool clearButton = true);
+	struct ButtonArgs
+	{
+		std::string_view DisplayName = {};
+		std::optional<ImU32> TextColor = std::nullopt;
+		std::optional<ImU32> ErrorTextColor = std::nullopt;
+	};
 
-	bool SearchAssetPopup(AssetType assetType, AssetHandle& assetHandle);
-	bool SearchAssetPopup(std::span<const AssetType> assetType, AssetHandle& assetHandle);
-	bool SearchEntityPopup(Ref<Scene> scene, UUID& entityID);
-	bool SearchScriptPopup(uint64_t& scriptID);
+	struct SelectEntityArgs
+	{
+		std::string_view     DisplayName = {};
+		std::optional<ImU32> TextColor = std::nullopt;
+		std::optional<ImU32> ErrorTextColor = std::nullopt;
+		const char* DropType = "Entity";
+
+		operator ButtonArgs() const { return { .DisplayName = DisplayName, .TextColor = TextColor, .ErrorTextColor = ErrorTextColor }; }
+	};
+
+	struct SelectAssetArgs
+	{
+		std::string_view     DisplayName = {};
+		std::optional<ImU32> TextColor = std::nullopt;
+		std::optional<ImU32> ErrorTextColor = std::nullopt;
+		const char* DropType = "Asset";
+
+		operator ButtonArgs() const { return { .DisplayName = DisplayName, .TextColor = TextColor, .ErrorTextColor = ErrorTextColor }; }
+	};
+
+	namespace Widgets {
+
+		template<typename TString>
+		bool Search(TString& searchString, const char* hint = "Search...", bool* grabFocus = nullptr, bool clearOnGrab = false);
+		bool Search(TextFilter& filter, const char* hint = "Search...", bool* grabFocus = nullptr, bool clearOnGrab = false);
+
+		bool InputFile(DialogType dialogType, std::string& path, const std::string& filters = "*.*|*.*", const std::filesystem::path& defaultPath = {});
+		bool InputFile(DialogType dialogType, std::filesystem::path& path, const std::string& filters = "*.*|*.*", const std::filesystem::path& defaultPath = {});
+		bool InputDirectory(DialogType dialogType, std::string& path, const std::filesystem::path& defaultPath = {});
+		bool InputDirectory(DialogType dialogType, std::filesystem::path& path, const std::filesystem::path& defaultPath = {});
+
+		template<typename TFunction>
+		bool ItemSearchPopup(UI::TextFilter& search, const TFunction& itemFunction, bool clearButton = true);
+
+		bool SearchStringPopup(size_t& selected, std::span<const std::string> strings, const size_t unselectedIndex = ~0);
+		bool SearchStringPopup(std::string& selected, std::span<const std::string> strings);
+		bool SearchAssetPopup(AssetType assetType, AssetHandle& assetHandle);
+		bool SearchAssetPopup(std::span<const AssetType> assetType, AssetHandle& assetHandle);
+		bool SearchEntityPopup(Ref<Scene> scene, UUID& entityID);
+		bool SearchScriptPopup(uint64_t& scriptID);
+
+		bool StringButton(std::string_view selected);
+		bool EntityButton(Ref<Scene> scene, UUID entityID, const ButtonArgs& args = {});
+		bool AssetButton(AssetHandle handle, const ButtonArgs& args = {});
+		bool ScriptButton(uint64_t& scriptID, const ButtonArgs& args = {});
+
+		bool SelectString(size_t& selected, std::span<const std::string> strings, size_t unselectIndex = ~0);
+		bool SelectString(std::string& selected, std::span<const std::string> strings);
+		bool SelectEntity(Ref<Scene> scene, UUID& entityID, const SelectEntityArgs& args = {});
+		bool SelectAsset(AssetType assetType, AssetHandle& assetHandle, const SelectAssetArgs& args = {});
+		bool SelectAsset(std::span<const AssetType> assetTypes, AssetHandle& assetHandle, const SelectAssetArgs& args = {});
+		bool SelectScript(uint64_t& scriptID, const ButtonArgs& args);
+
+	}
 
 }
 

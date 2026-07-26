@@ -36,6 +36,7 @@
 #include "Panels/SoundPanel.h"
 #include "Panels/StatisticsPanel.h"
 
+#include "Panels/Editors/AnimationEditor.h"
 #include "Panels/Editors/MaterialEditorPanel.h"
 #include "Panels/Editors/PrefabEditorPanel.h"
 #include "Panels/Editors/SoundConfigEditor.h"
@@ -134,6 +135,13 @@ namespace Shark {
 			m_PanelManager->ShowPanel<AssetEditorManagerPanel>();
 			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>();
 			assetEditorManager->AddEditor<SoundConfigEditor>(metadata);
+		});
+
+		contentBrowser->RegisterAssetActicatedCallback(AssetType::Animation, [this](const AssetMetaData& metadata)
+		{
+			m_PanelManager->ShowPanel<AssetEditorManagerPanel>();
+			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>();
+			assetEditorManager->AddEditor<AnimationEditor>(metadata);
 		});
 
 		m_PanelManager->AddPanel<AssetEditorManagerPanel>(PanelCategory::Edit, "Assets Editor Manager", true);

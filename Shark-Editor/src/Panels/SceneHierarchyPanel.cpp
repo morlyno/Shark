@@ -127,7 +127,7 @@ namespace Shark {
 		}
 
 		template<typename TComp, typename TMemberType>
-		static void UnifyMember(const std::vector<Entity>& entities, TMemberType TComp::* member)
+		static void UnifyMember(std::span<const Entity> entities, TMemberType TComp::* member)
 		{
 			if (entities.size() <= 1)
 				return;
@@ -143,7 +143,7 @@ namespace Shark {
 		}
 
 		template<typename TComp, typename TMember, typename TFunc>
-		static void UnifyMember(const std::vector<Entity>& entities, TMember TComp::* member, const TFunc& transformFunc)
+		static void UnifyMember(std::span<const Entity> entities, TMember TComp::* member, const TFunc& transformFunc)
 		{
 			if (entities.size() <= 1)
 				return;
@@ -161,7 +161,7 @@ namespace Shark {
 		struct DefaultTransformer
 		{
 			template<typename TComp, typename TMemberType>
-			inline void operator()(const std::vector<Entity>& entities, TMemberType TComp::* member)
+			inline void operator()(std::span<const Entity> entities, TMemberType TComp::* member)
 			{
 				UnifyMember(entities, member);
 			}
@@ -169,8 +169,8 @@ namespace Shark {
 
 		// uiFunc: bool(const TComponent& first, const std::vector<Entity>& entities)
 		template<typename TComponent, typename TMemberType, typename TFunc, typename TTransformer = DefaultTransformer>
-			requires std::invocable<TFunc, TComponent&, const std::vector<Entity>&>
-		static bool Multiselect(const std::vector<Entity>& entities, TMemberType TComponent::* member, const TFunc& uiFunc, TTransformer transformer = {})
+			requires std::invocable<TFunc, TComponent&, std::span<const Entity>>
+		static bool Multiselect(std::span<const Entity> entities, TMemberType TComponent::* member, const TFunc& uiFunc, TTransformer transformer = {})
 		{
 			const bool isMixed = IsInconsistentProperty<TComponent>(entities, member);
 			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, isMixed);
@@ -187,8 +187,8 @@ namespace Shark {
 		
 		// uiFunc: bool(const TComponent& first, const std::vector<Entity>& entities)
 		template<typename TComponent, typename TMemberType, typename TFunc, typename TTransformer = DefaultTransformer>
-			requires std::invocable<TFunc, TComponent&, const std::vector<Entity>&, bool>
-		static bool Multiselect(const std::vector<Entity>& entities, TMemberType TComponent::* member, const TFunc& uiFunc, TTransformer transformer = {})
+			requires std::invocable<TFunc, TComponent&, std::span<const Entity>, bool>
+		static bool Multiselect(std::span<const Entity> entities, TMemberType TComponent::* member, const TFunc& uiFunc, TTransformer transformer = {})
 		{
 			const bool isMixed = IsInconsistentProperty<TComponent>(entities, member);
 			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, isMixed);
@@ -206,12 +206,27 @@ namespace Shark {
 		// uiFunc: bool(const TComponent& first, const std::vector<Entity>& entities)
 		template<typename TComponent, typename TMemberType, typename... TArgs>
 			requires (requires(TMemberType& value, TArgs&&... args) { UI::Control("", value, std::forward<TArgs>(args)...); })
-		static bool MultiselectControl(const std::vector<Entity>& entities, TMemberType TComponent::* member, std::string_view label, TArgs&&... args)
+		static bool MultiselectControl(std::span<const Entity> entities, TMemberType TComponent::* member, std::string_view label, TArgs&&... args)
 		{
 			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, IsInconsistentProperty<TComponent>(entities, member));
 			Entity firstEntity = entities[0];
 			TComponent& firstComponent = firstEntity.GetComponent<TComponent>();
 			if (UI::Control(label, firstComponent.*member, std::forward<TArgs>(args)...))
+			{
+				UnifyMember(entities, member);
+				return true;
+			}
+			return false;
+		}
+
+		template<typename TComponent>
+		static bool MultiselectControlAsset(std::span<const Entity> entities, AssetHandle TComponent::* member, AssetType assetType, std::string_view label, const UI::AssetControlArgs& args = {})
+		{
+			UI::ScopedItemFlag mixedValue(ImGuiItemFlags_MixedValue, IsInconsistentProperty<TComponent>(entities, member));
+
+			auto firstEntity = entities.front();
+			auto& component = firstEntity.GetComponent<TComponent>();
+			if (UI::ControlAsset(label, assetType, component.*member, args))
 			{
 				UnifyMember(entities, member);
 				return true;
@@ -1435,10 +1450,7 @@ namespace Shark {
 					for (Entity entity : entities)
 					{
 						auto& scriptComponent = entity.GetComponent<ScriptComponent>();
-						if (!isValidScript)
-						{
-							scriptStorage.RemoveEntityStorage(scriptComponent.ScriptID, entity.GetUUID());
-						}
+						scriptStorage.RemoveEntityStorage(scriptComponent.ScriptID, entity.GetUUID());
 
 						scriptComponent.ScriptID = scriptID;
 						if (isValidScript)
@@ -1568,94 +1580,25 @@ namespace Shark {
 			UI::EndControlsGrid();
 		});
 
-		DrawComponetMultiSelect<AnimationComponent>(entities, "Animation", [this](AnimationComponent& firstComponent, const std::vector<Entity>& entities)
+		DrawComponetMultiSelect<AnimationComponent>(entities, "Animation", [this](AnimationComponent& firstComponent, const EntityList& entities)
 		{
-			bool allValid = true;
-			for (auto entity : entities)
-			{
-				// This component only works with a valid mesh component present
-				if (auto* meshComponent = entity.TryGetComponent<MeshComponent>();
-					meshComponent && meshComponent->Mesh)
-				{
-					auto& component = entity.GetComponent<AnimationComponent>();
-					if (component.m_Mesh != meshComponent->Mesh)
-						component.Reset(meshComponent->Mesh);
-					continue;
-				}
-
-				UI::ScopedColor text(ImGuiCol_Text, UI::Colors::Theme::TextError);
-				UI::ScopedFont font("Large");
-				if (entities.size() == 1)
-					ImGui::Text("Valid mesh component is required");
-				else
-					ImGui::Text("Entity %s requires a valid mesh component", entity.GetName().c_str());
-
-				allValid = false;
-			}
-
-			if (!allValid)
-				return;
-
 			UI::BeginControlsGrid();
 
-			const bool isMixedMesh = utils::IsInconsistentProperty<MeshComponent>(entities, &MeshComponent::Mesh);
-			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, isMixedMesh);
-			UI::ControlAsset("Mesh", AssetType::Mesh, std::as_const(firstComponent.m_Mesh));
-
-			if (!isMixedMesh)
+			if (utils::MultiselectControlAsset(entities, &AnimationComponent::Animation, AssetType::Animation, "Animation"))
 			{
-				auto mesh = AssetManager::GetAssetAsync<Mesh>(firstComponent.m_Mesh);
-				auto meshSource = mesh ? AssetManager::GetAssetAsync<MeshSource>(mesh->GetMeshSource()) : nullptr;
-
-				if (meshSource)
-				{
-					const auto& animationNames = meshSource->GetAnimationNames();
-					const bool changed = utils::Multiselect(entities, &AnimationComponent::AnimationIndex, [this, &animationNames](AnimationComponent& firstComponent, const auto& entities)
-					{
-						return UI::Control("Animation", [&]()
-						{
-							std::string_view preview = "";
-							if (firstComponent.AnimationIndex < animationNames.size())
-								preview = animationNames[firstComponent.AnimationIndex];
-
-							ImGui::InvisibleButton("##animIndexButton", { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
-							UI::DrawButton(preview, UI::GetItemRect());
-
-							return UI::Widgets::ItemSearchPopup(m_AnimationSearchFilter, [animationNames, &index = firstComponent.AnimationIndex](UI::TextFilter& filter, bool clear, bool& changed)
-							{
-								for (size_t i = 0; i < animationNames.size(); i++)
-								{
-									if (!filter.PassesFilter(animationNames[i]))
-										continue;
-
-									UI::ScopedID id(animationNames[i]);
-									if (ImGui::Selectable(animationNames[i].c_str(), i == index))
-									{
-										index = i;
-										changed = true;
-									}
-								}
-							}, false);
-						});
-					});
-
-					if (changed)
-					{
-						for (Entity entity : entities)
-						{
-							auto& component = entity.GetComponent<AnimationComponent>();
-							component.Reset(component.m_Mesh);
-						}
-					}
-
-					utils::MultiselectControl(entities, &AnimationComponent::Loop, "Loop");
-					utils::MultiselectControl(entities, &AnimationComponent::m_UpdateTime, "Update Time");
-					utils::MultiselectControl(entities, &AnimationComponent::m_TimePosition, "Time position", UI::as_slider(0.0f, 1.0f));
-				}
+				entities.ApplyTo<AnimationComponent>(&AnimationComponent::Reset);
 			}
 
-			UI::EndControlsGrid();
+			utils::MultiselectControl(entities, &AnimationComponent::Loop, "Loop");
+			utils::MultiselectControl(entities, &AnimationComponent::Update, "Update");
 
+			UI::EndControlsGrid();
+			ImGui::SeparatorText("Details");
+			UI::BeginControlsGrid();
+
+			utils::MultiselectControl(entities, &AnimationComponent::m_TimePosition, "Time position", UI::as_slider(0.0f, 1.0f));
+
+			UI::EndControlsGrid();
 		});
 
 		ImGui::Dummy({ 0, ImGui::GetFrameHeight() });

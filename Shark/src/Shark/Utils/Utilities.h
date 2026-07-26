@@ -51,4 +51,10 @@ namespace Shark {
 		}
 	}
 
+	template<typename String>
+	concept StringLike = requires(String string)
+	{
+		{ std::string_view{ string } } -> std::same_as<std::string_view>;
+	};
+
 }

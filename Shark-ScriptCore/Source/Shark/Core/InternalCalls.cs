@@ -248,16 +248,15 @@ namespace Shark
 		internal static unsafe delegate* unmanaged<SoundID,                    Bool32>  Audio_IsPlaying;
 		internal static unsafe delegate* unmanaged<SoundID,                    Bool32>  Audio_Finished;
 
-		internal static unsafe delegate* unmanaged<ulong, ulong,        void>   AnimationComponent_SetAnimationByIndex;
-        internal static unsafe delegate* unmanaged<ulong, NativeString, void>   AnimationComponent_SetAnimationByName;
-        internal static unsafe delegate* unmanaged<ulong,               ulong>  AnimationComponent_GetAnimationIndex;
-        internal static unsafe delegate* unmanaged<ulong,               Bool32> AnimationComponent_GetLoop;
-        internal static unsafe delegate* unmanaged<ulong, Bool32,       void>   AnimationComponent_SetLoop;
-        internal static unsafe delegate* unmanaged<ulong,               float>  AnimationComponent_GetTimePosition;
-        internal static unsafe delegate* unmanaged<ulong, float,        void>   AnimationComponent_SetTimePosition;
-        internal static unsafe delegate* unmanaged<ulong,               Bool32> AnimationComponent_IsPlaying;
-        internal static unsafe delegate* unmanaged<ulong, Bool32,       void>   AnimationComponent_SetPlaying;
-        internal static unsafe delegate* unmanaged<ulong,               Bool32> AnimationComponent_IsFinished;
+        internal static unsafe delegate* unmanaged<ulong,              AssetHandle> AnimationComponent_GetAnimation;
+		internal static unsafe delegate* unmanaged<ulong, AssetHandle, void>        AnimationComponent_SetAnimation;
+        internal static unsafe delegate* unmanaged<ulong,              Bool32>      AnimationComponent_GetLoop;
+        internal static unsafe delegate* unmanaged<ulong, Bool32,      void>        AnimationComponent_SetLoop;
+        internal static unsafe delegate* unmanaged<ulong,              float>       AnimationComponent_GetTimePosition;
+        internal static unsafe delegate* unmanaged<ulong, float,       void>        AnimationComponent_SetTimePosition;
+        internal static unsafe delegate* unmanaged<ulong,              Bool32>      AnimationComponent_IsPlaying;
+        internal static unsafe delegate* unmanaged<ulong, Bool32,      void>        AnimationComponent_SetPlaying;
+        internal static unsafe delegate* unmanaged<ulong,              Bool32>      AnimationComponent_IsFinished;
 
 #pragma warning restore CS0649
 

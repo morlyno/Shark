@@ -57,8 +57,8 @@ namespace Shark {
 				m_WorkQueue.pop();
 			}
 
-			auto tasks = context->GetTasks();
-			for (auto& task : tasks)
+			for (auto tasks = context->GetTasks();
+				 auto& task : tasks)
 			{
 				if (context->HasErrors())
 					break;
@@ -242,23 +242,37 @@ namespace Shark {
 		if (context.Loading())
 			return false;
 
+		bool finishWithFallback = false;
+
 		auto& request = m_RequestStorage.at(context.GetAssetHandle());
 		if (context.HasErrors())
 		{
-			SK_CORE_ERROR_TAG("AssetThread", "Failed to load asset {} '{}'{}", request.Metadata.Handle, request.Metadata.FilePath, fmt::join(context.GetErrors(), "\n - {}"));
+			if (request.Asset)
+				SK_CORE_WARN_TAG("AssetThread", "Asset loaded with errors {} '{}'{}{}", request.Metadata.Handle, request.Metadata.FilePath, context.HasErrors() ? "\n - " : "", fmt::join(context.GetErrors(), "\n - {}"));
+			else
+				SK_CORE_ERROR_TAG("AssetThread", "Failed to load asset {} '{}'{}{}", request.Metadata.Handle, request.Metadata.FilePath, context.HasErrors() ? "\n - " : "", fmt::join(context.GetErrors(), "\n - {}"));
+
 			request.Metadata.Status = AssetStatus::Unloaded;
 
-			// #TODO #async error handling + remove alr
-
-			return true;
+			if (!request.Asset)
+			{
+				request.Asset = context.GetErrorFallback();
+				finishWithFallback = request.Asset;
+			}
 		}
 		
-		auto absolutePath = GetFilesystemPath(request.Metadata);
-		request.Metadata.LastWriteTime = FileSystem::GetLastWriteTime(absolutePath);
-		request.Metadata.Status = AssetStatus::Ready;
+		if (request.Asset)
+		{
+			auto absolutePath = GetFilesystemPath(request.Metadata);
+			request.Metadata.LastWriteTime = FileSystem::GetLastWriteTime(absolutePath);
+			request.Metadata.Status = AssetStatus::Ready;
+		}
 
-		SK_CORE_INFO_TAG("AssetThread", "Finished loading {} {} {}", request.Metadata.Type, request.Metadata.Handle, request.Metadata.FilePath);
-		
+		if (!context.HasErrors())
+		{
+			SK_CORE_INFO_TAG("AssetThread", "Finished loading {} {} {}", request.Metadata.Type, request.Metadata.Handle, request.Metadata.FilePath);
+		}
+
 		// NOTE(moro): After this accessing the current alr is no longer save
 		//             As soon as the handle is added to m_LoadedRequests the alr can be deleted from m_ALRStorage by the main thread
 		{

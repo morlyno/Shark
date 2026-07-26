@@ -166,6 +166,12 @@ namespace Shark::UI {
 			return { metadata.FilePath.string(), valid };
 		}
 
+		void Label(std::string_view label)
+		{
+			auto cropped = label.substr(0, label.find("##"));
+			ImGui::TextEx(label.data(), label.data() + label.length());
+		}
+
 	}
 
 	bool Control(std::string_view label, bool& value)
@@ -264,75 +270,28 @@ namespace Shark::UI {
 		});
 	}
 
+	bool Control(std::string_view label, size_t& selected, std::span<const std::string> strings, size_t unselectedIndex)
+	{
+		return Control(label, [&selected, &strings, unselectedIndex]()
+		{
+			return Widgets::SelectString(selected, strings, unselectedIndex);
+		});
+	}
+
+	bool Control(std::string_view label, std::string& selected, std::span<const std::string> strings)
+	{
+		return Control(label, [&selected, &strings]()
+		{
+			return Widgets::SelectString(selected, strings);
+		});
+	}
+
 	bool ControlEntity(std::string_view label, Ref<Scene> scene, UUID& entityID, const EntityControlArgs& args)
 	{
-		if (!details::BeginControl(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		bool modified = false;
-
-		ImGui::InvisibleButton(label.data(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
-
-		auto& g = *GImGui;
-		if ((g.LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0)
+		return Control(label, [&scene, &entityID, &args]()
 		{
-			DrawButton("--", ImVec2(0.5f, 0.5f), GetItemRect());
-		}
-		else
-		{
-			if (!scene)
-			{
-				if (entityID)
-					DrawButton(args.DisplayName.empty() ? fmt::to_string(entityID) : args.DisplayName, GetItemRect());
-				else
-					DrawButton("", GetItemRect());
-			}
-			else if (entityID && !scene->IsValidEntityID(entityID))
-			{
-				ScopedColor textColor(ImGuiCol_Text, Colors::Theme::TextError);
-				DrawButton("Invalid", GetItemRect());
-			}
-			else
-			{
-				Entity entity = scene->TryGetEntityByUUID(entityID);
-				
-				std::string_view displayName = "";
-				if (entity)
-				{
-					displayName = args.DisplayName.empty() ? entity.GetName() : args.DisplayName;
-				}
-
-				DrawButton(displayName,
-						   ImVec2(0.0f, 0.5f),
-						   GetItemRect());
-			}
-		}
-
-		modified = Widgets::SearchEntityPopup(scene, entityID);
-
-		if (args.DropType && (g.LastItemData.ItemFlags & ImGuiItemFlags_ReadOnly) == 0)
-		{
-			if (ImGui::BeginDragDropTarget())
-			{
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(args.DropType);
-				if (payload)
-				{
-					auto id = *static_cast<const UUID*>(payload->Data);
-					if (scene->IsValidEntityID(id))
-					{
-						entityID = id;
-						modified = true;
-					}
-				}
-				ImGui::EndDragDropTarget();
-			}
-		}
-
-		details::EndControl();
-		return modified;
+			return Widgets::SelectEntity(scene, entityID, args);
+		});
 	}
 
 	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle, const AssetControlArgs& args)
@@ -342,99 +301,18 @@ namespace Shark::UI {
 
 	bool ControlAsset(std::string_view label, std::span<const AssetType> assetTypes, AssetHandle& assetHandle, const AssetControlArgs& args)
 	{
-		if (!details::BeginControl(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		bool modified = false;
-
-		ImGui::InvisibleButton(label.data(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
-
-		auto& g = *GImGui;
-		if ((g.LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0)
+		return Control(label, [&assetTypes, &assetHandle, &args]()
 		{
-			DrawButton("--", ImVec2(0.5f, 0.5f), GetItemRect());
-		}
-		else
-		{
-			auto [displayName, isValid] = details::GetDisplayName(assetHandle, args);
-			ScopedColor textColor(ImGuiCol_Text, isValid ? args.TextColor : Colors::Theme::TextError);
-
-			DrawButton(displayName, ImVec2(0.0f, 0.5f), GetItemRect());
-		}
-
-		if ((g.LastItemData.ItemFlags & ImGuiItemFlags_ReadOnly) == 0)
-		{
-			modified = Widgets::SearchAssetPopup(assetTypes, assetHandle);
-
-			if (args.DropType && ImGui::BeginDragDropTarget())
-			{
-				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(args.DropType);
-				if (payload)
-				{
-					auto handle = *static_cast<const AssetHandle*>(payload->Data);
-					if (Contains(assetTypes, AssetManager::GetAssetType(handle)))
-					{
-						assetHandle = handle;
-						modified = true;
-					}
-				}
-				ImGui::EndDragDropTarget();
-			}
-		}
-
-		details::EndControl();
-		return modified;
+			return Widgets::SelectAsset(assetTypes, assetHandle, args);
+		});
 	}
 
-	bool ControlScript(std::string_view label, uint64_t& scriptID, const AssetControlArgs& args)
+	bool ControlScript(std::string_view label, uint64_t& scriptID, const ScriptControlArgs& args)
 	{
-		if (!details::BeginControl(ImGui::GetID(label)))
-			return false;
-
-		ImGui::Text(label);
-		ImGui::TableNextColumn();
-
-		bool modified = false;
-
-		ImGui::InvisibleButton(label.data(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
-
-		auto& g = *GImGui;
-		if ((g.LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0)
+		return Control(label, [&scriptID, &args]()
 		{
-			DrawButton("--", ImVec2(0.5f, 0.5f), GetItemRect());
-		}
-		else
-		{
-			auto& scriptEngine = ScriptEngine::Get();
-			const bool validScript = scriptEngine.IsValidScriptID(scriptID);
-
-			if (scriptID && !validScript)
-			{
-				ScopedColor textColor(ImGuiCol_Text, Colors::Theme::TextError);
-				DrawButton("Invalid", GetItemRect());
-			}
-			else if (validScript)
-			{
-				const auto& metadata = scriptEngine.GetScriptMetadata(scriptID);
-				DrawButton(metadata.FullName,
-							   ImVec2(0.0f, 0.5f),
-							   GetItemRect());
-			}
-			else
-			{
-				DrawButton("", GetItemRect());
-			}
-		}
-
-		modified = Widgets::SearchScriptPopup(scriptID);
-
-		// #TODO #scripting #assets add drag drop when script files are better supported
-
-		details::EndControl();
-		return modified;
+			return Widgets::SelectScript(scriptID, args);
+		});
 	}
 
 	bool ControlAsset(std::string_view label, AssetType assetType, const AssetHandle& assetHandle, const AssetControlArgs& args)

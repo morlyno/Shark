@@ -815,6 +815,12 @@ ImportedAssets:
   - Handle: 17694917365070649434
     Type: SoundConfig
     FilePath: Audio/powerup.sksc
+  - Handle: 5842666548861991336
+    Type: Animation
+    FilePath: Animation/Knight-Attack.sanim
+  - Handle: 4637523822169707035
+    Type: Animation
+    FilePath: Animation/Knight_Idle.sanim
 EditorAssets:
   - Handle: 13196250996000324786
     Type: Texture

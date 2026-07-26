@@ -42,7 +42,7 @@ Project:
       Level: Trace
     - Name: Renderer
       Enabled: true
-      Level: Info
+      Level: Warn
     - Name: Scene
       Enabled: true
       Level: Trace

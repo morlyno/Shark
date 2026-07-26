@@ -44,13 +44,17 @@ namespace Shark {
 		ScopedTimer(std::string_view tag, const std::string& name)
 			: m_Tag(tag), m_Name(name) {}
 
+		ScopedTimer(LogLevel level, std::string_view tag, const std::string& name)
+			: m_Level(level), m_Tag(tag), m_Name(name) {}
+
 		~ScopedTimer()
 		{
-			SK_CORE_TRACE_TAG(m_Tag, "{0} took {1}", m_Name, m_Timer.Elapsed());
+			Log::PrintMessageTag(LoggerType::Core, m_Level, m_Tag, "{} took {}", m_Name, m_Timer.Elapsed());
 		}
 
 	private:
 		Timer m_Timer;
+		LogLevel m_Level = LogLevel::Trace;
 		std::string_view m_Tag;
 		std::string m_Name;
 	};

@@ -79,7 +79,7 @@ namespace Shark {
 		return true;
 	}
 
-	bool FileSystem::WriteString(const std::filesystem::path& filePath, const std::string& fileData, bool createDirectoriesIfNeeded)
+	bool FileSystem::WriteString(const std::filesystem::path& filePath, std::string_view fileData, bool createDirectoriesIfNeeded)
 	{
 		const auto filesystemPath = GetFilesystemPath(filePath);
 

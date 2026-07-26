@@ -60,6 +60,9 @@ namespace Shark {
 		auto  GetTasks() { return std::move(m_Tasks); }
 		auto& GetAssets() { return m_PendingAssets; }
 
+		void SetErrorFallback(Ref<Asset> fallback) { m_ErrorFallback = fallback; }
+		auto GetErrorFallback() const { return m_ErrorFallback; }
+
 		void FixStatus(bool wasSuccessful);
 
 	public:
@@ -74,6 +77,8 @@ namespace Shark {
 		AssetLoadStatus m_Status = AssetLoadStatus::Loading;
 
 		std::vector<Error> m_Errors;
+		Ref<Asset> m_ErrorFallback;
+
 		std::vector<std::function<void(AssetLoadContext*)>> m_Tasks;
 		std::unordered_map<AssetHandle, Ref<Asset>> m_PendingAssets;
 	};

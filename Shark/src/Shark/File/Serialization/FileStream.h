@@ -20,6 +20,7 @@ namespace Shark {
 		virtual bool ReadData(void* destination, uint64_t size, uint64_t& bytesRead) override;
 
 		const auto& GetFilepath() const { return m_Path; }
+		virtual std::istream& GetStream() override { return m_Stream; }
 
 	private:
 		std::filesystem::path m_Path;
@@ -38,6 +39,7 @@ namespace Shark {
 		virtual uint64_t GetStreamPosition() override { return m_Stream.tellp(); }
 		virtual void SetStreamPosition(uint64_t position) override { m_Stream.seekp(position); }
 		virtual bool WriteData(const void* data, uint64_t size) override;
+		virtual std::ostream& GetStream() override { return m_Stream; }
 
 	private:
 		std::filesystem::path m_Path;
