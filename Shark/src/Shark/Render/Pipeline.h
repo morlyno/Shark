@@ -67,6 +67,7 @@ namespace Shark {
 		CompareOperator StencilComparisonOperator = CompareOperator::Always;
 
 		VertexLayout Layout;
+		VertexLayout BoneInfluenceLayout;
 
 		std::string DebugName;
 	};

@@ -1,5 +1,5 @@
 SoundConfig:
   AudioSourceHandle: 8056366398837571779
   IsLooping: false
-  VolumeMultiplier: 0.100000001
+  VolumeMultiplier: 1
   PitchMultiplier: 1

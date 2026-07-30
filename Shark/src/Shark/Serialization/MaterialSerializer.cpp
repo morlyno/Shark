@@ -16,10 +16,6 @@ namespace Shark {
 	bool MaterialSerializer::Serialize(Ref<Asset> asset, const AssetMetaData& metadata)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_VERIFY(asset);
-		SK_CORE_INFO_TAG("Serialization", "Serializing Material to {}", metadata.FilePath);
-
-		ScopedTimer timer("Serializing Material");
 
 		std::string result = SerializeToYAML(asset.As<PBRMaterial>());
 		if (result.empty())
@@ -37,9 +33,6 @@ namespace Shark {
 	bool MaterialSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_INFO_TAG("Serialization", "Loading Material from {}", metadata.FilePath);
-
-		ScopedTimer timer("Loading Material");
 
 		const auto filesystemPath = context->GetFilesystemPath(metadata);
 		if (!FileSystem::Exists(filesystemPath))

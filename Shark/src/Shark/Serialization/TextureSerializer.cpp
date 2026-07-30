@@ -46,10 +46,6 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		SK_CORE_VERIFY(asset);
-		SK_CORE_INFO_TAG("Serialization", "Serializing Texture to {}", metadata.FilePath);
-		ScopedTimer timer("Serializing Texture");
-
 		if (metadata.FilePath.extension() != ".sktex")
 		{
 			SK_CORE_ERROR_TAG("Serialization", "[Texture] Serializing a non shark texture is not allowed! Please convert the texture into one.");
@@ -65,8 +61,6 @@ namespace Shark {
 	bool TextureSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_INFO_TAG("Serialization", "Loading Texture from {}", metadata.FilePath);
-		ScopedTimer timer("Loading Texture");
 
 		const auto filesystemPath = context->GetFilesystemPath(metadata);
 		if (!FileSystem::Exists(filesystemPath))

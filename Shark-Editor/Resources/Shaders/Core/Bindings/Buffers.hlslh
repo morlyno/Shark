@@ -15,7 +15,9 @@ struct MeshData
 {
     matrix Transform;
     int ID;
-    float P0, P1, P2;
+    uint BoneBase;
+    uint BoneStride;
+    float P0;
 };
 
 struct PointLight
@@ -43,6 +45,11 @@ struct Scene
     float P0;
 };
 
+struct BoneTransforms
+{
+    matrix Transform;
+};
+
 // 
 // Defined in Camera.hlslh
 // 
@@ -55,3 +62,4 @@ ConstantBuffer<MeshData> u_MeshData : register(b0, space0);
 ConstantBuffer<Scene> u_Scene : register(b1, space1);
 StructuredBuffer<PointLight> u_PointLights : register(t0, space1);
 StructuredBuffer<DirectionalLight> u_DirectionalLights : register(t1, space1);
+StructuredBuffer<BoneTransforms> u_BoneTransforms : register(t2, space1);

@@ -2,23 +2,797 @@ Scene:
   Name: Untitled
   ActiveCamera: 3102119429976287180
   Entities:
+    - Entity: 43633200710455190
+      TagComponent:
+        Name: hips
+      TransformComponent:
+        Translation: [-4.0968457e-22, 0.38416737, -1.2996986e-15]
+        Rotation: [-3.2274952e-10, -0.08634237, 7.471472e-09]
+        Scale: [0.9999999, 0.9999999, 0.9999999]
+      RelationshipComponent:
+        Parent: 18167727664516838562
+        Children:
+          - 14802944905261919587
+          - 8631905412986155205
+          - 16540973837334619537
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 234419751875369400
+      TagComponent:
+        Name: foot.r
+      TransformComponent:
+        Translation: [4.2200377e-09, 0.14943695, -1.1398209e-08]
+        Rotation: [1.2288858, -0.17811176, -0.14663291]
+        Scale: [0.9999996, 0.9999996, 0.9999996]
+      RelationshipComponent:
+        Parent: 10982151930755726685
+        Children:
+          - 14371055672021039371
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 333973865622412312
+      TagComponent:
+        Name: kneeIK.l
+      TransformComponent:
+        Translation: [0.1709449, 0.2923103, -0.57581246]
+        Rotation: [-1.570796, 2.4792604e-07, -3.8941428e-07]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 18167727664516838562
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 363995681253575644
+      TagComponent:
+        Name: Sword
+      TransformComponent:
+        Translation: [0.0436434, 0.6666887, 0.07180023]
+        Rotation: [-0.2063582, 0.07860565, -2.7261167]
+        Scale: [0.10000007, 0.10000006, 0.10000004]
+      RelationshipComponent:
+        Parent: 16777366665536563390
+        Children:
+          []
+      StaticMeshComponent:
+        StaticMesh: 3345831159094587027
+        MaterialTable:
+          {}
+        Visible: true
+    - Entity: 631674573063724202
+      TagComponent:
+        Name: heelIK.r
+      TransformComponent:
+        Translation: [2.2926933e-08, 0.16564998, -5.4897735e-09]
+        Rotation: [0.8036192, 1.0142462e-07, -7.353296e-08]
+        Scale: [1.0000001, 1.0000001, 1.0000001]
+      RelationshipComponent:
+        Parent: 18184226338478560558
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 933015064820651520
+      TagComponent:
+        Name: IK-foot.l
+      TransformComponent:
+        Translation: [2.3587454e-08, 0.16565001, 1.7945828e-08]
+        Rotation: [3.1415925, 3.9733362e-07, -1.4138582e-08]
+        Scale: [1.0000001, 1.0000001, 1.0000001]
+      RelationshipComponent:
+        Parent: 1757011350280604190
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 1757011350280604190
+      TagComponent:
+        Name: control-foot-roll.l
+      TransformComponent:
+        Translation: [-4.2871573e-08, 0.21343604, 1.2694773e-08]
+        Rotation: [-0.803619, -2.7429718e-07, -3.1415925]
+        Scale: [1.0000001, 1.0000001, 1.0000001]
+      RelationshipComponent:
+        Parent: 14325176450292548779
+        Children:
+          - 3970660516846545941
+          - 933015064820651520
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 1830794706016014963
+      TagComponent:
+        Name: IK-toe.l
+      TransformComponent:
+        Translation: [4.7146056e-09, 1.4120236e-08, 2.0895772e-08]
+        Rotation: [-8.060185e-08, -3.6262412e-15, -3.5518276e-08]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 14325176450292548779
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 1963555153552107114
+      TagComponent:
+        Name: toes.l
+      TransformComponent:
+        Translation: [2.6182034e-08, 0.16564998, 7.333736e-09]
+        Rotation: [2.3379734, -3.0428413e-07, -3.1415925]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 9552022549945620028
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 2411312778848671355
+      TagComponent:
+        Name: hand.r
+      TransformComponent:
+        Translation: [-6.705521e-08, 0.0738257, -5.4016716e-08]
+        Rotation: [0.7954538, -0.31863323, -0.68306506]
+        Scale: [0.9999996, 0.9999996, 0.9999996]
+      RelationshipComponent:
+        Parent: 12740457065437586504
+        Children:
+          - 16777366665536563390
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 2450161696982200789
+      TagComponent:
+        Name: control-heel-roll.r
+      TransformComponent:
+        Translation: [1.2623846e-08, 0.36283255, 7.968025e-10]
+        Rotation: [3.5844046e-08, -1.8461392e-07, 2.9377275]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 11406579298746589502
+        Children:
+          - 12529705497529821498
+          - 4516124682144483727
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 2485616838940263917
+      TagComponent:
+        Name: Knight_LegLeft
+      TransformComponent:
+        Translation: [0, 0, -0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 9030734354338572407
+        Children:
+          []
+      SubmeshComponent:
+        Mesh: 11686632601999347549
+        SubmeshIndex: 4
+        Material: 0
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 2734727177739770593
+      TagComponent:
+        Name: lowerarm.r
+      TransformComponent:
+        Translation: [7.323024e-08, 0.24189733, 8.01989e-08]
+        Rotation: [-3.0431852e-07, 3.2455063e-07, 1.0028301]
+        Scale: [1.0000007, 1.0000007, 1.0000007]
+      RelationshipComponent:
+        Parent: 15391394560683649921
+        Children:
+          - 12740457065437586504
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
     - Entity: 3102119429976287180
       TagComponent:
         Name: Camera
       TransformComponent:
-        Translation: [1.21397305, 1.87212205, -5.63515949]
-        Rotation: [0.261692196, -0.0798142105, -0]
-        Scale: [1.00000012, 1, 0.99999994]
+        Translation: [1.213973, 1.872122, -5.6351595]
+        Rotation: [0.2616922, -0.07981421, -0]
+        Scale: [1.0000001, 1, 0.99999994]
       RelationshipComponent:
         Parent: 0
         Children:
           []
       CameraComponent:
         IsPerspective: true
-        PerspectiveFOV: 44.9999924
+        PerspectiveFOV: 44.999992
         OrthographicSize: 10
-        Near: 0.300000012
+        Near: 0.3
         Far: 1000
+    - Entity: 3513940231876945292
+      TagComponent:
+        Name: Knight_ArmLeft
+      TransformComponent:
+        Translation: [0, 0, -0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 11600820968886422694
+        Children:
+          []
+      SubmeshComponent:
+        Mesh: 11686632601999347549
+        SubmeshIndex: 0
+        Material: 0
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 3632374942735042160
+      TagComponent:
+        Name: upperleg.r
+      TransformComponent:
+        Translation: [-0.17094505, 0.11358728, 1.1031814e-09]
+        Rotation: [-3.0859113, 0.008723714, -0.052643772]
+        Scale: [0.99999976, 0.99999976, 0.99999976]
+      RelationshipComponent:
+        Parent: 13263904015879740567
+        Children:
+          - 10982151930755726685
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 3852544698274053544
+      TagComponent:
+        Name: Knight_Body
+      TransformComponent:
+        Translation: [0, 0, -0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 11600820968886422694
+        Children:
+          []
+      SubmeshComponent:
+        Mesh: 11686632601999347549
+        SubmeshIndex: 2
+        Material: 0
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 3970660516846545941
+      TagComponent:
+        Name: heelIK.l
+      TransformComponent:
+        Translation: [1.3751173e-08, 0.16565001, 2.6693282e-08]
+        Rotation: [0.8036192, 5.0600352e-08, -5.1105502e-08]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 1757011350280604190
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 4482819333548843003
+      TagComponent:
+        Name: Knight_Head
+      TransformComponent:
+        Translation: [0, 0, -0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 11600820968886422694
+        Children:
+          []
+      SubmeshComponent:
+        Mesh: 11686632601999347549
+        SubmeshIndex: 3
+        Material: 0
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 4516124682144483727
+      TagComponent:
+        Name: IK-toe.r
+      TransformComponent:
+        Translation: [3.9461194e-09, -3.964225e-09, 3.897938e-09]
+        Rotation: [1.5360893e-09, -6.8382545e-15, -3.5518276e-08]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 2450161696982200789
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 5056434901771064251
+      TagComponent:
+        Name: elbowIK.r
+      TransformComponent:
+        Translation: [-0.45350718, 1.1067609, 0.5888597]
+        Rotation: [1.5707964, 1.9834074e-07, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 15425087315550384891
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 5395577244379025117
+      TagComponent:
+        Name: Knight_Head
+      TransformComponent:
+        Translation: [0, 0, -0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 9030734354338572407
+        Children:
+          []
+      SubmeshComponent:
+        Mesh: 11686632601999347549
+        SubmeshIndex: 3
+        Material: 0
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 5440392847597346339
+      TagComponent:
+        Name: IK-toe.l
+      TransformComponent:
+        Translation: [7.884202e-09, 6.9137602e-09, 1.3908823e-08]
+        Rotation: [-8.060185e-08, -3.626242e-15, -3.5518273e-08]
+        Scale: [0.9999998, 0.9999998, 0.9999998]
+      RelationshipComponent:
+        Parent: 14202678738849662399
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 5501656681381715307
+      TagComponent:
+        Name: wrist.r
+      TransformComponent:
+        Translation: [1.652418e-08, 0.2600439, 1.7216932e-07]
+        Rotation: [4.194744e-07, -1.2738721e-08, -0.053322442]
+        Scale: [0.9999999, 0.9999999, 0.9999999]
+      RelationshipComponent:
+        Parent: 11351817745148610794
+        Children:
+          - 15345029486098113626
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 5773979757711349593
+      TagComponent:
+        Name: lowerleg.r
+      TransformComponent:
+        Translation: [-4.6982784e-08, 0.2270775, 4.2035656e-10]
+        Rotation: [-0.6965644, 2.9561977e-07, 4.0556475e-07]
+        Scale: [1.0000001, 1.0000001, 1.0000001]
+      RelationshipComponent:
+        Parent: 16540973837334619537
+        Children:
+          - 16224280369669140391
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 5979447992647254919
+      TagComponent:
+        Name: handslot.l
+      TransformComponent:
+        Translation: [6.3526535e-09, 0.096125096, 0.057500016]
+        Rotation: [-2.4771091e-07, -6.827615e-08, -1.5707964]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 14310735818161638517
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 6012367992303486669
+      TagComponent:
+        Name: heelIK.l
+      TransformComponent:
+        Translation: [2.7392797e-08, 0.16564998, 2.4521585e-09]
+        Rotation: [0.80361915, 8.439452e-08, -5.8993084e-08]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 7933733040982433533
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 6099255914491491765
+      TagComponent:
+        Name: hand.l
+      TransformComponent:
+        Translation: [1.3001714e-08, 0.073825836, -1.2801009e-07]
+        Rotation: [0.854705, 0.50343543, 0.569336]
+        Scale: [0.9999999, 0.9999999, 0.9999999]
+      RelationshipComponent:
+        Parent: 8542566463349687877
+        Children:
+          - 10261092845217537183
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 6238805330755254934
+      TagComponent:
+        Name: upperleg.l
+      TransformComponent:
+        Translation: [0.17094505, 0.11358728, -1.07043645e-08]
+        Rotation: [2.8658378, 0.06182544, 0.08534968]
+        Scale: [0.9999999, 0.9999999, 0.9999999]
+      RelationshipComponent:
+        Parent: 13263904015879740567
+        Children:
+          - 11622742111287082390
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 6266347657940632745
+      TagComponent:
+        Name: handIK.r
+      TransformComponent:
+        Translation: [-0.51084375, 0.7846118, -0.059736855]
+        Rotation: [3.1415904, -1.4203343, 2.437079e-06]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 18167727664516838562
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 6279821845919690124
+      TagComponent:
+        Name: chest
+      TransformComponent:
+        Translation: [-2.6557667e-16, 0.3749879, -1.983742e-15]
+        Rotation: [-1.0929424e-14, 1.789096e-14, -2.5934095e-16]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 14802944905261919587
+        Children:
+          - 12104950573459571495
+          - 8052118835880375751
+          - 10339681486292123498
+          - 8977702267080708161
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 6532344314045345692
+      TagComponent:
+        Name: foot.l
+      TransformComponent:
+        Translation: [6.189651e-08, 0.14943705, 2.7199809e-08]
+        Rotation: [1.2742345, 0.26872128, 0.34241268]
+        Scale: [0.9999996, 0.9999996, 0.9999996]
+      RelationshipComponent:
+        Parent: 8116603097122524487
+        Children:
+          - 18152588354530745223
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 6700860132357442084
+      TagComponent:
+        Name: heelIK.r
+      TransformComponent:
+        Translation: [2.2926933e-08, 0.16564998, -5.4897735e-09]
+        Rotation: [0.8036192, 1.0142462e-07, -7.353296e-08]
+        Scale: [1.0000001, 1.0000001, 1.0000001]
+      RelationshipComponent:
+        Parent: 12529705497529821498
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 7004407959995288853
+      TagComponent:
+        Name: control-toe-roll.r
+      TransformComponent:
+        Translation: [-0.1709451, 0.025990248, -0.24578927]
+        Rotation: [1.5707961, 2.053448e-07, 7.1054274e-15]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 15425087315550384891
+        Children:
+          - 10605898213560657785
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 7116563988187272056
+      TagComponent:
+        Name: IK-toe.r
+      TransformComponent:
+        Translation: [3.9461194e-09, -3.964225e-09, 3.897938e-09]
+        Rotation: [1.5360893e-09, -6.8382545e-15, -3.5518276e-08]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 10605898213560657785
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 7546900359255192291
+      TagComponent:
+        Name: Knight_LegRight
+      TransformComponent:
+        Translation: [0, 0, -0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 11600820968886422694
+        Children:
+          []
+      SubmeshComponent:
+        Mesh: 11686632601999347549
+        SubmeshIndex: 5
+        Material: 0
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 7921076218670486325
+      TagComponent:
+        Name: elbowIK.r
+      TransformComponent:
+        Translation: [-0.45350716, 1.1067609, 0.5888597]
+        Rotation: [1.5707964, 1.9834077e-07, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 18167727664516838562
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 7933733040982433533
+      TagComponent:
+        Name: control-foot-roll.l
+      TransformComponent:
+        Translation: [1.5828137e-08, 0.213436, 2.2122986e-09]
+        Rotation: [-0.80361915, -2.73679e-07, -3.1415925]
+        Scale: [0.9999998, 0.9999998, 0.9999998]
+      RelationshipComponent:
+        Parent: 14202678738849662399
+        Children:
+          - 6012367992303486669
+          - 10396352158224691366
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 7954281887047338109
+      TagComponent:
+        Name: handIK.r
+      TransformComponent:
+        Translation: [-0.52966803, 0.7892601, -0.060509913]
+        Rotation: [2.555552, -1.3482062, 0.49948305]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 15425087315550384891
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 7981454617762000179
+      TagComponent:
+        Name: Knight_Cape
+      TransformComponent:
+        Translation: [-8.8422425e-09, 0.24326241, 1.18340495e-07]
+        Rotation: [1.3068296e-07, -4.190948e-09, 4.1427067e-10]
+        Scale: [1, 1.0000002, 1.0000002]
+      RelationshipComponent:
+        Parent: 16421564341685502903
+        Children:
+          []
+      SubmeshComponent:
+        Mesh: 11686632601999347549
+        SubmeshIndex: 6
+        Material: 0
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 8052118835880375751
+      TagComponent:
+        Name: upperarm.r
+      TransformComponent:
+        Translation: [-0.2120074, 0.13413194, -8.4834845e-08]
+        Rotation: [1.1414165, -0.9868722, 1.1393638]
+        Scale: [0.9999992, 0.9999992, 0.9999992]
+      RelationshipComponent:
+        Parent: 6279821845919690124
+        Children:
+          - 11351817745148610794
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 8116603097122524487
+      TagComponent:
+        Name: lowerleg.l
+      TransformComponent:
+        Translation: [3.724916e-08, 0.22707757, -6.2550036e-09]
+        Rotation: [-0.5721022, -2.5012696e-07, -3.1717607e-07]
+        Scale: [1.0000004, 1.0000004, 1.0000004]
+      RelationshipComponent:
+        Parent: 8631905412986155205
+        Children:
+          - 6532344314045345692
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 8542566463349687877
+      TagComponent:
+        Name: wrist.l
+      TransformComponent:
+        Translation: [-1.29169635e-08, 0.2600438, -2.7832446e-08]
+        Rotation: [4.5540645e-07, -6.936372e-08, 0.053322498]
+        Scale: [1.0000001, 1.0000001, 1.0000001]
+      RelationshipComponent:
+        Parent: 18289389477536410498
+        Children:
+          - 6099255914491491765
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 8631905412986155205
+      TagComponent:
+        Name: upperleg.l
+      TransformComponent:
+        Translation: [0.17094505, 0.11358728, -1.0704365e-08]
+        Rotation: [-3.0400956, 0.14377554, 0.17444383]
+        Scale: [0.99999994, 0.99999994, 0.99999994]
+      RelationshipComponent:
+        Parent: 43633200710455190
+        Children:
+          - 8116603097122524487
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 8977702267080708161
+      TagComponent:
+        Name: Knight_Cape
+      TransformComponent:
+        Translation: [-8.8422425e-09, 0.24326241, 1.18340495e-07]
+        Rotation: [1.3068296e-07, -4.190948e-09, 4.1427067e-10]
+        Scale: [1, 1.0000002, 1.0000002]
+      RelationshipComponent:
+        Parent: 6279821845919690124
+        Children:
+          []
+      SubmeshComponent:
+        Mesh: 11686632601999347549
+        SubmeshIndex: 6
+        Material: 0
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 9030734354338572407
+      TagComponent:
+        Name: Knight
+      TransformComponent:
+        Translation: [-4.583572, 0, 0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          - 11769020296259974104
+          - 12194313243398879790
+          - 12451372843867419096
+          - 5395577244379025117
+          - 2485616838940263917
+          - 10232391020896771415
+          - 18167727664516838562
+      MeshComponent:
+        Mesh: 11686632601999347549
+      ScriptComponent:
+        ScriptID: 15143968557863554664
+        Fields:
+          - ID: 14495123272126177779
+            Name: Idle
+            Type: Animation
+            Value: 4637523822169707035
+          - ID: 4702636708632853821
+            Name: Attack
+            Type: Animation
+            Value: 5842666548861991336
+          - ID: 11510013286644868778
+            Name: Run
+            Type: Animation
+            Value: 9482811860126371748
+          - ID: 9343664163801395928
+            Name: Blend
+            Type: Bool
+            Value: true
+      AudioComponent:
+        Audio: 17694917365070649434
+        PlayOnWake: false
+        VolumeMultiplier: 1
+        PitchMultiplier: 1
+      AnimationComponent:
+        Animation: 4637523822169707035
+        Loop: true
+        Update: true
+    - Entity: 9552022549945620028
+      TagComponent:
+        Name: foot.l
+      TransformComponent:
+        Translation: [1.2340034e-08, 0.1494371, -1.547102e-08]
+        Rotation: [1.1150658, 0.44694203, 0.24743292]
+        Scale: [0.9999999, 0.9999999, 0.9999999]
+      RelationshipComponent:
+        Parent: 11622742111287082390
+        Children:
+          - 1963555153552107114
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 9695358375684433918
+      TagComponent:
+        Name: kneeIK.r
+      TransformComponent:
+        Translation: [-0.1709452, 0.29231027, -0.5758123]
+        Rotation: [-1.5707959, 2.479259e-07, 1.5099585e-07]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 15425087315550384891
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 9962460436099934187
+      TagComponent:
+        Name: Knight_ArmRight
+      TransformComponent:
+        Translation: [0, 0, -0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 11600820968886422694
+        Children:
+          []
+      SubmeshComponent:
+        Mesh: 11686632601999347549
+        SubmeshIndex: 1
+        Material: 0
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 10232391020896771415
+      TagComponent:
+        Name: Knight_LegRight
+      TransformComponent:
+        Translation: [0, 0, -0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 9030734354338572407
+        Children:
+          []
+      SubmeshComponent:
+        Mesh: 11686632601999347549
+        SubmeshIndex: 5
+        Material: 0
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 10261092845217537183
+      TagComponent:
+        Name: handslot.l
+      TransformComponent:
+        Translation: [7.114568e-09, 0.0961251, 0.057500016]
+        Rotation: [-1.1926462e-06, -0.0007278758, -1.5681249]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 6099255914491491765
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 10339681486292123498
+      TagComponent:
+        Name: head
+      TransformComponent:
+        Translation: [-1.7412763e-16, 0.26879635, 8.8912e-15]
+        Rotation: [-1.169706e-10, 0.06269375, -3.730788e-09]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 6279821845919690124
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 10396352158224691366
+      TagComponent:
+        Name: IK-foot.l
+      TransformComponent:
+        Translation: [3.350379e-08, 0.16565, -1.1856499e-08]
+        Rotation: [3.1415925, 3.9380728e-07, 1.945708e-08]
+        Scale: [0.99999994, 0.99999994, 0.99999994]
+      RelationshipComponent:
+        Parent: 7933733040982433533
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 10482093814161153945
+      TagComponent:
+        Name: kneeIK.l
+      TransformComponent:
+        Translation: [0.1709449, 0.2923103, -0.57581246]
+        Rotation: [-1.5707959, 2.4792607e-07, -3.8941428e-07]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 15425087315550384891
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
     - Entity: 10584447205595490849
       TagComponent:
         Name: Red
@@ -40,11 +814,450 @@ Scene:
         PlayOnWake: true
         VolumeMultiplier: 1
         PitchMultiplier: 1
+    - Entity: 10605898213560657785
+      TagComponent:
+        Name: control-heel-roll.r
+      TransformComponent:
+        Translation: [1.2623846e-08, 0.36283255, 7.968025e-10]
+        Rotation: [3.5844046e-08, -1.8461392e-07, 2.9377275]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 7004407959995288853
+        Children:
+          - 18184226338478560558
+          - 7116563988187272056
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 10706079499161118021
+      TagComponent:
+        Name: IK-foot.r
+      TransformComponent:
+        Translation: [2.2984336e-08, 0.16565, -2.5072455e-10]
+        Rotation: [3.1415925, 3.7946052e-07, -1.0323406e-08]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 18184226338478560558
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 10890352751071196856
+      TagComponent:
+        Name: handIK.l
+      TransformComponent:
+        Translation: [0.52084064, 0.784612, 0.05763735]
+        Rotation: [3.1415913, 1.3048079, -1.3264693e-06]
+        Scale: [0.9999999, 0.9999999, 0.9999999]
+      RelationshipComponent:
+        Parent: 18167727664516838562
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 10982151930755726685
+      TagComponent:
+        Name: lowerleg.r
+      TransformComponent:
+        Translation: [-4.8123947e-08, 0.2270775, -2.1495646e-11]
+        Rotation: [-0.5112511, 2.343695e-07, 3.0328425e-07]
+        Scale: [1.0000001, 1.0000001, 1.0000001]
+      RelationshipComponent:
+        Parent: 3632374942735042160
+        Children:
+          - 234419751875369400
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 11351817745148610794
+      TagComponent:
+        Name: lowerarm.r
+      TransformComponent:
+        Translation: [5.9196413e-08, 0.2418973, 8.348547e-08]
+        Rotation: [-2.536049e-07, 3.6733334e-07, 1.1116396]
+        Scale: [1.0000007, 1.0000007, 1.0000007]
+      RelationshipComponent:
+        Parent: 8052118835880375751
+        Children:
+          - 5501656681381715307
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 11390553066319881116
+      TagComponent:
+        Name: handIK.l
+      TransformComponent:
+        Translation: [0.52084064, 0.7883121, 0.016973548]
+        Rotation: [-3.0232484, 1.3416698, 0.12852208]
+        Scale: [0.9999999, 0.9999999, 0.9999999]
+      RelationshipComponent:
+        Parent: 15425087315550384891
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 11406579298746589502
+      TagComponent:
+        Name: control-toe-roll.r
+      TransformComponent:
+        Translation: [-0.1709451, 0.025990248, -0.24578926]
+        Rotation: [1.5707961, 2.053448e-07, 7.1054274e-15]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 18167727664516838562
+        Children:
+          - 2450161696982200789
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 11600820968886422694
+      TagComponent:
+        Name: Knight
+      TransformComponent:
+        Translation: [-2.4255834, 0, 0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 0
+        Children:
+          - 3513940231876945292
+          - 9962460436099934187
+          - 3852544698274053544
+          - 4482819333548843003
+          - 18151467447797439991
+          - 7546900359255192291
+          - 15425087315550384891
+      MeshComponent:
+        Mesh: 11686632601999347549
+      AnimationComponent:
+        Animation: 5842666548861991336
+        Loop: true
+        Update: true
+    - Entity: 11622742111287082390
+      TagComponent:
+        Name: lowerleg.l
+      TransformComponent:
+        Translation: [3.3160227e-08, 0.22707747, 1.8716197e-08]
+        Rotation: [-0.03756923, -1.5489127e-07, -3.034732e-08]
+        Scale: [1.0000005, 1.0000005, 1.0000005]
+      RelationshipComponent:
+        Parent: 6238805330755254934
+        Children:
+          - 9552022549945620028
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 11769020296259974104
+      TagComponent:
+        Name: Knight_ArmLeft
+      TransformComponent:
+        Translation: [0, 0, -0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 9030734354338572407
+        Children:
+          []
+      SubmeshComponent:
+        Mesh: 11686632601999347549
+        SubmeshIndex: 0
+        Material: 0
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 12104950573459571495
+      TagComponent:
+        Name: upperarm.l
+      TransformComponent:
+        Translation: [0.21200734, 0.13413194, -9.2796896e-08]
+        Rotation: [0.9404942, 0.88789505, -1.2936847]
+        Scale: [0.9999993, 0.9999993, 0.9999993]
+      RelationshipComponent:
+        Parent: 6279821845919690124
+        Children:
+          - 18289389477536410498
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 12194313243398879790
+      TagComponent:
+        Name: Knight_ArmRight
+      TransformComponent:
+        Translation: [0, 0, -0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 9030734354338572407
+        Children:
+          []
+      SubmeshComponent:
+        Mesh: 11686632601999347549
+        SubmeshIndex: 1
+        Material: 0
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 12343801586385744297
+      TagComponent:
+        Name: head
+      TransformComponent:
+        Translation: [-1.27973615e-23, 0.26879632, 1.0047515e-14]
+        Rotation: [1.1871119e-09, 0.006414596, -1.8959085e-09]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 16421564341685502903
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 12357738360036840269
+      TagComponent:
+        Name: kneeIK.r
+      TransformComponent:
+        Translation: [-0.1709452, 0.29231027, -0.5758123]
+        Rotation: [-1.570796, 2.479259e-07, 1.5099583e-07]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 18167727664516838562
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 12451372843867419096
+      TagComponent:
+        Name: Knight_Body
+      TransformComponent:
+        Translation: [0, 0, -0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 9030734354338572407
+        Children:
+          []
+      SubmeshComponent:
+        Mesh: 11686632601999347549
+        SubmeshIndex: 2
+        Material: 0
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 12529705497529821498
+      TagComponent:
+        Name: control-foot-roll.r
+      TransformComponent:
+        Translation: [1.31706095e-08, 0.21343604, 9.669849e-09]
+        Rotation: [-0.803619, -2.783179e-07, -3.1415925]
+        Scale: [0.99999994, 0.99999994, 0.99999994]
+      RelationshipComponent:
+        Parent: 2450161696982200789
+        Children:
+          - 6700860132357442084
+          - 17952446440167512368
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 12740457065437586504
+      TagComponent:
+        Name: wrist.r
+      TransformComponent:
+        Translation: [2.0073397e-08, 0.2600439, 1.7326482e-07]
+        Rotation: [4.1801374e-07, -2.296354e-08, -0.053322442]
+        Scale: [0.9999999, 0.9999999, 0.9999999]
+      RelationshipComponent:
+        Parent: 2734727177739770593
+        Children:
+          - 2411312778848671355
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 13025902064654176720
+      TagComponent:
+        Name: wrist.l
+      TransformComponent:
+        Translation: [-7.967522e-09, 0.2600438, -2.4180723e-08]
+        Rotation: [4.627099e-07, -6.552941e-08, 0.053322494]
+        Scale: [1.0000001, 1.0000001, 1.0000001]
+      RelationshipComponent:
+        Parent: 16591140403986713273
+        Children:
+          - 14310735818161638517
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 13263904015879740567
+      TagComponent:
+        Name: hips
+      TransformComponent:
+        Translation: [-5.5652127e-09, 0.3920638, -0.026932653]
+        Rotation: [2.9595843e-11, -0.029193113, -2.0271989e-09]
+        Scale: [0.9999999, 0.9999999, 0.9999999]
+      RelationshipComponent:
+        Parent: 15425087315550384891
+        Children:
+          - 15240943295288827162
+          - 6238805330755254934
+          - 3632374942735042160
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 13355702393592821725
+      TagComponent:
+        Name: elbowIK.l
+      TransformComponent:
+        Translation: [0.45350748, 1.1067609, 0.58885926]
+        Rotation: [1.5707964, 1.9834074e-07, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 15425087315550384891
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 14202678738849662399
+      TagComponent:
+        Name: control-heel-roll.l
+      TransformComponent:
+        Translation: [-7.6919076e-09, 0.36283255, 1.3845403e-09]
+        Rotation: [-5.2537885e-08, -1.4171947e-07, -2.8031847]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 15371305837554510151
+        Children:
+          - 7933733040982433533
+          - 5440392847597346339
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 14310735818161638517
+      TagComponent:
+        Name: hand.l
+      TransformComponent:
+        Translation: [1.1175854e-08, 0.073825836, -1.210718e-07]
+        Rotation: [0.80098915, 0.47003812, 0.46449724]
+        Scale: [0.9999998, 0.9999998, 0.9999998]
+      RelationshipComponent:
+        Parent: 13025902064654176720
+        Children:
+          - 5979447992647254919
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 14325176450292548779
+      TagComponent:
+        Name: control-heel-roll.l
+      TransformComponent:
+        Translation: [-8.349766e-10, 0.36283255, 6.2992317e-10]
+        Rotation: [-5.2537864e-08, -1.4171948e-07, -2.8031847]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 14543298415397410986
+        Children:
+          - 1757011350280604190
+          - 1830794706016014963
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 14371055672021039371
+      TagComponent:
+        Name: toes.r
+      TransformComponent:
+        Translation: [1.5299916e-08, 0.16565001, -2.5114689e-08]
+        Rotation: [2.3379734, -1.1424032e-07, 3.1415925]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 234419751875369400
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 14543298415397410986
+      TagComponent:
+        Name: control-toe-roll.l
+      TransformComponent:
+        Translation: [0.20218207, 0.025990259, -0.20518115]
+        Rotation: [1.570796, 2.0534478e-07, -7.1054274e-15]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 18167727664516838562
+        Children:
+          - 14325176450292548779
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 14802944905261919587
+      TagComponent:
+        Name: spine
+      TransformComponent:
+        Translation: [1.763201e-16, 0.1919775, 1.3836877e-15]
+        Rotation: [3.3306696e-16, -3.4253216e-15, -5.3689776e-16]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 43633200710455190
+        Children:
+          - 6279821845919690124
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 15240943295288827162
+      TagComponent:
+        Name: spine
+      TransformComponent:
+        Translation: [1.1102225e-16, 0.1919775, 1.3183898e-15]
+        Rotation: [-0.030549353, -4.3537307e-06, -0.00028521998]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 13263904015879740567
+        Children:
+          - 16421564341685502903
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 15345029486098113626
+      TagComponent:
+        Name: hand.r
+      TransformComponent:
+        Translation: [-5.3909016e-08, 0.07382572, -7.081463e-08]
+        Rotation: [0.8527155, -0.39281383, -0.69982934]
+        Scale: [0.9999996, 0.9999996, 0.9999996]
+      RelationshipComponent:
+        Parent: 5501656681381715307
+        Children:
+          - 16823475749629145429
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 15371305837554510151
+      TagComponent:
+        Name: control-toe-roll.l
+      TransformComponent:
+        Translation: [0.2075015, 0.025990266, -0.18460472]
+        Rotation: [1.5707961, -0.12846543, 2.2537462e-08]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 15425087315550384891
+        Children:
+          - 14202678738849662399
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 15391394560683649921
+      TagComponent:
+        Name: upperarm.r
+      TransformComponent:
+        Translation: [-0.2120074, 0.13413191, -8.482452e-08]
+        Rotation: [1.1171932, -1.031551, 1.1514326]
+        Scale: [0.9999992, 0.9999992, 0.9999992]
+      RelationshipComponent:
+        Parent: 16421564341685502903
+        Children:
+          - 2734727177739770593
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 15425087315550384891
+      TagComponent:
+        Name: root
+      TransformComponent:
+        Translation: [0, 0, -0]
+        Rotation: [1.7114266e-08, -2.4086307e-07, -6.1832922e-15]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 11600820968886422694
+        Children:
+          - 13263904015879740567
+          - 10482093814161153945
+          - 15371305837554510151
+          - 9695358375684433918
+          - 7004407959995288853
+          - 13355702393592821725
+          - 11390553066319881116
+          - 5056434901771064251
+          - 7954281887047338109
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
     - Entity: 15559333159995319189
       TagComponent:
         Name: Green
       TransformComponent:
-        Translation: [1.56728506, 0, 0]
+        Translation: [1.5672851, 0, 0]
         Rotation: [0, 0, 0]
         Scale: [1, 1, 1]
       RelationshipComponent:
@@ -56,6 +1269,126 @@ Scene:
         MaterialTable:
           0: 1471995334651478538
         Visible: true
+    - Entity: 16224280369669140391
+      TagComponent:
+        Name: foot.r
+      TransformComponent:
+        Translation: [1.0176907e-08, 0.14943695, -1.6480232e-08]
+        Rotation: [1.2974274, -0.16498439, -0.16127299]
+        Scale: [0.9999996, 0.9999996, 0.9999996]
+      RelationshipComponent:
+        Parent: 5773979757711349593
+        Children:
+          - 17196533706520043854
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 16421564341685502903
+      TagComponent:
+        Name: chest
+      TransformComponent:
+        Translation: [-2.220448e-16, 0.3749879, -2.2204467e-15]
+        Rotation: [8.3933444e-10, 1.6252623e-09, 1.5988882e-11]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 15240943295288827162
+        Children:
+          - 16508715658682778173
+          - 15391394560683649921
+          - 12343801586385744297
+          - 7981454617762000179
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 16508715658682778173
+      TagComponent:
+        Name: upperarm.l
+      TransformComponent:
+        Translation: [0.21200734, 0.13413191, -9.278375e-08]
+        Rotation: [1.0993011, 0.89541143, -1.1810188]
+        Scale: [0.9999992, 0.9999992, 0.9999992]
+      RelationshipComponent:
+        Parent: 16421564341685502903
+        Children:
+          - 16591140403986713273
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 16540973837334619537
+      TagComponent:
+        Name: upperleg.r
+      TransformComponent:
+        Translation: [-0.17094505, 0.11358728, 1.1031814e-09]
+        Rotation: [-2.9727573, 0.066723794, -0.0564502]
+        Scale: [0.99999976, 0.99999976, 0.99999976]
+      RelationshipComponent:
+        Parent: 43633200710455190
+        Children:
+          - 5773979757711349593
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 16556339714075129312
+      TagComponent:
+        Name: elbowIK.l
+      TransformComponent:
+        Translation: [0.45350745, 1.1067609, 0.58885926]
+        Rotation: [1.5707964, 1.9834077e-07, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 18167727664516838562
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 16591140403986713273
+      TagComponent:
+        Name: lowerarm.l
+      TransformComponent:
+        Translation: [6.6428676e-08, 0.24189733, 2.9706475e-09]
+        Rotation: [-3.3415455e-07, -3.0001198e-07, -1.031731]
+        Scale: [1.0000007, 1.0000007, 1.0000007]
+      RelationshipComponent:
+        Parent: 16508715658682778173
+        Children:
+          - 13025902064654176720
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 16777366665536563390
+      TagComponent:
+        Name: handslot.r
+      TransformComponent:
+        Translation: [-1.9647155e-08, 0.09612501, 0.0575001]
+        Rotation: [-0.028018126, 0.013741158, 1.5094843]
+        Scale: [1.0000001, 1.0000001, 1.0000001]
+      RelationshipComponent:
+        Parent: 2411312778848671355
+        Children:
+          - 363995681253575644
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 16823475749629145429
+      TagComponent:
+        Name: handslot.r
+      TransformComponent:
+        Translation: [-1.9627755e-08, 0.09612501, 0.05750011]
+        Rotation: [-0.0025785107, -0.0002136745, 1.5683423]
+        Scale: [1.0000001, 1.0000001, 1.0000001]
+      RelationshipComponent:
+        Parent: 15345029486098113626
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 17196533706520043854
+      TagComponent:
+        Name: toes.r
+      TransformComponent:
+        Translation: [1.39858845e-08, 0.16565003, -2.3694923e-08]
+        Rotation: [2.3379734, -1.131518e-07, 3.1415925]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 16224280369669140391
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
     - Entity: 17618620851746294573
       TagComponent:
         Name: env
@@ -85,7 +1418,7 @@ Scene:
           - ID: 2707737354266497140
             Name: Sound
             Type: SoundConfig
-            Value: 17694917365070649434
+            Value: 0
           - ID: 6490527280379914749
             Name: SetVolume
             Type: Bool
@@ -99,3 +1432,94 @@ Scene:
         PlayOnWake: true
         VolumeMultiplier: 1
         PitchMultiplier: 1
+    - Entity: 17952446440167512368
+      TagComponent:
+        Name: IK-foot.r
+      TransformComponent:
+        Translation: [2.2984336e-08, 0.16565001, -2.5072455e-10]
+        Rotation: [3.1415925, 3.7946052e-07, -1.0323406e-08]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 12529705497529821498
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 18151467447797439991
+      TagComponent:
+        Name: Knight_LegLeft
+      TransformComponent:
+        Translation: [0, 0, -0]
+        Rotation: [0, 0, 0]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 11600820968886422694
+        Children:
+          []
+      SubmeshComponent:
+        Mesh: 11686632601999347549
+        SubmeshIndex: 4
+        Material: 0
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 18152588354530745223
+      TagComponent:
+        Name: toes.l
+      TransformComponent:
+        Translation: [1.1994959e-08, 0.16565001, -1.5269464e-08]
+        Rotation: [2.3379734, -3.2408542e-07, -3.1415925]
+        Scale: [0.99999994, 0.99999994, 0.99999994]
+      RelationshipComponent:
+        Parent: 6532344314045345692
+        Children:
+          []
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 18167727664516838562
+      TagComponent:
+        Name: root
+      TransformComponent:
+        Translation: [0, 0, -0]
+        Rotation: [1.7114266e-08, -2.4086307e-07, -6.1832922e-15]
+        Scale: [1, 1, 1]
+      RelationshipComponent:
+        Parent: 9030734354338572407
+        Children:
+          - 43633200710455190
+          - 333973865622412312
+          - 14543298415397410986
+          - 12357738360036840269
+          - 11406579298746589502
+          - 16556339714075129312
+          - 10890352751071196856
+          - 7921076218670486325
+          - 6266347657940632745
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407
+    - Entity: 18184226338478560558
+      TagComponent:
+        Name: control-foot-roll.r
+      TransformComponent:
+        Translation: [1.317061e-08, 0.21343602, 9.669849e-09]
+        Rotation: [-0.80361915, -2.783179e-07, -3.1415925]
+        Scale: [0.99999994, 0.99999994, 0.99999994]
+      RelationshipComponent:
+        Parent: 10605898213560657785
+        Children:
+          - 631674573063724202
+          - 10706079499161118021
+      MeshFilterComponent:
+        RootEntityID: 11600820968886422694
+    - Entity: 18289389477536410498
+      TagComponent:
+        Name: lowerarm.l
+      TransformComponent:
+        Translation: [4.7959144e-08, 0.24189731, 2.8532698e-08]
+        Rotation: [-3.57705e-07, -3.6410628e-07, -1.0583262]
+        Scale: [1.0000007, 1.0000007, 1.0000007]
+      RelationshipComponent:
+        Parent: 12104950573459571495
+        Children:
+          - 8542566463349687877
+      MeshFilterComponent:
+        RootEntityID: 9030734354338572407

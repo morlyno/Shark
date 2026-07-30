@@ -91,6 +91,7 @@ namespace Shark {
 
 		// 3D
 		shaderLibrary->Load("Resources/Shaders/SharkPBR.hlsl");
+		shaderLibrary->Load("Resources/Shaders/SharkPBR-Animated.hlsl");
 		shaderLibrary->Load("Resources/Shaders/Skybox.hlsl");
 		shaderLibrary->Load("Resources/Shaders/BRDF_LUT.hlsl");
 		shaderLibrary->Load("Resources/Shaders/Tonemap.hlsl");
@@ -104,6 +105,7 @@ namespace Shark {
 
 		// Jump Flood
 		shaderLibrary->Load("Resources/Shaders/JumpFlood/SelectedGeometry.hlsl");
+		shaderLibrary->Load("Resources/Shaders/JumpFlood/SelectedGeometry-Animated.hlsl");
 		shaderLibrary->Load("Resources/Shaders/JumpFlood/JumpFloodInit.hlsl");
 		shaderLibrary->Load("Resources/Shaders/JumpFlood/JumpFloodPass.hlsl");
 		shaderLibrary->Load("Resources/Shaders/JumpFlood/JumpFloodComposite.hlsl");
@@ -395,13 +397,13 @@ namespace Shark {
 		});
 	}
 
-	void Renderer::RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material, const Buffer pushConstantsData)
+	void Renderer::RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material, bool isRigged, const Buffer pushConstantsData)
 	{
 		SK_CORE_TRACE_TAG("Renderer", "RenderSubmesh '{}':{} '{}'", meshSource->GetName(), submeshIndex, material ? material->GetName() : "<null>");
 
-		Submit([commandBuffer, pipeline, mesh, meshSource, submeshIndex, material, temp = Buffer::Copy(pushConstantsData)]() mutable
+		Submit([commandBuffer, pipeline, mesh, meshSource, submeshIndex, material, isRigged, temp = Buffer::Copy(pushConstantsData)]() mutable
 		{
-			RT::RenderSubmesh(commandBuffer, pipeline, mesh, meshSource, submeshIndex, material, temp);
+			RT::RenderSubmesh(commandBuffer, pipeline, mesh, meshSource, submeshIndex, material, isRigged, temp);
 			temp.Release();
 		});
 	}
@@ -848,9 +850,9 @@ namespace Shark {
 		RT::RenderGeometry(renderCommandBuffer, pipeline, material, vertexBuffer, indexBuffer, drawArguments, pushConstant);
 	}
 
-	void Renderer::RT_RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material, const Buffer pushConstantsData)
+	void Renderer::RT_RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material, bool isRigged, const Buffer pushConstantsData)
 	{
-		RT::RenderSubmesh(commandBuffer, pipeline, mesh, meshSource, submeshIndex, material, pushConstantsData);
+		RT::RenderSubmesh(commandBuffer, pipeline, mesh, meshSource, submeshIndex, material, isRigged, pushConstantsData);
 	}
 
 	void Renderer::RT_RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Buffer pushConstantsData)

@@ -24,4 +24,12 @@ namespace Shark {
 		m_IndexBuffer = IndexBuffer::Create(Buffer::FromArray(indices));
 	}
 
+	std::optional<size_t> MeshSource::FindAnimation(std::string_view animationName) const
+	{
+		for (size_t i = 0; i < m_AnimationNames.size(); i++)
+			if (m_AnimationNames[i] == animationName)
+				return i;
+		return std::nullopt;
+	}
+
 }

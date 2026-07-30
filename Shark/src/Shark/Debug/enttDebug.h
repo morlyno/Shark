@@ -15,50 +15,23 @@ namespace Shark::Debug {
 			if (!entity)
 				return;
 
-			m_IDComponent                = entity.TryGetComponent<IDComponent>();
-			m_TagComponent               = entity.TryGetComponent<TagComponent>();
-			m_TransformComponent         = entity.TryGetComponent<TransformComponent>();
-			m_RelationshipComponent      = entity.TryGetComponent<RelationshipComponent>();
-			m_PrefabComponent            = entity.TryGetComponent<PrefabComponent>();
-			m_SpriteRendererComponent    = entity.TryGetComponent<SpriteRendererComponent>();
-			m_CameraComponent            = entity.TryGetComponent<CameraComponent>();
-			m_RigidBody2DComponent       = entity.TryGetComponent<RigidBody2DComponent>();
-			m_BoxCollider2DComponent     = entity.TryGetComponent<BoxCollider2DComponent>();
-			m_FrictionJointComponent     = entity.TryGetComponent<DistanceJointComponent>();
-			m_HingeJointComponent        = entity.TryGetComponent<HingeJointComponent>();
-			m_ScriptComponent            = entity.TryGetComponent<ScriptComponent>();
-			
+			ForEachIndexed(AllComponents{}, [this, entity]<typename T, size_t Index>()
+			{
+				std::get<Index>(m_Components) = entity.TryGetComponent<T>();
+			});
+
 		}
 
 		EntityView(entt::entity entity, const entt::registry& registry)
 		{
-			m_IDComponent                = registry.try_get<IDComponent>(entity);
-			m_TagComponent               = registry.try_get<TagComponent>(entity);
-			m_TransformComponent         = registry.try_get<TransformComponent>(entity);
-			m_RelationshipComponent      = registry.try_get<RelationshipComponent>(entity);
-			m_PrefabComponent            = registry.try_get<PrefabComponent>(entity);
-			m_SpriteRendererComponent    = registry.try_get<SpriteRendererComponent>(entity);
-			m_CameraComponent            = registry.try_get<CameraComponent>(entity);
-			m_RigidBody2DComponent       = registry.try_get<RigidBody2DComponent>(entity);
-			m_BoxCollider2DComponent     = registry.try_get<BoxCollider2DComponent>(entity);
-			m_FrictionJointComponent     = registry.try_get<DistanceJointComponent>(entity);
-			m_HingeJointComponent        = registry.try_get<HingeJointComponent>(entity);
-			m_ScriptComponent            = registry.try_get<ScriptComponent>(entity);
+			ForEachIndexed(AllComponents{}, [this, entity, &registry]<typename T, size_t Index>()
+			{
+				std::get<Index>(m_Components) = registry.try_get<T>(entity);
+			});
 		}
 
 	public:
-		const IDComponent*                     m_IDComponent               = nullptr;
-		const TagComponent*                    m_TagComponent              = nullptr;
-		const TransformComponent*              m_TransformComponent        = nullptr;
-		const RelationshipComponent*           m_RelationshipComponent     = nullptr;
-		const PrefabComponent*                 m_PrefabComponent           = nullptr;
-		const SpriteRendererComponent*         m_SpriteRendererComponent   = nullptr;
-		const CameraComponent*                 m_CameraComponent           = nullptr;
-		const RigidBody2DComponent*            m_RigidBody2DComponent      = nullptr;
-		const BoxCollider2DComponent*          m_BoxCollider2DComponent    = nullptr;
-		const DistanceJointComponent*          m_FrictionJointComponent    = nullptr;
-		const HingeJointComponent*             m_HingeJointComponent       = nullptr;
-		const ScriptComponent*                 m_ScriptComponent           = nullptr;
+		AllComponents::AsConstPointerTuple m_Components;
 
 	};
 
@@ -140,6 +113,8 @@ namespace Shark::Debug {
 
 #if SK_DEBUG
 #define DEBUG_ENTITY(entity) ::Shark::Debug::EntityView SK_UNIQUE_NAME (entity);
+#define DEBUG_ENTITY_N(_var, _entity) ::Shark::Debug::EntityView _var (_entity);
 #else
 #define DEBUG_ENTITY(...)
+#define DEBUG_ENTITY_N(...) (void)0
 #endif

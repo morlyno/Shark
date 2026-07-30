@@ -49,12 +49,12 @@ namespace Shark {
 		return (uint32_t)m_Elements.size();
 	}
 
-	std::vector<VertexElement>::iterator VertexLayout::begin()
+	std::vector<VertexElement>::const_iterator VertexLayout::begin() const
 	{
 		return m_Elements.begin();
 	}
 
-	std::vector<VertexElement>::iterator VertexLayout::end()
+	std::vector<VertexElement>::const_iterator VertexLayout::end() const
 	{
 		return m_Elements.end();
 	}

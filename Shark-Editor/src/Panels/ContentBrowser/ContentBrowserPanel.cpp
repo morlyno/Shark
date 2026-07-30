@@ -167,6 +167,9 @@ namespace Shark {
 							if (ImGui::MenuItem("SoundConfig"))
 								CreateAsset<SoundConfig>("New Sound Config.sksc", true);
 
+							if (ImGui::MenuItem("Animation"))
+								CreateAsset<AnimationAsset>(fmt::format("New Animation{}", AssetExtensions::Animation[0]), true);
+
 							ImGui::EndMenu();
 						}
 

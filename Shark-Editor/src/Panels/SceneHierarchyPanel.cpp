@@ -3,11 +3,13 @@
 #include "Shark/Core/Project.h"
 #include "Shark/Core/SelectionManager.h"
 #include "Shark/Asset/AssetManager.h"
+#include "Shark/Animation/AnimationEngine.h"
 
 #include "Shark/Scene/Components.h"
 #include "Shark/Scene/Prefab.h"
 #include "Shark/Scripting/ScriptTypes.h"
 #include "Shark/Scripting/ScriptEngine.h"
+#include "Shark/Render/Environment.h"
 
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/Controls.h"
@@ -127,7 +129,7 @@ namespace Shark {
 		}
 
 		template<typename TComp, typename TMemberType>
-		static void UnifyMember(const std::vector<Entity>& entities, TMemberType TComp::* member)
+		static void UnifyMember(std::span<const Entity> entities, TMemberType TComp::* member)
 		{
 			if (entities.size() <= 1)
 				return;
@@ -143,7 +145,7 @@ namespace Shark {
 		}
 
 		template<typename TComp, typename TMember, typename TFunc>
-		static void UnifyMember(const std::vector<Entity>& entities, TMember TComp::* member, const TFunc& transformFunc)
+		static void UnifyMember(std::span<const Entity> entities, TMember TComp::* member, const TFunc& transformFunc)
 		{
 			if (entities.size() <= 1)
 				return;
@@ -161,7 +163,7 @@ namespace Shark {
 		struct DefaultTransformer
 		{
 			template<typename TComp, typename TMemberType>
-			inline void operator()(const std::vector<Entity>& entities, TMemberType TComp::* member)
+			inline void operator()(std::span<const Entity> entities, TMemberType TComp::* member)
 			{
 				UnifyMember(entities, member);
 			}
@@ -169,8 +171,8 @@ namespace Shark {
 
 		// uiFunc: bool(const TComponent& first, const std::vector<Entity>& entities)
 		template<typename TComponent, typename TMemberType, typename TFunc, typename TTransformer = DefaultTransformer>
-			requires std::invocable<TFunc, TComponent&, const std::vector<Entity>&>
-		static bool Multiselect(const std::vector<Entity>& entities, TMemberType TComponent::* member, const TFunc& uiFunc, TTransformer transformer = {})
+			requires std::invocable<TFunc, TComponent&, std::span<const Entity>>
+		static bool Multiselect(std::span<const Entity> entities, TMemberType TComponent::* member, const TFunc& uiFunc, TTransformer transformer = {})
 		{
 			const bool isMixed = IsInconsistentProperty<TComponent>(entities, member);
 			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, isMixed);
@@ -187,8 +189,8 @@ namespace Shark {
 		
 		// uiFunc: bool(const TComponent& first, const std::vector<Entity>& entities)
 		template<typename TComponent, typename TMemberType, typename TFunc, typename TTransformer = DefaultTransformer>
-			requires std::invocable<TFunc, TComponent&, const std::vector<Entity>&, bool>
-		static bool Multiselect(const std::vector<Entity>& entities, TMemberType TComponent::* member, const TFunc& uiFunc, TTransformer transformer = {})
+			requires std::invocable<TFunc, TComponent&, std::span<const Entity>, bool>
+		static bool Multiselect(std::span<const Entity> entities, TMemberType TComponent::* member, const TFunc& uiFunc, TTransformer transformer = {})
 		{
 			const bool isMixed = IsInconsistentProperty<TComponent>(entities, member);
 			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, isMixed);
@@ -206,12 +208,27 @@ namespace Shark {
 		// uiFunc: bool(const TComponent& first, const std::vector<Entity>& entities)
 		template<typename TComponent, typename TMemberType, typename... TArgs>
 			requires (requires(TMemberType& value, TArgs&&... args) { UI::Control("", value, std::forward<TArgs>(args)...); })
-		static bool MultiselectControl(const std::vector<Entity>& entities, TMemberType TComponent::* member, std::string_view label, TArgs&&... args)
+		static bool MultiselectControl(std::span<const Entity> entities, TMemberType TComponent::* member, std::string_view label, TArgs&&... args)
 		{
 			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, IsInconsistentProperty<TComponent>(entities, member));
 			Entity firstEntity = entities[0];
 			TComponent& firstComponent = firstEntity.GetComponent<TComponent>();
 			if (UI::Control(label, firstComponent.*member, std::forward<TArgs>(args)...))
+			{
+				UnifyMember(entities, member);
+				return true;
+			}
+			return false;
+		}
+
+		template<typename TComponent>
+		static bool MultiselectControlAsset(std::span<const Entity> entities, AssetHandle TComponent::* member, AssetType assetType, std::string_view label, const UI::AssetControlArgs& args = {})
+		{
+			UI::ScopedItemFlag mixedValue(ImGuiItemFlags_MixedValue, IsInconsistentProperty<TComponent>(entities, member));
+
+			auto firstEntity = entities.front();
+			auto& component = firstEntity.GetComponent<TComponent>();
+			if (UI::ControlAsset(label, assetType, component.*member, args))
 			{
 				UnifyMember(entities, member);
 				return true;
@@ -353,6 +370,7 @@ namespace Shark {
 		m_Components.push_back(COMPONENT_DATA_ARGS("Pulley Joint 2D", PulleyJointComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Script", ScriptComponent));
 		m_Components.push_back(COMPONENT_DATA_ARGS("Audio", AudioComponent));
+		m_Components.push_back(COMPONENT_DATA_ARGS("Animation", AnimationComponent));
 		#undef COMPONENT_DATA_ARGS
 
 		SK_CORE_VERIFY(m_Components.size() == (vtll::size<AllComponents::Except<UserHiddenComponents, AutomationComponents, TagComponent>>::value));
@@ -1075,6 +1093,7 @@ namespace Shark {
 			UI::ScopedItemFlag mixedValueFlag(ImGuiItemFlags_MixedValue, utils::IsInconsistentProperty<MeshComponent>(entities, &MeshComponent::Mesh));
 			if (UI::ControlAsset("Mesh", AssetType::Mesh, firstComponent.Mesh))
 			{
+				// #Investigate option to allow async loading for this
 				auto mesh = AssetManager::GetAsset<Mesh>(firstComponent.Mesh);
 				for (auto entity : entities)
 				{
@@ -1433,10 +1452,7 @@ namespace Shark {
 					for (Entity entity : entities)
 					{
 						auto& scriptComponent = entity.GetComponent<ScriptComponent>();
-						if (!isValidScript)
-						{
-							scriptStorage.RemoveEntityStorage(scriptComponent.ScriptID, entity.GetUUID());
-						}
+						scriptStorage.RemoveEntityStorage(scriptComponent.ScriptID, entity.GetUUID());
 
 						scriptComponent.ScriptID = scriptID;
 						if (isValidScript)
@@ -1535,6 +1551,19 @@ namespace Shark {
 						}
 						break;
 					}
+					case ManagedFieldType::Animation:
+					{
+						if (!m_Context->IsRunning())
+						{
+							AssetHandle val = storage.GetValue<AssetHandle>();
+							if (UI::ControlAsset(storage.GetName(), AssetType::Animation, val))
+							{
+								storage.SetValue(val);
+								changed = true;
+							}
+						}
+						break;
+					}
 					//case ManagedFieldType::Component: changed = FieldControl.operator()<uint64_t>(storage); break;
 					case ManagedFieldType::Vector2: changed = FieldControl.operator()<glm::vec2>(storage); break;
 					case ManagedFieldType::Vector3: changed = FieldControl.operator()<glm::vec3>(storage); break;
@@ -1563,6 +1592,15 @@ namespace Shark {
 			utils::MultiselectControl(entities, &AudioComponent::VolumeMultiplier, "Volume multiplier");
 			utils::MultiselectControl(entities, &AudioComponent::PitchMultiplier, "Pitch multiplier");
 
+			UI::EndControlsGrid();
+		});
+
+		DrawComponetMultiSelect<AnimationComponent>(entities, "Animation", [this](AnimationComponent& firstComponent, const EntityList& entities)
+		{
+			UI::BeginControlsGrid();
+			utils::MultiselectControlAsset(entities, &AnimationComponent::Animation, AssetType::Animation, "Animation");
+			utils::MultiselectControl(entities, &AnimationComponent::Loop, "Loop");
+			utils::MultiselectControl(entities, &AnimationComponent::Update, "Update");
 			UI::EndControlsGrid();
 		});
 

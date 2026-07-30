@@ -67,6 +67,26 @@ namespace Shark {
 
 	}
 
+	Ref<FrameBuffer> FrameBuffer::GetLoadFramebuffer(bool allowCached) const
+	{
+		if (allowCached && m_LoadFramebuffer)
+			return m_LoadFramebuffer.GetRef();
+
+		FrameBufferSpecification specification = m_Specification;
+		specification.ClearColorOnLoad = false;
+		specification.ClearDepthOnLoad = false;
+		specification.ExistingDepthImage = m_DepthImage;
+
+		uint32_t index = 0;
+		for (auto image : m_ColorImages)
+			specification.ExistingImages[index++] = image;
+
+		auto load = FrameBuffer::Create(specification);
+		m_LoadFramebuffer = load;
+
+		return load;
+	}
+
 	void FrameBuffer::Resize(uint32_t width, uint32_t height, bool force)
 	{
 		if (!force && m_Specification.Width == width && m_Specification.Height == height)

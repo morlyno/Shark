@@ -44,6 +44,9 @@ namespace Shark::NodeGraph::Editor {
 		static const char* GetStaticID() { return "NodeGraphEditor"; }
 
 	public:
+		NodeGraphEditor();
+		~NodeGraphEditor();
+
 		virtual bool OnShowPanel() override;
 		virtual bool OnHidePanel() override;
 

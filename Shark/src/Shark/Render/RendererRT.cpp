@@ -252,7 +252,7 @@ namespace Shark::RT {
 		commandList->drawIndexed(drawArguments);
 	}
 
-	void RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material, const Buffer pushConstantsData)
+	void RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material, bool isRigged, const Buffer pushConstantsData)
 	{
 		const auto& submeshes = meshSource->GetSubmeshes();
 		const auto& submesh = submeshes[submeshIndex];
@@ -267,11 +267,24 @@ namespace Shark::RT {
 
 		drawState.pipeline = pipeline->GetHandle();
 
-		nvrhi::VertexBufferBinding vbufBinding;
-		vbufBinding.buffer = vertexBuffer->GetHandle();
-		vbufBinding.slot = 0;
-		vbufBinding.offset = 0;
-		drawState.vertexBuffers[0] = vbufBinding;
+		nvrhi::VertexBufferBinding vertexBufferBinding;
+		vertexBufferBinding.buffer = vertexBuffer->GetHandle();
+		vertexBufferBinding.slot = 0;
+		vertexBufferBinding.offset = 0;
+		drawState.vertexBuffers[0] = vertexBufferBinding;
+
+		if (isRigged)
+		{
+			nvrhi::VertexBufferBinding boneInfluenceBufferBinding;
+			boneInfluenceBufferBinding.buffer = meshSource->GetBoneInfluenceBuffer()->GetHandle();
+			boneInfluenceBufferBinding.slot = 1;
+			boneInfluenceBufferBinding.offset = 0;
+			drawState.vertexBuffers = { vertexBufferBinding, boneInfluenceBufferBinding };
+		}
+		else
+		{
+			drawState.vertexBuffers = { vertexBufferBinding };
+		}
 
 		if (material)
 		{

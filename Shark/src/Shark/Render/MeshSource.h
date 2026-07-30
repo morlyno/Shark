@@ -3,6 +3,8 @@
 #include "Shark/Asset/Asset.h"
 #include "Shark/Render/Buffers.h"
 #include "Shark/Render/MaterialAsset.h"
+#include "Shark/Animation/Skeleton.h"
+#include "Shark/Animation/Animation.h"
 #include "Shark/Math/AABB.h"
 
 namespace Shark {
@@ -32,6 +34,7 @@ namespace Shark {
 		uint32_t MaterialIndex = 0;
 		AABB BoundingBox;
 		std::string MeshName;
+		bool IsRigged = false;
 	};
 
 	struct MeshNode
@@ -45,6 +48,18 @@ namespace Shark {
 		glm::mat4 LocalTransform;
 
 		bool IsRoot() const { return Parent == (uint32_t)-1; }
+	};
+
+	struct BoneInfo
+	{
+		glm::mat4 InverseBindPose;
+		size_t BoneIndex = Skeleton::NullIndex;
+	};
+
+	struct BoneInfluence
+	{
+		uint32_t BoneInfoIndices[4] = { 0, 0, 0, 0 };
+		float Weight[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	};
 
 	class MeshSource : public Asset
@@ -70,12 +85,26 @@ namespace Shark {
 		const std::vector<AssetHandle>& GetMaterials() const { return m_Materials; }
 
 		Ref<VertexBuffer> GetVertexBuffer() const { return m_VertexBuffer; }
+		Ref<VertexBuffer> GetBoneInfluenceBuffer() const { return m_BoneInfluenceBuffer; }
 		Ref<IndexBuffer> GetIndexBuffer() const { return m_IndexBuffer; }
 
 		const MeshNode& GetRootNode() const { return m_Nodes[0]; }
 		const std::vector<MeshNode>& GetNodes() const { return m_Nodes; }
 
 		const AABB& GetBoundingBox() const { return m_BoundingBox; }
+
+		bool HasSkeleton() const { return m_Skeleton != nullptr; }
+		const Skeleton& GetSkeleton() const { return *m_Skeleton; }
+		const auto& GetBoneInfos() { return m_BoneInfos; }
+
+		Animation&       GetAnimation(size_t index) { return *m_Animations[index]; }
+		const Animation& GetAnimation(size_t index) const { return *m_Animations[index]; }
+
+		std::optional<size_t> FindAnimation(std::string_view animationName) const;
+		const std::string&    GetAnimationName(size_t index) const { return m_AnimationNames[index]; }
+		const auto&           GetAnimationNames() const { return m_AnimationNames; }
+		size_t                GetAnimationCount() const { return m_Animations.size(); }
+
 
 	public:
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }
@@ -91,11 +120,18 @@ namespace Shark {
 		std::vector<Index> m_Indices;
 
 		Ref<VertexBuffer> m_VertexBuffer;
+		Ref<VertexBuffer> m_BoneInfluenceBuffer;
 		Ref<IndexBuffer> m_IndexBuffer;
 		std::vector<AssetHandle> m_Materials;
 
 		std::vector<Submesh> m_Submeshes;
 		std::vector<MeshNode> m_Nodes;
+
+		Scope<Skeleton> m_Skeleton;
+		std::vector<BoneInfo> m_BoneInfos;
+		std::vector<BoneInfluence> m_BoneInfluences;
+		std::vector<std::string> m_AnimationNames;
+		std::vector<Scope<Animation>> m_Animations;
 
 		AABB m_BoundingBox;
 

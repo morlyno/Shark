@@ -80,6 +80,7 @@ namespace Shark {
 		m_LayerStack.Clear();
 		m_ImGuiLayer = nullptr;
 		m_ScriptHost.Shutdown();
+		m_AudioEngine = nullptr;
 
 		m_Window = nullptr;
 		Renderer::ShutDown();

@@ -36,6 +36,7 @@
 #include "Panels/SoundPanel.h"
 #include "Panels/StatisticsPanel.h"
 
+#include "Panels/Editors/AnimationEditor.h"
 #include "Panels/Editors/MaterialEditorPanel.h"
 #include "Panels/Editors/PrefabEditorPanel.h"
 #include "Panels/Editors/SoundConfigEditor.h"
@@ -136,6 +137,13 @@ namespace Shark {
 			m_PanelManager->ShowPanel<AssetEditorManagerPanel>();
 			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>();
 			assetEditorManager->AddEditor<SoundConfigEditor>(metadata);
+		});
+
+		contentBrowser->RegisterAssetActicatedCallback(AssetType::Animation, [this](const AssetMetaData& metadata)
+		{
+			m_PanelManager->ShowPanel<AssetEditorManagerPanel>();
+			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>();
+			assetEditorManager->AddEditor<AnimationEditor>(metadata);
 		});
 
 		m_PanelManager->AddPanel<AssetEditorManagerPanel>(PanelCategory::Edit, "Assets Editor Manager", true);
@@ -280,6 +288,10 @@ namespace Shark {
 			AssetType assetType = AssetManager::GetAssetType(e.Asset);
 			if (assetType == AssetType::Scene && e.Asset == m_EditorScene->Handle)
 				m_EditorScene = AssetManager::GetAsset<Scene>(e.Asset);
+
+			m_ActiveScene->OnAssetReloaded(e.Asset);
+			if (m_EditorScene != m_ActiveScene)
+				m_EditorScene->OnAssetReloaded(e.Asset);
 			return false;
 		});
 	}

@@ -10,6 +10,8 @@
 #include "Shark/Audio/SoundConfig.h"
 #include "Shark/Audio/Sound.h"
 
+#include "Shark/Animation/AnimationEngine.h"
+
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Components.h"
@@ -56,6 +58,22 @@ namespace Shark {
 		Coral::Bool32 Audio_IsPlaying(SoundID soundID);
 		Coral::Bool32 Audio_Finished(SoundID soundID);
 
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+		//// Animation Component //////////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////////////////////////////////////
+
+		AssetHandle   AnimationComponent_GetAnimation(uint64_t entityID);
+		void          AnimationComponent_SetAnimation(uint64_t entityID, AssetHandle animationHandle);
+		Coral::Bool32 AnimationComponent_GetLoop(uint64_t entityID);
+		void          AnimationComponent_SetLoop(uint64_t entityID, Coral::Bool32 loop);
+		float         AnimationComponent_GetTimePosition(uint64_t entityID);
+		void          AnimationComponent_SetTimePosition(uint64_t entityID, float position);
+		Coral::Bool32 AnimationComponent_IsPlaying(uint64_t entityID);
+		void          AnimationComponent_SetPlaying(uint64_t entityID, Coral::Bool32 play);
+		Coral::Bool32 AnimationComponent_IsFinished(uint64_t entityID);
+
+		void          AnimationComponent_SetTransition(uint64_t entityID, AssetHandle targetAnimation, float duration, Coral::Bool32 loop);
+
 	}
 
 	static std::map<Coral::TypeId, bool(*)(Entity)> s_HasComponentFunctions;
@@ -65,6 +83,7 @@ namespace Shark {
 #define SK_ICALL_VERIFY_PARAMETER(_param) if (!(_param)) { SK_CONSOLE_ERROR("{} called with with invalid value for parameter '{}'", SK_FUNCTION_NAME, #_param); }
 #define SK_ICALL_VERIFY_PARAMETER_V(_param, _value) if (!(_value)) { SK_CONSOLE_ERROR("{} called with with invalid value for parameter '{}'", SK_FUNCTION_NAME, #_param); }
 #define SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(_entity, _component_t) SK_ICALL_VERIFY_PARAMETER(_entity); SK_ICALL_VERIFY_PARAMETER(_entity.HasComponent<_component_t>())
+#define SK_ICALL_ASSERT(_condition, ...) if (!(_condition)) { SK_CONSOLE_ERROR(__VA_ARGS__); }
 
 	static Entity GetEntity(uint64_t entityID)
 	{
@@ -76,6 +95,11 @@ namespace Shark {
 	static MiniAudioEngine* GetAudioEngine()
 	{
 		return Application::Get().GetAudioEngine();
+	}
+
+	static AnimationEngine* GetAnimationEngine()
+	{
+		return ScriptEngine::Get().GetCurrentSceen()->GetAnimationEngine();
 	}
 
 	void ScriptGlue::Initialize(Coral::ManagedAssembly& assembly)
@@ -108,6 +132,7 @@ namespace Shark {
 		SK_REGISTER_COMPONENT(BoxCollider2DComponent);
 		SK_REGISTER_COMPONENT(CircleCollider2DComponent);
 		SK_REGISTER_COMPONENT(AudioComponent);
+		SK_REGISTER_COMPONENT(AnimationComponent);
 #undef SK_REGISTER_COMPONENT
 	}
 
@@ -278,6 +303,17 @@ namespace Shark {
 		ADD_ICALL(Audio_ResumePlayback);
 		ADD_ICALL(Audio_IsPlaying);
 		ADD_ICALL(Audio_Finished);
+
+		ADD_ICALL(AnimationComponent_GetAnimation);
+		ADD_ICALL(AnimationComponent_SetAnimation);
+		ADD_ICALL(AnimationComponent_GetLoop);
+		ADD_ICALL(AnimationComponent_SetLoop);
+		ADD_ICALL(AnimationComponent_GetTimePosition);
+		ADD_ICALL(AnimationComponent_SetTimePosition);
+		ADD_ICALL(AnimationComponent_IsPlaying);
+		ADD_ICALL(AnimationComponent_SetPlaying);
+		ADD_ICALL(AnimationComponent_IsFinished);
+		ADD_ICALL(AnimationComponent_SetTransition);
 		#undef ADD_ICALL
 
 		assembly.UploadInternalCalls();
@@ -2014,6 +2050,105 @@ namespace Shark {
 	Coral::Bool32 InternalCalls::Audio_Finished(SoundID soundID)
 	{
 		return GetAudioEngine()->IsSoundFinished(soundID);
+	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////
+	//// Animation Component //////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////////
+
+	AssetHandle InternalCalls::AnimationComponent_GetAnimation(uint64_t entityID)
+	{
+		auto entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(entity, AnimationComponent);
+
+		auto& component = entity.GetComponent<AnimationComponent>();
+		return component.Animation;
+	}
+
+	void InternalCalls::AnimationComponent_SetAnimation(uint64_t entityID, AssetHandle animationHandle)
+	{
+		auto entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(entity, AnimationComponent);
+
+		auto& component = entity.GetComponent<AnimationComponent>();
+		component.Animation = animationHandle;
+	}
+
+	Coral::Bool32 InternalCalls::AnimationComponent_GetLoop(uint64_t entityID)
+	{
+		auto entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(entity, AnimationComponent);
+
+		auto& component = entity.GetComponent<AnimationComponent>();
+		return component.Loop;
+	}
+
+	void InternalCalls::AnimationComponent_SetLoop(uint64_t entityID, Coral::Bool32 loop)
+	{
+		auto entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(entity, AnimationComponent);
+
+		auto& component = entity.GetComponent<AnimationComponent>();
+		component.Loop = loop;
+	}
+
+	float InternalCalls::AnimationComponent_GetTimePosition(uint64_t entityID)
+	{
+		//auto entity = GetEntity(entityID);
+		//SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(entity, AnimationComponent);
+
+		if (auto* pose = GetAnimationEngine()->GetPose(UUID::Make(entityID)))
+			return pose->TimePosition;
+
+		// 0 as default
+		return 0.0f;
+	}
+
+	void InternalCalls::AnimationComponent_SetTimePosition(uint64_t entityID, float position)
+	{
+		//auto entity = GetEntity(entityID);
+		//SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(entity, AnimationComponent);
+		SK_ICALL_ASSERT(position >= 0, "Argument float passed to AnimationComponent.SetTimePosition can't be negative (position={})", position);
+
+		GetAnimationEngine()->SetSamplePosition(UUID::Make(entityID), position);
+	}
+
+	Coral::Bool32 InternalCalls::AnimationComponent_IsPlaying(uint64_t entityID)
+	{
+		auto entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(entity, AnimationComponent);
+
+		auto& component = entity.GetComponent<AnimationComponent>();
+		return component.Update;
+	}
+
+	void InternalCalls::AnimationComponent_SetPlaying(uint64_t entityID, Coral::Bool32 play)
+	{
+		auto entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(entity, AnimationComponent);
+
+		auto& component = entity.GetComponent<AnimationComponent>();
+		component.Update = play;
+	}
+
+	Coral::Bool32 InternalCalls::AnimationComponent_IsFinished(uint64_t entityID)
+	{
+		auto entity = GetEntity(entityID);
+		SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(entity, AnimationComponent);
+
+		auto& component = entity.GetComponent<AnimationComponent>();
+		if (component.Loop)
+			return false;
+
+		if (auto pose = GetAnimationEngine()->GetPose(UUID::Make(entityID)))
+			return pose->TimePosition >= 1.0f;
+
+		return false;
+	}
+
+	void InternalCalls::AnimationComponent_SetTransition(uint64_t entityID, AssetHandle targetAnimation, float duration, Coral::Bool32 loop)
+	{
+		GetAnimationEngine()->Transition(UUID::Make(entityID), targetAnimation, duration, loop);
 	}
 
 }

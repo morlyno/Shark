@@ -6,8 +6,7 @@
 #include "Shark/Serialization/AudioSerializers.h"
 #include "Shark/Serialization/EnvironmentSerializer.h"
 #include "Shark/Serialization/MaterialSerializer.h"
-#include "Shark/Serialization/MeshSerializer.h"
-#include "Shark/Serialization/MeshSourceSerializer.h"
+#include "Shark/Serialization/MeshSerializers.h"
 #include "Shark/Serialization/PrefabSerializer.h"
 #include "Shark/Serialization/SceneSerializer.h"
 #include "Shark/Serialization/SerializerBase.h"
@@ -31,6 +30,7 @@ namespace Shark {
 		s_Serializers[AssetType::Prefab] = Scope<PrefabSerializer>::Create();
 		s_Serializers[AssetType::AudioFile] = Scope<AudioFileSerializer>::Create();
 		s_Serializers[AssetType::SoundConfig] = Scope<SoundConfigSerializer>::Create();
+		s_Serializers[AssetType::Animation] = Scope<AnimationSerializer>::Create();
 	}
 
 	void AssetSerializer::ReleaseSerializers()
@@ -42,6 +42,9 @@ namespace Shark {
 	{
 		if (s_Serializers.contains(metadata.Type))
 		{
+			SK_CORE_INFO_TAG("Serialization", "Loading {} from {}", metadata.Type, metadata.FilePath);
+			ScopedTimer timer(LogLevel::Info, "Serialization", fmt::format("Loading {} '{}'", metadata.Type, metadata.FilePath));
+
 			const auto& serializer = s_Serializers.at(metadata.Type);
 			return serializer->TryLoadAsset(asset, metadata, context);
 		}
@@ -55,6 +58,9 @@ namespace Shark {
 		SK_CORE_VERIFY(Application::IsMainThread(), "AssetSerializer::Serialize can only be called from the main thread");
 		if (s_Serializers.contains(metadata.Type))
 		{
+			SK_CORE_INFO_TAG("Serialization", "Serializing {} to {}", metadata.Type, metadata.FilePath);
+			ScopedTimer timer(LogLevel::Info, "Serialization", fmt::format("Serializing {} '{}'", metadata.Type, metadata.FilePath));
+
 			const auto& serializer = s_Serializers.at(metadata.Type);
 			return serializer->Serialize(asset, metadata);
 		}

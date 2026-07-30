@@ -10,35 +10,89 @@
 #include "Shark/Utils/PlatformUtils.h"
 #include "Shark/Utils/Utilities.h"
 
-#include <imgui_node_editor.h>
+namespace Shark::UI {
 
-namespace Shark {
+	namespace utils {
 
-	namespace details {
+		static std::string_view ToStringView(const fmt::memory_buffer& buf)
+		{
+			auto size = buf.size();
+			fmt::detail::assume(size < std::string().max_size());
+			return { buf.data(), size };
+		}
 
-		static std::pair<std::string, bool> GetDisplayName(AssetHandle handle, const UI::InputAssetArgs& args)
+		static fmt::memory_buffer& GetTempFormatBuffer()
+		{
+			static fmt::memory_buffer s_Buffer;
+			s_Buffer.clear();
+			return s_Buffer;
+		}
+
+		template<typename... TArgs>
+		static std::string_view FormatToTempBuffer(fmt::format_string<TArgs...> fmtString, TArgs&&... args)
+		{
+			static fmt::memory_buffer s_Buffer;
+
+			s_Buffer.clear();
+			fmt::format_to(fmt::appender(s_Buffer), fmtString, std::forward<TArgs>(args)...);
+			return ToStringView(s_Buffer);
+		}
+
+		static std::optional<std::string_view> GetDisplayName(Ref<Scene> scene, UUID entityID, std::string_view displayName)
+		{
+			if (!entityID)
+				return "";
+
+			if (scene && !scene->IsValidEntityID(entityID))
+				return std::nullopt;
+
+			if (!displayName.empty())
+				return displayName;
+
+			if (!scene)
+				return FormatToTempBuffer("{}", entityID);
+
+			const auto entity = scene->TryGetEntityByUUID(entityID);
+			return entity.GetName();
+		}
+
+		static std::optional<std::string_view> GetDisplayName(AssetHandle handle, std::string_view displayName)
 		{
 			if (!handle)
-				return { "", true };
+				return "";
 
 			if (!AssetManager::IsValidAssetHandle(handle))
-			{
-				return { "Invalid", false };
-			}
+				return std::nullopt;
 
 			auto assetManager = Project::GetEditorAssetManager();
 
 			const bool isMemoryAsset = assetManager->IsMemoryAsset(handle);
 			const bool valid = isMemoryAsset || assetManager->HasExistingFilePath(handle);
 
-			if (!args.DisplayName.empty())
-				return { std::string(args.DisplayName), valid };
+			if (!valid)
+				return std::nullopt;
 
 			if (isMemoryAsset)
-				return { fmt::format("{}", handle), valid };
+				return FormatToTempBuffer("{}", handle);
 
 			const auto& metadata = assetManager->GetMetadata(handle);
-			return { metadata.FilePath.string(), valid };
+			return FormatToTempBuffer("{}", metadata.FilePath);
+		}
+
+		static std::optional<std::string_view> GetDisplayName(uint64_t scriptID, std::string_view displayName)
+		{
+			if (!scriptID)
+				return "";
+
+			auto& scriptEngine = ScriptEngine::Get();
+			if (!scriptEngine.IsValidScriptID(scriptID))
+				return std::nullopt;
+
+			if (!displayName.empty())
+				return displayName;
+
+			const auto& metadata = scriptEngine.GetScriptMetadata(scriptID);
+			return metadata.FullName;
 		}
 
 	}
@@ -157,6 +211,50 @@ namespace Shark {
 		return false;
 	}
 
+	bool UI::Widgets::SearchStringPopup(size_t& selected, std::span<const std::string> strings, const size_t unselectedIndex)
+	{
+		static UI::TextFilter s_Filter("");
+		return UI::Widgets::ItemSearchPopup(s_Filter, [&selected, &strings, unselectedIndex](UI::TextFilter& filter, bool clear, bool& changed)
+		{
+			if (clear)
+				selected = unselectedIndex;
+
+			for (size_t i = 0; i < strings.size(); i++)
+			{
+				if (!s_Filter.PassesFilter(strings[i]))
+					continue;
+
+				if (ImGui::Selectable(strings[i].c_str(), i == selected))
+				{
+					selected = i;
+					changed = true;
+				}
+			}
+		});
+	}
+
+	bool UI::Widgets::SearchStringPopup(std::string& selected, std::span<const std::string> strings)
+	{
+		static UI::TextFilter s_Filter("");
+		return UI::Widgets::ItemSearchPopup(s_Filter, [&selected, &strings](UI::TextFilter& filter, bool clear, bool& changed)
+		{
+			if (clear)
+				selected = {};
+
+			for (const auto& string : strings)
+			{
+				if (!s_Filter.PassesFilter(string))
+					continue;
+
+				if (ImGui::Selectable(string.data(), string == selected))
+				{
+					selected = string;
+					changed = true;
+				}
+			}
+		});
+	}
+
 	bool UI::Widgets::SearchAssetPopup(AssetType assetType, AssetHandle& assetHandle)
 	{
 		return SearchAssetPopup({ { assetType } }, assetHandle);
@@ -259,15 +357,33 @@ namespace Shark {
 		});
 	}
 
-	bool UI::Widgets::EntityButton(std::string_view strID, const ImVec2& size, Ref<Scene> scene, UUID& entityID, const EntityButtonArgs& args)
+	bool UI::Widgets::StringButton(std::string_view selected)
 	{
-		bool pressed = false;
+		bool pressed = ImGui::InvisibleButton(selected.data(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
 
+		if ((GImGui->LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0)
 		{
-			//UI::ScopedDisabled diabled(!args.Interactive);
-
-			pressed = ImGui::InvisibleButton(strID.data(), size);
+			DrawButton("--", ImVec2(0.5f, 0.5f), GetItemRect());
 		}
+		else
+		{
+			DrawButton(selected, ImVec2(0.0f, 0.5f), GetItemRect());
+		}
+
+		return pressed;
+	}
+
+	bool UI::Widgets::EntityButton(Ref<Scene> scene, UUID entityID, const ButtonArgs& args)
+	{
+		ImVec2 size = args.Size;
+		if (size.x <= 0)
+			size.x = ImGui::GetContentRegionAvail().x;
+		if (size.y <= 0)
+			size.y = ImGui::GetContentRegionAvail().y;
+
+		ImGui::PushID(entityID);
+		const bool pressed = ImGui::InvisibleButton("Button", size);
+		ImGui::PopID();
 
 		auto& g = *GImGui;
 		if ((g.LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0)
@@ -276,49 +392,102 @@ namespace Shark {
 		}
 		else
 		{
-			if (!scene)
-			{
-				if (entityID)
-					DrawButton(args.DisplayName.empty() ? fmt::to_string(entityID) : args.DisplayName, GetItemRect());
-				else
-					DrawButton("", GetItemRect());
-			}
-			else if (entityID && !scene->IsValidEntityID(entityID))
-			{
-				ScopedColor textColor(ImGuiCol_Text, Colors::Theme::TextError);
-				DrawButton("Invalid", GetItemRect());
-			}
-			else
-			{
-				Entity entity = scene->TryGetEntityByUUID(entityID);
+			const auto display = utils::GetDisplayName(scene, entityID, args.DisplayName);
 
-				std::string_view displayName = "";
-				if (entity)
-				{
-					displayName = args.DisplayName.empty() ? entity.GetName() : args.DisplayName;
-				}
+			const bool push = !display || args.TextColor.has_value();
+			UI::ScopedColor textColor(ImGuiCol_Text,
+									  display ?
+									  args.TextColor.value_or(Colors::Theme::Text) :
+									  args.ErrorTextColor.value_or(Colors::Theme::TextError),
+									  push);
 
-				DrawButton(displayName,
-						   ImVec2(0.0f, 0.5f),
-						   GetItemRect());
-			}
+			DrawButton(display.value_or("Invalid"),
+					   GetItemRect());
 		}
 
 		return pressed;
 	}
 
-	bool UI::Widgets::InputEntity(std::string_view strID, const ImVec2& size, Ref<Scene> scene, UUID& entityID, const InputEntityArgs& args)
+	bool Widgets::AssetButton(AssetHandle handle, const ButtonArgs& args)
 	{
+		ImGui::PushID(handle);
+		const bool pressed = ImGui::InvisibleButton("Button", { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
+		ImGui::PopID();
+
 		auto& g = *GImGui;
-		ScopedID id(strID);
-		bool modified = false;
-
-		Widgets::EntityButton(strID, size, scene, entityID, args);
-		modified = Widgets::SearchEntityPopup(scene, entityID);
-
-		if (args.DropType && (g.LastItemData.ItemFlags & ImGuiItemFlags_ReadOnly) == 0)
+		if ((g.LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0)
 		{
-			if (ImGui::BeginDragDropTarget())
+			DrawButton("--", ImVec2(0.5f, 0.5f), GetItemRect());
+		}
+		else
+		{
+			const auto display = utils::GetDisplayName(handle, args.DisplayName);
+
+			const bool push = !display || args.TextColor.has_value();
+			UI::ScopedColor textColor(ImGuiCol_Text,
+									  display ?
+									  args.TextColor.value_or(Colors::Theme::Text) :
+									  args.ErrorTextColor.value_or(Colors::Theme::TextError),
+									  push);
+
+			DrawButton(display.value_or("Invalid"),
+					   GetItemRect());
+		}
+
+		return pressed;
+	}
+
+	bool Widgets::ScriptButton(uint64_t& scriptID, const ButtonArgs& args)
+	{
+		ImGui::PushID(scriptID);
+		const bool pressed = ImGui::InvisibleButton("Button", { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
+		ImGui::PopID();
+
+		auto& g = *GImGui;
+		if ((g.LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0)
+		{
+			DrawButton("--", ImVec2(0.5f, 0.5f), GetItemRect());
+		}
+		else
+		{
+			const auto display = utils::GetDisplayName(scriptID, args.DisplayName);
+
+			const bool push = !display || args.TextColor.has_value();
+			UI::ScopedColor textColor(ImGuiCol_Text,
+									  display ?
+									  args.TextColor.value_or(Colors::Theme::Text) :
+									  args.ErrorTextColor.value_or(Colors::Theme::TextError),
+									  push);
+
+			DrawButton(display.value_or("Invalid"),
+					   GetItemRect());
+		}
+
+		return pressed;
+	}
+
+	bool UI::Widgets::SelectString(size_t& selected, std::span<const std::string> strings, size_t unselectIndex)
+	{
+		StringButton(selected < strings.size() ? strings[selected] : "");
+		return SearchStringPopup(selected, strings, unselectIndex);
+	}
+
+	bool UI::Widgets::SelectString(std::string& selected, std::span<const std::string> strings)
+	{
+		StringButton(selected);
+		return SearchStringPopup(selected, strings);
+	}
+
+	bool Widgets::SelectEntity(Ref<Scene> scene, UUID& entityID, const SelectEntityArgs& args)
+	{
+		bool modified = false;
+		EntityButton(scene, entityID, args);
+
+		if ((GImGui->LastItemData.ItemFlags & ImGuiItemFlags_ReadOnly) == 0)
+		{
+			modified = Widgets::SearchEntityPopup(scene, entityID);
+
+			if (args.DropType && ImGui::BeginDragDropTarget())
 			{
 				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(args.DropType);
 				if (payload)
@@ -337,31 +506,21 @@ namespace Shark {
 		return modified;
 	}
 
-	bool UI::Widgets::InputAsset(std::string_view strID, const ImVec2& size, std::span<const AssetType> assetTypes, AssetHandle& assetHandle, const InputAssetArgs& args)
+	bool Widgets::SelectAsset(AssetType assetType, AssetHandle& assetHandle, const SelectAssetArgs& args)
+	{
+		return SelectAsset({ { assetType } }, assetHandle, args);
+	}
+
+	bool Widgets::SelectAsset(std::span<const AssetType> assetTypes, AssetHandle& assetHandle, const SelectAssetArgs& args)
 	{
 		bool modified = false;
-		ScopedID id(strID);
+		AssetButton(assetHandle, args);
 
-		ImGui::InvisibleButton(strID.data(), size);
-
-		auto& g = *GImGui;
-		if ((g.LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0)
+		if ((GImGui->LastItemData.ItemFlags & ImGuiItemFlags_ReadOnly) == 0)
 		{
-			DrawButton("--", ImVec2(0.5f, 0.5f), GetItemRect());
-		}
-		else
-		{
-			auto [displayName, isValid] = details::GetDisplayName(assetHandle, args);
-			ScopedColor textColor(ImGuiCol_Text, isValid ? args.TextColor : Colors::Theme::TextError);
+			modified = Widgets::SearchAssetPopup(assetTypes, assetHandle);
 
-			DrawButton(displayName, ImVec2(0.0f, 0.5f), GetItemRect());
-		}
-
-		modified = Widgets::SearchAssetPopup(assetTypes, assetHandle);
-
-		if (args.DropType && (g.LastItemData.ItemFlags & ImGuiItemFlags_ReadOnly) == 0)
-		{
-			if (ImGui::BeginDragDropTarget())
+			if (args.DropType && ImGui::BeginDragDropTarget())
 			{
 				const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(args.DropType);
 				if (payload)
@@ -378,6 +537,14 @@ namespace Shark {
 		}
 
 		return modified;
+	}
+
+	bool Widgets::SelectScript(uint64_t& scriptID, const ButtonArgs& args)
+	{
+		ScriptButton(scriptID, args);
+		return SearchScriptPopup(scriptID);
+
+		// #TODO #scripting #assets add drag drop when script files are better supported
 	}
 
 }

@@ -121,6 +121,14 @@ namespace Shark::NodeGraph::Editor {
 		};
 	}
 
+	NodeGraphEditor::NodeGraphEditor()
+	{
+	}
+
+	NodeGraphEditor::~NodeGraphEditor()
+	{
+	}
+
 	bool NodeGraphEditor::OnShowPanel()
 	{
 		ax::NodeEditor::Config config;
@@ -1126,7 +1134,7 @@ namespace Shark::NodeGraph::Editor {
 
 				const ImVec2 size = ImGui::CalcTextSize("0123456789ABCDEF") + ImGui::GetStyle().FramePadding * 2.0f;
 
-				if (UI::Widgets::EntityButton("##entity_id", size, m_Scene, value))
+				if (UI::Widgets::EntityButton(m_Scene, value, { .Size = size }))
 					m_EntityPinPopup.Set(pin);
 
 				break;

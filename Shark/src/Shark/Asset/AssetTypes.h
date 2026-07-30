@@ -1,8 +1,13 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Core/UUID.h"
+
+#include <span>
 
 namespace Shark {
+
+	using AssetHandle = UUID;
 
 	enum class AssetType
 	{
@@ -17,7 +22,8 @@ namespace Shark {
 		Environment,
 		Prefab,
 		AudioFile,
-		SoundConfig
+		SoundConfig,
+		Animation
 	};
 
 	inline const std::unordered_map<std::string, AssetType> AssetExtensionMap = {
@@ -37,7 +43,49 @@ namespace Shark {
 		{ ".hdr", AssetType::Environment },
 		{ ".sfab", AssetType::Prefab },
 		{ ".wav", AssetType::AudioFile },
-		{ ".sksc", AssetType::SoundConfig }
+		{ ".sksc", AssetType::SoundConfig },
+		{ ".sanim", AssetType::Animation }
 	};
+
+	namespace AssetExtensions {
+		static constexpr std::array Scene       = { ".skscene"sv };
+		static constexpr std::array Texture     = { ".sktex"sv, ".png"sv, ".jpg"sv, ".jpeg"sv };
+		static constexpr std::array ScriptFile  = { ".cs"sv };
+		static constexpr std::array Font        = { ".ttf"sv };
+		static constexpr std::array MeshSource  = { ".obj"sv, ".fbx"sv, ".gltf"sv, ".glb"sv };
+		static constexpr std::array Mesh        = { ".skmesh"sv };
+		static constexpr std::array Material    = { ".skmat"sv };
+		static constexpr std::array Environment = { ".hdr"sv };
+		static constexpr std::array Prefab      = { ".sfab"sv };
+		static constexpr std::array AudioFile   = { ".wav"sv };
+		static constexpr std::array SoundConfig = { ".sksc"sv };
+		static constexpr std::array Animation   = { ".sanim"sv };
+	}
+
+	inline static const std::map<AssetType, std::span<const std::string_view>> AssetTypeExtensions =
+	{
+		{ AssetType::Scene,       AssetExtensions::Scene       },
+		{ AssetType::Texture,     AssetExtensions::Texture     },
+		{ AssetType::ScriptFile,  AssetExtensions::ScriptFile  },
+		{ AssetType::Font,        AssetExtensions::Font        },
+		{ AssetType::MeshSource,  AssetExtensions::MeshSource  },
+		{ AssetType::Mesh,        AssetExtensions::Mesh        },
+		{ AssetType::Material,    AssetExtensions::Material    },
+		{ AssetType::Environment, AssetExtensions::Environment },
+		{ AssetType::Prefab,      AssetExtensions::Prefab      },
+		{ AssetType::AudioFile,   AssetExtensions::AudioFile   },
+		{ AssetType::SoundConfig, AssetExtensions::SoundConfig },
+		{ AssetType::Animation,   AssetExtensions::Animation   },
+	};
+
+	static AssetType AssetTypeFromExtension(std::string_view extension)
+	{
+		for (const auto& [type, extensions] : AssetTypeExtensions)
+			for (const auto& ext : extensions)
+				if (ext == extension)
+					return type;
+
+		return AssetType::None;
+	}
 
 }

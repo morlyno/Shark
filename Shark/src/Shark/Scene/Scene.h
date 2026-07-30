@@ -4,23 +4,27 @@
 #include "Shark/Core/UUID.h"
 #include "Shark/Core/TimeStep.h"
 
-#include "Shark/Asset/Asset.h"
+#include "Shark/Asset/AssetTypes.h"
 #include "Shark/Scene/Components.h"
 #include "Shark/Scripting/ScriptStorage.h"
-#include "Shark/Physics2D/Physics2DScene.h"
-
-#include "Shark/Render/EditorCamera.h"
-#include "Shark/Render/Environment.h"
 
 #include <entt.hpp>
 #include <ranges>
 
 namespace Shark {
-
-	class SceneRenderer;
-	struct SceneRendererCamera;
 	class Entity;
+	class SceneRenderer;
+	class AnimationEngine;
+
+	class EditorCamera;
+	struct SceneRendererCamera;
+
 	class Prefab;
+	class Environment;
+	class Physics2DScene;
+}
+
+namespace Shark {
 
 	struct PointLight
 	{
@@ -96,7 +100,7 @@ namespace Shark {
 
 		void OnRender(Ref<SceneRenderer> renderer, const SceneRendererCamera& camera);
 
-		Ref<Environment> GetEnvironment() const { return m_LightEnvironment.SceneEnvironment; }
+		Ref<Environment> GetEnvironment() const;
 		float GetEnvironmentIntesity() const { return m_LightEnvironment.EnvironmentIntensity; }
 		float GetSkyboxLod() const { return m_LightEnvironment.SkyboxLod; }
 
@@ -132,11 +136,12 @@ namespace Shark {
 		Entity InstantiateMesh(Ref<Mesh> mesh);
 		Entity InstantiateStaticMesh(Ref<Mesh> mesh);
 		void RebuildMeshEntityHierarchy(Entity entity);
+		std::vector<UUID> FindBoneEntityIDs(Entity rootEntity, const Skeleton& skeleton) const;
 
 		Entity GetEntityByID(UUID id) const;
 		Entity TryGetEntityByUUID(UUID uuid) const;
 		Entity FindEntityByTag(const std::string& tag);
-		Entity FindChildEntityByName(Entity entity, const std::string& name, bool recusive);
+		Entity FindChildEntityByName(Entity entity, const std::string& name, bool recusive) const;
 
 		bool IsValidEntity(Entity entity) const;
 		bool IsValidEntityID(UUID entityID) const;
@@ -176,6 +181,7 @@ namespace Shark {
 		const Physics2DScene& GetPhysicsScene() const { return *m_PhysicsScene; }
 
 		ScriptStorage& GetScriptStorage() { return m_ScriptStorage; }
+		AnimationEngine* GetAnimationEngine();
 
 		void SetFallbackEnvironment(AssetHandle environmentHandle) { m_FallbackEnvironment = environmentHandle; }
 
@@ -185,9 +191,17 @@ namespace Shark {
 			m_PostUpdateQueue.emplace_back(func);
 		}
 
+		template<typename TFunc>
+		void AddTask(TFunc&& func)
+		{
+			m_TaskList.emplace_back(std::forward<TFunc>(func));
+		}
+
 		void Step(uint32_t frames) { m_StepFrames = frames; }
 		void SetPaused(bool paused) { m_Paused = paused; }
 		bool IsPaused() const { return m_Paused; }
+
+		void OnAssetReloaded(AssetHandle handle);
 
 	public:
 		static constexpr AssetType GetStaticType() { return AssetType::Scene; }
@@ -201,6 +215,8 @@ namespace Shark {
 		void OnPhysics2DPlay(bool connectWithScriptingAPI);
 		void OnPhysics2DStop();
 		void OnPhysicsStep(TimeStep fixedTimeStep);
+
+		void UpdateAnimations(TimeStep ts);
 
 		void OnRigidBody2DComponentCreated(entt::registry& registry, entt::entity ent);
 		void OnBoxCollider2DComponentCreated(entt::registry& registry, entt::entity ent);
@@ -230,8 +246,11 @@ namespace Shark {
 		uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 		std::unordered_map<UUID, Entity> m_EntityUUIDMap;
 
+		ScriptStorage m_ScriptStorage;
 		Physics2DScene* m_PhysicsScene = nullptr;
+		Scope<AnimationEngine> m_AnimationEngine;
 
+		bool m_AnimateEditor = true;
 		bool m_IsEditorScene = false;
 		bool m_IsRunning = false;
 
@@ -242,8 +261,8 @@ namespace Shark {
 		LightEnvironment m_LightEnvironment;
 
 		std::vector<std::function<void()>> m_PostUpdateQueue;
+		std::vector<std::function<bool()>> m_TaskList;
 
-		ScriptStorage m_ScriptStorage;
 
 		friend class Entity;
 		friend class SceneHierarchyPanel;

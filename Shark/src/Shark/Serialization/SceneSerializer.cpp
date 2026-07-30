@@ -454,6 +454,7 @@ namespace Shark {
 						case ManagedFieldType::Entity: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<UUID>(); break;
 						case ManagedFieldType::Prefab: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<AssetHandle>(); break;
 						case ManagedFieldType::SoundConfig: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<AssetHandle>(); break;
+						case ManagedFieldType::Animation: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<AssetHandle>(); break;
 					}
 					out << YAML::EndMap;
 				}
@@ -471,6 +472,16 @@ namespace Shark {
 			out << YAML::Key << "PlayOnWake" << YAML::Value << component->PlayOnWake;
 			out << YAML::Key << "VolumeMultiplier" << YAML::Value << component->VolumeMultiplier;
 			out << YAML::Key << "PitchMultiplier" << YAML::Value << component->PitchMultiplier;
+			out << YAML::EndMap;
+		}
+
+		if (auto component = entity.TryGetComponent<AnimationComponent>())
+		{
+			out << YAML::Key << "AnimationComponent";
+			out << YAML::BeginMap;
+			out << YAML::Key << "Animation" << YAML::Value << component->Animation;
+			out << YAML::Key << "Loop" << YAML::Value << component->Loop;
+			out << YAML::Key << "Update" << YAML::Value << component->Update;
 			out << YAML::EndMap;
 		}
 
@@ -534,6 +545,29 @@ namespace Shark {
 		{
 			auto& component = entity.AddOrReplaceComponent<MeshComponent>();
 			SK_DESERIALIZE_PROPERTY(componentNode, "Mesh", component.Mesh, AssetHandle::Invalid);
+
+			m_Scene->AddTask([entity, scene = m_Scene]() mutable
+			{
+				if (!entity)
+					return true;
+
+				auto& meshComponent = entity.GetComponent<MeshComponent>();
+
+				Ref<Mesh> mesh;
+				Ref<MeshSource> meshSource;
+
+				if (!(mesh = AssetManager::GetAssetAsync<Mesh>(meshComponent.Mesh)) ||
+					!(meshSource = AssetManager::GetAssetAsync<MeshSource>(mesh->GetMeshSource())))
+				{
+					// #TODO handle failed load
+					return false;
+				}
+
+				if (meshSource->HasSkeleton())
+					meshComponent.BoneEntityIDs = scene->FindBoneEntityIDs(entity, meshSource->GetSkeleton());
+
+				return true;
+			});
 		}
 
 		if (auto componentNode = entityNode["SubmeshComponent"])
@@ -756,6 +790,7 @@ namespace Shark {
 							case ManagedFieldType::Entity: storage.SetValue(fieldNode["Value"].as<UUID>()); break;
 							case ManagedFieldType::Prefab: storage.SetValue(fieldNode["Value"].as<AssetHandle>()); break;
 							case ManagedFieldType::SoundConfig: storage.SetValue(fieldNode["Value"].as<AssetHandle>()); break;
+							case ManagedFieldType::Animation: storage.SetValue(fieldNode["Value"].as<AssetHandle>()); break;
 						}
 					}
 				}
@@ -796,6 +831,7 @@ namespace Shark {
 							case Shark::ManagedFieldType::Entity: storage.SetValue(fieldNode["Value"].as<Shark::UUID>()); break;
 							case Shark::ManagedFieldType::Prefab: storage.SetValue(fieldNode["Value"].as<AssetHandle>()); break;
 							case Shark::ManagedFieldType::SoundConfig: storage.SetValue(fieldNode["Value"].as<AssetHandle>()); break;
+							case Shark::ManagedFieldType::Animation: storage.SetValue(fieldNode["Value"].as<AssetHandle>()); break;
 							case Shark::ManagedFieldType::Vector2: storage.SetValue(fieldNode["Value"].as<glm::vec2>()); break;
 							case Shark::ManagedFieldType::Vector3: storage.SetValue(fieldNode["Value"].as<glm::vec3>()); break;
 							case Shark::ManagedFieldType::Vector4: storage.SetValue(fieldNode["Value"].as<glm::vec4>()); break;
@@ -814,6 +850,14 @@ namespace Shark {
 			YAML::DeserializeProperty(componentNode, "PitchMultiplier", component.PitchMultiplier);
 		}
 
+		if (auto componentNode = entityNode["AnimationComponent"])
+		{
+			auto& component = entity.AddOrReplaceComponent<AnimationComponent>();
+			YAML::DeserializeProperty(componentNode, "Animation", component.Animation);
+			YAML::DeserializeProperty(componentNode, "Loop", component.Loop);
+			YAML::DeserializeProperty(componentNode, "Update", component.Update);
+		}
+
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
@@ -823,8 +867,6 @@ namespace Shark {
 	bool SceneAssetSerializer::Serialize(Ref<Asset> asset, const AssetMetaData& metadata)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_INFO_TAG("Serialization", "Serializing Scene to {}", metadata.FilePath);
-		ScopedTimer timer("Serializing Scene");
 
 		SceneSerializer serializer(asset.As<Scene>());
 		serializer.Serialize(GetAssetFilesystemPath(metadata));
@@ -834,8 +876,6 @@ namespace Shark {
 	bool SceneAssetSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_INFO_TAG("Serialization", "Deserializing Scene from {}", metadata.FilePath);
-		ScopedTimer timer("Loading Scene");
 
 		Ref<Scene> scene = Ref<Scene>::Create();
 		SceneSerializer serializer(scene);

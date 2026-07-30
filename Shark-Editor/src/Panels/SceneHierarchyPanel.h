@@ -14,6 +14,44 @@
 
 namespace Shark {
 
+	struct EntityList
+	{
+		std::span<const Entity> Entities;
+
+		template<typename T>
+		Entity First() const { return Entities.front().GetComponent<T>(); }
+		Entity First() const { return Entities.front(); }
+
+		EntityList() = default;
+		EntityList(std::span<const Entity> entities)
+			: Entities(entities) {
+		}
+
+		operator std::span<const Entity>() const { return Entities; }
+
+		template<typename TCallable, typename... TArgs>
+		void Apply(TCallable&& callable, TArgs&&... args) const
+		{
+			for (auto entity : Entities)
+				std::invoke(std::forward<TCallable>(callable), entity, std::forward<TArgs>(args)...);
+		}
+
+		template<typename TComponent, typename TCallable, typename... TArgs>
+		void ApplyTo(TCallable&& callable, TArgs&&... args) const
+		{
+			for (auto entity : Entities)
+				std::invoke(std::forward<TCallable>(callable), entity.GetComponent<TComponent>(), std::forward<TArgs>(args)...);
+		}
+
+		template<typename TComponent, typename TMember, typename T>
+		void Set(TMember TComponent::* member, T&& value) const
+		{
+			for (auto entity : Entities)
+				entity.GetComponent<TComponent>().*member = std::forward<T>(value);
+		}
+
+	};
+
 	class SceneHierarchyPanel : public Panel
 	{
 	public:
@@ -92,6 +130,7 @@ namespace Shark {
 
 		bool m_ActivateSerach = false;
 		UI::TextFilter m_SearchFilter;
+		UI::TextFilter m_AnimationSearchFilter;
 
 		struct RangeSelectRequest
 		{
@@ -242,7 +281,8 @@ namespace Shark {
 				return;
 		}
 
-		Entity firstEntity = entities.front();
+		auto firstEntity = entities.front();
+		auto entityList = EntityList(entities);
 
 		ImGui::PushID(typeid(Comp).name());
 		const bool opened = ImGui::CollapsingHeader(lable, ImGuiTreeNodeFlags_AllowOverlap | ImGuiTreeNodeFlags_DefaultOpen);
@@ -266,7 +306,10 @@ namespace Shark {
 		if (opened)
 		{
 			auto& firstComponent = firstEntity.GetComponent<Comp>();
-			func(firstComponent, entities);
+			if constexpr (requires { func(firstComponent, entityList); })
+				func(firstComponent, entityList);
+			else
+				func(firstComponent, entities);
 		}
 
 		if (ImGui::BeginPopup("Component Settings"))

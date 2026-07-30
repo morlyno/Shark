@@ -2,7 +2,9 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Enum.h"
-#include "Shark/Asset/Asset.h"
+#include "Shark/Asset/AssetTypes.h"
+#include "Shark/UI/UICore.h"
+#include "Shark/UI/Widgets.h"
 
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/Widgets.h"
@@ -90,7 +92,6 @@ namespace Shark::UI {
 	template<typename T>
 	constexpr auto as_slider(T min, T max) { return ControlArgs<T>{ .Min = min, .Max = max, .Slider = true }; }
 
-
 	template<details::Modifiable T>
 	bool Control(std::string_view label, T& value, const ControlArgs<details::TMapped<T>>& args = {});
 	template<details::Modifiable T>
@@ -103,7 +104,7 @@ namespace Shark::UI {
 	bool Control(std::string_view label, bool& value, const char* vTrue, const char* vFalse);
 	bool Control(std::string_view label, Concepts::Enum auto& value);
 	bool Control(std::string_view label, Concepts::Enum auto const& value);
-	
+
 	bool Control(std::string_view label, char* buffer, size_t bufferSize);
 	bool Control(std::string_view label, std::string& value);
 	bool Control(std::string_view label, std::string_view value);
@@ -115,13 +116,14 @@ namespace Shark::UI {
 
 	bool Control(std::string_view label, std::invocable auto&& func);
 
-	using EntityControlArgs = InputEntityArgs;
-	using AssetControlArgs = InputAssetArgs;
+	using AssetControlArgs = SelectAssetArgs;
+	using EntityControlArgs = SelectEntityArgs;
+	using ScriptControlArgs = ButtonArgs;
 
 	bool ControlEntity(std::string_view label, Ref<Scene> scene, UUID& entityID, const EntityControlArgs& args = {});
 	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle, const AssetControlArgs& args = {});
 	bool ControlAsset(std::string_view label, std::span<const AssetType> assetTypes, AssetHandle& assetHandle, const AssetControlArgs& args = {});
-	bool ControlScript(std::string_view label, uint64_t& scriptID, const AssetControlArgs& args = {});
+	bool ControlScript(std::string_view label, uint64_t& scriptID, const ScriptControlArgs& args = {});
 
 	bool ControlEntity(std::string_view label, Ref<Scene> scene, const UUID& entityID, const EntityControlArgs& args = {});
 	bool ControlAsset(std::string_view label, AssetType assetType, const AssetHandle& assetHandle, const AssetControlArgs& args = {});
@@ -149,6 +151,7 @@ namespace Shark::UI {
 		void GridSeparator();
 		bool BeginControl(ImGuiID id);
 		void EndControl();
+		void Label(std::string_view label);
 
 	}
 
@@ -158,7 +161,7 @@ namespace Shark::UI {
 		if (!details::BeginControl(ImGui::GetID(label)))
 			return false;
 
-		ImGui::Text(label);
+		details::Label(label);
 		ImGui::TableNextColumn();
 
 		ImGui::SetNextItemWidth(-1.0f);
@@ -188,7 +191,7 @@ namespace Shark::UI {
 		if (!details::BeginControl(ImGui::GetID(label)))
 			return false;
 
-		ImGui::Text(label);
+		details::Label(label);
 		ImGui::TableNextColumn();
 
 		auto preview = magic_enum::enum_name(value);
@@ -229,7 +232,7 @@ namespace Shark::UI {
 		if (!details::BeginControl(ImGui::GetID(label)))
 			return false;
 
-		ImGui::Text(label);
+		details::Label(label);
 		ImGui::TableNextColumn();
 
 		bool modified = false;

@@ -25,9 +25,9 @@ namespace Shark {
 	void ScriptStorage::RemoveEntityStorage(uint64_t scriptID, UUID entityID)
 	{
 		auto& scriptEngine = ScriptEngine::Get();
-		SK_CORE_ASSERT(scriptEngine.IsValidScriptID(scriptID));
-		SK_CORE_ASSERT(EntityInstances.contains(entityID));
-		if (!scriptEngine.IsValidScriptID(scriptID))
+		//SK_CORE_ASSERT(scriptEngine.IsValidScriptID(scriptID));
+		//SK_CORE_ASSERT(EntityInstances.contains(entityID));
+		if (!EntityInstances.contains(entityID))
 			return;
 
 		auto& entityStorage = EntityInstances.at(entityID);
