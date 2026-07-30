@@ -84,6 +84,7 @@ namespace Shark {
 		{ "Shark.Entity", ManagedFieldType::Entity },
 		{ "Shark.Prefab", ManagedFieldType::Prefab },
 		{ "Shark.SoundConfig", ManagedFieldType::SoundConfig },
+		{ "Shark.Animation", ManagedFieldType::Animation },
 		{ "Shark.Vector2", ManagedFieldType::Vector2 },
 		{ "Shark.Vector3", ManagedFieldType::Vector3 },
 		{ "Shark.Vector4", ManagedFieldType::Vector4 }
@@ -194,6 +195,7 @@ namespace Shark {
 
 					case ManagedFieldType::Prefab:
 					case ManagedFieldType::SoundConfig:
+					case ManagedFieldType::Animation:
 					{
 						defaultValue.Allocate(sizeof(UUID));
 						defaultValue.SetZero();
@@ -244,7 +246,7 @@ namespace Shark {
 				instance.SetFieldValue(fieldMetadata.Name, value);
 				value.Destroy();
 			}
-			else if (fieldMetadata.DataType == ManagedFieldType::Prefab || fieldMetadata.DataType == ManagedFieldType::SoundConfig)
+			else if (fieldMetadata.DataType == ManagedFieldType::Prefab || fieldMetadata.DataType == ManagedFieldType::SoundConfig || fieldMetadata.DataType == ManagedFieldType::Animation)
 			{
 				Coral::ManagedObject value = fieldMetadata.Type->CreateInstance(fieldStorage.GetValue<AssetHandle>());
 				instance.SetFieldValue(fieldMetadata.Name, value);

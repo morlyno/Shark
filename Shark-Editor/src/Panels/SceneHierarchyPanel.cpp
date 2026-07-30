@@ -3,11 +3,13 @@
 #include "Shark/Core/Project.h"
 #include "Shark/Core/SelectionManager.h"
 #include "Shark/Asset/AssetManager.h"
+#include "Shark/Animation/AnimationEngine.h"
 
 #include "Shark/Scene/Components.h"
 #include "Shark/Scene/Prefab.h"
 #include "Shark/Scripting/ScriptTypes.h"
 #include "Shark/Scripting/ScriptEngine.h"
+#include "Shark/Render/Environment.h"
 
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/Controls.h"
@@ -1549,6 +1551,19 @@ namespace Shark {
 						}
 						break;
 					}
+					case ManagedFieldType::Animation:
+					{
+						if (!m_Context->IsRunning())
+						{
+							AssetHandle val = storage.GetValue<AssetHandle>();
+							if (UI::ControlAsset(storage.GetName(), AssetType::Animation, val))
+							{
+								storage.SetValue(val);
+								changed = true;
+							}
+						}
+						break;
+					}
 					//case ManagedFieldType::Component: changed = FieldControl.operator()<uint64_t>(storage); break;
 					case ManagedFieldType::Vector2: changed = FieldControl.operator()<glm::vec2>(storage); break;
 					case ManagedFieldType::Vector3: changed = FieldControl.operator()<glm::vec3>(storage); break;
@@ -1583,21 +1598,9 @@ namespace Shark {
 		DrawComponetMultiSelect<AnimationComponent>(entities, "Animation", [this](AnimationComponent& firstComponent, const EntityList& entities)
 		{
 			UI::BeginControlsGrid();
-
-			if (utils::MultiselectControlAsset(entities, &AnimationComponent::Animation, AssetType::Animation, "Animation"))
-			{
-				entities.ApplyTo<AnimationComponent>(&AnimationComponent::Reset);
-			}
-
+			utils::MultiselectControlAsset(entities, &AnimationComponent::Animation, AssetType::Animation, "Animation");
 			utils::MultiselectControl(entities, &AnimationComponent::Loop, "Loop");
 			utils::MultiselectControl(entities, &AnimationComponent::Update, "Update");
-
-			UI::EndControlsGrid();
-			ImGui::SeparatorText("Details");
-			UI::BeginControlsGrid();
-
-			utils::MultiselectControl(entities, &AnimationComponent::m_TimePosition, "Time position", UI::as_slider(0.0f, 1.0f));
-
 			UI::EndControlsGrid();
 		});
 

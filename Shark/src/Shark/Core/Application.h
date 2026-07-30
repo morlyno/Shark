@@ -73,9 +73,9 @@ namespace Shark {
 		ImGuiLayer& GetImGuiLayer() { return *m_ImGuiLayer; }
 		const ImGuiLayer& GetImGuiLayer() const { return *m_ImGuiLayer; }
 
-		ScriptHost& GetScriptHost() { return m_ScriptHost; }
-		DeviceManager* GetDeviceManager() { return m_DeviceManager.Raw(); }
-		MiniAudioEngine* GetAudioEngine() { return m_AudioEngine.Raw(); }
+		ScriptHost&      GetScriptHost()      { return m_ScriptHost; }
+		DeviceManager*   GetDeviceManager()   { return m_DeviceManager.Raw(); }
+		MiniAudioEngine* GetAudioEngine()     { return m_AudioEngine.Raw(); }
 
 		const ApplicationSpecification& GetSpecification() const { return m_Specification; }
 

@@ -1,14 +1,24 @@
 ﻿using Shark;
+using System.Runtime.CompilerServices;
 
 namespace Sandbox
 {
     public class AnimationTest : Entity
     {
+        enum State
+        {
+            Idle, Attacking
+        };
+
         AnimationComponent m_Animation;
         AudioComponent m_Audio;
 
-        ulong m_LastAnimtion = 0;
-        bool m_Attacking = false;
+        public Animation Idle;
+        public Animation Attack;
+        public Animation Run;
+        public bool Blend = true;
+
+        State m_State = State.Idle;
 
         protected override void OnCreate()
         {
@@ -18,22 +28,41 @@ namespace Sandbox
 
         protected override void OnUpdate(float ts)
         {
-            if (m_Animation.Finished())
+            if (Input.IsKeyPressed(KeyCode.W))
             {
-                m_Animation.AnimationIndex = m_LastAnimtion;
-                m_Animation.Loop = true;
-                m_Attacking = false;
+                m_Animation.Transition(Run, 2.0f, true);
             }
 
-            if (!m_Attacking && Input.IsKeyPressed(KeyCode.H))
+            if (Input.IsKeyReleased(KeyCode.W))
             {
-                m_Audio.Play();
-                m_LastAnimtion = m_Animation.AnimationIndex;
-                m_Animation.AnimationIndex = 0;
-                m_Animation.PlaybackPosition = 0.0f;
-                m_Animation.Loop = false;
-                m_Attacking = true;
+                m_Animation.Transition(Idle, 2.0f, true);
+            }
+
+            switch (m_State)
+            {
+                case State.Idle:      UpdateIdle(ts);      break;
+                case State.Attacking: UpdateAttacking(ts); break;
             }
         }
+
+        void UpdateIdle(float ts)
+        {
+            if (Input.IsKeyPressed(KeyCode.H))
+            {
+                m_Audio.Play();
+                m_Animation.Transition(Attack, 0.2f, false);
+                m_State = State.Attacking;
+            }
+        }
+
+        void UpdateAttacking(float ts)
+        {
+            if (m_Animation.Finished())
+            {
+                m_Animation.Transition(Idle, 0.5f, true);
+                m_State = State.Idle;
+            }
+        }
+
     }
 }

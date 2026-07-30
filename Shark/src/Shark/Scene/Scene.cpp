@@ -4,6 +4,7 @@
 #include "Shark/Core/SelectionManager.h"
 #include "Shark/Asset/AssetManager.h"
 #include "Shark/Audio/AudioEngine.h"
+#include "Shark/Animation/AnimationEngine.h"
 
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Prefab.h"
@@ -171,6 +172,19 @@ namespace Shark {
 		m_Registry.on_destroy<BoxCollider2DComponent>().connect<&Scene::OnBoxCollider2DComponentDestroyed>(this);
 		m_Registry.on_destroy<CircleCollider2DComponent>().connect<&Scene::OnCircleCollider2DComponentDestroyed>(this);
 
+		// Initialize Animations
+		{
+			m_AnimationEngine = Scope<AnimationEngine>::Create();
+			m_AnimationEngine->SetCurrentScene(this);
+
+			auto entities = GetAllEntitysWith<AnimationComponent>();
+			for (auto ent : entities)
+			{
+				Entity entity{ ent, this };
+				m_AnimationEngine->RegisterEntity(entity);
+			}
+		}
+
 		// Create Scripts
 		{
 			SK_PROFILE_SCOPED("Instantiate Scripts");
@@ -251,9 +265,12 @@ namespace Shark {
 			scriptEngine.Destoy(entityID, m_ScriptStorage);
 		}
 
+		Application::Get().GetAudioEngine()->OnSceneStop(this);
+
+		m_AnimationEngine = nullptr;
+
 		OnPhysics2DStop();
 
-		Application::Get().GetAudioEngine()->OnSceneStop(this);
 
 		m_Registry.on_construct<RigidBody2DComponent>().disconnect<&Scene::OnRigidBody2DComponentCreated>(this);
 		m_Registry.on_construct<BoxCollider2DComponent>().disconnect<&Scene::OnBoxCollider2DComponentCreated>(this);
@@ -269,12 +286,26 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		OnPhysics2DPlay(false);
+
+		// Initialize Animations
+		{
+			m_AnimationEngine = Scope<AnimationEngine>::Create();
+			m_AnimationEngine->SetCurrentScene(this);
+
+			auto entities = GetAllEntitysWith<AnimationComponent>();
+			for (auto ent : entities)
+			{
+				Entity entity{ ent, this };
+				m_AnimationEngine->RegisterEntity(entity);
+			}
+		}
 	}
 
 	void Scene::OnSimulationStop()
 	{
 		SK_PROFILE_FUNCTION();
 
+		m_AnimationEngine = nullptr;
 		OnPhysics2DStop();
 	}
 
@@ -345,9 +376,20 @@ namespace Shark {
 		// run tasks and erase completed ones
 		m_TaskList.erase(std::remove_if(m_TaskList.begin(), m_TaskList.end(), Projection::Invoke), m_TaskList.end());
 
-		static bool updateAnimations = true;
-		if (updateAnimations)
+		if (m_AnimateEditor)
 		{
+			if (!m_AnimationEngine)
+			{
+				m_AnimationEngine = Scope<AnimationEngine>::Create(this);
+
+				auto entities = GetAllEntitysWith<AnimationComponent>();
+				for (auto ent : entities)
+				{
+					Entity entity{ ent, this };
+					m_AnimationEngine->RegisterEntity(entity);
+				}
+			}
+
 			UpdateAnimations(ts);
 		}
 
@@ -391,6 +433,8 @@ namespace Shark {
 			transform.Translation.xy = Physics2DUtils::FromBody(rb2d.RuntimeBody);
 			transform.Rotation.z = rb2d.RuntimeBody->GetAngle();
 		}
+
+		UpdateAnimations(ts);
 	}
 
 	void Scene::OnRenderRuntime(Ref<SceneRenderer> renderer)
@@ -658,6 +702,11 @@ namespace Shark {
 		}
 
 		renderer2D->EndScene();
+	}
+
+	Ref<Shark::Environment> Scene::GetEnvironment() const
+	{
+		return m_LightEnvironment.SceneEnvironment;
 	}
 
 	Entity Scene::DuplicateEntity(Entity entity, bool cloneChildren)
@@ -1302,6 +1351,19 @@ namespace Shark {
 		return entities;
 	}
 
+	AnimationEngine* Scene::GetAnimationEngine()
+	{
+		return m_AnimationEngine.Raw();
+	}
+
+	void Scene::OnAssetReloaded(AssetHandle handle)
+	{
+		if (m_AnimationEngine)
+		{
+			m_AnimationEngine->OnAssetReloaded(handle);
+		}
+	}
+
 	void Scene::OnPhysics2DPlay(bool connectWithScriptingAPI)
 	{
 		SK_PROFILE_FUNCTION();
@@ -1414,59 +1476,19 @@ namespace Shark {
 
 	void Scene::UpdateAnimations(TimeStep ts)
 	{
-#if 0
-		const auto UpdateAnimationLagacy = [this, ts](Entity entity)
+		m_AnimationEngine->Update(ts);
+
+		for (auto& [entityID, pose] : m_AnimationEngine->GetPoses())
 		{
-			auto& component = entity.GetComponent<AnimationComponent>();
-			if (component.m_Finished && !component.Loop || !entity.HasComponent<MeshComponent>())
-				return;
+			Entity rootEntity = GetEntityByID(entityID);
+			if (!rootEntity.HasComponent<MeshComponent>())
+				continue;
 
-			Ref<Mesh> mesh;
-			Ref<MeshSource> meshSource;
+			auto& meshComponent = rootEntity.GetComponent<MeshComponent>();
+			//SK_CORE_ASSERT(pose->BoneCount == meshComponent.BoneEntityIDs.size());
 
-			if (!(mesh = AssetManager::GetAssetAsync<Mesh>(component.m_Mesh)) ||
-				!(meshSource = AssetManager::GetAssetAsync<MeshSource>(mesh->GetMeshSource())) ||
-				component.AnimationIndex >= meshSource->GetAnimationCount())
-			{
-				return;
-			}
-
-			auto& meshComponent = entity.GetComponent<MeshComponent>();
-			Animation& animation = meshSource->GetAnimation(component.AnimationIndex);
-			const auto& channels = animation.GetChannels();
-
-			Animation* targetAnimation = nullptr;
-			if (component.AnimationIndex != component.TargetAnimationIndex)
-			{
-				targetAnimation = &meshSource->GetAnimation(component.TargetAnimationIndex);
-			}
-
-			if (component.m_UpdateTime)
-				component.m_TimePosition += ts / animation.GetDuration();
-
-			if (component.m_TimePosition > 1.0f)
-			{
-				if (component.Loop)
-				{
-					component.m_TimePosition -= glm::floor(component.m_TimePosition);
-				}
-				else
-				{
-					component.m_TimePosition = 1.0f;
-					component.m_Finished = true;
-				}
-			}
-
-			const size_t index = static_cast<size_t>(component.m_TimePosition * (animation.GetFrameCount() - 1));
-			SK_CORE_ASSERT(index < animation.GetFrameCount());
-
-			const float frameInterval = 1.0f / static_cast<float>(animation.GetFrameCount() - 1);
-			const size_t startIndex = index;
-			const size_t endIndex = component.Loop ? // wrap or clamp end index
-				(index + 1) % animation.GetFrameCount() :
-				std::min(index + 1, animation.GetFrameCount() - 1);
-
-			for (size_t i = 0; i < channels.size(); i++)
+			auto count = std::min(pose->BoneCount, meshComponent.BoneEntityIDs.size());
+			for (size_t i = 0; i < count; i++)
 			{
 				Entity entity = TryGetEntityByUUID(meshComponent.BoneEntityIDs[i]);
 				if (!entity)
@@ -1475,124 +1497,13 @@ namespace Shark {
 					continue;
 				}
 
-				const Channel& channel = channels[i];
-				const float t = (component.m_TimePosition - channel.Translations[startIndex].FrameTime) / frameInterval;
-
-				const auto mix = [t, startIndex, endIndex](const auto& frames) { return glm::mix(frames[startIndex].Value, frames[endIndex].Value, t); };
-				// Spherical linear interpolation for quaternions because mix/lerp is oriented
-				const auto mixQuat = [t, startIndex, endIndex](const auto& frames) { return glm::slerp(frames[startIndex].Value, frames[endIndex].Value, t); };
-
-				Transform transform;
-				transform.Translation = mix(channel.Translations);
-				transform.Rotation = mixQuat(channel.Rotations);
-				transform.Scale = mix(channel.Scales);
-
-				if (targetAnimation)
-				{
-					const auto& targetChannel = targetAnimation->GetChannels()[i];
-
-					Transform targetTransform;
-					targetTransform.Translation = mix(targetChannel.Translations);
-					targetTransform.Rotation = mixQuat(targetChannel.Rotations);
-					targetTransform.Scale = mix(targetChannel.Scales);
-
-					transform.Translation = glm::mix(transform.Translation, targetTransform.Translation, component.Blend);
-					transform.Rotation = glm::slerp(transform.Rotation, targetTransform.Rotation, component.Blend);
-					transform.Scale = glm::mix(transform.Scale, targetTransform.Scale, component.Blend);
-				}
-
 				auto& dest = entity.Transform();
+				const auto& transform = pose->BoneTransforms[i];
+
 				dest.Translation = transform.Translation;
 				dest.Rotation = glm::eulerAngles(transform.Rotation);
 				dest.Scale.xyz = transform.Scale;
 			}
-
-		};
-#endif
-
-		auto entities = GetAllEntitysWith<AnimationComponent>();
-		for (auto ent : entities)
-		{
-			Entity entity{ ent, this };
-			if (!entity.HasComponent<MeshComponent>())
-				continue;
-
-			auto& component = entity.GetComponent<AnimationComponent>();
-			auto& meshComponent = entity.GetComponent<MeshComponent>();
-			if (!component.Animation || meshComponent.BoneEntityIDs.empty())
-			{
-				// Try legacy method first
-				//UpdateAnimationLagacy(entity);
-				continue;
-			}
-
-			auto animation = AssetManager::GetAssetAsync<AnimationAsset>(component.Animation);
-			if (!animation)
-				continue;
-
-
-			const Skeleton* skeleton;
-			const Animation* animationClip;
-			if (!(animationClip = animation->GetAnimationAsync()) ||
-				!(skeleton = animation->GetSkeletonAsync()))
-				continue;
-
-			SK_CORE_VERIFY(skeleton == animationClip->GetSkeleton());
-
-			if (component.Update)
-				component.m_TimePosition += ts / animationClip->GetDuration();
-
-			if (component.m_TimePosition > 1.0f)
-			{
-				if (component.Loop)
-				{
-					component.m_TimePosition -= glm::floor(component.m_TimePosition);
-				}
-				else
-				{
-					component.m_TimePosition = 1.0f;
-					component.m_Finished = true;
-				}
-			}
-
-			const size_t index = static_cast<size_t>(component.m_TimePosition * (animationClip->GetFrameCount() - 1));
-			SK_CORE_ASSERT(index < animationClip->GetFrameCount());
-
-
-			const float frameInterval = 1.0f / static_cast<float>(animationClip->GetFrameCount() - 1);
-			const size_t startIndex = index;
-			const size_t endIndex = component.Loop ? // wrap or clamp end index
-				(index + 1) % animationClip->GetFrameCount() :
-				std::min(index + 1, animationClip->GetFrameCount() - 1);
-
-			const auto& channels = animationClip->GetChannels();
-			for (size_t i = 0; i < channels.size(); i++)
-			{
-				Entity entity = TryGetEntityByUUID(meshComponent.BoneEntityIDs[i]);
-				if (!entity)
-				{
-					//SK_CORE_ERROR_TAG("Animation", "Failed to find entity for bone {}", i);
-					continue;
-				}
-
-				const Channel& channel = channels[i];
-				const float t = (component.m_TimePosition - channel.Translations[startIndex].FrameTime) / frameInterval;
-
-				const auto mix = [t, startIndex, endIndex](const auto& frames) { return glm::mix(frames[startIndex].Value, frames[endIndex].Value, t); };
-				// Spherical linear interpolation for quaternions because mix/lerp is oriented
-				const auto mixQuat = [t, startIndex, endIndex](const auto& frames) { return glm::slerp(frames[startIndex].Value, frames[endIndex].Value, t); };
-
-				Transform transform;
-				transform.Translation = mix(channel.Translations);
-				transform.Rotation = mixQuat(channel.Rotations);
-				transform.Scale = mix(channel.Scales);
-
-				auto& dest = entity.Transform();
-				dest.Translation = transform.Translation;
-				dest.Rotation = glm::eulerAngles(transform.Rotation);
-				dest.Scale.xyz = transform.Scale;
-			}
-
 		}
 	}
 

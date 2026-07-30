@@ -818,6 +818,9 @@ ImportedAssets:
   - Handle: 5842666548861991336
     Type: Animation
     FilePath: Animation/Knight-Attack.sanim
+  - Handle: 9482811860126371748
+    Type: Animation
+    FilePath: Animation/Knight-Running.sanim
   - Handle: 4637523822169707035
     Type: Animation
     FilePath: Animation/Knight_Idle.sanim

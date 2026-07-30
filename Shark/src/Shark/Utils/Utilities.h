@@ -51,6 +51,21 @@ namespace Shark {
 		}
 	}
 
+	template<typename T, typename... TArgs>
+	T PostIncement(T& t)
+	{
+		T proxy(t);
+		++t;
+		return proxy;
+	}
+
+	template<typename... TArgs>
+		//requires (std::is_same_v<std::add_const_t<std::tuple_element_t<0, std::tuple<TArgs...>>>, std::add_const<TArgs>> && ...)
+	std::array<std::tuple_element_t<0, std::tuple<TArgs...>>*, sizeof...(TArgs)> AsReferenceRange(TArgs&... args)
+	{
+		return { &args... };
+	}
+
 	template<typename String>
 	concept StringLike = requires(String string)
 	{

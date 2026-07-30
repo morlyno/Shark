@@ -349,16 +349,6 @@ namespace Shark {
 		AssetHandle Animation;
 		bool Loop = true;
 		bool Update = true;
-
-		// Runtime
-		float m_TimePosition = 0.0f;
-		bool m_Finished = false;
-
-		void Reset()
-		{
-			m_TimePosition = 0.0f;
-			m_Finished = false;
-		}
 	};
 
 	///////////////////////////////////////////////////////////////////////////////////////////////

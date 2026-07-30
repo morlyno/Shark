@@ -42,6 +42,14 @@ namespace Shark {
 			for (auto entity : Entities)
 				std::invoke(std::forward<TCallable>(callable), entity.GetComponent<TComponent>(), std::forward<TArgs>(args)...);
 		}
+
+		template<typename TComponent, typename TMember, typename T>
+		void Set(TMember TComponent::* member, T&& value) const
+		{
+			for (auto entity : Entities)
+				entity.GetComponent<TComponent>().*member = std::forward<T>(value);
+		}
+
 	};
 
 	class SceneHierarchyPanel : public Panel

@@ -454,6 +454,7 @@ namespace Shark {
 						case ManagedFieldType::Entity: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<UUID>(); break;
 						case ManagedFieldType::Prefab: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<AssetHandle>(); break;
 						case ManagedFieldType::SoundConfig: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<AssetHandle>(); break;
+						case ManagedFieldType::Animation: out << YAML::Key << "Value" << YAML::Value << storage.GetValue<AssetHandle>(); break;
 					}
 					out << YAML::EndMap;
 				}
@@ -789,6 +790,7 @@ namespace Shark {
 							case ManagedFieldType::Entity: storage.SetValue(fieldNode["Value"].as<UUID>()); break;
 							case ManagedFieldType::Prefab: storage.SetValue(fieldNode["Value"].as<AssetHandle>()); break;
 							case ManagedFieldType::SoundConfig: storage.SetValue(fieldNode["Value"].as<AssetHandle>()); break;
+							case ManagedFieldType::Animation: storage.SetValue(fieldNode["Value"].as<AssetHandle>()); break;
 						}
 					}
 				}
@@ -829,6 +831,7 @@ namespace Shark {
 							case Shark::ManagedFieldType::Entity: storage.SetValue(fieldNode["Value"].as<Shark::UUID>()); break;
 							case Shark::ManagedFieldType::Prefab: storage.SetValue(fieldNode["Value"].as<AssetHandle>()); break;
 							case Shark::ManagedFieldType::SoundConfig: storage.SetValue(fieldNode["Value"].as<AssetHandle>()); break;
+							case Shark::ManagedFieldType::Animation: storage.SetValue(fieldNode["Value"].as<AssetHandle>()); break;
 							case Shark::ManagedFieldType::Vector2: storage.SetValue(fieldNode["Value"].as<glm::vec2>()); break;
 							case Shark::ManagedFieldType::Vector3: storage.SetValue(fieldNode["Value"].as<glm::vec3>()); break;
 							case Shark::ManagedFieldType::Vector4: storage.SetValue(fieldNode["Value"].as<glm::vec4>()); break;

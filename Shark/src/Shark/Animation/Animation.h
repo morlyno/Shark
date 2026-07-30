@@ -26,6 +26,15 @@ namespace Shark {
 		size_t Index;
 	};
 
+	struct Pose
+	{
+		float Duration = 0.0f;
+		float TimePosition = 0.0f;
+		size_t BoneCount = 0;
+
+		std::vector<Transform> BoneTransforms;
+	};
+
 	class Animation
 	{
 	public:
@@ -35,6 +44,8 @@ namespace Shark {
 		size_t GetFrameCount() const { return m_Channels.front().Translations.size(); }
 		const auto* GetSkeleton() const { return m_Skeleton; }
 		const auto& GetChannels() const { return m_Channels; }
+		Pose* AllocatePose() const;
+		void InitializePose(Pose& pose) const;
 
 	private:
 		const Skeleton* m_Skeleton = nullptr;
@@ -55,8 +66,8 @@ namespace Shark {
 		AssetHandle GetSkeletonSource() const { return m_SkeletonSource; }
 
 		// Can return nullptr when the MeshSource is not loaded yet
-		const Animation* GetAnimationAsync() const;
-		const Skeleton* GetSkeletonAsync() const;
+		const Animation* GetAnimationAsync(bool wait = false) const;
+		const Skeleton* GetSkeletonAsync(bool wait = false) const;
 
 	public:
 		static AssetType GetStaticType() { return AssetType::Animation; }

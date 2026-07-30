@@ -285,6 +285,10 @@ namespace Shark {
 			AssetType assetType = AssetManager::GetAssetType(e.Asset);
 			if (assetType == AssetType::Scene && e.Asset == m_EditorScene->Handle)
 				m_EditorScene = AssetManager::GetAsset<Scene>(e.Asset);
+
+			m_ActiveScene->OnAssetReloaded(e.Asset);
+			if (m_EditorScene != m_ActiveScene)
+				m_EditorScene->OnAssetReloaded(e.Asset);
 			return false;
 		});
 	}

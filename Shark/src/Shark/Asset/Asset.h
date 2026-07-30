@@ -6,8 +6,6 @@
 
 namespace Shark {
 
-	using AssetHandle = UUID;
-
 	enum class AssetFlag : uint16_t
 	{
 		None = 0,

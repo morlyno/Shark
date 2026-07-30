@@ -1,10 +1,13 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Core/UUID.h"
 
 #include <span>
 
 namespace Shark {
+
+	using AssetHandle = UUID;
 
 	enum class AssetType
 	{
