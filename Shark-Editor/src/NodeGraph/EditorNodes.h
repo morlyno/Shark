@@ -30,6 +30,10 @@ namespace Shark::NodeGraph::Editor {
 			Color = TDesc::Color;
 		}
 
+		Pin() = default;
+		Pin(std::string_view name, int pinType, ImColor color = IM_COL32_WHITE, ax::NodeEditor::PinKind kind = ax::NodeEditor::PinKind::Input)
+			: ID(UUID::Generate().Value()), Name(name), Identifier(name), PinType(pinType), Color(color), Kind(kind)
+		{}
 	};
 
 	struct NodeSettings
@@ -61,6 +65,29 @@ namespace Shark::NodeGraph::Editor {
 		int EvaluationIndex = -1;
 
 		UUID GetID() const { return UUID::Make(ID.Get()); }
+
+		void Initialize()
+		{
+			if (!ID)
+				ID = UUID::Generate().Value();
+
+			for (auto& pin : Inputs)
+			{
+				pin.NodeID = ID;
+				pin.Kind = ax::NodeEditor::PinKind::Input;
+			}
+
+			for (auto& pin : Outputs)
+			{
+				pin.NodeID = ID;
+				pin.Kind = ax::NodeEditor::PinKind::Output;
+			}
+		}
+
+		Node() = default;
+		Node(std::string_view name, std::string_view category)
+			: ID(UUID::Generate().Value()), Name(name), Category(category)
+		{}
 	};
 
 	struct Link

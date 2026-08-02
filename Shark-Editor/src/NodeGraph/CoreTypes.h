@@ -18,12 +18,13 @@ namespace Shark::NodeGraph::Editor {
 	{
 		enum EPinType : int
 		{
-			Flow,
+			Flow = 0, // Flow must stay at 0
 			Bool,
 			Int,
 			Float,
 			Vec3,
 			EntityID,
+			AssetHandle
 		};
 
 		template<int TPinType, typename TValueType, ImColor TColor = IM_COL32_WHITE>
@@ -35,12 +36,13 @@ namespace Shark::NodeGraph::Editor {
 		};
 
 		using PinTypes = std::tuple<
-			PinDescriptor<EPinType::Flow,     Types::Flow,     ImColor(255, 255, 255)>,
-			PinDescriptor<EPinType::Bool,     bool,            ImColor(220,  48,  48)>,
-			PinDescriptor<EPinType::Int,      int,             ImColor( 68, 201, 156)>,
-			PinDescriptor<EPinType::Float,    float,           ImColor(147, 226,  74)>,
-			PinDescriptor<EPinType::Vec3,     glm::vec3,       ImColor(147, 226,  74)>,
-			PinDescriptor<EPinType::EntityID, Types::EntityID, ImColor( 51, 150, 215)>
+			PinDescriptor<EPinType::Flow,        Types::Flow,        ImColor(255, 255, 255)>,
+			PinDescriptor<EPinType::Bool,        bool,               ImColor(220,  48,  48)>,
+			PinDescriptor<EPinType::Int,         int,                ImColor( 68, 201, 156)>,
+			PinDescriptor<EPinType::Float,       float,              ImColor(147, 226,  74)>,
+			PinDescriptor<EPinType::Vec3,        glm::vec3,          ImColor(147, 226,  74)>,
+			PinDescriptor<EPinType::EntityID,    Types::EntityID,    ImColor( 51, 150, 215)>,
+			PinDescriptor<EPinType::AssetHandle, Types::AssetHandle, ImColor(215, 150,  51)>
 		>;
 
 		template<typename TMemberPtr>
@@ -65,13 +67,28 @@ namespace Shark::NodeGraph::Editor {
 			return pinType;
 		}
 
-		static bool InitializePin(Pin& pin, EPinType pinType)
+		template<typename TType>
+		static bool InitializePin(Pin& pin, const TType& type)
 		{
 			bool initialized = false;
 
-			Reflection::ForEach(PinTypes{}, [&pin, pinType, &initialized]<typename TDesc>()
+			Reflection::ForEach(PinTypes{}, [&pin, &type, &initialized]<typename TDesc>()
 			{
-				if (TDesc::PinType == pinType)
+				bool same = false;
+				if constexpr (std::is_same_v<TType, EPinType> || std::is_same_v<TType, int>)
+				{
+					same = TDesc::PinType == type;
+				}
+				else if constexpr (std::is_same_v<TType, std::type_info>)
+				{
+					same = typeid(TDesc::value_type) == type;
+				}
+				else
+				{
+					static_assert(false);
+				}
+
+				if (same)
 				{
 					pin.SetDesc<TDesc>();
 					initialized = true;
@@ -81,13 +98,16 @@ namespace Shark::NodeGraph::Editor {
 			return initialized;
 		}
 
-		static bool InitiailizePin(Pin& pin, const choc::value::Type& type)
+		static bool InitializePin(Pin& pin, const choc::value::Type& type)
 		{
 			if (type.isObjectWithClassName("Flow"))
 				return InitializePin(pin, EPinType::Flow);
 
 			if (type.isObjectWithClassName("EntityID"))
 				return InitializePin(pin, EPinType::EntityID);
+
+			if (type.isObjectWithClassName("AssetHandle"))
+				return InitializePin(pin, EPinType::AssetHandle);
 
 			if (type.isBool())
 				return InitializePin(pin, EPinType::Bool);
@@ -98,55 +118,6 @@ namespace Shark::NodeGraph::Editor {
 
 			SK_CORE_ASSERT(false, "Unknown Type");
 			return false;
-		}
-
-		static Pin ConstructPin(EPinType pinType)
-		{
-			Pin pin;
-
-			Reflection::ForEach(PinTypes{}, [&pin, pinType]<typename TDesc>()
-			{
-				if (TDesc::PinType == pinType)
-					pin.SetDesc<TDesc>();
-			});
-
-			return pin;
-		}
-
-		template<typename TProcNode, typename TList>
-		static auto ConstructPinList(UUID nodeID)
-		{
-			using N = NodeType<TProcNode>;
-
-			constexpr bool isInput = std::is_same_v<TList, typename N::Inputs>;
-
-			std::vector<Editor::Pin> pins;
-
-			TList::ForEachTypeIndexed([&]<typename TInput>(size_t index)
-			{
-				Pin& newPin = pins.emplace_back();
-				InitializePin(newPin, GetPinTypeFromMember<TInput>());
-				newPin.ID = UUID::Generate().Value();
-				newPin.NodeID = nodeID.Value();
-				newPin.Name = TList::Members[index];
-				newPin.Kind = isInput ? ax::NodeEditor::PinKind::Input : ax::NodeEditor::PinKind::Output;
-				newPin.Identifier = TList::Members[index];
-			});
-
-			return pins;
-		}
-
-		template<typename TProcNode>
-		static void SpawnNode(const NodeSettings& settings, std::string_view category, Node& outNode, UUID id)
-		{
-			using N = NodeType<TProcNode>;
-
-			outNode.ID = id.Value();
-			outNode.Name = choc::text::replace(N::Inputs::Class, "<", " (", ">", ")");
-			outNode.Category = category;
-			outNode.Settings = settings;
-			outNode.Inputs = ConstructPinList<TProcNode, typename N::Inputs>(id);
-			outNode.Outputs = ConstructPinList<TProcNode, typename N::Outputs>(id);
 		}
 
 	};

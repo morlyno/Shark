@@ -59,8 +59,8 @@ namespace Shark::UI {
 
 		bool SearchStringPopup(size_t& selected, std::span<const std::string> strings, const size_t unselectedIndex = ~0);
 		bool SearchStringPopup(std::string& selected, std::span<const std::string> strings);
-		bool SearchAssetPopup(AssetType assetType, AssetHandle& assetHandle);
-		bool SearchAssetPopup(std::span<const AssetType> assetType, AssetHandle& assetHandle);
+		bool SearchAssetPopup(AssetType assetType, AssetHandle& assetHandle, ImGuiID customID = 0);
+		bool SearchAssetPopup(std::span<const AssetType> assetType, AssetHandle& assetHandle, ImGuiID customID = 0);
 		bool SearchEntityPopup(Ref<Scene> scene, UUID& entityID, ImGuiID customID = 0);
 		bool SearchScriptPopup(uint64_t& scriptID);
 

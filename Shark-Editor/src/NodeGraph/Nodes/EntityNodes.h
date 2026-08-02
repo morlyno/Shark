@@ -17,10 +17,10 @@ namespace Shark::NodeGraph {
 
 			glm::vec3 Translation;
 
-			EntityTransform(UUID id);
+			EntityTransform(UUID id, NodeContext* context);
 
 			virtual void Initialize(NodeContext* context) override;
-			virtual void Process() override;
+			virtual void Process(float ts) override;
 
 		private:
 			Shark::Entity m_Entity;

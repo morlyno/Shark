@@ -19,7 +19,7 @@ namespace Shark::NodeGraph {
 			OutputEvent Trigger;
 
 		public:
-			BoolTrigger(UUID id)
+			BoolTrigger(UUID id, NodeContext* context)
 				: ProcessNode(id)
 			{
 				Details::RegisterVariables(this);
@@ -30,7 +30,7 @@ namespace Shark::NodeGraph {
 				Details::InitializeInputs(this);
 			}
 
-			virtual void Process() override
+			virtual void Process(float ts) override
 			{
 				if (Triggered = *Value && *TriggerIfTrue || !*Value && *TriggerIfFalse)
 					Trigger();

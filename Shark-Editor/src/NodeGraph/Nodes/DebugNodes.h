@@ -12,7 +12,7 @@ namespace Shark::NodeGraph {
 		{
 		public:
 			using Details::TypedNode<Test>::TypedNode;
-			virtual void Process() override
+			virtual void Process(float ts) override
 			{
 			}
 

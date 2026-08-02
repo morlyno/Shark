@@ -3,7 +3,7 @@
 
 namespace Shark::NodeGraph {
 
-	Nodes::EntityTransform::EntityTransform(UUID id)
+	Nodes::EntityTransform::EntityTransform(UUID id, NodeContext* context)
 		: ProcessNode(id)
 	{
 		Details::RegisterVariables(this);
@@ -21,7 +21,7 @@ namespace Shark::NodeGraph {
 		SK_CORE_VERIFY(m_Entity);
 	}
 
-	void Nodes::EntityTransform::Process()
+	void Nodes::EntityTransform::Process(float ts)
 	{
 		auto& transform = m_Entity.Transform();
 		Translation = transform.Translation;

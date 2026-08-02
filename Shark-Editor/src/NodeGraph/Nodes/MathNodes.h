@@ -16,7 +16,7 @@ namespace Shark::NodeGraph {
 			T Result;
 
 			using Details::TypedNode<Add<T>>::TypedNode;
-			virtual void Process() override
+			virtual void Process(float ts) override
 			{
 				Result = *Value1 + *Value2;
 			}
@@ -31,7 +31,7 @@ namespace Shark::NodeGraph {
 			T Result;
 
 			using Details::TypedNode<Multiply<T>>::TypedNode;
-			virtual void Process() override
+			virtual void Process(float ts) override
 			{
 				Result = *Value1 * *Value2;
 			}
@@ -46,7 +46,7 @@ namespace Shark::NodeGraph {
 			float Z;
 
 			using Details::TypedNode<Get>::TypedNode;
-			virtual void Process() override
+			virtual void Process(float ts) override
 			{
 				X = Vector->x;
 				Y = Vector->y;
@@ -64,7 +64,7 @@ namespace Shark::NodeGraph {
 			T Result;
 
 		public:
-			Random(UUID id)
+			Random(UUID id, NodeContext* context)
 				: ProcessNode(id)
 			{
 				Details::RegisterVariables(this);
@@ -81,7 +81,7 @@ namespace Shark::NodeGraph {
 				m_Distribution = Distribution<T>(*Minimum, *Maximum);
 			}
 
-			virtual void Process() override
+			virtual void Process(float ts) override
 			{
 				Result = m_Distribution(m_Engine);
 			}

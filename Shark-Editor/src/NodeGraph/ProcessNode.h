@@ -42,26 +42,13 @@ namespace Shark::NodeGraph {
 			std::vector<InputEvent*> Targets;
 		};
 
-		void AddInput(Identifier id, choc::value::Type type)
-		{
-			Inputs.try_emplace(id, choc::value::ValueView(type, nullptr, nullptr));
-		}
+		void AddInput(Identifier id, auto& input)                       { Inputs.try_emplace(id); }
+		void AddOutput(Identifier id, auto& output)                     { Outputs.emplace(id, choc::value::ValueView(CreateType<decltype(output)>(), &output, nullptr)); }
+		void AddOutput(Identifier id, choc::value::Value& output)       { Outputs.emplace(id, output); }
+		void AddOutput(Identifier id, choc::value::ValueView output)    { Outputs.emplace(id, output); }
 
-		template<typename T>
-		void AddOutput(Identifier id, T& output)
-		{
-			Outputs.emplace(id, choc::value::ValueView(AsType<T>(), &output, nullptr));
-		}
-
-		void AddInputEvent(Identifier id, std::function<void()> target)
-		{
-			InputEvents.emplace(id, std::move(target));
-		}
-
-		void AddOutputEvent(Identifier id, OutputEvent& output)
-		{
-			OutputEvents.emplace(id, output);
-		}
+		void AddInputEvent(Identifier id, std::function<void()> target) { InputEvents.emplace(id, std::move(target)); }
+		void AddOutputEvent(Identifier id, OutputEvent& output)         { OutputEvents.emplace(id, output); }
 
 		bool                    IsInputEvent(Identifier id) const  { return InputEvents.contains(id); }
 		bool                    IsOutputEvent(Identifier id) const { return OutputEvents.contains(id); }
@@ -71,7 +58,7 @@ namespace Shark::NodeGraph {
 		OutputEvent&            GetOutputEvent(Identifier id)      { return OutputEvents.at(id); }
 
 		virtual void Initialize(NodeContext* context) = 0;
-		virtual void Process() = 0;
+		virtual void Process(float ts) = 0;
 
 		ProcessNode(UUID id)
 			: ID(id)
@@ -96,7 +83,7 @@ namespace Shark::NodeGraph {
 		template<typename T>
 		struct TypedNode : public ProcessNode
 		{
-			TypedNode(UUID id)
+			TypedNode(UUID id, NodeContext* context)
 				: ProcessNode(id)
 			{
 				RegisterVariables(static_cast<T*>(this));
@@ -106,8 +93,6 @@ namespace Shark::NodeGraph {
 			{
 				InitializeInputs(static_cast<T*>(this));
 			}
-
-			using Base = TypedNode<T>;
 		};
 
 	}
@@ -137,6 +122,15 @@ namespace Shark::NodeGraph {
 
 namespace Shark::NodeGraph::Details {
 
+	constexpr std::string_view RemovePinPrefix(std::string_view name)
+	{
+		if (name.starts_with("in_"))
+			name.remove_prefix(3);
+		if (name.starts_with("out_"))
+			name.remove_prefix(4);
+		return name;
+	}
+
 	template<typename T>
 	static void RegisterVariables(T* node)
 	{
@@ -146,14 +140,15 @@ namespace Shark::NodeGraph::Details {
 		{
 			auto unpack = [&node, nodeIndex = 0](auto memberPtr) mutable
 			{
-				std::string_view name = N::Inputs::Members[nodeIndex++];
+				std::string_view name = RemovePinPrefix(N::Inputs::Members[nodeIndex++]);
+
 				if constexpr (std::is_member_function_pointer_v<decltype(memberPtr)>)
 				{
 					node->AddInputEvent(name, [node, memberPtr]() { (node->*memberPtr)(); });
 				}
 				else
 				{
-					node->AddInput(name, AsTypeFromValue(node->*memberPtr));
+					node->AddInput(name, node->*memberPtr);
 				}
 			};
 
@@ -164,7 +159,7 @@ namespace Shark::NodeGraph::Details {
 		{
 			auto unpack = [&node, nodeIndex = 0](auto memberPtr) mutable
 			{
-				std::string_view name = N::Outputs::Members[nodeIndex++];
+				std::string_view name = RemovePinPrefix(N::Outputs::Members[nodeIndex++]);
 				using TMember = Reflection::member_return_type<decltype(memberPtr)>;
 
 				if constexpr (std::is_same_v<TMember, ProcessNode::OutputEvent>)
@@ -197,7 +192,7 @@ namespace Shark::NodeGraph::Details {
 		{
 			auto unpack = [&node, nodeIndex = 0](auto memberPtr) mutable
 			{
-				std::string_view name = N::Inputs::Members[nodeIndex++];
+				std::string_view name = RemovePinPrefix(N::Inputs::Members[nodeIndex++]);
 				if constexpr (std::is_member_function_pointer_v<decltype(memberPtr)>)
 				{
 				}

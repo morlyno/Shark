@@ -5,9 +5,32 @@
 #include <choc/containers/choc_Value.h>
 #include <glm/gtc/type_ptr.hpp>
 
+namespace Shark::TypeUtils {
+
+	template<typename... TRest>
+	void addObjectMember(choc::value::Type& classType, std::string_view memberName, choc::value::Type memberType, TRest&&... rest)
+	{
+		classType.addObjectMember(memberName, std::move(memberType));
+
+		if constexpr (sizeof...(TRest))
+			addObjectMember(classType, std::forward<TRest>(rest)...);
+	}
+
+	template<typename... TRest>
+	choc::value::Type createObject(std::string_view className, TRest&&... rest)
+	{
+		auto type = choc::value::Type::createObject(className);
+		addObjectMember(type, std::forward<TRest>(rest)...);
+		return type;
+	}
+
+}
+
 namespace Shark::NodeGraph {
 
 	namespace Types {
+
+		struct Flow {};
 
 		struct EntityID
 		{
@@ -17,90 +40,42 @@ namespace Shark::NodeGraph {
 			operator int64_t() const { return ID; }
 		};
 
-		struct Flow {};
+		struct AssetHandle
+		{
+			int64_t Handle = 0;
+
+			operator int64_t& () { return Handle; }
+			operator int64_t() const { return Handle; }
+		};
 
 	}
+
+	inline choc::value::Type CreateTypeEntityID()                     { return TypeUtils::createObject("EntityID", "ID", choc::value::Type::createInt64()); }
+	inline choc::value::Type CreateTypeAssetHandle()                  { return TypeUtils::createObject("AssetHandle", "Handle", choc::value::Type::createInt64()); }
+	inline choc::value::Type CreateTypeVec3()                         { return choc::value::Type::createVectorInt32(3); }
+
+	inline choc::value::Value CreateEntityID(int64_t value = 0)       { return choc::value::createObject("EntityID", "ID", value); }
+	inline choc::value::Value CreateAssetHandle(int64_t value = 0)    { return choc::value::createObject("AssetHandle", "Handle", value); }
+	inline choc::value::Value CreateVec3(const glm::vec3& value = {}) { return choc::value::createVector(glm::value_ptr(value), 3); }
 
 	template<typename T>
-	inline choc::value::Type AsType();
-
-	template<typename T>
-		requires std::is_pointer_v<T> || std::is_const_v<T>
-	inline choc::value::Type AsType()
+	inline choc::value::Type CreateType()
 	{
-		return AsType<std::remove_const_t<std::remove_pointer_t<T>>>();
-	}
+		using TRaw = std::remove_cvref_t<std::remove_pointer_t<std::decay_t<T>>>;
 
-	template<typename T>
-	inline choc::value::Type AsType()
-	{
-		return choc::value::Type::createPrimitive<T>();
-	}
+		if      constexpr (std::same_as<TRaw, Types::EntityID>)    return CreateTypeEntityID();
+		else if constexpr (std::same_as<TRaw, Types::AssetHandle>) return CreateTypeAssetHandle();
+		else if constexpr (std::same_as<TRaw, glm::vec3>)          return CreateTypeVec3();
 
-	template<>
-	inline choc::value::Type AsType<Types::EntityID>()
-	{
-		auto type = choc::value::Type::createObject("EntityID");
-		type.addObjectMember("ID", choc::value::Type::createInt64());
-		return type;
-	}
+		else if constexpr (requires { choc::value::Type::createPrimitive<TRaw>(); })
+		{
+			return choc::value::Type::createPrimitive<TRaw>();
+		}
 
-	template<>
-	inline choc::value::Type AsType<glm::vec3>()
-	{
-		return choc::value::Type::createArray(choc::value::Type::createFloat32(), 3);
-	}
-
-	template<typename T>
-	inline choc::value::Type AsTypeFromValue(const T& value)
-	{
-		return AsType<T>();
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	//// As Value //////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	template<typename T>
-	inline choc::value::Value AsValue(const T& val);
-
-	template<typename T>
-		requires (requires(T val) { choc::value::createPrimitive(val); })
-	inline choc::value::Value AsValue(const T& val)
-	{
-		return choc::value::createPrimitive(val);
-	}
-
-	template<>
-	inline choc::value::Value AsValue(const Types::EntityID& id)
-	{
-		return choc::value::createObject("EntityID", "ID", id.ID);
-	}
-
-	template<>
-	inline choc::value::Value AsValue(const glm::vec3& v)
-	{
-		return choc::value::createVector(glm::value_ptr(v), 3);
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-	//// From Value ////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	template<typename T>
-	inline T FromValue(choc::value::ValueView value);
-
-	template<typename T>
-		requires (requires(T val) { choc::value::createPrimitive(val); })
-	inline T FromValue(choc::value::ValueView value)
-	{
-		return value.get<T>();
-	}
-
-	template<>
-	inline glm::vec3 FromValue<glm::vec3>(choc::value::ValueView value)
-	{
-		return { value[0].getFloat32(), value[1].getFloat32(), value[2].getFloat32() };
+		else
+		{
+			static_assert(false, "Invalid type T");
+		}
 	}
 
 }

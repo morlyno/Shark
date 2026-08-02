@@ -255,12 +255,12 @@ namespace Shark::UI {
 		});
 	}
 
-	bool UI::Widgets::SearchAssetPopup(AssetType assetType, AssetHandle& assetHandle)
+	bool UI::Widgets::SearchAssetPopup(AssetType assetType, AssetHandle& assetHandle, ImGuiID customID)
 	{
-		return SearchAssetPopup({ { assetType } }, assetHandle);
+		return SearchAssetPopup({ { assetType } }, assetHandle, customID);
 	}
 
-	bool UI::Widgets::SearchAssetPopup(std::span<const AssetType> assetTypes, AssetHandle& assetHandle)
+	bool UI::Widgets::SearchAssetPopup(std::span<const AssetType> assetTypes, AssetHandle& assetHandle, ImGuiID customID)
 	{
 		static UI::TextFilter s_Filter("");
 		return ItemSearchPopup(s_Filter, [&assetTypes, &assetHandle](UI::TextFilter& filter, bool clear, bool& changed)
@@ -298,7 +298,7 @@ namespace Shark::UI {
 					}
 				}
 			}
-		});
+		}, customID);
 	}
 
 	bool UI::Widgets::SearchEntityPopup(Ref<Scene> scene, UUID& entityID, ImGuiID customID)
@@ -410,8 +410,14 @@ namespace Shark::UI {
 
 	bool Widgets::AssetButton(AssetHandle handle, const ButtonArgs& args)
 	{
+		ImVec2 size = args.Size;
+		if (size.x <= 0)
+			size.x = std::max(ImGui::GetContentRegionAvail().x, 8.0f);
+		if (size.y <= 0)
+			size.y = std::max(ImGui::GetContentRegionAvail().y, 8.0f);
+
 		ImGui::PushID(handle);
-		const bool pressed = ImGui::InvisibleButton("Button", { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
+		const bool pressed = ImGui::InvisibleButton("Button", size);
 		ImGui::PopID();
 
 		auto& g = *GImGui;
