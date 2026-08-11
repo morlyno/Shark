@@ -61,8 +61,11 @@ namespace Shark {
 			panels.clear();
 	}
 
-	Ref<Panel> PanelManager::GetPanel(const char* panelID) const
+	Ref<Panel> PanelManager::GetPanel(const char* panelID, bool showPanel)
 	{
+		if (showPanel)
+			ShowPanel(panelID);
+
 		return GetPanelData(panelID)->Panel;
 	}
 

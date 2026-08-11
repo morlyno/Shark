@@ -4,14 +4,10 @@
 #include "Shark/UI/Controls.h"
 #include "Shark/UI/Widgets.h"
 
-#include "NodeGraph/ProcessNode.h"
-#include "NodeGraph/NodeContext.h"
-#include "NodeGraph/NodeGraphContext.h"
-#include "NodeGraph/Nodes/MathNodes.h"
-#include "NodeGraph/Nodes/EntityNodes.h"
-#include "NodeGraph/Nodes/TriggerNodes.h"
-#include "NodeGraph/Nodes/DebugNodes.h"
+#include "Shark/NodeGraph/ProcessNode.h"
+#include "Shark/NodeGraph/NodeContext.h"
 
+#include "NodeGraph/NodeGraphContext.h"
 #include "NodeGraph/Factory.h"
 #include "NodeGraph/CoreTypes.h"
 #include "NodeGraph/EditorNodes.h"
@@ -43,7 +39,7 @@ namespace Shark::NodeGraph::Editor {
 
 	static void DrawPinIcon(const Editor::Pin& pin, bool connected, int alpha)
 	{
-		ax::Drawing::IconType iconType;
+		ax::Drawing::IconType iconType = ax::Drawing::IconType::Circle;
 		ImColor color = pin.Color;
 		color.Value.w = alpha / 255.0f;
 		switch (pin.PinType)
@@ -59,8 +55,8 @@ namespace Shark::NodeGraph::Editor {
 			//case Editor::PinType::Object:   iconType = ax::Drawing::IconType::Circle; break;
 			//case Editor::PinType::Function: iconType = ax::Drawing::IconType::Circle; break;
 			//case Editor::PinType::Delegate: iconType = ax::Drawing::IconType::Square; break;
-			default:
-				return;
+			//default:
+			//	return;
 		}
 
 		ax::Widgets::Icon(ImVec2(24.0f, 24.0f), iconType, connected, color, ImColor(32, 32, 32, alpha));
@@ -111,40 +107,74 @@ namespace Shark::NodeGraph::Editor {
 		return false;
 	}
 
-	NodeGraphEditor::NodeGraphEditor()
+	NodeGraphEditor::NodeGraphEditor(const std::string& name, const AssetMetaData& metadata)
+		: EditorPanel(name)
 	{
+		ax::NodeEditor::Config config;
+		config.SettingsFile = nullptr;
+		config.UserPointer = this;
+
+		config.SaveSettings = [](const char* data, size_t size, ax::NodeEditor::SaveReasonFlags reason, void* userPointer) -> bool
+		{
+			auto* This = static_cast<NodeGraphEditor*>(userPointer);
+			return This->GetGraphContext()->SaveGraphState(data, size);
+		};
+
+		config.LoadSettings = [](char* data, void* userPointer) -> size_t
+		{
+			auto* This = static_cast<NodeGraphEditor*>(userPointer);
+			auto state = This->GetGraphContext()->LoadGraphState();
+			if (data)
+				memcpy(data, state.data(), state.size());
+			return state.size();
+		};
+
+		config.SaveNodeSettings = [](ax::NodeEditor::NodeId nodeId, const char* data, size_t size, ax::NodeEditor::SaveReasonFlags reason, void* userPointer) -> bool
+		{
+			auto* This = static_cast<NodeGraphEditor*>(userPointer);
+			auto* context = This->GetGraphContext();
+
+			auto node = context->FindNode(nodeId);
+			if (!node)
+				return false;
+
+			node->State.assign(data, size);
+			return true;
+		};
+
+		config.LoadNodeSettings = [](ax::NodeEditor::NodeId nodeId, char* data, void* userPointer) -> size_t
+		{
+			auto* This = static_cast<NodeGraphEditor*>(userPointer);
+			auto* context = This->GetGraphContext();
+
+			auto node = context->FindNode(nodeId);
+			if (!node)
+				return 0;
+
+			if (data)
+				memcpy(data, node->State.data(), node->State.size());
+			return node->State.size();
+		};
+
+		m_EditorContext = ax::NodeEditor::CreateEditor(&config);
+		m_PropertiesWindowID = fmt::format("Properties##{}", m_PanelName);
 	}
 
 	NodeGraphEditor::~NodeGraphEditor()
 	{
-	}
-
-	bool NodeGraphEditor::OnShowPanel()
-	{
-		ax::NodeEditor::Config config;
-		config.UserPointer = this;
-
-		m_EditorContext = ax::NodeEditor::CreateEditor(&config);
-		m_PropertiesWindowID = fmt::format("Properties##{}", m_PanelName);
-		OnInitialize();
-		return true;
-	}
-
-	bool NodeGraphEditor::OnHidePanel()
-	{
-		OnShutdown();
+		ax::NodeEditor::DestroyEditor(m_EditorContext);
 		m_NodeGraph = nullptr;
 		m_Context = nullptr;
-		ax::NodeEditor::DestroyEditor(m_EditorContext);
 		m_EditorContext = nullptr;
-		return true;
 	}
 
 	void NodeGraphEditor::OnImGuiRender(bool& isOpen)
 	{
+		EditorPanel::DockIfNeeded();
+
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 2.0f, 0.0f });
 		ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-		ImGui::Begin(m_PanelName, &isOpen);
+		ImGui::Begin(m_PanelName.c_str(), &isOpen);
 		ImGui::PopStyleVar(2);
 
 		m_WindowClass.ClassId = ImGui::GetID(m_PanelName);
@@ -1003,10 +1033,12 @@ namespace Shark::NodeGraph::Editor {
 		return modified;
 	}
 
+#if TODO
 	void NodeGraphEditor::SetContext(Ref<Scene> context)
 	{
 		m_Scene = context;
 	}
+#endif
 
 	void NodeGraphEditor::SelectInput(std::string_view name)
 	{

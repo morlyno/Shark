@@ -4,7 +4,6 @@
 #include "Shark/Event/ApplicationEvent.h"
 
 #include "Shark/Asset/Assets.h"
-#include "Shark/Asset/AssetUtils.h"
 #include "Shark/Audio/SoundConfig.h"
 #include "Shark/Scene/Prefab.h"
 
@@ -14,6 +13,7 @@
 #include "Shark/Utils/Utilities.h"
 
 #include "EditorSettings.h"
+#include "AnimationGraph/EditorAnimationGraphAsset.h"
 
 #include "Shark/Debug/Profiler.h"
 
@@ -169,6 +169,9 @@ namespace Shark {
 
 							if (ImGui::MenuItem("Animation"))
 								CreateAsset<AnimationAsset>(fmt::format("New Animation{}", AssetExtensions::Animation[0]), true);
+
+							if (ImGui::MenuItem("Animation Graph"))
+								CreateAsset<EditorAnimationGraphAsset>(fmt::format("New Animation Graph{}", AssetExtensions::AnimationGraph.front()), true);
 
 							ImGui::EndMenu();
 						}

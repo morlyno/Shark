@@ -7,6 +7,21 @@
 
 namespace Shark {
 
+	glm::vec4 UI::Convert(ImVec4 vec)
+	{
+		return { vec.x, vec.y, vec.z, vec.w };
+	}
+
+	glm::vec4 UI::Convert(ImColor color)
+	{
+		return Convert(color.Value);
+	}
+
+	ImVec4 UI::Convert(glm::vec4 vec4)
+	{
+		return { vec4.x, vec4.y, vec4.z, vec4.w };
+	}
+
 	ImRect UI::GetItemRect()
 	{
 		return ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());

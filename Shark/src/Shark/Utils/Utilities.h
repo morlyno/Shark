@@ -72,4 +72,16 @@ namespace Shark {
 		{ std::string_view{ string } } -> std::same_as<std::string_view>;
 	};
 
+	template <class T, template <class...> class Template>
+	constexpr bool is_specialization_v = false;
+
+	template <template <class...> class Template, class... Types>
+	constexpr bool is_specialization_v<Template<Types...>, Template> = true;
+
+	template<typename T, template<typename...> typename Template>
+	struct is_specialization : std::bool_constant<is_specialization_v<T, Template>> {};
+
+	template<typename T, template<typename...> typename Template>
+	concept specialization = requires { is_specialization_v<T, Template>; };
+
 }

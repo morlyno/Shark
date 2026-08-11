@@ -4,7 +4,8 @@
 #include "Shark/Asset/AssetManager.h"
 #include "Shark/Animation/Animation.h"
 
-#include "AnimationGraph/AnimationNodeContext.h"
+#include "Shark/Animation/Graph/AnimationNodeContext.h"
+#include "Shark/Animation/Graph/PinTypes.h"
 
 namespace Shark::NodeGraph {
 

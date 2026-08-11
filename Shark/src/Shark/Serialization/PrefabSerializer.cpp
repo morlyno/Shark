@@ -1,14 +1,12 @@
 #include "skpch.h"
 #include "PrefabSerializer.h"
 
-#include "Shark/Asset/AssetManager/AssetUtilities.h"
-
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Prefab.h"
 
 #include "Shark/Serialization/YAML.h"
 #include "Shark/Serialization/SceneSerializer.h"
-#include "Shark/Serialization/SerializationMacros.h"
+#include "Shark/Serialization/SerializerUtilities.h"
 
 #include "Shark/File/FileSystem.h"
 #include "Shark/Debug/Profiler.h"
@@ -26,7 +24,7 @@ namespace Shark {
 			return false;
 		}
 
-		return FileSystem::WriteString(GetAssetFilesystemPath(metadata), result);
+		return FileSystem::WriteString(Utilities::GetAssetFilesystemPath(metadata), result);
 	}
 
 	bool PrefabSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context)

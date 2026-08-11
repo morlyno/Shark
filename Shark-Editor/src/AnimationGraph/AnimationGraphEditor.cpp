@@ -3,29 +3,23 @@
 
 #include "Shark/Asset/AssetManager.h"
 #include "Shark/Render/MeshSource.h"
-
 #include "Shark/UI/Widgets.h"
 
+#include "Shark/Animation/Graph/AnimationNodeContext.h"
+
 #include "AnimationGraph/AnimationGraphContext.h"
-#include "AnimationGraph/AnimationNodeContext.h"
-#include "AnimationGraph/AnimationFactory.h"
+#include "AnimationGraph/EditorAnimationGraphAsset.h"
 
 namespace Shark::NodeGraph::Editor {
 
-	AnimationGraphEditor::AnimationGraphEditor()
+	AnimationGraphEditor::AnimationGraphEditor(const std::string& name, const AssetMetaData& metadata)
+		: NodeGraphEditor(name, metadata)
 	{
+		auto graph = AssetManager::GetAsset<EditorAnimationGraphAsset>(metadata.Handle);
+		SetGraphContext(Scope<AnimationGraphContext>::Create(graph));
 	}
 
 	AnimationGraphEditor::~AnimationGraphEditor()
-	{
-	}
-
-	void AnimationGraphEditor::OnInitialize()
-	{
-		SetGraphContext(Scope<AnimationGraphContext>::Create());
-	}
-
-	void AnimationGraphEditor::OnShutdown()
 	{
 	}
 
@@ -38,11 +32,13 @@ namespace Shark::NodeGraph::Editor {
 
 		AnimationContextSpecification specification;
 		SetupNodeContext(specification);
-		specification.BoneCount = skeleton->GetBoneCount();
+		specification.BoneCount = static_cast<uint32_t>(skeleton->GetBoneCount());
 		specification.Skeleton = skeleton;
 
 		AnimationNodeContext context(specification);
 		m_NodeGraph = CompileGraph(&context);
+
+		graphContext->SaveGraph();
 	}
 
 	void AnimationGraphEditor::OnDrawGraphIO()

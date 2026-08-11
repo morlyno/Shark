@@ -1,18 +1,16 @@
 #include "skpch.h"
 #include "TextureSerializer.h"
 
-#include "Shark/Asset/AssetManager/AssetUtilities.h"
-
+#include "Shark/Asset/AssetManager.h"
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/Texture.h"
 
 #include "Shark/File/FileSystem.h"
 #include "Shark/Serialization/YAML.h"
-#include "Shark/Serialization/SerializationMacros.h"
 #include "Shark/Serialization/Import/TextureImporter.h"
+#include "Shark/Serialization/SerializerUtilities.h"
 
 #include "Shark/Debug/Profiler.h"
-#include "../Asset/AssetManager.h"
 
 #define SK_SERIALIZATION_ERROR(...) SK_CORE_ERROR_TAG("Serialization", __VA_ARGS__); SK_DEBUG_BREAK();
 
@@ -53,7 +51,7 @@ namespace Shark {
 		}
 
 		const auto filedata = SerializeToYAML(asset.As<Texture2D>());
-		FileSystem::WriteString(GetAssetFilesystemPath(metadata), filedata);
+		FileSystem::WriteString(Utilities::GetAssetFilesystemPath(metadata), filedata);
 
 		return true;
 	}

@@ -62,17 +62,15 @@ namespace Shark {
 		MaterialEditorPanel(const std::string& panelName, const AssetMetaData& metadata);
 		~MaterialEditorPanel();
 
-		virtual void SetAsset(const AssetMetaData& metadata) override;
-		virtual AssetHandle GetAsset() const override { return m_MaterialHandle; }
-
 		virtual void DockWindow(ImGuiID dockspace) override;
 
 		virtual void OnUpdate(TimeStep ts) override;
-		virtual void OnImGuiRender(bool& shown, bool& destroy) override;
+		virtual void OnImGuiRender(bool& showWindow) override;
 
 	private:
-		bool m_Active = true;
+		void SetAsset(const AssetMetaData& metadata);
 
+	private:
 		ImGuiID m_DockWindowID = 0;
 		bool m_DockWindow = false;
 

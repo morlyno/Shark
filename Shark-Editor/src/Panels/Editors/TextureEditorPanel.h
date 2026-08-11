@@ -23,21 +23,16 @@ namespace Shark {
 		~TextureEditorPanel();
 
 		virtual void DockWindow(ImGuiID dockspace) override;
-		virtual void SetAsset(const AssetMetaData& metadata) override;
-		virtual AssetHandle GetAsset() const override { return m_TextureHandle; }
-
-		virtual void OnImGuiRender(bool& shown, bool& destroy) override;
+		virtual void OnImGuiRender(bool& showWindow) override;
 		virtual void OnEvent(Event& event) override;
 
 	private:
+		void SetAsset(const AssetMetaData& metadata);
 		void UI_DrawSettings();
-
 		void CreateImageViews();
 
 	private:
-		bool m_Active = true;
 		bool m_SetupWindows = false;
-
 		bool m_Focused = false;
 
 		bool m_DockWindow = false;

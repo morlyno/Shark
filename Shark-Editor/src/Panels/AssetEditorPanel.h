@@ -7,6 +7,10 @@
 
 namespace Shark {
 
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	///// Editor Panel /////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+
 	class EditorPanel : public RefCount
 	{
 	public:
@@ -14,30 +18,29 @@ namespace Shark {
 			: m_PanelName(panelName) {}
 		virtual ~EditorPanel() = default;
 
+		virtual void DrawWindow(bool& showWindow) {}
+		virtual void OnImGuiRender(bool& showWindow);
 		virtual void OnUpdate(TimeStep ts) {};
-		virtual void OnImGuiRender(bool& shown, bool& destroy) {};
 		virtual void OnEvent(Event& event) {};
 
-		virtual void DockWindow(ImGuiID dockspaceID) = 0;
-		virtual void SetAsset(const AssetMetaData& metadata) = 0;
-		virtual AssetHandle GetAsset() const = 0;
-
-		void SetPanelName(const std::string& name) { m_PanelName = name; }
-		const std::string& GetPanelName() const { return m_PanelName; }
+		virtual void DockWindow(ImGuiID dockspaceID);
+		virtual void DockIfNeeded();
+		virtual ImGuiWindowFlags GetWindowFlags() const { return ImGuiWindowFlags_None; }
 
 	protected:
 		std::string m_PanelName;
+
+	private:
+		bool m_DockWindow = false;
+		ImGuiID m_DockspaceID = 0;
 	};
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	///// Asset Editor Manager Panel ///////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	class AssetEditorManagerPanel : public Panel
 	{
-	private:
-		struct EditorPanelEntry
-		{
-			Ref<EditorPanel> Editor;
-			bool Shown;
-		};
-
 	public:
 		AssetEditorManagerPanel();
 		virtual ~AssetEditorManagerPanel();
@@ -51,13 +54,13 @@ namespace Shark {
 
 		ImGuiID GetDockspaceID() const { return m_DockspaceID; }
 
-		void AddEditor(const AssetMetaData& metadata, Ref<EditorPanel> editorPanel);
+		void OpenEditor(const AssetMetaData& metadata, Ref<EditorPanel> editorPanel);
 
 		template<typename T>
-		Ref<T> AddEditor(const AssetMetaData& metadata)
+		Ref<T> OpenEditor(const AssetMetaData& metadata)
 		{
 			Ref<T> assetEditor = Ref<T>::Create(FileSystem::GetStemString(metadata.FilePath), metadata);
-			AddEditor(metadata, assetEditor);
+			OpenEditor(metadata, assetEditor);
 			return assetEditor;
 		}
 
@@ -65,7 +68,7 @@ namespace Shark {
 		void DrawPanels();
 
 	private:
-		std::unordered_map<AssetHandle, EditorPanelEntry> m_EditorPanels;
+		std::unordered_map<AssetHandle, Ref<EditorPanel>> m_EditorPanels;
 		ImGuiID m_DockspaceID;
 	};
 

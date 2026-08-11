@@ -3,8 +3,8 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Core/UUID.h"
 #include "Shark/Core/Reflection.h"
+#include "Shark/Animation/Graph/PinTypes.h"
 #include "NodeGraph/EditorNodes.h"
-#include "AnimationGraph/PinTypes.h"
 
 namespace Shark::NodeGraph::Editor {
 

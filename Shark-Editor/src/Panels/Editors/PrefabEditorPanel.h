@@ -13,15 +13,14 @@ namespace Shark {
 		PrefabEditorPanel(const std::string& panelName, const AssetMetaData& metadata);
 		~PrefabEditorPanel();
 
+		virtual void DockWindow(ImGuiID dockspaceID) override;
+
 		virtual void OnUpdate(TimeStep ts) override;
-		virtual void OnImGuiRender(bool& shown, bool& destroy) override;
+		virtual void OnImGuiRender(bool& showWindow) override;
 		virtual void OnEvent(Event& event) override;
 
-		virtual void DockWindow(ImGuiID dockspaceID) override;
-		virtual void SetAsset(const AssetMetaData& metadata) override;
-		virtual AssetHandle GetAsset() const override;
-
 	private:
+		void SetAsset(const AssetMetaData& metadata);
 		void PrepareForSerialization() const;
 
 	private:

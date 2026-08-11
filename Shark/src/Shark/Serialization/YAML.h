@@ -2,6 +2,8 @@
 
 #include "Shark/Core/UUID.h"
 #include "Shark/Core/TimeStep.h"
+#include "Shark/Core/Reflection.h"
+#include "Shark/Utils/Utilities.h"
 
 #include <glm/glm.hpp>
 #include <yaml-cpp/yaml.h>
@@ -275,6 +277,28 @@ struct convert<_Type>                                                \
 		try
 		{
 			outResult = node[key].as<T>();
+		}
+		catch (const YAML::BadConversion& exception)
+		{
+			SK_CORE_ERROR_TAG("Serialization", "Conversion failed '{}'\n\t{}", key, exception.what());
+			throw;
+		}
+		catch (const YAML::InvalidNode& exception)
+		{
+			SK_CORE_ERROR_TAG("Serialization", "Invalid node '{}'\n\t{}", key, exception.what());
+			throw;
+		}
+	}
+
+	template<typename Conversion>
+		requires requires { Shark::Reflection::function_args<Conversion>{}; }
+	void Read(const YAML::Node& node, std::string_view key, Conversion&& conversion)
+	{
+		using T = std::tuple_element_t<0, Shark::Reflection::function_args_type<Conversion>>;
+
+		try
+		{
+			std::invoke(conversion, node[key].as<T>());
 		}
 		catch (const YAML::BadConversion& exception)
 		{

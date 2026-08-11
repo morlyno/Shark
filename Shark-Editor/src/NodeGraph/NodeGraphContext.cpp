@@ -1,6 +1,7 @@
 #include "skpch.h"
 #include "NodeGraphContext.h"
 
+#include "NodeGraph/EditorNodes.h"
 #include "NodeGraph/Factory.h"
 
 namespace Shark::NodeGraph::Editor {
@@ -62,6 +63,52 @@ namespace Shark::NodeGraph::Editor {
 	}
 
 	const Pin* NodeGraphContext::FindPin(PinID id) const
+	{
+		if (!id)
+			return nullptr;
+
+		for (auto& node : GetNodesInternal())
+		{
+			for (auto& pin : node.Inputs)
+				if (pin.ID == id)
+					return &pin;
+
+			for (auto& pin : node.Outputs)
+				if (pin.ID == id)
+					return &pin;
+		}
+
+		return nullptr;
+	}
+
+	Node* NodeGraphContext::FindNode(NodeID id)
+	{
+		for (auto& node : GetNodesInternal())
+			if (node.ID == id)
+				return &node;
+
+		return nullptr;
+	}
+
+	Link* NodeGraphContext::FindLink(LinkID id)
+	{
+		for (auto& link : GetLinksInternal())
+			if (link.ID == id)
+				return &link;
+
+		return nullptr;
+	}
+
+	Link* NodeGraphContext::FindLink(PinID id)
+	{
+		for (auto& link : GetLinksInternal())
+			if (link.StartPinID == id || link.EndPinID == id)
+				return &link;
+
+		return nullptr;
+	}
+
+	Pin* NodeGraphContext::FindPin(PinID id)
 	{
 		if (!id)
 			return nullptr;

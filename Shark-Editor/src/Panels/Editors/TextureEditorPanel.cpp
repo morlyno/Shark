@@ -54,19 +54,9 @@ namespace Shark {
 		m_DockWindow = true;
 	}
 
-	void TextureEditorPanel::OnImGuiRender(bool& shown, bool& destroy)
+	void TextureEditorPanel::OnImGuiRender(bool& showWindow)
 	{
 		SK_PROFILE_FUNCTION();
-
-		if (!shown || !m_TextureHandle)
-			return;
-
-		if (!m_Active)
-		{
-			shown = false;
-			destroy = true;
-			return;
-		}
 
 		if (m_DockWindow)
 		{
@@ -74,7 +64,7 @@ namespace Shark {
 			m_DockWindow = false;
 		}
 
-		if (ImGui::Begin(m_PanelName.c_str(), &m_Active))
+		if (ImGui::Begin(m_PanelName.c_str(), &showWindow))
 		{
 			m_Focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
 
@@ -105,7 +95,6 @@ namespace Shark {
 			}
 		}
 		ImGui::End();
-
 	}
 
 	void TextureEditorPanel::OnEvent(Event& event)

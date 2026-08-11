@@ -1,8 +1,7 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "NodeGraph/ProcessNode.h"
-#include "NodeGraph/NodeContext.h"
+#include "Shark/NodeGraph/ProcessNode.h"
 
 namespace Shark::NodeGraph {
 
@@ -25,10 +24,10 @@ namespace Shark::NodeGraph {
 
 	}
 
-}
+	REFLECT_NODE(
+		Nodes::Test,
+		REFLECT_INPUTS(&Nodes::Test::Print),
+		REFLECT_OUTPUTS()
+	);
 
-REFLECT_NODE(
-	Shark::NodeGraph::Nodes::Test,
-	REFLECT_INPUTS(&Shark::NodeGraph::Nodes::Test::Print),
-	REFLECT_OUTPUTS()
-);
+}

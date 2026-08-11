@@ -42,16 +42,4 @@ namespace Shark {
 		return &meshSource->GetAnimation(*index);
 	}
 
-	const Skeleton* AnimationAsset::GetSkeletonAsync(bool wait) const
-	{
-		if (wait && !AssetManager::IsAssetLoaded(m_SkeletonSource))
-			AssetManager::WaitForAsset(m_SkeletonSource, true);
-
-		auto meshSource = AssetManager::GetAssetAsync<MeshSource>(m_SkeletonSource);
-		if (!meshSource)
-			return nullptr;
-
-		return &meshSource->GetSkeleton();
-	}
-
 }

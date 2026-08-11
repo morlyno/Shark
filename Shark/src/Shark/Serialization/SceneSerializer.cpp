@@ -2,14 +2,13 @@
 #include "SceneSerializer.h"
 
 #include "Shark/Asset/AssetManager.h"
-#include "Shark/Asset/AssetManager/AssetUtilities.h"
 
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scripting/ScriptEngine.h"
 
 #include "Shark/Serialization/YAML.h"
-#include "Shark/Serialization/SerializationMacros.h"
+#include "Shark/Serialization/SerializerUtilities.h"
 
 #include "Shark/File/FileSystem.h"
 
@@ -869,7 +868,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		SceneSerializer serializer(asset.As<Scene>());
-		serializer.Serialize(GetAssetFilesystemPath(metadata));
+		serializer.Serialize(Utilities::GetAssetFilesystemPath(metadata));
 		return true;
 	}
 

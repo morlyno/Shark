@@ -1,6 +1,8 @@
 #pragma once
 
-#include "NodeGraph/ProcessNode.h"
+#include "Shark/Core/Base.h"
+#include "Shark/NodeGraph/ProcessNode.h"
+
 #include <random>
 
 namespace Shark::NodeGraph {
@@ -104,56 +106,56 @@ namespace Shark::NodeGraph {
 
 	}
 
+	REFLECT_NODE(
+		Nodes::Add<float>,
+		REFLECT_INPUTS(&Nodes::Add<float>::Value1,
+					   &Nodes::Add<float>::Value2),
+		REFLECT_OUTPUTS(&Nodes::Add<float>::Result)
+	);
+
+	REFLECT_NODE(
+		Nodes::Add<int>,
+		REFLECT_INPUTS(&Nodes::Add<int>::Value1,
+					   &Nodes::Add<int>::Value2),
+		REFLECT_OUTPUTS(&Nodes::Add<int>::Result)
+	);
+
+	REFLECT_NODE(
+		Nodes::Multiply<float>,
+		REFLECT_INPUTS(&Nodes::Multiply<float>::Value1,
+					   &Nodes::Multiply<float>::Value2),
+		REFLECT_OUTPUTS(&Nodes::Multiply<float>::Result)
+	);
+
+	REFLECT_NODE(
+		Nodes::Multiply<int>,
+		REFLECT_INPUTS(&Nodes::Multiply<int>::Value1,
+					   &Nodes::Multiply<int>::Value2),
+		REFLECT_OUTPUTS(&Nodes::Multiply<int>::Result)
+	);
+
+	REFLECT_NODE(
+		Nodes::Get,
+		REFLECT_INPUTS(&Nodes::Get::Vector),
+		REFLECT_OUTPUTS(&Nodes::Get::X,
+						&Nodes::Get::Y,
+						&Nodes::Get::Z)
+	);
+
+	REFLECT_NODE(
+		Nodes::Random<int>,
+		REFLECT_INPUTS(&Nodes::Random<int>::Minimum,
+					   &Nodes::Random<int>::Maximum,
+					   &Nodes::Random<int>::Seed),
+		REFLECT_OUTPUTS(&Nodes::Random<int>::Result)
+	);
+
+	REFLECT_NODE(
+		Nodes::Random<float>,
+		REFLECT_INPUTS(&Nodes::Random<float>::Minimum,
+					   &Nodes::Random<float>::Maximum,
+					   &Nodes::Random<float>::Seed),
+		REFLECT_OUTPUTS(&Nodes::Random<float>::Result)
+	);
+
 }
-
-REFLECT_NODE(
-	Shark::NodeGraph::Nodes::Add<float>,
-	REFLECT_INPUTS(&Shark::NodeGraph::Nodes::Add<float>::Value1,
-				   &Shark::NodeGraph::Nodes::Add<float>::Value2),
-	REFLECT_OUTPUTS(&Shark::NodeGraph::Nodes::Add<float>::Result)
-);
-
-REFLECT_NODE(
-	Shark::NodeGraph::Nodes::Add<int>,
-	REFLECT_INPUTS(&Shark::NodeGraph::Nodes::Add<int>::Value1,
-				   &Shark::NodeGraph::Nodes::Add<int>::Value2),
-	REFLECT_OUTPUTS(&Shark::NodeGraph::Nodes::Add<int>::Result)
-);
-
-REFLECT_NODE(
-	Shark::NodeGraph::Nodes::Multiply<float>,
-	REFLECT_INPUTS(&Shark::NodeGraph::Nodes::Multiply<float>::Value1,
-				   &Shark::NodeGraph::Nodes::Multiply<float>::Value2),
-	REFLECT_OUTPUTS(&Shark::NodeGraph::Nodes::Multiply<float>::Result)
-);
-
-REFLECT_NODE(
-	Shark::NodeGraph::Nodes::Multiply<int>,
-	REFLECT_INPUTS(&Shark::NodeGraph::Nodes::Multiply<int>::Value1,
-				   &Shark::NodeGraph::Nodes::Multiply<int>::Value2),
-	REFLECT_OUTPUTS(&Shark::NodeGraph::Nodes::Multiply<int>::Result)
-);
-
-REFLECT_NODE(
-	Shark::NodeGraph::Nodes::Get,
-	REFLECT_INPUTS(&Shark::NodeGraph::Nodes::Get::Vector),
-	REFLECT_OUTPUTS(&Shark::NodeGraph::Nodes::Get::X,
-					&Shark::NodeGraph::Nodes::Get::Y,
-					&Shark::NodeGraph::Nodes::Get::Z)
-);
-
-REFLECT_NODE(
-	Shark::NodeGraph::Nodes::Random<int>,
-	REFLECT_INPUTS(&Shark::NodeGraph::Nodes::Random<int>::Minimum,
-				   &Shark::NodeGraph::Nodes::Random<int>::Maximum,
-				   &Shark::NodeGraph::Nodes::Random<int>::Seed),
-	REFLECT_OUTPUTS(&Shark::NodeGraph::Nodes::Random<int>::Result)
-);
-
-REFLECT_NODE(
-	Shark::NodeGraph::Nodes::Random<float>,
-	REFLECT_INPUTS(&Shark::NodeGraph::Nodes::Random<float>::Minimum,
-				   &Shark::NodeGraph::Nodes::Random<float>::Maximum,
-				   &Shark::NodeGraph::Nodes::Random<float>::Seed),
-	REFLECT_OUTPUTS(&Shark::NodeGraph::Nodes::Random<float>::Result)
-);

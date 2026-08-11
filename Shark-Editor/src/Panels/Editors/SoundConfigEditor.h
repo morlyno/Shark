@@ -9,11 +9,8 @@ namespace Shark {
 	public:
 		SoundConfigEditor(const std::string& panelName, const AssetMetaData& metadata);
 
-		virtual void OnImGuiRender(bool& shown, bool& destroy) override;
-
 		virtual void DockWindow(ImGuiID dockspaceID) override;
-		virtual void SetAsset(const AssetMetaData& metadata) override;
-		virtual AssetHandle GetAsset() const override;
+		virtual void OnImGuiRender(bool& showWindow) override;
 
 	private:
 		AssetHandle m_Asset;

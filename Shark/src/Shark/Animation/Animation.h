@@ -63,11 +63,9 @@ namespace Shark {
 
 		const std::string& GetName() const { return m_Name; }
 		AssetHandle GetAnimationSource() const { return m_AnimationSource; }
-		AssetHandle GetSkeletonSource() const { return m_SkeletonSource; }
 
 		// Can return nullptr when the MeshSource is not loaded yet
 		const Animation* GetAnimationAsync(bool wait = false) const;
-		const Skeleton* GetSkeletonAsync(bool wait = false) const;
 
 	public:
 		static AssetType GetStaticType() { return AssetType::Animation; }
@@ -75,7 +73,6 @@ namespace Shark {
 
 	private:
 		AssetHandle m_AnimationSource;
-		AssetHandle m_SkeletonSource;
 		std::string m_Name;
 
 		friend class AnimationSerializer;

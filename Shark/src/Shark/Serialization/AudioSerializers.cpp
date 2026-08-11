@@ -3,13 +3,13 @@
 
 #include "Shark/Core/Application.h"
 #include "Shark/Asset/AssetManager.h"
-#include "Shark/Asset/AssetManager/AssetUtilities.h"
 
 #include "Shark/Audio/AudioEngine.h"
 #include "Shark/Audio/AudioFile.h"
 #include "Shark/Audio/SoundConfig.h"
 
 #include "Shark/Serialization/YAML.h"
+#include "Shark/Serialization/SerializerUtilities.h"
 #include "Shark/File/FileSystem.h"
 #include "Shark/Debug/Profiler.h"
 
@@ -48,7 +48,7 @@ namespace Shark {
 			return false;
 		}
 
-		const auto filesystemPath = GetAssetFilesystemPath(metadata);
+		const auto filesystemPath = Utilities::GetAssetFilesystemPath(metadata);
 		FileSystem::WriteString(filesystemPath, result);
 
 		return true;

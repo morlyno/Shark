@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "NodeGraph/ProcessNode.h"
-#include "NodeGraph/NodeContext.h"
+#include "Shark/NodeGraph/ProcessNode.h"
+#include "Shark/NodeGraph/NodeContext.h"
 
 namespace Shark::NodeGraph {
 
@@ -40,12 +40,13 @@ namespace Shark::NodeGraph {
 
 	}
 
-}
+	REFLECT_NODE(
+		Nodes::BoolTrigger,
+		REFLECT_INPUTS(&Nodes::BoolTrigger::Value,
+					   &Nodes::BoolTrigger::TriggerIfTrue,
+					   &Nodes::BoolTrigger::TriggerIfFalse),
+		REFLECT_OUTPUTS(&Nodes::BoolTrigger::Triggered,
+						&Nodes::BoolTrigger::Trigger)
+	);
 
-REFLECT_NODE(Shark::NodeGraph::Nodes::BoolTrigger,
-			 REFLECT_INPUTS(&Shark::NodeGraph::Nodes::BoolTrigger::Value,
-							&Shark::NodeGraph::Nodes::BoolTrigger::TriggerIfTrue,
-							&Shark::NodeGraph::Nodes::BoolTrigger::TriggerIfFalse),
-			 REFLECT_OUTPUTS(&Shark::NodeGraph::Nodes::BoolTrigger::Triggered,
-							 &Shark::NodeGraph::Nodes::BoolTrigger::Trigger)
-);
+}

@@ -49,7 +49,6 @@ namespace Shark {
 		struct AnimationEntry
 		{
 			UUID EntityID;
-			AssetHandle SkeletonMesh;
 			AssetHandle ActiveAnimation;
 			const Animation* Animation = nullptr;
 			const Skeleton* Skeleton = nullptr;

@@ -239,9 +239,6 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		if (!m_Active || !m_MaterialHandle)
-			return;
-
 		if (m_NeedsResize && m_ViewportSize.x != 0 && m_ViewportSize.y != 0)
 		{
 			m_Scene->SetViewportSize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
@@ -252,25 +249,15 @@ namespace Shark {
 		m_Scene->OnRenderRuntime(m_Renderer);
 	}
 
-	void MaterialEditorPanel::OnImGuiRender(bool& shown, bool& destroy)
+	void MaterialEditorPanel::OnImGuiRender(bool& showWindow)
 	{
-		if (!shown || !m_MaterialHandle)
-			return;
-
-		if (!m_Active)
-		{
-			shown = false;
-			destroy = true;
-			return;
-		}
-
 		if (m_DockWindow)
 		{
 			ImGui::SetNextWindowDockID(m_DockWindowID, ImGuiCond_Always);
 			m_DockWindow = false;
 		}
 
-		if (ImGui::Begin(m_PanelName.c_str(), &m_Active))
+		if (ImGui::Begin(m_PanelName.c_str(), &showWindow))
 		{
 			if (ImGui::BeginTable("MaterialEditor", 2, ImGuiTableFlags_Resizable))
 			{

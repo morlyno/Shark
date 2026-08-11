@@ -5,7 +5,6 @@
 #include "Shark/Core/SelectionManager.h"
 
 #include "Shark/Audio/AudioEngine.h"
-#include "Shark/Asset/AssetUtils.h"
 
 #include "Shark/Scene/Components.h"
 #include "Shark/Scripting/ScriptEngine.h"
@@ -44,6 +43,7 @@
 
 //#include "NodeGraph/NodeGraphEditor.h"
 #include "AnimationGraph/AnimationGraphEditor.h"
+#include "AnimationGraph/EditorAnimationGraphSerializer.h"
 
 #include "Shark/Debug/Profiler.h"
 #include "Shark/Debug/enttDebug.h"
@@ -114,37 +114,38 @@ namespace Shark {
 		Ref<ContentBrowserPanel> contentBrowser = m_PanelManager->AddPanel<ContentBrowserPanel>(PanelCategory::View, "Content Browser", true);
 		contentBrowser->RegisterAssetActicatedCallback(AssetType::Material, [this](const AssetMetaData& metadata)
 		{
-			m_PanelManager->ShowPanel<AssetEditorManagerPanel>();
-			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>();
-			assetEditorManager->AddEditor<MaterialEditorPanel>(metadata);
+			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>(true);
+			assetEditorManager->OpenEditor<MaterialEditorPanel>(metadata);
 		});
 
 		contentBrowser->RegisterAssetActicatedCallback(AssetType::Texture, [this](const AssetMetaData& metadata)
 		{
-			m_PanelManager->ShowPanel<AssetEditorManagerPanel>();
-			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>();
-			assetEditorManager->AddEditor<TextureEditorPanel>(metadata);
+			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>(true);
+			assetEditorManager->OpenEditor<TextureEditorPanel>(metadata);
 		});
 
 		contentBrowser->RegisterAssetActicatedCallback(AssetType::Prefab, [this](const AssetMetaData& metadata)
 		{
-			m_PanelManager->ShowPanel<AssetEditorManagerPanel>();
-			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>();
-			assetEditorManager->AddEditor<PrefabEditorPanel>(metadata);
+			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>(true);
+			assetEditorManager->OpenEditor<PrefabEditorPanel>(metadata);
 		});
 
 		contentBrowser->RegisterAssetActicatedCallback(AssetType::SoundConfig, [this](const AssetMetaData& metadata)
 		{
-			m_PanelManager->ShowPanel<AssetEditorManagerPanel>();
-			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>();
-			assetEditorManager->AddEditor<SoundConfigEditor>(metadata);
+			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>(true);
+			assetEditorManager->OpenEditor<SoundConfigEditor>(metadata);
 		});
 
 		contentBrowser->RegisterAssetActicatedCallback(AssetType::Animation, [this](const AssetMetaData& metadata)
 		{
-			m_PanelManager->ShowPanel<AssetEditorManagerPanel>();
-			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>();
-			assetEditorManager->AddEditor<AnimationEditor>(metadata);
+			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>(true);
+			assetEditorManager->OpenEditor<AnimationEditor>(metadata);
+		});
+
+		contentBrowser->RegisterAssetActicatedCallback(AssetType::AnimationGraph, [this](const AssetMetaData& metadata)
+		{
+			auto assetEditorManager = m_PanelManager->GetPanel<AssetEditorManagerPanel>(true);
+			assetEditorManager->OpenEditor<AnimationGraphEditor>(metadata);
 		});
 
 		m_PanelManager->AddPanel<AssetEditorManagerPanel>(PanelCategory::Edit, "Assets Editor Manager", true);
@@ -160,7 +161,6 @@ namespace Shark {
 		m_PanelManager->AddPanel<IconSelector>(PanelCategory::Edit, "Icons Selector", false);
 		m_PanelManager->AddPanel<MaterialPanel>(PanelCategory::Edit, "Materials", true);
 		m_PanelManager->AddPanel<SoundPanel>(PanelCategory::View, "Sounds", false);
-		m_PanelManager->AddPanel<AnimationGraphEditor>(PanelCategory::Edit, "Animation Graph", false);
 
 		m_SceneRenderer = Ref<SceneRenderer>::Create(window.GetWidth(), window.GetHeight(), "Viewport Renderer");
 		m_PanelManager->GetPanel<SceneRendererPanel>()->SetRenderer(m_SceneRenderer);
@@ -477,7 +477,7 @@ namespace Shark {
 				break;
 			}
 
-			AssetType assetType = AssetUtils::GetAssetTypeFromPath(path);
+			AssetType assetType = AssetTypeFromPath(path);
 			if (assetType != AssetType::None)
 			{
 				Ref<ContentBrowserPanel> panel = m_PanelManager->GetPanel<ContentBrowserPanel>();
@@ -1957,6 +1957,7 @@ namespace Shark {
 			CloseProject();
 
 		Project::SetActive(config);
+		AssetSerializer::RegisterSerializer(AssetType::AnimationGraph, Scope<EditorAnimationGraphSerializer>::Create());
 
 		if (FileSystem::Exists(Project::GetActive()->GetScriptModulePath()))
 		{

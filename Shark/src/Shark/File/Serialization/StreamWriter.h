@@ -30,6 +30,9 @@ namespace Shark {
 			return WriteData(&value, sizeof(T));
 		}
 
+	public: // Compatibility
+		bool write(const void* data, uint64_t size) { return WriteData(data, size); }
+
 	};
 
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "NodeGraph/NodeContext.h"
+#include "Shark/NodeGraph/NodeContext.h"
 
 namespace Shark {
 	class Skeleton;

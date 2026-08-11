@@ -2,9 +2,8 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Scene/Entity.h"
-
-#include "NodeGraph/ProcessNode.h"
-#include "NodeGraph/PinTypes.h"
+#include "Shark/NodeGraph/ProcessNode.h"
+#include "Shark/NodeGraph/PinTypes.h"
 
 
 namespace Shark::NodeGraph {
@@ -13,7 +12,7 @@ namespace Shark::NodeGraph {
 
 		struct EntityTransform : public ProcessNode
 		{
-			Types::EntityID* Entity = nullptr;
+			Types::EntityID* in_Entity = nullptr;
 
 			glm::vec3 Translation;
 
@@ -23,16 +22,16 @@ namespace Shark::NodeGraph {
 			virtual void Process(float ts) override;
 
 		private:
-			Shark::Entity m_Entity;
+			Entity m_Entity;
 
 		};
 
 	}
 
-}
+	REFLECT_NODE(
+		Nodes::EntityTransform,
+		REFLECT_INPUTS(&Nodes::EntityTransform::in_Entity),
+		REFLECT_OUTPUTS(&Nodes::EntityTransform::Translation)
+	);
 
-REFLECT_NODE(
-	Shark::NodeGraph::Nodes::EntityTransform,
-	REFLECT_INPUTS(&Shark::NodeGraph::Nodes::EntityTransform::Entity),
-	REFLECT_OUTPUTS(&Shark::NodeGraph::Nodes::EntityTransform::Translation)
-);
+}

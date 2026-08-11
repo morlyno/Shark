@@ -824,6 +824,9 @@ ImportedAssets:
   - Handle: 4637523822169707035
     Type: Animation
     FilePath: Animation/Knight_Idle.sanim
+  - Handle: 14685196178843877423
+    Type: AnimationGraph
+    FilePath: Animation/Knight-Graph.sagraph
 EditorAssets:
   - Handle: 13196250996000324786
     Type: Texture

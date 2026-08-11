@@ -1,10 +1,13 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Asset/Asset.h"
 #include "Shark/Asset/AssetMetadata.h"
-#include "Shark/Serialization/SerializerBase.h"
-#include "Shark/Asset/AssetThread/AssetLoadContext.h"
+
+namespace Shark {
+	class Asset;
+	class SerializerBase;
+	class AssetLoadContext;
+}
 
 namespace Shark {
 
@@ -13,6 +16,7 @@ namespace Shark {
 	public:
 		static void RegisterSerializers();
 		static void ReleaseSerializers();
+		static void RegisterSerializer(AssetType assetType, Scope<SerializerBase> serializer);
 
 		static bool TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context);
 		static bool Serialize(Ref<Asset> asset, const AssetMetaData& metadata);

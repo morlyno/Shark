@@ -45,6 +45,33 @@ namespace Shark::Reflection {
 			using type = Return;
 		};
 
+
+		template<typename T>
+		struct function_args;
+
+		template<typename Return, typename... Args>
+		struct function_args<Return(*)(Args...)>
+		{
+			using type = std::tuple<Args...>;
+		};
+
+		template<typename Return, typename Object, typename... Args>
+		struct function_args<Return(Object::*)(Args...)>
+		{
+			using type = std::tuple<Args...>;
+		};
+
+		template<typename Return, typename Object, typename... Args>
+		struct function_args<Return(Object::*)(Args...) const>
+		{
+			using type = std::tuple<Args...>;
+		};
+
+		template<typename T>
+			requires requires { &T::operator(); }
+		struct function_args<T> : function_args<decltype(&T::operator())>
+		{};
+
 	}
 
 	template<typename T>
@@ -55,6 +82,12 @@ namespace Shark::Reflection {
 			Internal::return_type_object<T>,
 			Internal::return_type_function<T>
 		>::type;
+
+	template<typename T>
+	using function_args = Internal::function_args<T>;
+
+	template<typename T>
+	using function_args_type = typename Internal::function_args<T>::type;
 
 }
 
@@ -110,6 +143,41 @@ namespace Shark::Reflection {
 // 
 // For reference see node graph (e.g. ProcessNode.h, MathNodes.h)
 // 
+
+#define REFLECTION_PROXY(_proxy_class) \
+	template<typename T, typename Tag> \
+	struct _proxy_class
+
+#define REFLECTION_PROXY_CONNECT(_proxy_class)						\
+	template<typename T, typename Tag>								\
+		requires requires { _proxy_class<T, Tag>(); }				\
+	struct ::Shark::Reflection_Type<T, Tag> : _proxy_class<T, Tag>	\
+	{};
+
+
+#define REFLECT_TYPE_TAGGED_PROXY(_proxy_class, _class, _tag, ...)																									   \
+	template<>																																						   \
+	struct _proxy_class<_class, _tag> : ::Shark::Reflection::MemberList<__VA_ARGS__>																				   \
+	{																																								   \
+	private:																																						   \
+		static constexpr std::string_view ClassString = #_class;																									   \
+		static constexpr std::string_view MemberString = #__VA_ARGS__;																								   \
+																																									   \
+	public:																																							   \
+		static constexpr std::string_view Namespace = ClassString.substr(0, ClassString.find("::") == std::string_view::npos ? 0 : ClassString.find_last_of(':') - 1); \
+		static constexpr std::string_view Class = ClassString.substr(Namespace.empty() ? 0 : Namespace.size() + 2);													   \
+																																									   \
+		static constexpr std::array<std::string_view, MemberCount> Members = []() -> std::array<std::string_view, MemberCount>										   \
+		{																																							   \
+			auto members = ::Shark::String::SplitString<MemberCount>(MemberString, ",");																			   \
+			for (auto& member : members)																															   \
+			{																																						   \
+				::Shark::String::Trim(member, " ");																													   \
+				member = member.substr(member.find("::") == std::string_view::npos ? 0 : member.find_last_of(':') + 1);												   \
+			}																																						   \
+			return members;																																			   \
+		}();																																						   \
+	}
 
 #define REFLECT_TYPE_TAGGED(_class, _tag, ...)																														   \
 	template<>																																						   \

@@ -1,13 +1,13 @@
 #include "skpch.h"
 #include "Factory.h"
 
+#include "Shark/NodeGraph/Nodes/MathNodes.h"
+#include "Shark/NodeGraph/Nodes/EntityNodes.h"
+#include "Shark/NodeGraph/Nodes/TriggerNodes.h"
+#include "Shark/NodeGraph/Nodes/DebugNodes.h"
+
 #include "NodeGraph/EditorNodes.h"
 #include "NodeGraph/CoreTypes.h"
-
-#include "NodeGraph/Nodes/MathNodes.h"
-#include "NodeGraph/Nodes/EntityNodes.h"
-#include "NodeGraph/Nodes/TriggerNodes.h"
-#include "NodeGraph/Nodes/DebugNodes.h"
 #include "NodeGraph/FactoryHelper.h"
 
 #include <choc/text/choc_StringUtilities.h>

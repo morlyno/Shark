@@ -3,7 +3,7 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Animation/Transform.h"
 
-#include "NodeGraph/PinTypes.h"
+#include "Shark/NodeGraph/PinTypes.h"
 
 namespace Shark::NodeGraph {
 

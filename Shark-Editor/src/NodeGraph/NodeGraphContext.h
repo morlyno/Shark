@@ -2,13 +2,17 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Asset/AssetTypes.h"
-#include "NodeGraph/EditorNodes.h"
-#include "NodeGraph/Properties.h"
+#include "Shark/NodeGraph/Properties.h"
 
+#include <imgui_node_editor.h>
 #include <span>
 
 namespace Shark::NodeGraph::Editor {
 	class AbstractFactory;
+
+	struct Node;
+	struct Link;
+	struct Pin;
 }
 
 namespace Shark::NodeGraph::Editor {
@@ -42,6 +46,11 @@ namespace Shark::NodeGraph::Editor {
 		const Link* FindLink(PinID id) const;
 		const Pin*  FindPin(PinID id) const;
 
+		Node* FindNode(NodeID id);
+		Link* FindLink(LinkID id);
+		Link* FindLink(PinID id);
+		Pin* FindPin(PinID id);
+
 		bool IsPinLinked(const Pin* pin) const;
 		bool IsInputNode(const Node* node, std::string_view propertyName) const;
 
@@ -54,6 +63,9 @@ namespace Shark::NodeGraph::Editor {
 		Node* CreateNode(std::string_view category, std::string_view type);
 		Node* CreateInputNode(std::string_view propertyName);
 		void RemoveNode(NodeID nodeID);
+
+		virtual bool SaveGraphState(const char* data, size_t size) = 0;
+		virtual std::string_view LoadGraphState() = 0;
 
 	public:
 		Properties& GetInputs();

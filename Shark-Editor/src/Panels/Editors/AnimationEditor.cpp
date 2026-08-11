@@ -14,78 +14,41 @@ namespace Shark {
 	{
 	}
 
-	void AnimationEditor::OnImGuiRender(bool& shown, bool& destroy)
+	void AnimationEditor::DrawWindow(bool& showWindow)
 	{
-		if (!shown || !m_Asset)
-			return;
+		auto animation = AssetManager::GetAssetAsync<AnimationAsset>(m_Asset);
 
-		if (m_DockWindow)
+		if (animation)
 		{
-			ImGui::SetNextWindowDockID(m_DockspaceID, ImGuiCond_Always);
-			m_DockWindow = false;
+			UI::BeginControlsGrid();
+			m_AssetDirty |= UI::ControlAsset("Source", AssetType::MeshSource, animation->m_AnimationSource);
+
+			std::span<const std::string> animations;
+			if (auto meshSource = AssetManager::GetAssetAsync<MeshSource>(animation->m_AnimationSource))
+				animations = meshSource->GetAnimationNames();
+
+			m_AssetDirty |= UI::Control("Name", animation->m_Name, animations);
+			UI::EndControlsGrid();
 		}
 
-		ImGuiWindowFlags windowFlags = 0;
+		ImGui::BeginHorizontal(UI::GenerateID(), ImGui::GetContentRegionAvail(), 1.0f);
+
+		ImGui::Spring();
+		if (ImGui::Button("Save"))
+		{
+			Project::GetEditorAssetManager()->SaveAsset(m_Asset);
+			m_AssetDirty = false;
+			// #TODO popup when window closes to save asset
+		}
+
+		ImGui::EndHorizontal();
+	}
+
+	ImGuiWindowFlags AnimationEditor::GetWindowFlags() const
+	{
 		if (m_AssetDirty)
-			windowFlags |= ImGuiWindowFlags_UnsavedDocument;
-
-		if (ImGui::Begin(m_PanelName.c_str(), &shown, windowFlags))
-		{
-			auto animation = AssetManager::GetAssetAsync<AnimationAsset>(m_Asset);
-
-			if (animation)
-			{
-				UI::BeginControlsGrid();
-				if (UI::ControlAsset("Source", AssetType::MeshSource, animation->m_AnimationSource))
-				{
-					animation->m_SkeletonSource = animation->m_AnimationSource;
-					m_AssetDirty = true;
-				}
-
-				UI::ControlAsset("Skeleton", AssetType::MeshSource, std::as_const(animation->m_SkeletonSource));
-
-				std::span<const std::string> animations;
-				if (auto meshSource = AssetManager::GetAssetAsync<MeshSource>(animation->m_AnimationSource))
-					animations = meshSource->GetAnimationNames();
-
-				m_AssetDirty |= UI::Control("Name", animation->m_Name, animations);
-				UI::EndControlsGrid();
-			}
-
-
-			ImGui::BeginHorizontal(UI::GenerateID(), ImGui::GetContentRegionAvail(), 1.0f);
-
-			ImGui::Spring();
-			if (ImGui::Button("Save"))
-			{
-				Project::GetEditorAssetManager()->SaveAsset(m_Asset);
-				m_AssetDirty = false;
-				// #TODO popup when window closes to save asset
-			}
-
-			ImGui::EndHorizontal();
-		}
-		ImGui::End();
-
-		if (!shown)
-			destroy = true;
-	}
-
-	void AnimationEditor::DockWindow(ImGuiID dockspaceID)
-	{
-		m_DockspaceID = dockspaceID;
-		m_DockWindow = true;
-	}
-
-	void AnimationEditor::SetAsset(const AssetMetaData& metadata)
-	{
-		m_Asset = metadata.Handle;
-		AssetManager::LoadAssetAsync(metadata.Handle);
-	}
-
-	AssetHandle AnimationEditor::GetAsset() const
-	{
-		return m_Asset;
+			return ImGuiWindowFlags_UnsavedDocument;
+		return ImGuiWindowRefreshFlags_None;
 	}
 
 }

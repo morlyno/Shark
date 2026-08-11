@@ -39,7 +39,7 @@ namespace Shark {
 		prefabScene->OnRenderEditor(m_SceneRenderer, m_EditorCamera);
 	}
 
-	void PrefabEditorPanel::OnImGuiRender(bool& shown, bool& destroy)
+	void PrefabEditorPanel::OnImGuiRender(bool& showWindow)
 	{
 		if (m_DockWindow)
 			ImGui::SetNextWindowDockID(m_DockSpaceID);
@@ -47,8 +47,7 @@ namespace Shark {
 		if (!m_Prefab)
 			return;
 
-		bool wasShown = shown;
-		if (ImGui::Begin(m_PanelName.c_str(), &shown, ImGuiWindowFlags_MenuBar))
+		if (ImGui::Begin(m_PanelName.c_str(), &showWindow, ImGuiWindowFlags_MenuBar))
 		{
 			if (ImGui::BeginMenuBar())
 			{
@@ -97,7 +96,7 @@ namespace Shark {
 
 				if (ImGui::BeginChild("##PrefabEditor-Hierarchy", ImVec2(0, 0), ImGuiChildFlags_ResizeY))
 				{
-					m_HierarchyPanel->OnImGuiRender(shown);
+					m_HierarchyPanel->OnImGuiRender(showWindow);
 				}
 				ImGui::EndChild();
 				ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImGui::GetStyle().WindowPadding * 0.5f);
@@ -137,9 +136,6 @@ namespace Shark {
 				ImGui::EndTable();
 			}
 		}
-
-		if (wasShown != shown)
-			destroy = true;
 
 		ImGui::End();
 	}
@@ -189,11 +185,6 @@ namespace Shark {
 
 		if (m_UseDefaultSky)
 			prefabScene->SetFallbackEnvironment(m_DefaultEnvironment);
-	}
-
-	AssetHandle PrefabEditorPanel::GetAsset() const
-	{
-		return m_Handle;
 	}
 
 	void PrefabEditorPanel::PrepareForSerialization() const

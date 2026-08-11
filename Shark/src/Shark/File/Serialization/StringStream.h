@@ -21,6 +21,7 @@ namespace Shark {
 
 		auto String() const -> std::string      { return m_Stream.str(); }
 		auto View()   const -> std::string_view { return m_Stream.view(); }
+		auto Extract()      -> std::string      { return std::move(m_Stream).str(); }
 
 		void WriteToDisc(const std::filesystem::path& filepath) const;
 

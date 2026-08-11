@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Shark/Core/Reflection.h"
+#include "Shark/NodeGraph/ProcessNode.h"
 
-#include "NodeGraph/ProcessNode.h"
 #include "NodeGraph/EditorNodes.h"
 
 #include <choc/text/choc_StringUtilities.h>

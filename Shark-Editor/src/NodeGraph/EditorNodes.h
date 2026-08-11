@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Shark/Core/UUID.h"
-#include "NodeGraph/Identifier.h"
+#include "Shark/Core/Identifier.h"
 
 #include <imgui_node_editor.h>
 #include <choc/containers/choc_Value.h>

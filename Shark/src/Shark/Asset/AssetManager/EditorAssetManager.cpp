@@ -4,7 +4,6 @@
 #include "Shark/Core/Project.h"
 #include "Shark/Event/ApplicationEvent.h"
 #include "Shark/Asset/AssetSerializer.h"
-#include "Shark/Asset/AssetUtils.h"
 #include "Shark/Asset/AssetThread/EditorAssetThread.h"
 #include "Shark/Asset/AssetThread/AssetLoadContext.h"
 
@@ -663,7 +662,7 @@ namespace Shark {
 
 	AssetHandle EditorAssetManager::ImportAsset(const std::filesystem::path& filepath)
 	{
-		AssetType type = AssetUtils::GetAssetTypeFromPath(filepath);
+		AssetType type = AssetTypeFromPath(filepath);
 		if (type == AssetType::None)
 			return AssetHandle::Invalid;
 
@@ -756,7 +755,7 @@ namespace Shark {
 			AssetMetaData metadata;
 			metadata.FilePath = filepath;
 			metadata.Handle = handle;
-			metadata.Type = AssetUtils::GetAssetTypeFromPath(filepath);
+			metadata.Type = AssetTypeFromPath(filepath);
 			metadata.IsEditorAsset = true;
 			m_Registry.Add(metadata);
 			WriteImportedAssetsToDisc();
@@ -778,7 +777,7 @@ namespace Shark {
 		AssetMetaData metadata;
 		metadata.FilePath = filepath;
 		metadata.Handle = handle;
-		metadata.Type = AssetUtils::GetAssetTypeFromPath(filepath);
+		metadata.Type = AssetTypeFromPath(filepath);
 		metadata.IsEditorAsset = true;
 		m_Registry.Add(metadata);
 		WriteImportedAssetsToDisc();
@@ -801,7 +800,7 @@ namespace Shark {
 		AssetMetaData metadata;
 		metadata.FilePath = filepath;
 		metadata.Handle = asset->Handle;
-		metadata.Type = AssetUtils::GetAssetTypeFromPath(filepath);
+		metadata.Type = AssetTypeFromPath(filepath);
 		metadata.IsEditorAsset = true;
 		metadata.Status = AssetStatus::Ready;
 		m_Registry.Add(metadata);

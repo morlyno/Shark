@@ -17,7 +17,7 @@ namespace Shark::NodeGraph {
 		//                         should this happen in Process or should the graph call Initialize
 		//                         every frame for all nodes with inputs (maybe only those who actually need it)
 
-		m_Entity = context->GetActiveScene()->TryGetEntityByUUID(UUID::Make(*Entity));
+		m_Entity = context->GetActiveScene()->TryGetEntityByUUID(UUID::Make(*in_Entity));
 		SK_CORE_VERIFY(m_Entity);
 	}
 

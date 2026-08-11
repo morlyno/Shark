@@ -3,9 +3,8 @@
 #include "Shark/Core/Base.h"
 #include "Shark/UI/UICore.h"
 
-#include "Panel.h"
+#include "Panels/AssetEditorPanel.h"
 #include "NodeGraph/EditorNodes.h"
-#include "NodeGraph/Properties.h"
 
 #include <imgui_node_editor.h>
 #include <choc/containers/choc_Value.h>
@@ -41,21 +40,14 @@ namespace Shark::NodeGraph {
 
 namespace Shark::NodeGraph::Editor {
 
-	class NodeGraphEditor : public Panel
+	class NodeGraphEditor : public EditorPanel
 	{
 	public:
-		virtual const char* GetPanelID() const override { return GetStaticID(); }
-		static const char* GetStaticID() { return "NodeGraphEditor"; }
-
-	public:
-		NodeGraphEditor();
+		NodeGraphEditor(const std::string& name, const AssetMetaData& metadata);
 		~NodeGraphEditor();
 
-		virtual bool OnShowPanel() final;
-		virtual bool OnHidePanel() final;
-
 		virtual void OnImGuiRender(bool& isOpen) final;
-		virtual void SetContext(Ref<Scene> context);
+		//virtual void SetContext(Ref<Scene> context);
 
 		void Draw();
 		void DrawCanvas();
@@ -68,9 +60,6 @@ namespace Shark::NodeGraph::Editor {
 
 		Scope<Graph> m_NodeGraph;
 	protected:
-		virtual void OnInitialize() = 0;
-		virtual void OnShutdown() = 0;
-
 		virtual void OnCompileGraph();
 		virtual void OnDrawGraphIO() {};
 

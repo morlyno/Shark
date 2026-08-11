@@ -1,11 +1,11 @@
 #include "skpch.h"
 #include "AnimationFactory.h"
 
+#include "Shark/Animation/Graph/Nodes/AnimationNodes.h"
+
 #include "NodeGraph/EditorNodes.h"
 #include "NodeGraph/FactoryHelper.h"
-
 #include "AnimationGraph/AnimationTypes.h"
-#include "AnimationGraph/Nodes/AnimationNodes.h"
 
 namespace Shark::NodeGraph::Editor {
 

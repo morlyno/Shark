@@ -2,42 +2,21 @@
 #include "MeshSerializers.h"
 
 #include "Shark/Asset/AssetManager.h"
-#include "Shark/Asset/AssetManager/AssetUtilities.h"
 #include "Shark/Render/Mesh.h"
+#include "Shark/Render/MeshSource.h"
+#include "Shark/Animation/Graph/AnimationGraphAsset.h"
 
 #include "Shark/File/FileSystem.h"
 #include "Shark/Serialization/YAML.h"
 #include "Shark/Serialization/SerializationMacros.h"
 #include "Shark/Serialization/Import/AssimpMeshImporter.h"
+#include "Shark/Serialization/SerializerUtilities.h"
 
 #include "Shark/Debug/Profiler.h"
 #include "Shark/File/Serialization/FileStream.h"
 #include "Shark/File/Serialization/StringStream.h"
 
 namespace Shark {
-
-	namespace utils {
-
-		static bool ValidateYamlAssetFile(const std::filesystem::path& filesystemPath, const AssetMetaData& metadata, AssetLoadContext* context, uint64_t threshold = 16 /*any file smaller than <threshold> bytes is invalid*/)
-		{
-			if (!FileSystem::Exists(filesystemPath))
-			{
-				context->OnFileNotFound(metadata);
-				return false;
-			}
-
-			std::error_code error;
-			const auto filesize = std::filesystem::file_size(filesystemPath, error);
-			if (error || filesize < threshold)
-			{
-				context->OnFileEmpty(metadata);
-				return false;
-			}
-
-			return true;
-		}
-
-	}
 
 	///////////////////////////////////////////////////////////////////////////
 	///// Mesh Source /////////////////////////////////////////////////////////
@@ -91,7 +70,7 @@ namespace Shark {
 			return false;
 		}
 
-		const bool success = FileSystem::WriteString(GetAssetFilesystemPath(metadata), result);
+		const bool success = FileSystem::WriteString(Utilities::GetAssetFilesystemPath(metadata), result);
 		return success;
 	}
 
@@ -100,7 +79,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		const auto filesystemPath = context->GetFilesystemPath(metadata);
-		if (!utils::ValidateYamlAssetFile(filesystemPath, metadata, context))
+		if (!Utilities::ValidateYamlAssetFile(filesystemPath, metadata, context))
 			return false;
 
 		std::string filedata = FileSystem::ReadString(filesystemPath);
@@ -188,7 +167,7 @@ namespace Shark {
 			return false;
 		}
 
-		stream.WriteToDisc(GetAssetFilesystemPath(metadata));
+		stream.WriteToDisc(Utilities::GetAssetFilesystemPath(metadata));
 		return true;
 	}
 
@@ -197,7 +176,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		auto filesystemPath = context->GetFilesystemPath(metadata);
-		if (!utils::ValidateYamlAssetFile(filesystemPath, metadata, context))
+		if (!Utilities::ValidateYamlAssetFile(filesystemPath, metadata, context))
 		{
 			context->SetErrorFallback(Ref<AnimationAsset>::Create());
 			return false;
@@ -222,7 +201,6 @@ namespace Shark {
 		out << YAML::Key << "Animation";
 		out << YAML::BeginMap;
 		out << YAML::Key << "AnimationSource" << YAML::Value << animation->m_AnimationSource;
-		out << YAML::Key << "SkeletonSource" << YAML::Value << animation->m_SkeletonSource;
 		out << YAML::Key << "Name" << YAML::Value << animation->m_Name;
 		out << YAML::EndMap;
 		out << YAML::EndMap;
@@ -243,8 +221,86 @@ namespace Shark {
 
 		animation = Ref<AnimationAsset>::Create();
 		YAML::DeserializeProperty(animationNode, "AnimationSource", animation->m_AnimationSource);
-		YAML::DeserializeProperty(animationNode, "SkeletonSource", animation->m_SkeletonSource);
 		YAML::DeserializeProperty(animationNode, "Name", animation->m_Name);
+		return true;
+	}
+
+	bool AnimationGraphSerializer::Serialize(Ref<Asset> asset, const AssetMetaData& metadata)
+	{
+		SK_PROFILE_FUNCTION();
+
+		StringStreamWriter stream;
+
+		if (!SerializeToYAML(asset.As<AnimationGraphAsset>(), &stream))
+		{
+			SK_CORE_ERROR_TAG("Serialization", "Failed to serialize YAML!");
+			return false;
+		}
+
+		stream.WriteToDisc(Utilities::GetAssetFilesystemPath(metadata));
+		return true;
+	}
+
+	bool AnimationGraphSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context)
+	{
+		SK_PROFILE_FUNCTION();
+
+		auto filesystemPath = context->GetFilesystemPath(metadata);
+		if (!Utilities::ValidateYamlAssetFile(filesystemPath, metadata, context))
+		{
+			context->SetErrorFallback(Ref<AnimationGraphAsset>::Create());
+			return false;
+		}
+
+		Ref<AnimationGraphAsset> animationGraph;
+		FileStreamReader stream(filesystemPath);
+
+		if (!DeserializeFromYAML(animationGraph, &stream, context))
+			return false;
+
+		asset = animationGraph;
+		asset->Handle = metadata.Handle;
+		return true;
+	}
+
+	bool AnimationGraphSerializer::SerializeToYAML(Ref<AnimationGraphAsset> animationGraph, StreamWriter* stream)
+	{
+		YAML::Emitter out(stream->GetStream());
+
+		out << YAML::BeginMap;
+		out << YAML::Key << "AnimationGraph";
+		out << YAML::BeginMap;
+		SerializeGraphToYAML(animationGraph, out);
+		out << YAML::EndMap;
+		return true;
+	}
+
+	bool AnimationGraphSerializer::DeserializeFromYAML(Ref<AnimationGraphAsset>& animationGraph, StreamReader* stream, AssetLoadContext* context)
+	{
+		YAML::Node rootNode = YAML::Load(stream->GetStream());
+		if (!rootNode["AnimationGraph"])
+		{
+			context->AddError(AssetLoadError::InvalidYAML, "Root node 'AnimationGraph' is missing");
+			context->SetErrorFallback(Ref<AnimationGraphAsset>::Create());
+			return false;
+		}
+
+		animationGraph = Ref<AnimationGraphAsset>::Create();
+		return DeserializeGraphFromYAML(animationGraph, rootNode["AnimationGraph"], context);
+	}
+
+	bool AnimationGraphSerializer::SerializeGraphToYAML(Ref<AnimationGraphAsset> animationGraph, YAML::Emitter& emitter)
+	{
+		emitter << YAML::Key << "SkeletonMesh" << YAML::Value << animationGraph->GetSkeletonMesh();
+		return true;
+	}
+
+	bool AnimationGraphSerializer::DeserializeGraphFromYAML(Ref<AnimationGraphAsset> animationGraph, const YAML::Node& animationGraphNode, AssetLoadContext* context)
+	{
+		AssetHandle skeletonMesh;
+		YAML::DeserializeProperty(animationGraphNode, "SkeletonMesh", skeletonMesh);
+		animationGraph->SetSkeletonMesh(skeletonMesh);
+
 		return true;
 	}
 

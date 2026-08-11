@@ -29,7 +29,7 @@ namespace Shark {
 		void RemovePanel(const char* panelID);
 		void RemoveAll();
 
-		Ref<Panel> GetPanel(const char* panelID) const;
+		Ref<Panel> GetPanel(const char* panelID, bool showPanel = false);
 		std::span<PanelData> GetPanels(PanelCategory category) { return m_PanelsPerCategory[category]; }
 
 		void ShowPanel(const char* panelID);
@@ -45,7 +45,7 @@ namespace Shark {
 		Ref<TPanel> AddPanel(PanelCategory category, const char* name, bool isDefaultOpen, TArgs&&... args);
 
 		template<typename TPanel>
-		Ref<TPanel> GetPanel() const;
+		Ref<TPanel> GetPanel(bool showPanel = false);
 
 		template<typename TPanel>
 		void ShowPanel();
@@ -95,9 +95,9 @@ namespace Shark {
 	}
 
 	template<typename TPanel>
-	Ref<TPanel> PanelManager::GetPanel() const
+	Ref<TPanel> PanelManager::GetPanel(bool showPanel)
 	{
-		return GetPanel(TPanel::GetStaticID()).As<TPanel>();
+		return GetPanel(TPanel::GetStaticID(), showPanel).As<TPanel>();
 	}
 
 	template<typename TPanel>

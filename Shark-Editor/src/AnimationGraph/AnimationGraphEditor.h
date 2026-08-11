@@ -8,11 +8,8 @@ namespace Shark::NodeGraph::Editor {
 	class AnimationGraphEditor : public NodeGraphEditor
 	{
 	public:
-		AnimationGraphEditor();
+		AnimationGraphEditor(const std::string& name, const AssetMetaData& metadata);
 		~AnimationGraphEditor();
-
-		virtual void OnInitialize() override;
-		virtual void OnShutdown() override;
 
 		virtual void OnCompileGraph() override;
 		virtual void OnDrawGraphIO() override;

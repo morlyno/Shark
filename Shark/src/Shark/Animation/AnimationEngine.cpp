@@ -28,9 +28,8 @@ namespace Shark {
 		auto& entry = m_RegisteredAnimations.emplace_back();
 		entry.EntityID = entity.GetUUID();
 		entry.ActiveAnimation = component.Animation;
-		entry.SkeletonMesh = animation->GetSkeletonSource();
 		entry.Animation = animation->GetAnimationAsync(true);
-		entry.Skeleton = animation->GetSkeletonAsync(true);
+		entry.Skeleton = entry.Animation->GetSkeleton();
 		SK_CORE_VERIFY(entry.Animation && entry.Skeleton);
 		entry.Pose = entry.Animation->AllocatePose();
 		entry.Update = component.Update;
@@ -62,9 +61,8 @@ namespace Shark {
 		auto& entry = m_RegisteredAnimations.emplace_back();
 		entry.EntityID        = targetEntityID;
 		entry.ActiveAnimation = animationHandle;
-		entry.SkeletonMesh    = animation->GetSkeletonSource();
 		entry.Animation       = animation->GetAnimationAsync(true);
-		entry.Skeleton        = animation->GetSkeletonAsync(true);
+		entry.Skeleton        = entry.Animation->GetSkeleton();
 		SK_CORE_VERIFY(entry.Animation && entry.Skeleton);
 		entry.Pose            = entry.Animation->AllocatePose();
 		entry.Update          = true;
@@ -96,7 +94,6 @@ namespace Shark {
 			if (transition.Blend > 1)
 			{
 				target.ActiveAnimation = source.ActiveAnimation;
-				target.SkeletonMesh    = source.SkeletonMesh;
 				target.Animation       = source.Animation;
 				target.Skeleton        = source.Skeleton;
 				target.Pose            = std::move(source.Pose);
@@ -164,12 +161,12 @@ namespace Shark {
 				{
 					case AssetType::MeshSource:
 					{
-						if (entry.SkeletonMesh == handle)
-							entry.Skeleton = nullptr;
-
 						auto animation = AssetManager::GetAsset<AnimationAsset>(entry.ActiveAnimation);
 						if (handle == animation->GetAnimationSource())
+						{
 							entry.Animation = nullptr;
+							entry.Skeleton = nullptr;
+						}
 						break;
 					}
 
@@ -215,7 +212,7 @@ namespace Shark {
 			{
 				auto animation = AssetManager::GetAsset<AnimationAsset>(currentAnimation);
 				entry.Animation = animation->GetAnimationAsync(true);
-				entry.Skeleton = animation->GetSkeletonAsync(true);
+				entry.Skeleton = entry.Animation->GetSkeleton();
 				SK_CORE_VERIFY(entry.Animation);
 				entry.Animation->InitializePose(*entry.Pose);
 				entry.ActiveAnimation = currentAnimation;

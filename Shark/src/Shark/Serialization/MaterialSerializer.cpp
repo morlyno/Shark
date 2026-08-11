@@ -2,12 +2,12 @@
 #include "MaterialSerializer.h"
 
 #include "Shark/Asset/AssetManager.h"
-#include "Shark/Asset/AssetManager/AssetUtilities.h"
 #include "Shark/Render/MaterialAsset.h"
 
 #include "Shark/File/FileSystem.h"
 #include "Shark/Serialization/YAML.h"
 #include "Shark/Serialization/SerializationMacros.h"
+#include "Shark/Serialization/SerializerUtilities.h"
 
 #include "Shark/Debug/Profiler.h"
 
@@ -24,7 +24,7 @@ namespace Shark {
 			return false;
 		}
 
-		const auto filesystemPath = GetAssetFilesystemPath(metadata);
+		const auto filesystemPath = Utilities::GetAssetFilesystemPath(metadata);
 		FileSystem::WriteString(filesystemPath, result);
 
 		return true;

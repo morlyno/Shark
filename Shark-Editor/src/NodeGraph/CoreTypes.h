@@ -2,9 +2,10 @@
 
 #include "Shark/Core/UUID.h"
 #include "Shark/Core/Reflection.h"
+
+#include "Shark/NodeGraph/ProcessNode.h"
+#include "Shark/NodeGraph/PinTypes.h"
 #include "NodeGraph/EditorNodes.h"
-#include "NodeGraph/ProcessNode.h"
-#include "NodeGraph/PinTypes.h"
 
 #include <imgui_node_editor.h>
 #include <choc/containers/choc_Value.h>

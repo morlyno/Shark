@@ -19,23 +19,29 @@ namespace Shark {
 
 	void AssetSerializer::RegisterSerializers()
 	{
-		s_Serializers[AssetType::Scene] = Scope<SceneAssetSerializer>::Create();
-		s_Serializers[AssetType::Texture] = Scope<TextureSerializer>::Create();
-		s_Serializers[AssetType::ScriptFile] = Scope<ScriptFileSerializer>::Create();
-		s_Serializers[AssetType::Font] = Scope<FontSerializer>::Create();
-		s_Serializers[AssetType::MeshSource] = Scope<MeshSourceSerializer>::Create();
-		s_Serializers[AssetType::Mesh] = Scope<MeshSerializer>::Create();
-		s_Serializers[AssetType::Material] = Scope<MaterialSerializer>::Create();
-		s_Serializers[AssetType::Environment] = Scope<EnvironmentSerializer>::Create();
-		s_Serializers[AssetType::Prefab] = Scope<PrefabSerializer>::Create();
-		s_Serializers[AssetType::AudioFile] = Scope<AudioFileSerializer>::Create();
-		s_Serializers[AssetType::SoundConfig] = Scope<SoundConfigSerializer>::Create();
-		s_Serializers[AssetType::Animation] = Scope<AnimationSerializer>::Create();
+		s_Serializers[AssetType::Scene]          = Scope<SceneAssetSerializer>::Create();
+		s_Serializers[AssetType::Texture]        = Scope<TextureSerializer>::Create();
+		s_Serializers[AssetType::ScriptFile]     = Scope<ScriptFileSerializer>::Create();
+		s_Serializers[AssetType::Font]           = Scope<FontSerializer>::Create();
+		s_Serializers[AssetType::MeshSource]     = Scope<MeshSourceSerializer>::Create();
+		s_Serializers[AssetType::Mesh]           = Scope<MeshSerializer>::Create();
+		s_Serializers[AssetType::Material]       = Scope<MaterialSerializer>::Create();
+		s_Serializers[AssetType::Environment]    = Scope<EnvironmentSerializer>::Create();
+		s_Serializers[AssetType::Prefab]         = Scope<PrefabSerializer>::Create();
+		s_Serializers[AssetType::AudioFile]      = Scope<AudioFileSerializer>::Create();
+		s_Serializers[AssetType::SoundConfig]    = Scope<SoundConfigSerializer>::Create();
+		s_Serializers[AssetType::Animation]      = Scope<AnimationSerializer>::Create();
+		s_Serializers[AssetType::AnimationGraph] = Scope<AnimationGraphSerializer>::Create();
 	}
 
 	void AssetSerializer::ReleaseSerializers()
 	{
 		s_Serializers.clear();
+	}
+
+	void AssetSerializer::RegisterSerializer(AssetType assetType, Scope<SerializerBase> serializer)
+	{
+		s_Serializers[assetType] = std::move(serializer);
 	}
 
 	bool AssetSerializer::TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context)

@@ -2,9 +2,8 @@
 
 #include "Shark/Asset/AssetTypes.h"
 
-#include "NodeGraph/ProcessNode.h"
-#include "NodeGraph/PinTypes.h"
-#include "AnimationGraph/PinTypes.h"
+#include "Shark/NodeGraph/ProcessNode.h"
+#include "Shark/NodeGraph/PinTypes.h"
 
 namespace Shark {
 	class Animation;
@@ -40,13 +39,13 @@ namespace Shark::NodeGraph {
 
 	}
 
-}
+	REFLECT_NODE(
+		Nodes::AnimationPlayer,
+		REFLECT_INPUTS(&Nodes::AnimationPlayer::in_Animation,
+					   &Nodes::AnimationPlayer::Loop),
+		REFLECT_OUTPUTS(&Nodes::AnimationPlayer::Pose,
+						&Nodes::AnimationPlayer::OnLoop,
+						&Nodes::AnimationPlayer::OnFinish)
+	);
 
-REFLECT_NODE(
-	Shark::NodeGraph::Nodes::AnimationPlayer,
-	REFLECT_INPUTS(&Shark::NodeGraph::Nodes::AnimationPlayer::in_Animation,
-				   &Shark::NodeGraph::Nodes::AnimationPlayer::Loop),
-	REFLECT_OUTPUTS(&Shark::NodeGraph::Nodes::AnimationPlayer::Pose,
-					&Shark::NodeGraph::Nodes::AnimationPlayer::OnLoop,
-					&Shark::NodeGraph::Nodes::AnimationPlayer::OnFinish)
-);
+}

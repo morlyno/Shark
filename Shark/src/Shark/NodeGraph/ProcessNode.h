@@ -3,9 +3,9 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Core/UUID.h"
 #include "Shark/Core/Reflection.h"
-#include "NodeGraph/Identifier.h"
-#include "NodeGraph/PinTypes.h"
-#include "NodeGraph/NodeContext.h"
+#include "Shark/Core/Identifier.h"
+#include "Shark/NodeGraph/PinTypes.h"
+#include "Shark/NodeGraph/NodeContext.h"
 
 #include <choc/containers/choc_Value.h>
 
@@ -103,22 +103,27 @@ namespace Shark::NodeGraph {
 	template<typename T>
 	struct NodeType;
 
+	REFLECTION_PROXY(NodeReflectionProxy);
+
+}
+
+REFLECTION_PROXY_CONNECT(Shark::NodeGraph::NodeReflectionProxy);
+
 #define REFLECT_INPUTS(...) __VA_ARGS__
 #define REFLECT_OUTPUTS(...) __VA_ARGS__
 #define REFLECT_DEFAULTS(...) __VA_ARGS__
 
-#define REFLECT_NODE(_node, _inputs, _outputs)												\
-	REFLECT_TYPE_TAGGED(_node, ::Shark::NodeGraph::ReflectionInputTag, _inputs);			\
-	REFLECT_TYPE_TAGGED(_node, ::Shark::NodeGraph::ReflectionOutputTag, _outputs);			\
-																							\
-	template<>																				\
-	struct ::Shark::NodeGraph::NodeType<_node>												\
-	{																						\
-		using Inputs = ::Shark::Reflection::Type<_node, ReflectionInputTag>;				\
-		using Outputs = ::Shark::Reflection::Type<_node, ReflectionOutputTag>;				\
+#define REFLECT_NODE(_node, _inputs, _outputs)																	\
+	REFLECT_TYPE_TAGGED_PROXY(NodeReflectionProxy, _node, ::Shark::NodeGraph::ReflectionInputTag, _inputs);		\
+	REFLECT_TYPE_TAGGED_PROXY(NodeReflectionProxy, _node, ::Shark::NodeGraph::ReflectionOutputTag, _outputs);	\
+																												\
+	template<>																									\
+	struct ::Shark::NodeGraph::NodeType<_node>																	\
+	{																											\
+		using Inputs = ::Shark::Reflection::Type<_node, ReflectionInputTag>;									\
+		using Outputs = ::Shark::Reflection::Type<_node, ReflectionOutputTag>;									\
 	};
 
-}
 
 namespace Shark::NodeGraph::Details {
 

@@ -13,11 +13,8 @@ namespace Shark {
 	{
 	}
 
-	void SoundConfigEditor::OnImGuiRender(bool& shown, bool& destroy)
+	void SoundConfigEditor::OnImGuiRender(bool& showWindow)
 	{
-		if (!shown || !m_Asset)
-			return;
-
 		if (m_DockWindow)
 		{
 			ImGui::SetNextWindowDockID(m_DockspaceID, ImGuiCond_Always);
@@ -28,7 +25,7 @@ namespace Shark {
 		if (m_ConfigDirty)
 			windowFlags |= ImGuiWindowFlags_UnsavedDocument;
 
-		if (ImGui::Begin(m_PanelName.c_str(), &shown, windowFlags))
+		if (ImGui::Begin(m_PanelName.c_str(), &showWindow, windowFlags))
 		{
 			auto soundConfig = AssetManager::GetAssetAsync<SoundConfig>(m_Asset);
 
@@ -57,26 +54,12 @@ namespace Shark {
 
 		}
 		ImGui::End();
-
-		if (!shown)
-			destroy = true;
 	}
 
 	void SoundConfigEditor::DockWindow(ImGuiID dockspaceID)
 	{
 		m_DockspaceID = dockspaceID;
 		m_DockWindow = true;
-	}
-
-	void SoundConfigEditor::SetAsset(const AssetMetaData& metadata)
-	{
-		m_Asset = metadata.Handle;
-		AssetManager::LoadAssetAsync(metadata.Handle);
-	}
-
-	AssetHandle SoundConfigEditor::GetAsset() const
-	{
-		return m_Asset;
 	}
 
 }
