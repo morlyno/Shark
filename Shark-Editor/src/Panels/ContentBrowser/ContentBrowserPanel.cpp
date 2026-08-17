@@ -4,6 +4,7 @@
 #include "Shark/Event/ApplicationEvent.h"
 
 #include "Shark/Asset/Assets.h"
+#include "Shark/Animation/Animation.h"
 #include "Shark/Audio/SoundConfig.h"
 #include "Shark/Scene/Prefab.h"
 

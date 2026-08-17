@@ -4,6 +4,8 @@
 #include "Shark/Core/SelectionManager.h"
 #include "Shark/Asset/AssetManager.h"
 #include "Shark/Audio/AudioEngine.h"
+#include "Shark/Animation/Animation.h"
+#include "Shark/Animation/Skeleton.h"
 #include "Shark/Animation/AnimationEngine.h"
 
 #include "Shark/Scene/Entity.h"
@@ -1487,8 +1489,9 @@ namespace Shark {
 			auto& meshComponent = rootEntity.GetComponent<MeshComponent>();
 			//SK_CORE_ASSERT(pose->BoneCount == meshComponent.BoneEntityIDs.size());
 
-			auto count = std::min(pose->BoneCount, meshComponent.BoneEntityIDs.size());
-			for (size_t i = 0; i < count; i++)
+			auto boneTransforms = pose->GetBoneTransforms();
+			auto count = std::min(pose->BoneCount, static_cast<uint32_t>(meshComponent.BoneEntityIDs.size()));
+			for (uint32_t i = 0; i < count; i++)
 			{
 				Entity entity = TryGetEntityByUUID(meshComponent.BoneEntityIDs[i]);
 				if (!entity)
@@ -1498,7 +1501,7 @@ namespace Shark {
 				}
 
 				auto& dest = entity.Transform();
-				const auto& transform = pose->BoneTransforms[i];
+				const auto& transform = boneTransforms[i];
 
 				dest.Translation = transform.Translation;
 				dest.Rotation = glm::eulerAngles(transform.Rotation);

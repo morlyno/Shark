@@ -357,9 +357,15 @@ namespace Shark::UI {
 		});
 	}
 
-	bool UI::Widgets::StringButton(std::string_view selected)
+	bool UI::Widgets::StringButton(std::string_view selected, const ImVec2& argSize)
 	{
-		bool pressed = ImGui::InvisibleButton(selected.data(), { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
+		ImVec2 size = argSize;
+		if (size.x <= 0)
+			size.x = ImGui::CalcItemWidth();
+		if (size.y <= 0)
+			size.y = ImGui::GetFrameHeight();
+
+		bool pressed = ImGui::InvisibleButton(selected.data(), size);
 
 		if ((GImGui->LastItemData.ItemFlags & ImGuiItemFlags_MixedValue) != 0)
 		{
@@ -377,9 +383,9 @@ namespace Shark::UI {
 	{
 		ImVec2 size = args.Size;
 		if (size.x <= 0)
-			size.x = ImGui::GetContentRegionAvail().x;
+			size.x = ImGui::CalcItemWidth();
 		if (size.y <= 0)
-			size.y = ImGui::GetContentRegionAvail().y;
+			size.y = ImGui::GetFrameHeight();
 
 		ImGui::PushID(entityID);
 		const bool pressed = ImGui::InvisibleButton("Button", size);
@@ -412,9 +418,9 @@ namespace Shark::UI {
 	{
 		ImVec2 size = args.Size;
 		if (size.x <= 0)
-			size.x = std::max(ImGui::GetContentRegionAvail().x, 8.0f);
+			size.x = ImGui::CalcItemWidth();
 		if (size.y <= 0)
-			size.y = std::max(ImGui::GetContentRegionAvail().y, 8.0f);
+			size.y = ImGui::GetFrameHeight();
 
 		ImGui::PushID(handle);
 		const bool pressed = ImGui::InvisibleButton("Button", size);
@@ -428,6 +434,7 @@ namespace Shark::UI {
 		else
 		{
 			const auto display = utils::GetDisplayName(handle, args.DisplayName);
+			const auto friendly = and_then(display, &String::GetStem);
 
 			const bool push = !display || args.TextColor.has_value();
 			UI::ScopedColor textColor(ImGuiCol_Text,
@@ -436,8 +443,14 @@ namespace Shark::UI {
 									  args.ErrorTextColor.value_or(Colors::Theme::TextError),
 									  push);
 
-			DrawButton(display.value_or("Invalid"),
+			DrawButton(friendly.value_or("Invalid"),
 					   GetItemRect());
+
+			if (display && ImGui::BeginItemTooltip())
+			{
+				ImGui::Text(*display);
+				ImGui::EndTooltip();
+			}
 		}
 
 		return pressed;
@@ -445,8 +458,14 @@ namespace Shark::UI {
 
 	bool Widgets::ScriptButton(uint64_t& scriptID, const ButtonArgs& args)
 	{
+		ImVec2 size = args.Size;
+		if (size.x <= 0)
+			size.x = ImGui::CalcItemWidth();
+		if (size.y <= 0)
+			size.y = ImGui::GetFrameHeight();
+
 		ImGui::PushID(scriptID);
-		const bool pressed = ImGui::InvisibleButton("Button", { ImGui::GetContentRegionAvail().x, ImGui::GetFrameHeight() });
+		const bool pressed = ImGui::InvisibleButton("Button", size);
 		ImGui::PopID();
 
 		auto& g = *GImGui;

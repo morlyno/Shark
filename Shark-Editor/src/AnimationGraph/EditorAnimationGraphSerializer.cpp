@@ -12,8 +12,11 @@
 #include "Shark/File/Serialization/StringStream.h"
 #include "Shark/Debug/Profiler.h"
 
+#include "Shark/NodeGraph/Prototype.h"
+
 #include "NodeGraph/EditorNodes.h"
 #include "AnimationGraph/EditorAnimationGraphAsset.h"
+#include "AnimationGraph/AnimationGraphContext.h"
 
 #include <choc/containers/choc_Value.h>
 #include <choc/text/choc_JSON.h>
@@ -118,9 +121,6 @@ struct YAML::convert<choc::value::Value>
 {
 	static Node encode(const choc::value::Value& value)
 	{
-		if (!value.isObject())
-			return Node(choc::json::toString(value));
-
 		auto output = value.serialise();
 		return Node(Binary(output.data.data(), output.data.size()));
 	}
@@ -197,6 +197,12 @@ namespace Shark {
 
 		if (!DeserializeFromYAML(animationGraph, &stream, context))
 			return false;
+
+		if (!animationGraph->Prototype)
+		{
+			NodeGraph::Editor::AnimationGraphContext graphContext(animationGraph, false);
+			animationGraph->Prototype = graphContext.CreatePrototype();
+		}
 
 		asset = animationGraph;
 		asset->Handle = metadata.Handle;

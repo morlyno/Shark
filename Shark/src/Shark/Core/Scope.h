@@ -6,6 +6,9 @@ namespace Shark {
 	class Scope
 	{
 	public:
+		using value_type = T;
+
+	public:
 		Scope() = default;
 		Scope(std::nullptr_t) {}
 		Scope(Scope&& other) { m_Instance = other.m_Instance; other.m_Instance = nullptr; }
@@ -37,6 +40,8 @@ namespace Shark {
 		const T* Raw() const { return m_Instance; }
 
 		T* Detach() { return std::exchange(m_Instance, nullptr); }
+
+		template<typename TAs> TAs* ViewAs() const { return static_cast<TAs*>(m_Instance); }
 
 		template<typename... Args>
 		static Scope Create(Args&&... args) { return std::move(Scope(new(typeid(T).name()) T(std::forward<Args>(args)...))); }

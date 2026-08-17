@@ -17,7 +17,12 @@ namespace Shark::NodeGraph::Editor {
 		virtual bool InitializePin(Pin& outPin, int pinType) const override;
 		virtual bool InitializePin(Pin& outPin, const std::type_info& type) const override;
 		virtual bool InitializePin(Pin& outPin, const choc::value::Type& type) const override;
+		virtual choc::value::Type GetTypeFromPinType(int pinType) const override;
 		virtual std::optional<int> GetPinTypeOverride(std::string_view node, std::string_view pin) const override;
+
+		void SetBoneCount(uint32_t boneCount) { m_BoneCount = boneCount; }
+	private:
+		uint32_t m_BoneCount;
 	};
 
 }

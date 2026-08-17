@@ -7,6 +7,17 @@
 
 #include <choc/text/choc_StringUtilities.h>
 
+struct Checker {};
+
+template<typename T>
+T&& operator>>(T&& value, Checker checker) { SK_CORE_ASSERT(!!value); return std::forward<T>(value); }
+
+#if SK_DEBUG
+	#define SK_DEBUG_CHECK >> Checker{}
+#else
+	#define SK_DEBUG_CHECK
+#endif
+
 namespace Shark::NodeGraph::Editor {
 
 	template<typename TFactory>
@@ -37,15 +48,14 @@ namespace Shark::NodeGraph::Editor {
 
 			TList::ForEachTypeIndexed([&]<typename TInput>(size_t index)
 			{
-				std::string_view name = TList::Members[index];
-				if (name.starts_with("in_"))
-					name.remove_prefix(3);
+				auto name = Details::RemovePinPrefix(TList::Members[index]);
+				auto friendlyName = Details::CreateFriendlyPinName(TList::Members[index]);
 
 				Pin& newPin = pins.emplace_back();
-				InitializePin<TList, TInput>(factory, newPin, name);
+				InitializePin<TList, TInput>(factory, newPin, name) SK_DEBUG_CHECK;
 				newPin.ID = UUID::Generate().Value();
 				newPin.NodeID = nodeID.Value();
-				newPin.Name = name;
+				newPin.Name = friendlyName;
 				newPin.Kind = isInput ? ax::NodeEditor::PinKind::Input : ax::NodeEditor::PinKind::Output;
 				newPin.Identifier = name;
 			});
@@ -83,14 +93,11 @@ namespace Shark::NodeGraph::Editor {
 
 
 		template<typename TProcNode>
-		static std::pair<std::string, FactoryEntry> CreateRegistryEntry(TFactory* factory, const NodeSettings& settings = {})
+		static std::pair<std::string, std::function<NodeSpawnerSignature>> CreateRegistryEntry(TFactory* factory, const NodeSettings& settings = {})
 		{
 			return {
 				choc::text::replace(NodeType<TProcNode>::Inputs::Class, "<", " (", ">", ")"),
-				{
-					std::bind_front(FactoryHelper<TFactory>::ConstructNode<TProcNode>, factory, settings),
-					[](UUID id, NodeContext* context) -> ProcessNode* { return new TProcNode(id, context); }
-				}
+				std::bind_front(FactoryHelper<TFactory>::ConstructNode<TProcNode>, factory, settings),
 			};
 		}
 

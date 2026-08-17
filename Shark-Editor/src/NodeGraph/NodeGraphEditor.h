@@ -14,28 +14,14 @@ namespace Shark {
 
 	namespace NodeGraph {
 		struct ProcessNode;
-		class NodeContext;
-		struct NodeContextSpecification;
+		struct NodeContext;
+		class Prototype;
 	}
 
 	namespace NodeGraph::Editor {
 		class NodeGraphContext;
 		class AbstractFactory;
 	}
-}
-
-namespace Shark::NodeGraph {
-
-	class Graph
-	{
-	public:
-		std::vector<ProcessNode*> Nodes;
-
-		std::vector<choc::value::Value> LocalVariables;
-		std::vector<choc::value::ValueView> OutputVariables;
-		std::vector<std::string> DebugOutputNames;
-	};
-
 }
 
 namespace Shark::NodeGraph::Editor {
@@ -55,13 +41,9 @@ namespace Shark::NodeGraph::Editor {
 		void DrawProperty();
 
 	protected:
-		Scope<Graph> CompileGraph(NodeContext* context);
-		void SetupNodeContext(NodeContextSpecification& specification) const;
-
-		Scope<Graph> m_NodeGraph;
-	protected:
-		virtual void OnCompileGraph();
-		virtual void OnDrawGraphIO() {};
+		virtual void OnCompileGraph() {}
+		virtual void OnPlayGraph() {}
+		virtual void OnDrawGraphIO() {}
 
 		void SetGraphContext(Scope<NodeGraphContext> graphContext);
 		NodeGraphContext* GetGraphContext();

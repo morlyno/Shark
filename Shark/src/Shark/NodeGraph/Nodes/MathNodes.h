@@ -77,7 +77,7 @@ namespace Shark::NodeGraph {
 				Details::InitializeInputs(this);
 
 				if (*Seed == 0)
-					*Seed = context->GetSeed();
+					*Seed = context->RandomEngine();
 
 				m_Engine = std::mt19937(*Seed);
 				m_Distribution = Distribution<T>(*Minimum, *Maximum);

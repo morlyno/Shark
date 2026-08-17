@@ -9,64 +9,63 @@
 
 namespace Shark::NodeGraph::Editor {
 
-	template<typename... TProcNodes>
-	static std::pair<std::string, std::map<std::string, FactoryEntry, std::ranges::less>> CreateRegistryCategory(AnimationFactory* factory, std::string category)
+	template<auto TFunc>
+		requires std::same_as<AnimationFactory*, std::tuple_element_t<0, Reflection::function_args_type<decltype(TFunc)>>>
+	auto MakeFunction(AnimationFactory* factory)
 	{
-		return {
-			std::move(category),
-			{
-				FactoryHelper<AnimationFactory>::CreateRegistryEntry<TProcNodes>(factory)...
-			}
-		};
+		return std::bind_front(TFunc, factory);
 	}
 
-	static void Output(std::string_view category, Node& node)
+	template<auto TFunc>
+	auto MakeFunction(AnimationFactory* factory)
+	{
+		return TFunc;
+	}
+
+#define REG_CATEGORY(_name, ...) { _name, { __VA_ARGS__ } }
+#define REG_NODE(_procNode) FactoryHelper<AnimationFactory>::CreateRegistryEntry<_procNode>(this)
+#define REG_FUNC(_func) { #_func, MakeFunction<&_func>(this) }
+
+	static void Output(AnimationFactory* factory, std::string_view category, Node& node)
 	{
 		node = Node("Output", category);
 		node.Settings.CanEditPins = false;
-		node.Inputs.emplace_back("Pose", AnimationTypes::EPinType::Pose, ImColor(255, 190, 100));
+		node.Inputs.emplace_back(factory->ConstructPin("Pose", AnimationTypes::EPinType::Pose));
 		node.Initialize();
 	}
 
 	AnimationFactory::AnimationFactory()
 	{
-		Merge(
-			FactoryRegistry{
-				CreateRegistryCategory<
-					Nodes::AnimationPlayer
-				>(this, "Animation")
-			}
-		);
-
 		Merge({
 			{
-				"Animation",
-				{
-					{ "Output", FactoryEntry(&Output, nullptr) },
-				}
+				REG_CATEGORY(
+					"Animation",
+					REG_NODE(Nodes::AnimationPlayer),
+					REG_FUNC(Output)
+				)
 			}
 		});
 	}
 
 	bool AnimationFactory::InitializePin(Pin& outPin, int pinType) const
 	{
-		if (!AnimationTypes::InitializePin(outPin, pinType))
-			return Base::InitializePin(outPin, pinType);
-		return false;
+		if (AnimationTypes::InitializePin(outPin, pinType))
+			return true;
+		return Base::InitializePin(outPin, pinType);
 	}
 
 	bool AnimationFactory::InitializePin(Pin& outPin, const std::type_info& type) const
 	{
-		if (!AnimationTypes::InitializePin(outPin, type))
-			return Base::InitializePin(outPin, type);
-		return false;
+		if (AnimationTypes::InitializePin(outPin, type))
+			return true;
+		return Base::InitializePin(outPin, type);
 	}
 
 	bool AnimationFactory::InitializePin(Pin& outPin, const choc::value::Type& type) const
 	{
-		if (!AnimationTypes::InitializePin(outPin, type))
-			return Base::InitializePin(outPin, type);
-		return false;
+		if (AnimationTypes::InitializePin(outPin, type))
+			return true;
+		return Base::InitializePin(outPin, type);
 	}
 
 	std::optional<int> AnimationFactory::GetPinTypeOverride(std::string_view node, std::string_view pin) const
@@ -75,6 +74,14 @@ namespace Shark::NodeGraph::Editor {
 			return AnimationTypes::EPinType::Pose;
 
 		return Base::GetPinTypeOverride(node, pin);
+	}
+
+	choc::value::Type AnimationFactory::GetTypeFromPinType(int pinType) const
+	{
+		if (auto type = AnimationTypes::GetType(pinType, m_BoneCount); !type.isVoid())
+			return type;
+
+		return Base::GetTypeFromPinType(pinType);
 	}
 
 }

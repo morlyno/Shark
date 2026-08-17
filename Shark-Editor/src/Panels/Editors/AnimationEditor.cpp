@@ -2,6 +2,8 @@
 #include "AnimationEditor.h"
 
 #include "Shark/Asset/AssetManager.h"
+#include "Shark/Animation/Animation.h"
+#include "Shark/Render/MeshSource.h"
 
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/Controls.h"

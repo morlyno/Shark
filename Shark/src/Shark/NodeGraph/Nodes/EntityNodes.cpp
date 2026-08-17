@@ -13,11 +13,13 @@ namespace Shark::NodeGraph {
 	{
 		Details::InitializeInputs(this);
 
+#if TODO
 		// #Investigate #nodegraph entity needs to be reinitialized when it is an input to the graph.
 		//                         should this happen in Process or should the graph call Initialize
 		//                         every frame for all nodes with inputs (maybe only those who actually need it)
+		m_Entity = context->Scene->TryGetEntityByUUID(UUID::Make(*in_Entity));
+#endif
 
-		m_Entity = context->GetActiveScene()->TryGetEntityByUUID(UUID::Make(*in_Entity));
 		SK_CORE_VERIFY(m_Entity);
 	}
 

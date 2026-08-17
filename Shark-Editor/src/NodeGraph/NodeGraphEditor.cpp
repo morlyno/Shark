@@ -6,6 +6,9 @@
 
 #include "Shark/NodeGraph/ProcessNode.h"
 #include "Shark/NodeGraph/NodeContext.h"
+#include "Shark/NodeGraph/Prototype.h"
+
+#include "Shark/Utils/Utilities.h"
 
 #include "NodeGraph/NodeGraphContext.h"
 #include "NodeGraph/Factory.h"
@@ -163,7 +166,6 @@ namespace Shark::NodeGraph::Editor {
 	NodeGraphEditor::~NodeGraphEditor()
 	{
 		ax::NodeEditor::DestroyEditor(m_EditorContext);
-		m_NodeGraph = nullptr;
 		m_Context = nullptr;
 		m_EditorContext = nullptr;
 	}
@@ -197,31 +199,9 @@ namespace Shark::NodeGraph::Editor {
 				OnCompileGraph();
 			}
 
-			if (ImGui::Button("Run") && m_NodeGraph)
+			if (ImGui::Button("Run"))
 			{
-				for (auto* node : m_NodeGraph->Nodes)
-				{
-					node->Process(TimeStep::FromMilliSeconds(5));
-				}
-
-				SK_CORE_DEBUG("NodeGraph outputs:");
-				for (size_t i = 0; i < m_NodeGraph->OutputVariables.size(); i++)
-				{
-					auto& output = m_NodeGraph->OutputVariables[i];
-					std::string_view name = "<none>";
-
-					if (i < m_NodeGraph->DebugOutputNames.size())
-						name = m_NodeGraph->DebugOutputNames[i];
-
-					if (output.isBool())
-						SK_CORE_DEBUG(" - {} {}", name, output.getBool());
-					else if (output.isInt32())
-						SK_CORE_DEBUG(" - {} {}", name, output.getInt32());
-					else if (output.isFloat32())
-						SK_CORE_DEBUG(" - {} {}", name, output.getFloat32());
-					else
-						SK_CORE_DEBUG(" - {} Unknown type", name);
-				}
+				OnPlayGraph();
 			}
 
 			ImGui::EndHorizontal();
@@ -732,216 +712,6 @@ namespace Shark::NodeGraph::Editor {
 		ImGui::End();
 	}
 
-	Scope<Graph> NodeGraphEditor::CompileGraph(NodeContext* context)
-	{
-		auto nodeGraph = Scope<Graph>::Create();
-
-		struct LoosePin
-		{
-			size_t NodeIndex;
-			Editor::Pin* GraphPin;
-			Identifier Pin;
-		};
-
-		std::vector<LoosePin> loosePins;
-		std::vector<LoosePin> looseOutputPins;
-		std::unordered_map<UUID, std::set<UUID>> dependencies;
-
-		std::unordered_map<const Pin*, choc::value::ValueView> inputVariablePins;
-		std::unordered_map<const Pin*, choc::value::ValueView> outputVariablePins;
-
-		auto& inputProperties = m_Context->GetInputs();
-
-		for (size_t index = 0;
-			auto& editorNode : m_Context->GetNodes())
-		{
-			if (editorNode.Name == "Input")
-			{
-				auto propertyName = editorNode.Outputs[0].Name;
-				if (inputProperties.HasValue(propertyName))
-					inputVariablePins.emplace(&editorNode.Outputs[0], inputProperties.GetValue(propertyName));
-				continue;
-			}
-
-			if (editorNode.Name == "Output")
-			{
-				outputVariablePins.emplace(&editorNode.Inputs[0], choc::value::ValueView{});
-				continue;
-			}
-
-			ProcessNode* process = m_Context->GetFactory()->AllocateProcess(editorNode.Category, editorNode.Name, editorNode.GetID(), context);
-			SK_CORE_VERIFY(process);
-
-			const size_t nodeIndex = index++;
-			//nodeGraph->Nodes.push_back(new Nodes::Add(editorNode.GetID()));
-			nodeGraph->Nodes.push_back(process);
-
-			for (auto& input : editorNode.Inputs)
-				if (!m_Context->IsPinLinked(&input))
-					loosePins.push_back({ nodeIndex, &input, input.Identifier });
-			for (auto& output : editorNode.Outputs)
-				if (!m_Context->IsPinLinked(&output))
-					looseOutputPins.push_back({ nodeIndex, &output, output.Identifier });
-		}
-
-		const auto FindNodeByID = [&nodes = nodeGraph->Nodes](UUID id) -> ProcessNode*
-		{
-			for (auto* node : nodes)
-				if (node->ID == id)
-					return node;
-			return nullptr;
-		};
-
-
-		// connect nodes
-		for (auto& link : m_Context->GetLinks())
-		{
-			auto* startPin = m_Context->FindPin(link.StartPinID);
-			auto* endPin = m_Context->FindPin(link.EndPinID);
-			SK_CORE_ASSERT(startPin && endPin);
-
-			auto startNode = FindNodeByID(startPin->GetNodeID());
-			auto endNode = FindNodeByID(endPin->GetNodeID());
-
-			if (!startNode && inputVariablePins.contains(startPin))
-			{
-				choc::value::ValueView& input = endNode->GetInput(endPin->Identifier);
-				input = inputVariablePins.at(startPin);
-				continue;
-			}
-
-			if (!endNode && outputVariablePins.contains(endPin))
-			{
-				choc::value::ValueView& output = startNode->GetOutput(startPin->Identifier);
-				outputVariablePins.at(endPin) = output;
-				continue;
-			}
-
-			SK_CORE_ASSERT(startNode && endNode);
-
-			if (endNode->IsInputEvent(endPin->Identifier))
-			{
-				ProcessNode::OutputEvent& output = startNode->GetOutputEvent(startPin->Identifier);
-				ProcessNode::InputEvent& input = endNode->GetInputEvent(endPin->Identifier);
-
-				output.AddTarget(input);
-			}
-			else
-			{
-				choc::value::ValueView& output = startNode->GetOutput(startPin->Identifier);
-				choc::value::ValueView& input = endNode->GetInput(endPin->Identifier);
-
-				input = output;
-			}
-
-			auto& inputNodes = dependencies[endPin->GetNodeID()];
-			inputNodes.emplace(startPin->GetNodeID());
-		}
-
-		nodeGraph->LocalVariables.reserve(loosePins.size());
-
-		for (auto& loosePin : loosePins)
-		{
-			auto* node = nodeGraph->Nodes[loosePin.NodeIndex];
-			if (node->IsInputEvent(loosePin.Pin))
-				continue;
-
-			choc::value::ValueView& input = node->GetInput(loosePin.Pin);
-			if (input.getRawData())
-				continue;
-
-			if (loosePin.GraphPin->Value.isVoid())
-				loosePin.GraphPin->Value = choc::value::Value(input.getType());
-
-			input = nodeGraph->LocalVariables.emplace_back(loosePin.GraphPin->Value);
-		}
-
-#if 1
-		for (auto& loosePin : looseOutputPins)
-		{
-			auto* node = nodeGraph->Nodes[loosePin.NodeIndex];
-			if (node->IsOutputEvent(loosePin.Pin))
-				continue;
-
-			nodeGraph->OutputVariables.push_back(node->GetOutput(loosePin.Pin));
-			nodeGraph->DebugOutputNames.push_back(loosePin.GraphPin->Name);
-		}
-#endif
-
-		// sort nodes
-		// this assumes there are no loops in the graph
-
-		const auto graphIsLess = [&dependencies](const ProcessNode* lhs, const ProcessNode* rhs)
-		{
-			const bool lhsHasDeps = dependencies.contains(lhs->ID);
-			const bool rhsHasDeps = dependencies.contains(rhs->ID);
-
-			if (!lhsHasDeps && !rhsHasDeps)
-				return lhs->ID < rhs->ID;
-
-			if (lhsHasDeps != rhsHasDeps)
-				return lhsHasDeps < rhsHasDeps;
-
-			// check if lhs depends on rhs
-			if (dependencies.at(lhs->ID).contains(rhs->ID))
-			{
-				// lhs depends on rhs
-
-				// rhs must be processed first
-				// => rhs is less
-				return false;
-			}
-
-			if (dependencies.at(rhs->ID).contains(lhs->ID))
-			{
-				// rhs depends on lhs
-
-				// lhs must be processed fist
-				// => lhs is less
-				return true;
-			}
-
-			// lhs and rhs don't directly depend on each other
-			// the parent/children might though
-			// do i need to traverse the hole tree here or does sort do that for me?
-			// sort by ID
-
-			//const bool lhsEmpty = dependencies.at(lhs->ID).empty();
-			//const bool rhsEmpty = dependencies.at(rhs->ID).empty();
-			//
-			//if (lhsEmpty != rhsEmpty)
-			//	return lhsEmpty;
-
-			return lhs->ID < rhs->ID;
-		};
-
-		std::ranges::sort(nodeGraph->Nodes, graphIsLess);
-
-		for (auto& node : nodeGraph->Nodes)
-			node->Initialize(context);
-
-		for (auto& editorNode : m_Context->GetNodes())
-		{
-			auto id = editorNode.GetID();
-
-			for (int i = 0; i < nodeGraph->Nodes.size(); i++)
-			{
-				if (nodeGraph->Nodes[i]->ID == id)
-				{
-					editorNode.EvaluationIndex = i;
-					break;
-				}
-			}
-		}
-
-		return nodeGraph;
-	}
-
-	void NodeGraphEditor::SetupNodeContext(NodeContextSpecification& specification) const
-	{
-		specification.ActiveScene = m_Scene;
-	}
-
 	bool NodeGraphEditor::DrawPinValueEdit(Editor::Pin* pin)
 	{
 		bool modified = false;
@@ -1054,15 +824,6 @@ namespace Shark::NodeGraph::Editor {
 	NodeGraphContext* NodeGraphEditor::GetGraphContext()
 	{
 		return m_Context.Raw();
-	}
-
-	void NodeGraphEditor::OnCompileGraph()
-	{
-		NodeContextSpecification specification;
-		SetupNodeContext(specification);
-
-		NodeContext context(specification);
-		m_NodeGraph = CompileGraph(&context);
 	}
 
 }

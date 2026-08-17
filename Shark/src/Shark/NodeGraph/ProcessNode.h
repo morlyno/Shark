@@ -34,15 +34,17 @@ namespace Shark::NodeGraph {
 					(*target)();
 			}
 
-			void AddTarget(InputEvent& target)
+			void AddTarget(const InputEvent& target)
 			{
 				Targets.emplace_back(&target);
 			}
 
-			std::vector<InputEvent*> Targets;
+			std::vector<const InputEvent*> Targets;
 		};
 
 		void AddInput(Identifier id, auto& input)                       { Inputs.try_emplace(id); }
+		void AddInput(Identifier id, choc::value::Value& input)         { Inputs.try_emplace(id, input); }
+		void AddInput(Identifier id, choc::value::ValueView input)      { Inputs.try_emplace(id, input); }
 		void AddOutput(Identifier id, auto& output)                     { Outputs.emplace(id, choc::value::ValueView(CreateType<decltype(output)>(), &output, nullptr)); }
 		void AddOutput(Identifier id, choc::value::Value& output)       { Outputs.emplace(id, output); }
 		void AddOutput(Identifier id, choc::value::ValueView output)    { Outputs.emplace(id, output); }
@@ -50,6 +52,8 @@ namespace Shark::NodeGraph {
 		void AddInputEvent(Identifier id, std::function<void()> target) { InputEvents.emplace(id, std::move(target)); }
 		void AddOutputEvent(Identifier id, OutputEvent& output)         { OutputEvents.emplace(id, output); }
 
+		bool                    IsInput(Identifier id) const       { return Inputs.contains(id); }
+		bool                    IsOutput(Identifier id) const      { return Outputs.contains(id); }
 		bool                    IsInputEvent(Identifier id) const  { return InputEvents.contains(id); }
 		bool                    IsOutputEvent(Identifier id) const { return OutputEvents.contains(id); }
 		choc::value::ValueView& GetInput(Identifier id)            { return Inputs.at(id); }
@@ -134,6 +138,11 @@ namespace Shark::NodeGraph::Details {
 		if (name.starts_with("out_"))
 			name.remove_prefix(4);
 		return name;
+	}
+
+	inline std::string CreateFriendlyPinName(std::string_view name)
+	{
+		return String::SeparateAtUppercase(RemovePinPrefix(name));
 	}
 
 	template<typename T>

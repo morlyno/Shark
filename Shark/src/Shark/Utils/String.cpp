@@ -313,6 +313,37 @@ namespace Shark::String {
 			str = {};
 	}
 
+	size_t FindLastOfAfter(std::string_view source, std::string_view chars, size_t npos)
+	{
+		const size_t offset = source.find_last_of(chars);
+		if (offset != std::string_view::npos && (offset + 1) < source.length())
+			return offset + 1;
+
+		return npos;
+	}
+
+	std::string_view KeepAfterLast(std::string_view source, std::string_view chars)
+	{
+		// as 0 is the desired offset when no chars are found, this is correct because
+		// std::string_view::npos is -1 and -1 + 1 = 0
+		return source.substr(source.find_last_of(chars) + 1);
+	}
+
+	std::string_view KeepBeforLast(std::string_view source, std::string_view chars)
+	{
+		return source.substr(0, source.find_last_of(chars));
+	}
+
+	std::string_view GetFilename(std::string_view source)
+	{
+		return KeepAfterLast(source, "\\/");
+	}
+
+	std::string_view GetStem(std::string_view source)
+	{
+		return KeepBeforLast(GetFilename(source), ".");
+	}
+
 	std::string SplitAtUppercase(std::string str)
 	{
 		size_t i = 0;

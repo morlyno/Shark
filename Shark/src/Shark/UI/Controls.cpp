@@ -330,6 +330,7 @@ namespace Shark::UI {
 	{
 		return Control(label, [&scene, &entityID, &args]()
 		{
+			ImGui::SetNextItemWidth(-1.0f);
 			return Widgets::SelectEntity(scene, entityID, args);
 		});
 	}
@@ -343,6 +344,7 @@ namespace Shark::UI {
 	{
 		return Control(label, [&assetTypes, &assetHandle, &args]()
 		{
+			ImGui::SetNextItemWidth(-1.0f);
 			return Widgets::SelectAsset(assetTypes, assetHandle, args);
 		});
 	}
@@ -351,6 +353,7 @@ namespace Shark::UI {
 	{
 		return Control(label, [&scriptID, &args]()
 		{
+			ImGui::SetNextItemWidth(-1.0f);
 			return Widgets::SelectScript(scriptID, args);
 		});
 	}

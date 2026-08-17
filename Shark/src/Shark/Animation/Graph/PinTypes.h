@@ -1,22 +1,20 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Animation/Transform.h"
+#include "Shark/Animation/Pose.h"
 
 #include "Shark/NodeGraph/PinTypes.h"
 
+#include <span>
+
 namespace Shark::NodeGraph {
+
+	static constexpr int AnimationGraphDomain = BIT(30);
 
 	namespace Types {
 
-		struct IPose
+		struct IPose : public Pose
 		{
-			float Duration;
-			float TimePosition;
-			uint32_t BoneCount;
-
-			Transform* GetBoneTransforms() { return reinterpret_cast<Transform*>(this + 1); }
-			const Transform* GetBoneTransforms() const { return reinterpret_cast<const Transform*>(this + 1); }
 		};
 
 	}
@@ -44,7 +42,9 @@ namespace Shark::NodeGraph {
 
 	inline choc::value::Value CreatePose(uint32_t boneCount)
 	{
-		return choc::value::Value(CreateTypePose(boneCount));
+		auto pose = choc::value::Value(CreateTypePose(boneCount));
+		pose["BoneCount"].set(static_cast<int>(boneCount));
+		return pose;
 	}
 
 }

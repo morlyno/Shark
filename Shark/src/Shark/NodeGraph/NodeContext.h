@@ -1,34 +1,27 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+
 #include <random>
 
+#if TODO
 namespace Shark {
 	class Scene;
 }
+#endif
 
 namespace Shark::NodeGraph {
 
-	struct NodeContextSpecification
+	struct NodeContext
 	{
-		Ref<Scene> ActiveScene;
-		std::optional<uint32_t> RandomSeed;
-	};
+		int Domain = 0;
 
-	class NodeContext
-	{
-	public:
-		NodeContext(const NodeContextSpecification& specification);
+		std::mt19937 RandomEngine;
+		uint32_t Seed = std::mt19937::default_seed;
 
-		Ref<Scene>          GetActiveScene() const;
-		std::random_device& GetRandomDevice();
-		virtual uint32_t    GetSeed();
-
-	private:
-		Ref<Scene> m_Scene;
-		std::random_device m_RandomDevice;
-
-		uint32_t m_Seed;
+#if TODO
+		Ref<Scene> Scene;
+#endif
 	};
 
 }

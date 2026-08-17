@@ -2,6 +2,8 @@
 #include "AnimationGraphContext.h"
 
 #include "Shark/Core/Project.h"
+#include "Shark/Asset/AssetManager.h"
+#include "Shark/Animation/Skeleton.h"
 
 #include "NodeGraph/EditorNodes.h"
 #include "AnimationGraph/EditorAnimationGraphAsset.h"
@@ -9,8 +11,8 @@
 
 namespace Shark::NodeGraph::Editor {
 
-	AnimationGraphContext::AnimationGraphContext(Ref<EditorAnimationGraphAsset> animationGraph)
-		: m_AnimationGraph(animationGraph), m_Factory(Scope<AnimationFactory>::Create())
+	AnimationGraphContext::AnimationGraphContext(Ref<EditorAnimationGraphAsset> animationGraph, bool initialize)
+		: m_AnimationGraph(animationGraph), m_Factory(initialize ? Scope<AnimationFactory>::Create() : nullptr)
 	{
 	}
 
@@ -20,7 +22,18 @@ namespace Shark::NodeGraph::Editor {
 
 	void AnimationGraphContext::SetSkeleton(AssetHandle skeletonSource)
 	{
+		// #TODO #animation #investigate skeleton asset
+		auto mesh = AssetManager::GetAsset<MeshSource>(skeletonSource);
+		if (!mesh->HasSkeleton())
+			return;
+
 		m_AnimationGraph->SetSkeletonMesh(skeletonSource);
+
+		if (m_Factory)
+		{
+			auto& skeleton = mesh->GetSkeleton();
+			m_Factory.ViewAs<AnimationFactory>()->SetBoneCount(skeleton.GetBoneCount());
+		}
 	}
 
 	AssetHandle AnimationGraphContext::GetSkeleton() const
@@ -43,6 +56,11 @@ namespace Shark::NodeGraph::Editor {
 	void AnimationGraphContext::SaveGraph() const
 	{
 		Project::GetEditorAssetManager()->SaveAsset(m_AnimationGraph->Handle);
+	}
+
+	Ref<EditorAnimationGraphAsset> AnimationGraphContext::GetGraphAsset()
+	{
+		return m_AnimationGraph;
 	}
 
 	std::vector<Node>& AnimationGraphContext::GetNodesInternal()

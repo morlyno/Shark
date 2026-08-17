@@ -56,6 +56,9 @@ namespace Shark {
 	class Ref
 	{
 	public:
+		using value_type = T;
+
+	public:
 		Ref() = default;
 		Ref(std::nullptr_t) {};
 		Ref(const Ref& other)

@@ -12,7 +12,7 @@ namespace Shark::NodeGraph::Editor {
 	{
 		enum EPinType : int
 		{
-			Domain = BIT(30),
+			Domain = AnimationGraphDomain,
 			Pose,
 		};
 
@@ -65,6 +65,16 @@ namespace Shark::NodeGraph::Editor {
 				return InitializePin(pin, EPinType::Pose);
 
 			return false;
+		}
+
+		static choc::value::Type GetType(int pinType, uint32_t boneCount)
+		{
+			switch (pinType)
+			{
+				case Pose: return CreateTypePose(boneCount);
+			}
+
+			return {};
 		}
 
 	};

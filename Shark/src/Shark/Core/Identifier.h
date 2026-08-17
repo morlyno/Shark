@@ -22,6 +22,8 @@ namespace Shark {
 		std::string_view DebugID;
 
 		constexpr bool operator==(const Identifier& other) const { return ID == other.ID; }
+
+		static constexpr Identifier Make(std::string_view id, bool assignDebugID) { Identifier result; result.ID = Hash::ConstexprHash(id); if (assignDebugID) result.DebugID = id; return result; }
 	};
 
 }

@@ -3,14 +3,15 @@
 
 #include "Shark/Asset/AssetManager.h"
 #include "Shark/Animation/Animation.h"
+#include "Shark/Animation/Skeleton.h"
 
 #include "Shark/Animation/Graph/AnimationNodeContext.h"
 #include "Shark/Animation/Graph/PinTypes.h"
 
 namespace Shark::NodeGraph {
 
-	Nodes::AnimationPlayer::AnimationPlayer(UUID id, NodeContext* context)
-		: ProcessNode(id), Pose(CreateTypePose(static_cast<AnimationNodeContext*>(context)->GetBoneCount()))
+	Nodes::AnimationPlayer::AnimationPlayer(UUID id, AnimationNodeContext* context)
+		: ProcessNode(id), out_Pose(CreatePose(context->BoneCount))
 	{
 		Details::RegisterVariables(this);
 	}
@@ -30,6 +31,9 @@ namespace Shark::NodeGraph {
 			m_TimePosition = 0.0f;
 			m_ActiveAnimation = AssetHandle::Make(*in_Animation);
 			m_Finished = false;
+
+			auto* pose = static_cast<Pose*>(out_Pose.getRawData());
+			pose->Duration = m_Animation->GetDuration();
 		}
 
 		if (m_Animation && !m_Finished)
@@ -56,8 +60,8 @@ namespace Shark::NodeGraph {
 			const size_t startIndex = sampleIndex;
 			const size_t endIndex = *Loop ? (sampleIndex + 1) % m_Animation->GetFrameCount() : std::min(sampleIndex + 1, m_Animation->GetFrameCount() - 1);
 
-			auto* pose = static_cast<Types::IPose*>(Pose.getRawData());
-			auto* boneTransforms = pose->GetBoneTransforms();
+			auto* pose = static_cast<Pose*>(out_Pose.getRawData());
+			auto boneTransforms = pose->GetBoneTransforms();
 
 			const auto& channels = m_Animation->GetChannels();
 			for (size_t i = 0; i < channels.size(); i++)

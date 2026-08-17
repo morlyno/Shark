@@ -13,7 +13,7 @@ namespace Shark::NodeGraph {
 		return m_Properties.size();
 	}
 
-	bool Properties::HasValue(std::string_view name)
+	bool Properties::HasValue(std::string_view name) const
 	{
 		for (auto& property : m_Properties)
 			if (property.Name == name)

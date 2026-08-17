@@ -14,19 +14,6 @@
 
 namespace Shark::NodeGraph::Editor {
 
-	ProcessNode* AbstractFactory::AllocateProcess(std::string_view category, std::string_view type, UUID id, NodeContext* context) const
-	{
-		const auto cat = m_Registry.find(category);
-		if (cat == m_Registry.end())
-			return nullptr;
-
-		const auto entry = cat->second.find(type);
-		if (entry == cat->second.end())
-			return nullptr;
-
-		return entry->second.ProcessAllocator(id, context);
-	}
-
 	bool AbstractFactory::SpawnNode(std::string_view category, std::string_view type, Node& outNode) const
 	{
 		const auto cat = m_Registry.find(category);
@@ -35,7 +22,7 @@ namespace Shark::NodeGraph::Editor {
 			const auto entry = cat->second.find(type);
 			if (entry != cat->second.end())
 			{
-				entry->second.Spawner(category, outNode);
+				entry->second(category, outNode);
 				return true;
 			}
 		}
@@ -52,15 +39,24 @@ namespace Shark::NodeGraph::Editor {
 		SK_CORE_VERIFY(registry.empty() || std::ranges::all_of(registry, [](auto& entry) { return entry.second.empty(); }));
 	}
 
+	Pin AbstractFactory::ConstructPin(std::string_view name, int pinType) const
+	{
+		std::string_view prefixlessName = Details::RemovePinPrefix(name);
+		std::string friendlyName = Details::CreateFriendlyPinName(name);
+
+		Pin pin;
+		InitializePin(pin, pinType);
+		pin.Name = friendlyName;
+		pin.Identifier = prefixlessName;
+		return pin;
+	}
+
 	template<typename TProcNode>
-	static std::pair<std::string, FactoryEntry> CreateRegistryEntry(CoreFactory* factory, const NodeSettings& settings = {})
+	static std::pair<std::string, std::function<NodeSpawnerSignature>> CreateRegistryEntry(CoreFactory* factory, const NodeSettings& settings = {})
 	{
 		return {
 			choc::text::replace(NodeType<TProcNode>::Inputs::Class, "<", " (", ">", ")"),
-			{
-				std::bind_front(FactoryHelper<CoreFactory>::ConstructNode<TProcNode>, factory, settings),
-				[](UUID id, NodeContext* context) -> ProcessNode* { return new TProcNode(id, context); }
-			}
+			std::bind_front(FactoryHelper<CoreFactory>::ConstructNode<TProcNode>, factory, settings),
 		};
 	}
 
@@ -126,6 +122,11 @@ namespace Shark::NodeGraph::Editor {
 	bool CoreFactory::InitializePin(Pin& outPin, const choc::value::Type& type) const
 	{
 		return CoreTypes::InitializePin(outPin, type);
+	}
+
+	choc::value::Type CoreFactory::GetTypeFromPinType(int pinType) const
+	{
+		return CoreTypes::GetType(pinType);
 	}
 
 	std::optional<int> CoreFactory::GetPinTypeOverride(std::string_view node, std::string_view pin) const

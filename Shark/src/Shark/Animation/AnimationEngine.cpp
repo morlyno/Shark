@@ -112,10 +112,13 @@ namespace Shark {
 				continue;
 			}
 
+			auto targetBoneTransforms = target.Pose->GetBoneTransforms();
+			auto sourceBoneTransforms = source.Pose->GetBoneTransforms();
+
 			for (size_t i = 0; i < target.Pose->BoneCount; i++)
 			{
-				auto& transform = target.Pose->BoneTransforms[i];
-				auto& blendSource = source.Pose->BoneTransforms[i];
+				auto& transform = targetBoneTransforms[i];
+				auto& blendSource = sourceBoneTransforms[i];
 
 				transform.Translation = glm::mix(transform.Translation, blendSource.Translation, transition.Blend);
 				transform.Rotation = glm::slerp(transform.Rotation, blendSource.Rotation, transition.Blend);
@@ -291,6 +294,7 @@ namespace Shark {
 			(index + 1) % entry.Animation->GetFrameCount() :
 			std::min(index + 1, entry.Animation->GetFrameCount() - 1);
 
+		auto boneTransforms = entry.Pose->GetBoneTransforms();
 		const auto& channels = entry.Animation->GetChannels();
 		for (size_t i = 0; i < channels.size(); i++)
 		{
@@ -301,7 +305,7 @@ namespace Shark {
 			// Spherical linear interpolation for quaternions because mix/lerp is oriented
 			const auto mixQuat = [t, startIndex, endIndex](const auto& frames) { return glm::slerp(frames[startIndex].Value, frames[endIndex].Value, t); };
 
-			auto& transform = entry.Pose->BoneTransforms[i];
+			auto& transform = boneTransforms[i];
 			transform.Translation = mix(channel.Translations);
 			transform.Rotation = mixQuat(channel.Rotations);
 			transform.Scale = mix(channel.Scales);

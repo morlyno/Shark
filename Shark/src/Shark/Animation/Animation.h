@@ -2,7 +2,7 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Asset/Asset.h"
-#include "Shark/Animation/Transform.h"
+#include "Shark/Animation/Pose.h"
 
 namespace Shark {
 	class Skeleton;
@@ -26,15 +26,6 @@ namespace Shark {
 		size_t Index;
 	};
 
-	struct Pose
-	{
-		float Duration = 0.0f;
-		float TimePosition = 0.0f;
-		size_t BoneCount = 0;
-
-		std::vector<Transform> BoneTransforms;
-	};
-
 	class Animation
 	{
 	public:
@@ -44,8 +35,8 @@ namespace Shark {
 		size_t GetFrameCount() const { return m_Channels.front().Translations.size(); }
 		const auto* GetSkeleton() const { return m_Skeleton; }
 		const auto& GetChannels() const { return m_Channels; }
-		Pose* AllocatePose() const;
-		void InitializePose(Pose& pose) const;
+		Scope<Pose> AllocatePose() const;
+		void InitializePose(Pose& pose, bool setIdentity = true) const;
 
 	private:
 		const Skeleton* m_Skeleton = nullptr;

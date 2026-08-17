@@ -50,6 +50,7 @@ namespace Shark::NodeGraph {
 
 	}
 
+	inline choc::value::Type CreateTypeFlow()                         { return choc::value::Type::createObject("Flow"); }
 	inline choc::value::Type CreateTypeEntityID()                     { return TypeUtils::createObject("EntityID", "ID", choc::value::Type::createInt64()); }
 	inline choc::value::Type CreateTypeAssetHandle()                  { return TypeUtils::createObject("AssetHandle", "Handle", choc::value::Type::createInt64()); }
 	inline choc::value::Type CreateTypeVec3()                         { return choc::value::Type::createVectorInt32(3); }
@@ -63,7 +64,8 @@ namespace Shark::NodeGraph {
 	{
 		using TRaw = std::remove_cvref_t<std::remove_pointer_t<std::decay_t<T>>>;
 
-		if      constexpr (std::same_as<TRaw, Types::EntityID>)    return CreateTypeEntityID();
+		if      constexpr (std::same_as<TRaw, Types::Flow>)        return CreateTypeFlow();
+		else if constexpr (std::same_as<TRaw, Types::EntityID>)    return CreateTypeEntityID();
 		else if constexpr (std::same_as<TRaw, Types::AssetHandle>) return CreateTypeAssetHandle();
 		else if constexpr (std::same_as<TRaw, glm::vec3>)          return CreateTypeVec3();
 

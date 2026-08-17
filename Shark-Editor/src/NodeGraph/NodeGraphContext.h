@@ -7,6 +7,10 @@
 #include <imgui_node_editor.h>
 #include <span>
 
+namespace Shark::NodeGraph {
+	class Prototype;
+}
+
 namespace Shark::NodeGraph::Editor {
 	class AbstractFactory;
 
@@ -34,6 +38,9 @@ namespace Shark::NodeGraph::Editor {
 		using PinID = ax::NodeEditor::PinId;
 		using NodeID = ax::NodeEditor::NodeId;
 		using LinkID = ax::NodeEditor::LinkId;
+
+	public:
+		virtual Scope<Prototype> CreatePrototype();
 
 	public:
 		std::span<Node>       GetNodes();

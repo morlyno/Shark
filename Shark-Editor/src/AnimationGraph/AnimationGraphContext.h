@@ -14,7 +14,7 @@ namespace Shark::NodeGraph::Editor {
 	class AnimationGraphContext : public NodeGraphContext
 	{
 	public:
-		AnimationGraphContext(Ref<EditorAnimationGraphAsset> animationGraph);
+		AnimationGraphContext(Ref<EditorAnimationGraphAsset> animationGraph, bool initialize = true);
 		~AnimationGraphContext();
 
 		virtual std::span<const std::string> GetInputTypes() const override { return m_InputTypes; }
@@ -25,7 +25,10 @@ namespace Shark::NodeGraph::Editor {
 
 		virtual bool SaveGraphState(const char* data, size_t size) override;
 		virtual std::string_view LoadGraphState() override;
+
 		void SaveGraph() const;
+		Ref<EditorAnimationGraphAsset> GetGraphAsset();
+
 
 	protected:
 		virtual       std::vector<Node>& GetNodesInternal()       override;

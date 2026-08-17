@@ -121,6 +121,22 @@ namespace Shark::NodeGraph::Editor {
 			return false;
 		}
 
+		static choc::value::Type GetType(int pinType)
+		{
+			switch (pinType)
+			{
+				case Flow:        return CreateTypeFlow();
+				case Bool:        return choc::value::Type::createBool();
+				case Int:         return choc::value::Type::createInt32();
+				case Float:       return choc::value::Type::createFloat32();
+				case Vec3:        return CreateTypeVec3();
+				case EntityID:    return CreateTypeEntityID();
+				case AssetHandle: return CreateTypeAssetHandle();
+			}
+
+			return {};
+		}
+
 	};
 
 

@@ -8,6 +8,9 @@
 namespace Shark {
 	class Animation;
 	class Skeleton;
+	namespace NodeGraph {
+		struct AnimationNodeContext;
+	}
 }
 
 namespace Shark::NodeGraph {
@@ -21,10 +24,10 @@ namespace Shark::NodeGraph {
 
 			OutputEvent OnLoop;
 			OutputEvent OnFinish;
-			choc::value::Value Pose;
+			choc::value::Value out_Pose;
 
 		public:
-			AnimationPlayer(UUID id, NodeContext* context);
+			AnimationPlayer(UUID id, AnimationNodeContext* context);
 			virtual void Initialize(NodeContext* context) override;
 			virtual void Process(float ts) override;
 
@@ -43,7 +46,7 @@ namespace Shark::NodeGraph {
 		Nodes::AnimationPlayer,
 		REFLECT_INPUTS(&Nodes::AnimationPlayer::in_Animation,
 					   &Nodes::AnimationPlayer::Loop),
-		REFLECT_OUTPUTS(&Nodes::AnimationPlayer::Pose,
+		REFLECT_OUTPUTS(&Nodes::AnimationPlayer::out_Pose,
 						&Nodes::AnimationPlayer::OnLoop,
 						&Nodes::AnimationPlayer::OnFinish)
 	);

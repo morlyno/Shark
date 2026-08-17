@@ -64,7 +64,7 @@ namespace Shark::UI {
 		bool SearchEntityPopup(Ref<Scene> scene, UUID& entityID, ImGuiID customID = 0);
 		bool SearchScriptPopup(uint64_t& scriptID);
 
-		bool StringButton(std::string_view selected);
+		bool StringButton(std::string_view selected, const ImVec2& size = {});
 		bool EntityButton(Ref<Scene> scene, UUID entityID, const ButtonArgs& args = {});
 		bool AssetButton(AssetHandle handle, const ButtonArgs& args = {});
 		bool ScriptButton(uint64_t& scriptID, const ButtonArgs& args = {});

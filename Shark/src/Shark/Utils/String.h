@@ -60,6 +60,22 @@ namespace Shark::String {
 	void StripBack(std::wstring_view& str, std::wstring_view chars);
 	void StripFront(std::wstring_view& str, std::wstring_view chars);
 
+	size_t FindLastOfAfter(std::string_view source, std::string_view chars, size_t npos);
+
+	std::string_view KeepAfterLast(std::string_view source, std::string_view chars);
+	std::string_view KeepBeforLast(std::string_view source, std::string_view chars);
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	//// Path Utilities ////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	std::string_view GetFilename(std::string_view source);
+	std::string_view GetStem(std::string_view source);
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+
 	std::string SplitAtUppercase(std::string str);
 
 	std::string BytesToString(uint64_t bytes);
@@ -106,6 +122,41 @@ namespace Shark::String {
 		}
 
 		return tokens;
+	}
+
+	constexpr size_t IsUppercase(char chr)
+	{
+		return chr >= 'A' && chr <= 'Z';
+	}
+
+	constexpr size_t CountUppercase(std::string_view source, bool ignoreFirst = false)
+	{
+		size_t count = 0;
+		for (size_t i = ignoreFirst ? 1 : 0; i < source.length(); i++)
+			if (IsUppercase(source[i]))
+				++count;
+		return count;
+	}
+
+	inline std::string SeparateAtUppercase(std::string_view source)
+	{
+		if (source.empty())
+			return {};
+
+		std::string result;
+		result.reserve(source.length() + CountUppercase(source, true));
+		result.push_back(source.front());
+
+		size_t i = 1;
+		while (i < source.length())
+		{
+			if (IsUppercase(source[i]))
+				result.push_back(' ');
+
+			result.push_back(source[i++]);
+		}
+
+		return result;
 	}
 
 }

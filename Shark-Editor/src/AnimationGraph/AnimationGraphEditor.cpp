@@ -5,8 +5,9 @@
 #include "Shark/Render/MeshSource.h"
 #include "Shark/UI/Widgets.h"
 
-#include "Shark/Animation/Graph/AnimationNodeContext.h"
+#include "Shark/Animation/Graph/AnimationGraph.h"
 
+#include "Shark/NodeGraph/Prototype.h"
 #include "AnimationGraph/AnimationGraphContext.h"
 #include "AnimationGraph/EditorAnimationGraphAsset.h"
 
@@ -26,19 +27,29 @@ namespace Shark::NodeGraph::Editor {
 	void AnimationGraphEditor::OnCompileGraph()
 	{
 		auto* graphContext = static_cast<AnimationGraphContext*>(GetGraphContext());
+		auto graphAsset = graphContext->GetGraphAsset();
 
-		auto meshSource = AssetManager::GetAsset<MeshSource>(graphContext->GetSkeleton());
-		const Skeleton* skeleton = &meshSource->GetSkeleton();
-
-		AnimationContextSpecification specification;
-		SetupNodeContext(specification);
-		specification.BoneCount = static_cast<uint32_t>(skeleton->GetBoneCount());
-		specification.Skeleton = skeleton;
-
-		AnimationNodeContext context(specification);
-		m_NodeGraph = CompileGraph(&context);
-
+		graphAsset->Prototype = graphContext->CreatePrototype();
+		m_AnimationGraph = nullptr;
 		graphContext->SaveGraph();
+	}
+
+	void AnimationGraphEditor::OnPlayGraph()
+	{
+		if (!m_AnimationGraph)
+		{
+			auto* graphContext = static_cast<AnimationGraphContext*>(GetGraphContext());
+			auto graphAsset = graphContext->GetGraphAsset();
+
+			if (!graphAsset->Prototype)
+				return;
+
+			m_AnimationGraph = graphAsset->CreateGraph();
+
+			m_AnimationGraph->InitializeGraph();
+		}
+
+		m_AnimationGraph->Process(1.0f / 60.0f);
 	}
 
 	void AnimationGraphEditor::OnDrawGraphIO()

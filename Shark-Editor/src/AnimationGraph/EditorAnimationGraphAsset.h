@@ -31,7 +31,7 @@ namespace Shark {
 		NodeGraph::Properties& GetProperties();
 		const NodeGraph::Properties& GetProperties() const;
 
-		      std::string& GetGraphState()       { return m_GraphState; };
+		std::string& GetGraphState()             { return m_GraphState; };
 		const std::string& GetGraphState() const { return m_GraphState; };
 
 	private:

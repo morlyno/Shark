@@ -18,7 +18,7 @@ namespace Shark::NodeGraph {
 		bool IsEmpty() const;
 		size_t Size() const;
 
-		bool HasValue(std::string_view name);
+		bool HasValue(std::string_view name) const;
 		void Remove(std::string_view name);
 
 		choc::value::ValueView GetValue(std::string_view name) const;

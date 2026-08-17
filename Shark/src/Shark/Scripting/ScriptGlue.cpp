@@ -10,6 +10,7 @@
 #include "Shark/Audio/SoundConfig.h"
 #include "Shark/Audio/Sound.h"
 
+#include "Shark/Animation/Animation.h"
 #include "Shark/Animation/AnimationEngine.h"
 
 #include "Shark/Scene/Scene.h"

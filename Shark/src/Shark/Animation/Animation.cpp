@@ -2,6 +2,7 @@
 #include "Animation.h"
 
 #include "Shark/Asset/AssetManager.h"
+#include "Shark/Animation/Skeleton.h"
 #include "Shark/Render/MeshSource.h"
 
 namespace Shark {
@@ -11,19 +12,23 @@ namespace Shark {
 	{
 	}
 
-	Pose* Animation::AllocatePose() const
+	Scope<Pose> Animation::AllocatePose() const
 	{
-		auto pose = sknew Pose();
+		auto pose = Pose::Allocate(m_Skeleton->GetBoneCount());
 		InitializePose(*pose);
 		return pose;
 	}
 
-	void Animation::InitializePose(Pose& pose) const
+	void Animation::InitializePose(Pose& pose, bool setIdentity) const
 	{
+		SK_CORE_VERIFY(pose.BoneCount == m_Skeleton->GetBoneCount());
 		pose.Duration = m_Duration;
 		pose.TimePosition = 0.0f;
-		pose.BoneCount = m_Skeleton->GetBoneCount();
-		pose.BoneTransforms.resize(pose.BoneCount, Transform::Identity());
+		//pose.BoneCount = m_Skeleton->GetBoneCount();
+		if (setIdentity)
+		{
+			std::ranges::fill(pose.GetBoneTransforms(), Transform::Identity());
+		}
 	}
 
 	const Animation* AnimationAsset::GetAnimationAsync(bool wait) const

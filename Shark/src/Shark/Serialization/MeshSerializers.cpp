@@ -4,6 +4,7 @@
 #include "Shark/Asset/AssetManager.h"
 #include "Shark/Render/Mesh.h"
 #include "Shark/Render/MeshSource.h"
+#include "Shark/Animation/Animation.h"
 #include "Shark/Animation/Graph/AnimationGraphAsset.h"
 
 #include "Shark/File/FileSystem.h"

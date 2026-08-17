@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "NodeGraphContext.h"
 
+#include "Shark/NodeGraph/Prototype.h"
+
 #include "NodeGraph/EditorNodes.h"
 #include "NodeGraph/Factory.h"
 
@@ -13,6 +15,157 @@ namespace Shark::NodeGraph::Editor {
 			return UUID::Generate().Value();
 		}
 
+	}
+
+	Scope<Prototype> NodeGraphContext::CreatePrototype()
+	{
+		auto prototype = Scope<Prototype>::Create();
+
+		std::unordered_map<UUID, std::set<UUID>> dependencies;
+
+		std::vector<const Pin*> inputPins;
+		std::vector<const Pin*> outputPins;
+
+		auto& inputProperties = GetInputs();
+
+		for (size_t index = 0;
+			 auto& editorNode : GetNodes())
+		{
+			if (editorNode.Name == "Input")
+			{
+				auto& pin = editorNode.Outputs[0];
+				SK_CORE_VERIFY(inputProperties.HasValue(pin.Name));
+				inputPins.push_back(&pin);
+
+				prototype->Inputs.push_back({ pin.Identifier, choc::value::Value(inputProperties.GetValue(pin.Name)) });
+				continue;
+			}
+
+			if (editorNode.Name == "Output")
+			{
+				auto& pin = editorNode.Inputs[0];
+				outputPins.push_back(&pin);
+				prototype->Outputs.push_back({ pin.Identifier, pin.Value });
+				continue;
+			}
+
+			auto& node = prototype->Nodes.emplace_back(
+				Prototype::Node{
+					.ID = editorNode.GetID(),
+					.TypeID = Identifier::Make(editorNode.Name, true)
+				}
+			);
+
+			const size_t nodeIndex = index++;
+
+			for (auto& input : editorNode.Inputs)
+			{
+				if (IsPinLinked(&input))
+					continue;
+
+				if (input.Value.isVoid())
+					input.Value = choc::value::Value(GetFactory()->GetTypeFromPinType(input.PinType));
+
+				node.DefaultValues.push_back(
+					{
+						.ID = input.Identifier,
+						.Value = input.Value
+					}
+				);
+			}
+		}
+
+		// add connections
+		for (auto& link : GetLinks())
+		{
+			auto* startPin = FindPin(link.StartPinID);
+			auto* endPin = FindPin(link.EndPinID);
+			SK_CORE_ASSERT(startPin && endPin);
+
+			Prototype::Connection::Type connectionType = Prototype::Connection::Type::Stream;
+
+			// PinType 0 must always be Flow
+			if (startPin->PinType == 0)
+				connectionType = Prototype::Connection::Type::Event;
+
+			if (std::ranges::find(inputPins, startPin) != inputPins.end())
+				connectionType = Prototype::Connection::Type::InputStream;
+			else if (std::ranges::find(outputPins, endPin) != outputPins.end())
+				connectionType = Prototype::Connection::Type::OutputStream;
+
+			prototype->Connections.push_back(
+				{
+					.ConnectionType = connectionType,
+					.Start = {.Node = startPin->GetNodeID(), .ID = startPin->Identifier },
+					.End = {.Node = endPin->GetNodeID(),   .ID = endPin->Identifier }
+				}
+			);
+
+			auto& inputNodes = dependencies[endPin->GetNodeID()];
+			inputNodes.emplace(startPin->GetNodeID());
+		}
+
+		const auto graphIsLess = [&dependencies](const Prototype::Node& lhs, const Prototype::Node& rhs)
+		{
+			const bool lhsHasDeps = dependencies.contains(lhs.ID);
+			const bool rhsHasDeps = dependencies.contains(rhs.ID);
+
+			if (!lhsHasDeps && !rhsHasDeps)
+				return lhs.ID < rhs.ID;
+
+			if (lhsHasDeps != rhsHasDeps)
+				return lhsHasDeps < rhsHasDeps;
+
+			// check if lhs depends on rhs
+			if (dependencies.at(lhs.ID).contains(rhs.ID))
+			{
+				// lhs depends on rhs
+
+				// rhs must be processed first
+				// => rhs is less
+				return false;
+			}
+
+			if (dependencies.at(rhs.ID).contains(lhs.ID))
+			{
+				// rhs depends on lhs
+
+				// lhs must be processed fist
+				// => lhs is less
+				return true;
+			}
+
+			// lhs and rhs don't directly depend on each other
+			// the parent/children might though
+			// do i need to traverse the hole tree here or does sort do that for me?
+			// sort by ID
+
+			//const bool lhsEmpty = dependencies.at(lhs->ID).empty();
+			//const bool rhsEmpty = dependencies.at(rhs->ID).empty();
+			//
+			//if (lhsEmpty != rhsEmpty)
+			//	return lhsEmpty;
+
+			return lhs.ID < rhs.ID;
+		};
+
+		std::ranges::sort(prototype->Nodes, graphIsLess);
+
+		for (auto& editorNode : GetNodes())
+		{
+			auto id = editorNode.GetID();
+
+			for (int i = 0; i < prototype->Nodes.size(); i++)
+			{
+				if (prototype->Nodes[i].ID == id)
+				{
+					editorNode.EvaluationIndex = i;
+					break;
+				}
+			}
+		}
+
+		return prototype;
 	}
 
 	std::span<Node> NodeGraphContext::GetNodes()
@@ -253,9 +406,10 @@ namespace Shark::NodeGraph::Editor {
 		auto& pin = node.Outputs.emplace_back();
 		GetFactory()->InitializePin(pin, value.getType());
 		pin.ID = utils::NextID();
-		pin.NodeID = node.ID;
-		pin.Kind = ax::NodeEditor::PinKind::Output;
 		pin.Name = std::string(propertyName);
+		pin.Identifier = Identifier::Make(pin.Name, true);
+
+		node.Initialize();
 
 		return &node;
 	}

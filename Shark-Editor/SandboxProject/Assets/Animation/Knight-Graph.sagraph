@@ -2,83 +2,83 @@ AnimationGraph:
   SkeletonMesh: 14066669202339065697
   Graph:
     Nodes:
-      - ID: 17710425183210527888
+      - ID: 330861732828470300
+        Name: Input
+        Category: Property
+        Settings.IsSimple: false
+        Settings.CanEditPins: true
+        State: "{\"location\":{\"x\":402,\"y\":213}}"
+        Inputs:
+          []
+        Outputs:
+          - ID: 1413361952895880824
+            Name: Loop
+            Identifier: 5692239542619575243
+            Value: AA==
+            PinType: 1
+            Color: [0.86274517, 0.18823531, 0.18823531, 1]
+      - ID: 2630444036298877219
+        Name: Output
+        Category: Animation
+        Settings.IsSimple: false
+        Settings.CanEditPins: false
+        State: "{\"location\":{\"x\":1048,\"y\":220}}"
+        Inputs:
+          - ID: 10798400466352385163
+            Name: Pose
+            Identifier: 12923036359964408644
+            Value: AA==
+            PinType: 1073741825
+            Color: [1, 0.74509805, 0.3921569, 1]
+        Outputs:
+          []
+      - ID: 12570017392758034132
         Name: AnimationPlayer
         Category: Animation
         Settings.IsSimple: false
         Settings.CanEditPins: true
-        State: "{\"location\":{\"x\":545,\"y\":221}}"
+        State: "{\"location\":{\"x\":584,\"y\":204}}"
         Inputs:
-          - ID: 11070735120803352030
+          - ID: 14592103822714796748
             Name: Animation
             Identifier: 11962374237075642621
             Value: CAFBc3NldEhhbmRsZQACSGFuZGxlABtS1nlYy1tA
             PinType: 6
             Color: [0.8431373, 0.5882353, 0.20000002, 1]
-          - ID: 16813662532747947512
+          - ID: 12070268092052581725
             Name: Loop
             Identifier: 5692239542619575243
-            Value: "null"
+            Value: AA==
             PinType: 1
             Color: [0.86274517, 0.18823531, 0.18823531, 1]
         Outputs:
-          - ID: 1655989375902332716
+          - ID: 14848733224425373755
             Name: Pose
             Identifier: 12923036359964408644
-            Value: "null"
+            Value: AA==
             PinType: 1073741825
             Color: [1, 0.74509805, 0.3921569, 1]
-          - ID: 8998162130946300288
-            Name: OnLoop
+          - ID: 3380907853511597242
+            Name: On Loop
             Identifier: 6569181345285622830
-            Value: "null"
+            Value: AA==
             PinType: 0
             Color: [1, 1, 1, 1]
-          - ID: 4336905519143693228
-            Name: OnFinish
+          - ID: 8638705579211631832
+            Name: On Finish
             Identifier: 2208146398724630687
-            Value: "null"
+            Value: AA==
             PinType: 0
             Color: [1, 1, 1, 1]
-      - ID: 12271183732850917707
-        Name: Output
-        Category: Animation
-        Settings.IsSimple: false
-        Settings.CanEditPins: false
-        State: "{\"location\":{\"x\":1080,\"y\":240}}"
-        Inputs:
-          - ID: 12704661718834198212
-            Name: Pose
-            Identifier: 12923036359964408644
-            Value: "null"
-            PinType: 1073741825
-            Color: [1, 0.74509805, 0.3921569, 1]
-        Outputs:
-          []
-      - ID: 15550967470280328508
-        Name: Input
-        Category: Property
-        Settings.IsSimple: false
-        Settings.CanEditPins: true
-        State: "{\"location\":{\"x\":350,\"y\":236}}"
-        Inputs:
-          []
-        Outputs:
-          - ID: 12579568712242796781
-            Name: Loop
-            Identifier: 0
-            Value: "null"
-            PinType: 1
-            Color: [0.86274517, 0.18823531, 0.18823531, 1]
     Links:
-      - ID: 9158222829520315849
-        StartPinID: 1655989375902332716
-        EndPinID: 12704661718834198212
-        Color: [1, 0.74509805, 0.3921569, 1]
-      - ID: 5895667223950216745
-        StartPinID: 12579568712242796781
-        EndPinID: 16813662532747947512
+      - ID: 3102367299095245779
+        StartPinID: 1413361952895880824
+        EndPinID: 12070268092052581725
         Color: [0.86274517, 0.18823531, 0.18823531, 1]
+      - ID: 16508766595789442908
+        StartPinID: 14848733224425373755
+        EndPinID: 10798400466352385163
+        Color: [1, 0.74509805, 0.3921569, 1]
     Inputs:
       Loop: true
-    State: "{\"nodes\":{\"node:12271183732850917707\":{\"location\":{\"x\":1080,\"y\":240}},\"node:15550967470280328508\":{\"location\":{\"x\":350,\"y\":236}},\"node:17710425183210527888\":{\"location\":{\"x\":545,\"y\":221}}},\"selection\":null,\"view\":{\"scroll\":{\"x\":317.300384521484375,\"y\":-46.3555107116699219},\"visible_rect\":{\"max\":{\"x\":1292.2408447265625,\"y\":655.7158203125},\"min\":{\"x\":253.840408325195312,\"y\":-37.0844230651855469}},\"zoom\":1.2499995231628418}}"
+    State: "{\"nodes\":{\"node:12570017392758034132\":{\"location\":{\"x\":584,\"y\":204}},\"node:2630444036298877219\":{\"location\":{\"x\":1048,\"y\":220}},\"node:330861732828470300\":{\"location\":{\"x\":402,\"y\":213}}},\"selection\":null,\"view\":{\"scroll\":{\"x\":350.549652099609375,\"y\":-51.3554267883300781},\"visible_rect\":{\"max\":{\"x\":1318.8399658203125,\"y\":651.71575927734375},\"min\":{\"x\":280.43975830078125,\"y\":-41.0843467712402344}},\"zoom\":1.2499997615814209}}"

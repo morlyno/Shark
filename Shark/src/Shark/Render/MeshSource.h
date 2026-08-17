@@ -2,10 +2,12 @@
 
 #include "Shark/Asset/Asset.h"
 #include "Shark/Render/Buffers.h"
-#include "Shark/Render/MaterialAsset.h"
-#include "Shark/Animation/Skeleton.h"
-#include "Shark/Animation/Animation.h"
 #include "Shark/Math/AABB.h"
+
+namespace Shark {
+	class Skeleton;
+	class Animation;
+}
 
 namespace Shark {
 
@@ -53,7 +55,7 @@ namespace Shark {
 	struct BoneInfo
 	{
 		glm::mat4 InverseBindPose;
-		size_t BoneIndex = Skeleton::NullIndex;
+		size_t BoneIndex;
 	};
 
 	struct BoneInfluence
@@ -65,10 +67,10 @@ namespace Shark {
 	class MeshSource : public Asset
 	{
 	public:
-		MeshSource() = default;
+		MeshSource();
 		MeshSource(const std::vector<Vertex>& vertices, const std::vector<Index>& indices);
 		MeshSource(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const std::vector<Submesh>& submeshes);
-		virtual ~MeshSource() = default;
+		virtual ~MeshSource();
 
 		const std::string& GetName() const { return m_Name; }
 
@@ -93,18 +95,17 @@ namespace Shark {
 
 		const AABB& GetBoundingBox() const { return m_BoundingBox; }
 
-		bool HasSkeleton() const { return m_Skeleton != nullptr; }
-		const Skeleton& GetSkeleton() const { return *m_Skeleton; }
-		const auto& GetBoneInfos() { return m_BoneInfos; }
+		bool            HasSkeleton() const;
+		const Skeleton& GetSkeleton() const;
+		const auto&     GetBoneInfos() { return m_BoneInfos; }
 
-		Animation&       GetAnimation(size_t index) { return *m_Animations[index]; }
-		const Animation& GetAnimation(size_t index) const { return *m_Animations[index]; }
+		Animation&            GetAnimation(size_t index);
+		const Animation&      GetAnimation(size_t index) const;
 
 		std::optional<size_t> FindAnimation(std::string_view animationName) const;
 		const std::string&    GetAnimationName(size_t index) const { return m_AnimationNames[index]; }
 		const auto&           GetAnimationNames() const { return m_AnimationNames; }
 		size_t                GetAnimationCount() const { return m_Animations.size(); }
-
 
 	public:
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }
