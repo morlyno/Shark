@@ -53,6 +53,7 @@ namespace Shark::NodeGraph {
 			choc::value::Value Value;
 		};
 
+		UUID ID;
 		std::vector<Node> Nodes;
 		std::vector<Connection> Connections;
 

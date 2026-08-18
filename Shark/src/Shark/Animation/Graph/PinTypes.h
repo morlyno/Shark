@@ -11,14 +11,6 @@ namespace Shark::NodeGraph {
 
 	static constexpr int AnimationGraphDomain = BIT(30);
 
-	namespace Types {
-
-		struct IPose : public Pose
-		{
-		};
-
-	}
-
 	inline choc::value::Type CreateTypeTransform()
 	{
 		auto type = choc::value::Type::createObject("Transform");

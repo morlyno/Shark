@@ -4,6 +4,7 @@
 #include "Shark/Core/SelectionManager.h"
 #include "Shark/Asset/AssetManager.h"
 #include "Shark/Animation/AnimationEngine.h"
+#include "Shark/Animation/Graph/AnimationGraph.h"
 
 #include "Shark/Scene/Components.h"
 #include "Shark/Scene/Prefab.h"
@@ -22,6 +23,7 @@
 #include "Shark/Debug/Profiler.h"
 #include "Shark/Debug/enttDebug.h"
 
+#include "AnimationGraph/EditorAnimationGraphAsset.h"
 
 namespace Shark {
 
@@ -229,6 +231,21 @@ namespace Shark {
 			auto firstEntity = entities.front();
 			auto& component = firstEntity.GetComponent<TComponent>();
 			if (UI::ControlAsset(label, assetType, component.*member, args))
+			{
+				UnifyMember(entities, member);
+				return true;
+			}
+			return false;
+		}
+
+		template<typename TComponent>
+		static bool MultiselectControlAsset(std::span<const Entity> entities, AssetHandle TComponent::* member, std::span<const AssetType> assetTypes, std::string_view label, const UI::AssetControlArgs& args = {})
+		{
+			UI::ScopedItemFlag mixedValue(ImGuiItemFlags_MixedValue, IsInconsistentProperty<TComponent>(entities, member));
+
+			auto firstEntity = entities.front();
+			auto& component = firstEntity.GetComponent<TComponent>();
+			if (UI::ControlAsset(label, assetTypes, component.*member, args))
 			{
 				UnifyMember(entities, member);
 				return true;
@@ -1598,9 +1615,71 @@ namespace Shark {
 		DrawComponetMultiSelect<AnimationComponent>(entities, "Animation", [this](AnimationComponent& firstComponent, const EntityList& entities)
 		{
 			UI::BeginControlsGrid();
-			utils::MultiselectControlAsset(entities, &AnimationComponent::Animation, AssetType::Animation, "Animation");
+			utils::MultiselectControlAsset(entities, &AnimationComponent::Animation, { { AssetType::Animation, AssetType::AnimationGraph } }, "Animation");
 			utils::MultiselectControl(entities, &AnimationComponent::Loop, "Loop");
 			utils::MultiselectControl(entities, &AnimationComponent::Update, "Update");
+
+			auto* animEngine = m_Context->GetAnimationEngine();
+			if (animEngine && UI::Control("##Register", []() { return ImGui::Button("Register"); }))
+			{
+				entities.ApplyTo<AnimationComponent>([animEngine](Entity entity, AnimationComponent& component)
+				{
+					if (!component.Animation || animEngine->Registered(entity.GetUUID()))
+						return;
+
+					animEngine->RegisterEntity(entity);
+				});
+			}
+
+			UI::EndControlsGrid();
+
+			if (!entities.IsSingleEntity() || AssetManager::GetAssetType(firstComponent.Animation) != AssetType::AnimationGraph || !animEngine)
+				return;
+
+			auto graph = animEngine->GetGraph(entities.First().GetUUID());
+			if (!graph)
+				return;
+
+			ImGui::SeparatorText("Graph");
+
+			auto graphAsset = AssetManager::GetAssetAsync<EditorAnimationGraphAsset>(firstComponent.Animation);
+			if (!graphAsset)
+				return;
+
+			UI::BeginControlsGrid();
+
+			const auto ControlValuePrimitive = [](std::string_view label, choc::value::ValueView value)
+			{
+				if (value.isBool())
+					return UI::Control(label, *static_cast<bool*>(value.getRawData()));
+				if (value.isInt32())
+					return UI::Control(label, *static_cast<int*>(value.getRawData()));
+				if (value.isFloat32())
+					return UI::Control(label, *static_cast<float*>(value.getRawData()));
+
+				UI::Control(label, "Unknown value type");
+				return false;
+			};
+
+			auto& inputs = graphAsset->GetProperties();
+			for (auto& name : inputs.GetNames())
+			{
+				auto& value = graph->GetInput(Identifier::Make(name));
+
+				if (value.isPrimitive())
+				{
+					ControlValuePrimitive(name, value);
+				}
+				else
+				{
+					UI::Control("Value", []
+					{
+						UI::ScopedColor text(ImGuiCol_Text, UI::Colors::Theme::TextError);
+						ImGui::Text("Unknown type");
+					});
+				}
+			}
+
 			UI::EndControlsGrid();
 		});
 

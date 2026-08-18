@@ -36,7 +36,7 @@ namespace Shark::NodeGraph {
 			pose->Duration = m_Animation->GetDuration();
 		}
 
-		if (m_Animation && !m_Finished)
+		if (m_Animation && (Loop || !m_Finished))
 		{
 			m_TimePosition += ts / m_Animation->GetDuration();
 			if (*Loop)

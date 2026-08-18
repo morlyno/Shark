@@ -17,6 +17,11 @@ namespace Shark {
 
 		std::span<Transform>       GetBoneTransforms()       { return std::span(reinterpret_cast<Transform*>(this + 1), BoneCount); }
 		std::span<const Transform> GetBoneTransforms() const { return std::span(reinterpret_cast<const Transform*>(this + 1), BoneCount); }
+
+	private:
+		Pose() = default;
+		Pose(const Pose&) = delete;
+		Pose& operator=(const Pose&) = delete;
 	};
 
 }

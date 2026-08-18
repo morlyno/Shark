@@ -13,6 +13,10 @@ namespace Shark {
 	class Skeleton;
 	class Animation;
 	struct Pose;
+
+	namespace NodeGraph {
+		class AnimationGraph;
+	}
 }
 
 namespace Shark {
@@ -21,18 +25,25 @@ namespace Shark {
 	{
 	public:
 		class PoseIterator;
+		class PoseEndIterator;
 
 	public:
-		AnimationEngine() = default;
+		AnimationEngine();
 		AnimationEngine(Ref<Scene> scene);
+		~AnimationEngine();
 
 		void SetCurrentScene(Ref<Scene> scene);
 		void RegisterEntity(const Entity& entity);
 		void Transition(UUID targetEntityID, AssetHandle animationHandle, float duration, bool loop);
 		void Update(TimeStep ts);
 
+		bool Registered(UUID entityID) const;
+		bool RegisteredAnimation(UUID entityID) const;
+		bool RegisteredGraph(UUID entityID) const;
+
 		PoseIterator GetPoses();
 		const Pose* GetPose(UUID entityID) const;
+		Ref<NodeGraph::AnimationGraph> GetGraph(UUID entityID) const;
 		void SetSamplePosition(UUID entityID, float position);
 
 		void OnAssetReloaded(AssetHandle handle);
@@ -69,10 +80,19 @@ namespace Shark {
 			uint32_t Transition;
 		};
 
+		struct GraphEntry
+		{
+			UUID EntityID;
+			AssetHandle Animation;
+			Ref<NodeGraph::AnimationGraph> Graph;
+		};
+
 		// Use raw pinter because a ref will cause a cyclic dependency with scene because this os owned by Scene
 		Scene* m_CurrentScene;
 		std::vector<AnimationEntry> m_RegisteredAnimations;
 		std::vector<TransitionEntry> m_Transitions;
+
+		std::vector<GraphEntry> m_RegisteredGraphs;
 	};
 
 	class AnimationEngine::PoseIterator
@@ -83,28 +103,34 @@ namespace Shark {
 			: m_Engine(&engine), m_Index(0), m_Entry(m_Engine->GetEntityAndPose(0))
 		{}
 
-		std::pair<UUID, Pose*>& operator*() { return m_Entry; }
-		std::pair<UUID, Pose*>* operator->() { return &m_Entry; }
+		std::pair<UUID, const Pose*>& operator*() { return m_Entry; }
+		std::pair<UUID, const Pose*>* operator->() { return &m_Entry; }
 
-		bool operator==(const PoseIterator& other) const { return m_Index == other.m_Index || IsAtEnd() && other.IsAtEnd(); }
-		bool operator!=(const PoseIterator& other) const { return !(*this == other); }
+		bool operator==(const PoseEndIterator& other) const { return IsAtEnd(); }
+		bool operator!=(const PoseEndIterator& other) const { return !(*this == other); }
 
 		PoseIterator& operator++();
 		PoseIterator operator++(int);
 
 	private:
-		bool IsAtEnd() const { return !m_Engine || m_Index >= m_Engine->m_RegisteredAnimations.size(); }
+		bool IsAtEnd() const { return !m_Engine || (m_Index == ~0 && m_GraphIndex == ~0); }
 
 	private:
 		AnimationEngine* m_Engine = nullptr;
 
 		size_t m_Index = ~0;
-		std::pair<UUID, Pose*> m_Entry;
+		size_t m_GraphIndex = ~0;
+		std::pair<UUID, const Pose*> m_Entry;
 
 		friend class AnimationEngine;
 	};
 
+	class AnimationEngine::PoseEndIterator
+	{
+	public:
+	};
+
 	inline AnimationEngine::PoseIterator begin(AnimationEngine::PoseIterator iter) { return iter; }
-	inline AnimationEngine::PoseIterator end(AnimationEngine::PoseIterator end)    { return {};   }
+	inline AnimationEngine::PoseEndIterator end(AnimationEngine::PoseIterator end) { return {};   }
 
 }

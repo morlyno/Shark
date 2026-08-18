@@ -6,8 +6,8 @@ Scene:
       TagComponent:
         Name: hips
       TransformComponent:
-        Translation: [-4.0968457e-22, 0.38416737, -1.2996986e-15]
-        Rotation: [-3.2274952e-10, -0.08634237, 7.471472e-09]
+        Translation: [-5.5528447e-22, 0.3912776, -2.1626161e-15]
+        Rotation: [-3.2274955e-10, -0.08634237, 7.471473e-09]
         Scale: [0.9999999, 0.9999999, 0.9999999]
       RelationshipComponent:
         Parent: 18167727664516838562
@@ -22,7 +22,7 @@ Scene:
         Name: foot.r
       TransformComponent:
         Translation: [4.2200377e-09, 0.14943695, -1.1398209e-08]
-        Rotation: [1.2288858, -0.17811176, -0.14663291]
+        Rotation: [0.9234381, -0.15370566, -0.22702637]
         Scale: [0.9999996, 0.9999996, 0.9999996]
       RelationshipComponent:
         Parent: 10982151930755726685
@@ -35,7 +35,7 @@ Scene:
         Name: kneeIK.l
       TransformComponent:
         Translation: [0.1709449, 0.2923103, -0.57581246]
-        Rotation: [-1.570796, 2.4792604e-07, -3.8941428e-07]
+        Rotation: [-1.5707961, 2.47926e-07, -3.8941434e-07]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 18167727664516838562
@@ -64,7 +64,7 @@ Scene:
         Name: heelIK.r
       TransformComponent:
         Translation: [2.2926933e-08, 0.16564998, -5.4897735e-09]
-        Rotation: [0.8036192, 1.0142462e-07, -7.353296e-08]
+        Rotation: [0.8036193, 1.01424625e-07, -7.353296e-08]
         Scale: [1.0000001, 1.0000001, 1.0000001]
       RelationshipComponent:
         Parent: 18184226338478560558
@@ -76,7 +76,7 @@ Scene:
       TagComponent:
         Name: IK-foot.l
       TransformComponent:
-        Translation: [2.3587454e-08, 0.16565001, 1.7945828e-08]
+        Translation: [2.3587452e-08, 0.16564998, 1.7945828e-08]
         Rotation: [3.1415925, 3.9733362e-07, -1.4138582e-08]
         Scale: [1.0000001, 1.0000001, 1.0000001]
       RelationshipComponent:
@@ -89,8 +89,8 @@ Scene:
       TagComponent:
         Name: control-foot-roll.l
       TransformComponent:
-        Translation: [-4.2871573e-08, 0.21343604, 1.2694773e-08]
-        Rotation: [-0.803619, -2.7429718e-07, -3.1415925]
+        Translation: [-4.2871573e-08, 0.21343602, 1.2694772e-08]
+        Rotation: [-0.803619, -2.7429715e-07, -3.1415925]
         Scale: [1.0000001, 1.0000001, 1.0000001]
       RelationshipComponent:
         Parent: 14325176450292548779
@@ -104,7 +104,7 @@ Scene:
         Name: IK-toe.l
       TransformComponent:
         Translation: [4.7146056e-09, 1.4120236e-08, 2.0895772e-08]
-        Rotation: [-8.060185e-08, -3.6262412e-15, -3.5518276e-08]
+        Rotation: [-8.060185e-08, -3.6262412e-15, -3.5518273e-08]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 14325176450292548779
@@ -116,8 +116,8 @@ Scene:
       TagComponent:
         Name: toes.l
       TransformComponent:
-        Translation: [2.6182034e-08, 0.16564998, 7.333736e-09]
-        Rotation: [2.3379734, -3.0428413e-07, -3.1415925]
+        Translation: [2.6182036e-08, 0.16564998, 7.3337363e-09]
+        Rotation: [2.3379734, -3.0428416e-07, -3.1415925]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 9552022549945620028
@@ -130,7 +130,7 @@ Scene:
         Name: hand.r
       TransformComponent:
         Translation: [-6.705521e-08, 0.0738257, -5.4016716e-08]
-        Rotation: [0.7954538, -0.31863323, -0.68306506]
+        Rotation: [-0.2211012, 0.111235864, 0.19687514]
         Scale: [0.9999996, 0.9999996, 0.9999996]
       RelationshipComponent:
         Parent: 12740457065437586504
@@ -142,8 +142,8 @@ Scene:
       TagComponent:
         Name: control-heel-roll.r
       TransformComponent:
-        Translation: [1.2623846e-08, 0.36283255, 7.968025e-10]
-        Rotation: [3.5844046e-08, -1.8461392e-07, 2.9377275]
+        Translation: [1.2623845e-08, 0.36283255, 7.968025e-10]
+        Rotation: [3.5844042e-08, -1.8461392e-07, 2.9377275]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 11406579298746589502
@@ -174,7 +174,7 @@ Scene:
         Name: lowerarm.r
       TransformComponent:
         Translation: [7.323024e-08, 0.24189733, 8.01989e-08]
-        Rotation: [-3.0431852e-07, 3.2455063e-07, 1.0028301]
+        Rotation: [-1.2106001e-07, 4.1990918e-07, 1.3872529]
         Scale: [1.0000007, 1.0000007, 1.0000007]
       RelationshipComponent:
         Parent: 15391394560683649921
@@ -221,7 +221,7 @@ Scene:
         Name: upperleg.r
       TransformComponent:
         Translation: [-0.17094505, 0.11358728, 1.1031814e-09]
-        Rotation: [-3.0859113, 0.008723714, -0.052643772]
+        Rotation: [-3.1107066, 0.8110076, -0.29333702]
         Scale: [0.99999976, 0.99999976, 0.99999976]
       RelationshipComponent:
         Parent: 13263904015879740567
@@ -250,7 +250,7 @@ Scene:
       TagComponent:
         Name: heelIK.l
       TransformComponent:
-        Translation: [1.3751173e-08, 0.16565001, 2.6693282e-08]
+        Translation: [1.3751173e-08, 0.16564998, 2.6693279e-08]
         Rotation: [0.8036192, 5.0600352e-08, -5.1105502e-08]
         Scale: [1, 1, 1]
       RelationshipComponent:
@@ -281,7 +281,7 @@ Scene:
         Name: IK-toe.r
       TransformComponent:
         Translation: [3.9461194e-09, -3.964225e-09, 3.897938e-09]
-        Rotation: [1.5360893e-09, -6.8382545e-15, -3.5518276e-08]
+        Rotation: [1.5360891e-09, -6.8382545e-15, -3.5518276e-08]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 2450161696982200789
@@ -293,8 +293,8 @@ Scene:
       TagComponent:
         Name: elbowIK.r
       TransformComponent:
-        Translation: [-0.45350718, 1.1067609, 0.5888597]
-        Rotation: [1.5707964, 1.9834074e-07, 0]
+        Translation: [-0.45350716, 1.1067609, 0.5888597]
+        Rotation: [1.5707964, 1.9834077e-07, 0]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 15425087315550384891
@@ -323,8 +323,8 @@ Scene:
       TagComponent:
         Name: IK-toe.l
       TransformComponent:
-        Translation: [7.884202e-09, 6.9137602e-09, 1.3908823e-08]
-        Rotation: [-8.060185e-08, -3.626242e-15, -3.5518273e-08]
+        Translation: [7.884202e-09, 6.9137602e-09, 1.39088225e-08]
+        Rotation: [-8.060185e-08, -3.626242e-15, -3.5518276e-08]
         Scale: [0.9999998, 0.9999998, 0.9999998]
       RelationshipComponent:
         Parent: 14202678738849662399
@@ -336,8 +336,8 @@ Scene:
       TagComponent:
         Name: wrist.r
       TransformComponent:
-        Translation: [1.652418e-08, 0.2600439, 1.7216932e-07]
-        Rotation: [4.194744e-07, -1.2738721e-08, -0.053322442]
+        Translation: [1.914702e-08, 0.2600439, 1.7297889e-07]
+        Rotation: [4.1839496e-07, -2.029477e-08, -0.053322442]
         Scale: [0.9999999, 0.9999999, 0.9999999]
       RelationshipComponent:
         Parent: 11351817745148610794
@@ -349,8 +349,8 @@ Scene:
       TagComponent:
         Name: lowerleg.r
       TransformComponent:
-        Translation: [-4.6982784e-08, 0.2270775, 4.2035656e-10]
-        Rotation: [-0.6965644, 2.9561977e-07, 4.0556475e-07]
+        Translation: [-4.782609e-08, 0.22707748, 9.383165e-11]
+        Rotation: [-0.57060254, 2.502007e-07, 3.422653e-07]
         Scale: [1.0000001, 1.0000001, 1.0000001]
       RelationshipComponent:
         Parent: 16540973837334619537
@@ -363,7 +363,7 @@ Scene:
         Name: handslot.l
       TransformComponent:
         Translation: [6.3526535e-09, 0.096125096, 0.057500016]
-        Rotation: [-2.4771091e-07, -6.827615e-08, -1.5707964]
+        Rotation: [-2.477109e-07, -6.827616e-08, -1.5707964]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 14310735818161638517
@@ -375,8 +375,8 @@ Scene:
       TagComponent:
         Name: heelIK.l
       TransformComponent:
-        Translation: [2.7392797e-08, 0.16564998, 2.4521585e-09]
-        Rotation: [0.80361915, 8.439452e-08, -5.8993084e-08]
+        Translation: [2.7392801e-08, 0.16564998, 2.4521585e-09]
+        Rotation: [0.803619, 8.4394514e-08, -5.8993095e-08]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 7933733040982433533
@@ -388,9 +388,9 @@ Scene:
       TagComponent:
         Name: hand.l
       TransformComponent:
-        Translation: [1.3001714e-08, 0.073825836, -1.2801009e-07]
-        Rotation: [0.854705, 0.50343543, 0.569336]
-        Scale: [0.9999999, 0.9999999, 0.9999999]
+        Translation: [1.16524195e-08, 0.073825836, -1.2288277e-07]
+        Rotation: [0.8474773, 0.4981447, 0.55840856]
+        Scale: [0.99999976, 0.99999976, 0.99999976]
       RelationshipComponent:
         Parent: 8542566463349687877
         Children:
@@ -401,8 +401,8 @@ Scene:
       TagComponent:
         Name: upperleg.l
       TransformComponent:
-        Translation: [0.17094505, 0.11358728, -1.07043645e-08]
-        Rotation: [2.8658378, 0.06182544, 0.08534968]
+        Translation: [0.17094505, 0.11358728, -1.0704365e-08]
+        Rotation: [-3.0854053, 0.77625114, 0.1618998]
         Scale: [0.9999999, 0.9999999, 0.9999999]
       RelationshipComponent:
         Parent: 13263904015879740567
@@ -414,8 +414,8 @@ Scene:
       TagComponent:
         Name: handIK.r
       TransformComponent:
-        Translation: [-0.51084375, 0.7846118, -0.059736855]
-        Rotation: [3.1415904, -1.4203343, 2.437079e-06]
+        Translation: [-0.51084375, 0.7879687, -0.059736863]
+        Rotation: [3.1415904, -1.4203348, 2.4370781e-06]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 18167727664516838562
@@ -427,8 +427,8 @@ Scene:
       TagComponent:
         Name: chest
       TransformComponent:
-        Translation: [-2.6557667e-16, 0.3749879, -1.983742e-15]
-        Rotation: [-1.0929424e-14, 1.789096e-14, -2.5934095e-16]
+        Translation: [-2.33407e-16, 0.37498787, -2.1586645e-15]
+        Rotation: [-1.0929423e-14, 1.7890959e-14, -2.5934095e-16]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 14802944905261919587
@@ -443,9 +443,9 @@ Scene:
       TagComponent:
         Name: foot.l
       TransformComponent:
-        Translation: [6.189651e-08, 0.14943705, 2.7199809e-08]
-        Rotation: [1.2742345, 0.26872128, 0.34241268]
-        Scale: [0.9999996, 0.9999996, 0.9999996]
+        Translation: [6.226755e-08, 0.14943705, 2.4866205e-08]
+        Rotation: [1.1776752, 0.30255026, 0.3123707]
+        Scale: [0.9999995, 0.9999995, 0.9999995]
       RelationshipComponent:
         Parent: 8116603097122524487
         Children:
@@ -456,7 +456,7 @@ Scene:
       TagComponent:
         Name: heelIK.r
       TransformComponent:
-        Translation: [2.2926933e-08, 0.16564998, -5.4897735e-09]
+        Translation: [2.2926933e-08, 0.16564998, -5.489774e-09]
         Rotation: [0.8036192, 1.0142462e-07, -7.353296e-08]
         Scale: [1.0000001, 1.0000001, 1.0000001]
       RelationshipComponent:
@@ -469,7 +469,7 @@ Scene:
       TagComponent:
         Name: control-toe-roll.r
       TransformComponent:
-        Translation: [-0.1709451, 0.025990248, -0.24578927]
+        Translation: [-0.1709451, 0.025990248, -0.24578926]
         Rotation: [1.5707961, 2.053448e-07, 7.1054274e-15]
         Scale: [1, 1, 1]
       RelationshipComponent:
@@ -512,8 +512,8 @@ Scene:
       TagComponent:
         Name: elbowIK.r
       TransformComponent:
-        Translation: [-0.45350716, 1.1067609, 0.5888597]
-        Rotation: [1.5707964, 1.9834077e-07, 0]
+        Translation: [-0.45350716, 1.1067607, 0.5888597]
+        Rotation: [1.5707964, 1.9834073e-07, 0]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 18167727664516838562
@@ -526,7 +526,7 @@ Scene:
         Name: control-foot-roll.l
       TransformComponent:
         Translation: [1.5828137e-08, 0.213436, 2.2122986e-09]
-        Rotation: [-0.80361915, -2.73679e-07, -3.1415925]
+        Rotation: [-0.803619, -2.73679e-07, -3.1415925]
         Scale: [0.9999998, 0.9999998, 0.9999998]
       RelationshipComponent:
         Parent: 14202678738849662399
@@ -539,8 +539,8 @@ Scene:
       TagComponent:
         Name: handIK.r
       TransformComponent:
-        Translation: [-0.52966803, 0.7892601, -0.060509913]
-        Rotation: [2.555552, -1.3482062, 0.49948305]
+        Translation: [-0.23459332, 0.91298014, -0.2971688]
+        Rotation: [-1.517488, 0.42393738, -2.6822448]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 15425087315550384891
@@ -569,9 +569,9 @@ Scene:
       TagComponent:
         Name: upperarm.r
       TransformComponent:
-        Translation: [-0.2120074, 0.13413194, -8.4834845e-08]
-        Rotation: [1.1414165, -0.9868722, 1.1393638]
-        Scale: [0.9999992, 0.9999992, 0.9999992]
+        Translation: [-0.2120074, 0.13413191, -8.482722e-08]
+        Rotation: [1.1458886, -0.9986468, 1.1444763]
+        Scale: [0.9999993, 0.9999993, 0.9999993]
       RelationshipComponent:
         Parent: 6279821845919690124
         Children:
@@ -582,8 +582,8 @@ Scene:
       TagComponent:
         Name: lowerleg.l
       TransformComponent:
-        Translation: [3.724916e-08, 0.22707757, -6.2550036e-09]
-        Rotation: [-0.5721022, -2.5012696e-07, -3.1717607e-07]
+        Translation: [4.076576e-08, 0.22707757, -6.199012e-09]
+        Rotation: [-0.4145907, -1.9517037e-07, -2.1519841e-07]
         Scale: [1.0000004, 1.0000004, 1.0000004]
       RelationshipComponent:
         Parent: 8631905412986155205
@@ -595,8 +595,8 @@ Scene:
       TagComponent:
         Name: wrist.l
       TransformComponent:
-        Translation: [-1.29169635e-08, 0.2600438, -2.7832446e-08]
-        Rotation: [4.5540645e-07, -6.936372e-08, 0.053322498]
+        Translation: [-9.259369e-09, 0.2600438, -2.5133854e-08]
+        Rotation: [4.6080362e-07, -6.653019e-08, 0.053322494]
         Scale: [1.0000001, 1.0000001, 1.0000001]
       RelationshipComponent:
         Parent: 18289389477536410498
@@ -609,8 +609,8 @@ Scene:
         Name: upperleg.l
       TransformComponent:
         Translation: [0.17094505, 0.11358728, -1.0704365e-08]
-        Rotation: [-3.0400956, 0.14377554, 0.17444383]
-        Scale: [0.99999994, 0.99999994, 0.99999994]
+        Rotation: [-3.0992873, 0.14466535, 0.17096104]
+        Scale: [0.9999999, 0.9999999, 0.9999999]
       RelationshipComponent:
         Parent: 43633200710455190
         Children:
@@ -656,29 +656,14 @@ Scene:
       ScriptComponent:
         ScriptID: 15143968557863554664
         Fields:
-          - ID: 14495123272126177779
-            Name: Idle
-            Type: Animation
-            Value: 4637523822169707035
-          - ID: 4702636708632853821
-            Name: Attack
-            Type: Animation
-            Value: 5842666548861991336
-          - ID: 11510013286644868778
-            Name: Run
-            Type: Animation
-            Value: 9482811860126371748
-          - ID: 9343664163801395928
-            Name: Blend
-            Type: Bool
-            Value: true
+          []
       AudioComponent:
         Audio: 17694917365070649434
         PlayOnWake: false
         VolumeMultiplier: 1
         PitchMultiplier: 1
       AnimationComponent:
-        Animation: 4637523822169707035
+        Animation: 14685196178843877423
         Loop: true
         Update: true
     - Entity: 9552022549945620028
@@ -686,7 +671,7 @@ Scene:
         Name: foot.l
       TransformComponent:
         Translation: [1.2340034e-08, 0.1494371, -1.547102e-08]
-        Rotation: [1.1150658, 0.44694203, 0.24743292]
+        Rotation: [1.3016566, 0.63651276, 0.46564725]
         Scale: [0.9999999, 0.9999999, 0.9999999]
       RelationshipComponent:
         Parent: 11622742111287082390
@@ -699,7 +684,7 @@ Scene:
         Name: kneeIK.r
       TransformComponent:
         Translation: [-0.1709452, 0.29231027, -0.5758123]
-        Rotation: [-1.5707959, 2.479259e-07, 1.5099585e-07]
+        Rotation: [-1.570796, 2.479259e-07, 1.5099583e-07]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 15425087315550384891
@@ -745,8 +730,8 @@ Scene:
       TagComponent:
         Name: handslot.l
       TransformComponent:
-        Translation: [7.114568e-09, 0.0961251, 0.057500016]
-        Rotation: [-1.1926462e-06, -0.0007278758, -1.5681249]
+        Translation: [6.5515198e-09, 0.096125096, 0.057500016]
+        Rotation: [-2.0222797e-07, -6.6756416e-05, -1.5705514]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 6099255914491491765
@@ -758,8 +743,8 @@ Scene:
       TagComponent:
         Name: head
       TransformComponent:
-        Translation: [-1.7412763e-16, 0.26879635, 8.8912e-15]
-        Rotation: [-1.169706e-10, 0.06269375, -3.730788e-09]
+        Translation: [-4.5448846e-17, 0.2687963, 9.745706e-15]
+        Rotation: [-1.1697059e-10, 0.06269375, -3.730788e-09]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 6279821845919690124
@@ -773,7 +758,7 @@ Scene:
       TransformComponent:
         Translation: [3.350379e-08, 0.16565, -1.1856499e-08]
         Rotation: [3.1415925, 3.9380728e-07, 1.945708e-08]
-        Scale: [0.99999994, 0.99999994, 0.99999994]
+        Scale: [0.9999999, 0.9999999, 0.9999999]
       RelationshipComponent:
         Parent: 7933733040982433533
         Children:
@@ -785,7 +770,7 @@ Scene:
         Name: kneeIK.l
       TransformComponent:
         Translation: [0.1709449, 0.2923103, -0.57581246]
-        Rotation: [-1.5707959, 2.4792607e-07, -3.8941428e-07]
+        Rotation: [-1.570796, 2.4792604e-07, -3.8941428e-07]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 15425087315550384891
@@ -845,7 +830,7 @@ Scene:
       TagComponent:
         Name: handIK.l
       TransformComponent:
-        Translation: [0.52084064, 0.784612, 0.05763735]
+        Translation: [0.52084064, 0.7879689, 0.05763738]
         Rotation: [3.1415913, 1.3048079, -1.3264693e-06]
         Scale: [0.9999999, 0.9999999, 0.9999999]
       RelationshipComponent:
@@ -858,8 +843,8 @@ Scene:
       TagComponent:
         Name: lowerleg.r
       TransformComponent:
-        Translation: [-4.8123947e-08, 0.2270775, -2.1495646e-11]
-        Rotation: [-0.5112511, 2.343695e-07, 3.0328425e-07]
+        Translation: [-4.8123947e-08, 0.22707751, -2.1495646e-11]
+        Rotation: [-0.4039632, 2.0311629e-07, 2.2166759e-07]
         Scale: [1.0000001, 1.0000001, 1.0000001]
       RelationshipComponent:
         Parent: 3632374942735042160
@@ -871,8 +856,8 @@ Scene:
       TagComponent:
         Name: lowerarm.r
       TransformComponent:
-        Translation: [5.9196413e-08, 0.2418973, 8.348547e-08]
-        Rotation: [-2.536049e-07, 3.6733334e-07, 1.1116396]
+        Translation: [6.9567285e-08, 0.24189731, 8.1056726e-08]
+        Rotation: [-2.3796167e-07, 4.0317673e-07, 1.091291]
         Scale: [1.0000007, 1.0000007, 1.0000007]
       RelationshipComponent:
         Parent: 8052118835880375751
@@ -884,8 +869,8 @@ Scene:
       TagComponent:
         Name: handIK.l
       TransformComponent:
-        Translation: [0.52084064, 0.7883121, 0.016973548]
-        Rotation: [-3.0232484, 1.3416698, 0.12852208]
+        Translation: [0.51501524, 0.80284715, 0.37739074]
+        Rotation: [2.7477138, 0.70781285, -0.21559614]
         Scale: [0.9999999, 0.9999999, 0.9999999]
       RelationshipComponent:
         Parent: 15425087315550384891
@@ -897,8 +882,8 @@ Scene:
       TagComponent:
         Name: control-toe-roll.r
       TransformComponent:
-        Translation: [-0.1709451, 0.025990248, -0.24578926]
-        Rotation: [1.5707961, 2.053448e-07, 7.1054274e-15]
+        Translation: [-0.1709451, 0.025990248, -0.24578929]
+        Rotation: [1.570796, 2.0534483e-07, -7.1054265e-15]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 18167727664516838562
@@ -933,8 +918,8 @@ Scene:
       TagComponent:
         Name: lowerleg.l
       TransformComponent:
-        Translation: [3.3160227e-08, 0.22707747, 1.8716197e-08]
-        Rotation: [-0.03756923, -1.5489127e-07, -3.034732e-08]
+        Translation: [3.3160227e-08, 0.22707745, 1.8716197e-08]
+        Rotation: [-0.36747926, -2.1898614e-07, -2.1358223e-07]
         Scale: [1.0000005, 1.0000005, 1.0000005]
       RelationshipComponent:
         Parent: 6238805330755254934
@@ -963,8 +948,8 @@ Scene:
       TagComponent:
         Name: upperarm.l
       TransformComponent:
-        Translation: [0.21200734, 0.13413194, -9.2796896e-08]
-        Rotation: [0.9404942, 0.88789505, -1.2936847]
+        Translation: [0.21200734, 0.13413191, -9.2787175e-08]
+        Rotation: [0.9408394, 0.89996016, -1.3034661]
         Scale: [0.9999993, 0.9999993, 0.9999993]
       RelationshipComponent:
         Parent: 6279821845919690124
@@ -994,7 +979,7 @@ Scene:
         Name: head
       TransformComponent:
         Translation: [-1.27973615e-23, 0.26879632, 1.0047515e-14]
-        Rotation: [1.1871119e-09, 0.006414596, -1.8959085e-09]
+        Rotation: [-0.18747213, 0.59169006, 0.043714214]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 16421564341685502903
@@ -1007,7 +992,7 @@ Scene:
         Name: kneeIK.r
       TransformComponent:
         Translation: [-0.1709452, 0.29231027, -0.5758123]
-        Rotation: [-1.570796, 2.479259e-07, 1.5099583e-07]
+        Rotation: [-1.5707961, 2.4792587e-07, 1.5099582e-07]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 18167727664516838562
@@ -1036,9 +1021,9 @@ Scene:
       TagComponent:
         Name: control-foot-roll.r
       TransformComponent:
-        Translation: [1.31706095e-08, 0.21343604, 9.669849e-09]
+        Translation: [1.317061e-08, 0.21343602, 9.669848e-09]
         Rotation: [-0.803619, -2.783179e-07, -3.1415925]
-        Scale: [0.99999994, 0.99999994, 0.99999994]
+        Scale: [0.9999999, 0.9999999, 0.9999999]
       RelationshipComponent:
         Parent: 2450161696982200789
         Children:
@@ -1063,7 +1048,7 @@ Scene:
       TagComponent:
         Name: wrist.l
       TransformComponent:
-        Translation: [-7.967522e-09, 0.2600438, -2.4180723e-08]
+        Translation: [-7.967522e-09, 0.2600438, -2.4180721e-08]
         Rotation: [4.627099e-07, -6.552941e-08, 0.053322494]
         Scale: [1.0000001, 1.0000001, 1.0000001]
       RelationshipComponent:
@@ -1076,8 +1061,8 @@ Scene:
       TagComponent:
         Name: hips
       TransformComponent:
-        Translation: [-5.5652127e-09, 0.3920638, -0.026932653]
-        Rotation: [2.9595843e-11, -0.029193113, -2.0271989e-09]
+        Translation: [3.6344865e-08, 0.39206377, 0.17588961]
+        Rotation: [-1.229757e-09, -0.81608063, 2.8446703e-09]
         Scale: [0.9999999, 0.9999999, 0.9999999]
       RelationshipComponent:
         Parent: 15425087315550384891
@@ -1091,8 +1076,8 @@ Scene:
       TagComponent:
         Name: elbowIK.l
       TransformComponent:
-        Translation: [0.45350748, 1.1067609, 0.58885926]
-        Rotation: [1.5707964, 1.9834074e-07, 0]
+        Translation: [0.53741884, 0.98449016, 1.0896392]
+        Rotation: [1.5707964, 1.9834077e-07, 0]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 15425087315550384891
@@ -1105,7 +1090,7 @@ Scene:
         Name: control-heel-roll.l
       TransformComponent:
         Translation: [-7.6919076e-09, 0.36283255, 1.3845403e-09]
-        Rotation: [-5.2537885e-08, -1.4171947e-07, -2.8031847]
+        Rotation: [-5.253789e-08, -1.4171947e-07, -2.8031847]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 15371305837554510151
@@ -1119,7 +1104,7 @@ Scene:
         Name: hand.l
       TransformComponent:
         Translation: [1.1175854e-08, 0.073825836, -1.210718e-07]
-        Rotation: [0.80098915, 0.47003812, 0.46449724]
+        Rotation: [1.0172513, 0.5067161, 1.041605]
         Scale: [0.9999998, 0.9999998, 0.9999998]
       RelationshipComponent:
         Parent: 13025902064654176720
@@ -1131,8 +1116,8 @@ Scene:
       TagComponent:
         Name: control-heel-roll.l
       TransformComponent:
-        Translation: [-8.349766e-10, 0.36283255, 6.2992317e-10]
-        Rotation: [-5.2537864e-08, -1.4171948e-07, -2.8031847]
+        Translation: [-8.349766e-10, 0.36283255, 6.299231e-10]
+        Rotation: [-5.2537867e-08, -1.4171947e-07, -2.8031847]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 14543298415397410986
@@ -1145,7 +1130,7 @@ Scene:
       TagComponent:
         Name: toes.r
       TransformComponent:
-        Translation: [1.5299916e-08, 0.16565001, -2.5114689e-08]
+        Translation: [1.5299916e-08, 0.16565003, -2.5114689e-08]
         Rotation: [2.3379734, -1.1424032e-07, 3.1415925]
         Scale: [1, 1, 1]
       RelationshipComponent:
@@ -1158,8 +1143,8 @@ Scene:
       TagComponent:
         Name: control-toe-roll.l
       TransformComponent:
-        Translation: [0.20218207, 0.025990259, -0.20518115]
-        Rotation: [1.570796, 2.0534478e-07, -7.1054274e-15]
+        Translation: [0.20218207, 0.025990255, -0.20518114]
+        Rotation: [1.5707961, 2.0534478e-07, 0]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 18167727664516838562
@@ -1171,7 +1156,7 @@ Scene:
       TagComponent:
         Name: spine
       TransformComponent:
-        Translation: [1.763201e-16, 0.1919775, 1.3836877e-15]
+        Translation: [1.2806556e-16, 0.1919775, 1.3354331e-15]
         Rotation: [3.3306696e-16, -3.4253216e-15, -5.3689776e-16]
         Scale: [1, 1, 1]
       RelationshipComponent:
@@ -1185,7 +1170,7 @@ Scene:
         Name: spine
       TransformComponent:
         Translation: [1.1102225e-16, 0.1919775, 1.3183898e-15]
-        Rotation: [-0.030549353, -4.3537307e-06, -0.00028521998]
+        Rotation: [0.0681161, 0.0024785595, -0.07271361]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 13263904015879740567
@@ -1197,9 +1182,9 @@ Scene:
       TagComponent:
         Name: hand.r
       TransformComponent:
-        Translation: [-5.3909016e-08, 0.07382572, -7.081463e-08]
-        Rotation: [0.8527155, -0.39281383, -0.69982934]
-        Scale: [0.9999996, 0.9999996, 0.9999996]
+        Translation: [-6.362394e-08, 0.0738257, -5.840112e-08]
+        Rotation: [0.84471375, -0.3875872, -0.68831015]
+        Scale: [0.9999995, 0.9999995, 0.9999995]
       RelationshipComponent:
         Parent: 5501656681381715307
         Children:
@@ -1210,8 +1195,8 @@ Scene:
       TagComponent:
         Name: control-toe-roll.l
       TransformComponent:
-        Translation: [0.2075015, 0.025990266, -0.18460472]
-        Rotation: [1.5707961, -0.12846543, 2.2537462e-08]
+        Translation: [0.24622089, 0.025990337, 0.11986716]
+        Rotation: [1.5707961, -0.4573629, 1.1625699e-07]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 15425087315550384891
@@ -1224,8 +1209,8 @@ Scene:
         Name: upperarm.r
       TransformComponent:
         Translation: [-0.2120074, 0.13413191, -8.482452e-08]
-        Rotation: [1.1171932, -1.031551, 1.1514326]
-        Scale: [0.9999992, 0.9999992, 0.9999992]
+        Rotation: [2.237104, -1.2800422, -0.20737964]
+        Scale: [0.99999917, 0.99999917, 0.99999917]
       RelationshipComponent:
         Parent: 16421564341685502903
         Children:
@@ -1273,9 +1258,9 @@ Scene:
       TagComponent:
         Name: foot.r
       TransformComponent:
-        Translation: [1.0176907e-08, 0.14943695, -1.6480232e-08]
-        Rotation: [1.2974274, -0.16498439, -0.16127299]
-        Scale: [0.9999996, 0.9999996, 0.9999996]
+        Translation: [5.774833e-09, 0.14943695, -1.272466e-08]
+        Rotation: [1.2182153, -0.17789486, -0.14685506]
+        Scale: [0.9999995, 0.9999995, 0.9999995]
       RelationshipComponent:
         Parent: 5773979757711349593
         Children:
@@ -1287,7 +1272,7 @@ Scene:
         Name: chest
       TransformComponent:
         Translation: [-2.220448e-16, 0.3749879, -2.2204467e-15]
-        Rotation: [8.3933444e-10, 1.6252623e-09, 1.5988882e-11]
+        Rotation: [-0.15204297, 0.012394932, 0.16237576]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 15240943295288827162
@@ -1303,8 +1288,8 @@ Scene:
         Name: upperarm.l
       TransformComponent:
         Translation: [0.21200734, 0.13413191, -9.278375e-08]
-        Rotation: [1.0993011, 0.89541143, -1.1810188]
-        Scale: [0.9999992, 0.9999992, 0.9999992]
+        Rotation: [-0.5965774, 0.8578259, -2.730375]
+        Scale: [0.99999917, 0.99999917, 0.99999917]
       RelationshipComponent:
         Parent: 16421564341685502903
         Children:
@@ -1316,8 +1301,8 @@ Scene:
         Name: upperleg.r
       TransformComponent:
         Translation: [-0.17094505, 0.11358728, 1.1031814e-09]
-        Rotation: [-2.9727573, 0.066723794, -0.0564502]
-        Scale: [0.99999976, 0.99999976, 0.99999976]
+        Rotation: [-3.0193567, 0.06644712, -0.05530688]
+        Scale: [0.9999997, 0.9999997, 0.9999997]
       RelationshipComponent:
         Parent: 43633200710455190
         Children:
@@ -1328,8 +1313,8 @@ Scene:
       TagComponent:
         Name: elbowIK.l
       TransformComponent:
-        Translation: [0.45350745, 1.1067609, 0.58885926]
-        Rotation: [1.5707964, 1.9834077e-07, 0]
+        Translation: [0.45350742, 1.1067607, 0.5888593]
+        Rotation: [1.5707964, 1.9834073e-07, 0]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 18167727664516838562
@@ -1342,7 +1327,7 @@ Scene:
         Name: lowerarm.l
       TransformComponent:
         Translation: [6.6428676e-08, 0.24189733, 2.9706475e-09]
-        Rotation: [-3.3415455e-07, -3.0001198e-07, -1.031731]
+        Rotation: [-4.653261e-07, -1.3315037e-07, -0.57931167]
         Scale: [1.0000007, 1.0000007, 1.0000007]
       RelationshipComponent:
         Parent: 16508715658682778173
@@ -1355,7 +1340,7 @@ Scene:
         Name: handslot.r
       TransformComponent:
         Translation: [-1.9647155e-08, 0.09612501, 0.0575001]
-        Rotation: [-0.028018126, 0.013741158, 1.5094843]
+        Rotation: [-2.455826e-07, 7.426056e-08, 1.5707964]
         Scale: [1.0000001, 1.0000001, 1.0000001]
       RelationshipComponent:
         Parent: 2411312778848671355
@@ -1367,8 +1352,8 @@ Scene:
       TagComponent:
         Name: handslot.r
       TransformComponent:
-        Translation: [-1.9627755e-08, 0.09612501, 0.05750011]
-        Rotation: [-0.0025785107, -0.0002136745, 1.5683423]
+        Translation: [-1.964209e-08, 0.096125014, 0.057500105]
+        Rotation: [-0.00023948392, -1.947314e-05, 1.5705687]
         Scale: [1.0000001, 1.0000001, 1.0000001]
       RelationshipComponent:
         Parent: 15345029486098113626
@@ -1380,8 +1365,8 @@ Scene:
       TagComponent:
         Name: toes.r
       TransformComponent:
-        Translation: [1.39858845e-08, 0.16565003, -2.3694923e-08]
-        Rotation: [2.3379734, -1.131518e-07, 3.1415925]
+        Translation: [1.4956942e-08, 0.16565001, -2.4744118e-08]
+        Rotation: [2.3379734, -1.1395621e-07, 3.1415925]
         Scale: [1, 1, 1]
       RelationshipComponent:
         Parent: 16224280369669140391
@@ -1407,26 +1392,7 @@ Scene:
       ScriptComponent:
         ScriptID: 4463699784789421196
         Fields:
-          - ID: 6580474285419937967
-            Name: Volume
-            Type: Float
-            Value: 1
-          - ID: 1398893027973534737
-            Name: Pitch
-            Type: Float
-            Value: 1
-          - ID: 2707737354266497140
-            Name: Sound
-            Type: SoundConfig
-            Value: 0
-          - ID: 6490527280379914749
-            Name: SetVolume
-            Type: Bool
-            Value: false
-          - ID: 8563857727002700671
-            Name: SetPitch
-            Type: Bool
-            Value: false
+          []
       AudioComponent:
         Audio: 10370996040221218032
         PlayOnWake: true
@@ -1436,7 +1402,7 @@ Scene:
       TagComponent:
         Name: IK-foot.r
       TransformComponent:
-        Translation: [2.2984336e-08, 0.16565001, -2.5072455e-10]
+        Translation: [2.2984334e-08, 0.16564998, -2.5072455e-10]
         Rotation: [3.1415925, 3.7946052e-07, -1.0323406e-08]
         Scale: [1, 1, 1]
       RelationshipComponent:
@@ -1466,9 +1432,9 @@ Scene:
       TagComponent:
         Name: toes.l
       TransformComponent:
-        Translation: [1.1994959e-08, 0.16565001, -1.5269464e-08]
-        Rotation: [2.3379734, -3.2408542e-07, -3.1415925]
-        Scale: [0.99999994, 0.99999994, 0.99999994]
+        Translation: [9.076219e-09, 0.16565001, -1.6085345e-08]
+        Rotation: [2.3379734, -3.2514356e-07, -3.1415925]
+        Scale: [0.9999999, 0.9999999, 0.9999999]
       RelationshipComponent:
         Parent: 6532344314045345692
         Children:
@@ -1501,8 +1467,8 @@ Scene:
         Name: control-foot-roll.r
       TransformComponent:
         Translation: [1.317061e-08, 0.21343602, 9.669849e-09]
-        Rotation: [-0.80361915, -2.783179e-07, -3.1415925]
-        Scale: [0.99999994, 0.99999994, 0.99999994]
+        Rotation: [-0.803619, -2.783179e-07, -3.1415925]
+        Scale: [0.9999999, 0.9999999, 0.9999999]
       RelationshipComponent:
         Parent: 10605898213560657785
         Children:
@@ -1514,8 +1480,8 @@ Scene:
       TagComponent:
         Name: lowerarm.l
       TransformComponent:
-        Translation: [4.7959144e-08, 0.24189731, 2.8532698e-08]
-        Rotation: [-3.57705e-07, -3.6410628e-07, -1.0583262]
+        Translation: [6.160797e-08, 0.24189731, 9.642566e-09]
+        Rotation: [-3.0966484e-07, -2.653615e-07, -1.0375111]
         Scale: [1.0000007, 1.0000007, 1.0000007]
       RelationshipComponent:
         Parent: 12104950573459571495

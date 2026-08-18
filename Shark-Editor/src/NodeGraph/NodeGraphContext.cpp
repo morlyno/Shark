@@ -20,6 +20,7 @@ namespace Shark::NodeGraph::Editor {
 	Scope<Prototype> NodeGraphContext::CreatePrototype()
 	{
 		auto prototype = Scope<Prototype>::Create();
+		prototype->ID = UUID::Generate();
 
 		std::unordered_map<UUID, std::set<UUID>> dependencies;
 

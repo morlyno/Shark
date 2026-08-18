@@ -3,6 +3,7 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Core/UUID.h"
 #include "Shark/Core/Reflection.h"
+#include "Shark/Animation/Pose.h"
 #include "Shark/Animation/Graph/PinTypes.h"
 #include "NodeGraph/EditorNodes.h"
 
@@ -25,7 +26,7 @@ namespace Shark::NodeGraph::Editor {
 		};
 
 		using PinTypes = std::tuple<
-			PinDescriptor<EPinType::Pose, Types::IPose, ImColor(255, 190, 100)>
+			PinDescriptor<EPinType::Pose, Shark::Pose, ImColor(255, 190, 100)>
 		>;
 
 		template<typename TType>

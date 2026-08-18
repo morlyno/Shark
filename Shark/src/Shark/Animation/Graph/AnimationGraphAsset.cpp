@@ -22,7 +22,7 @@ namespace Shark {
 
 	Ref<NodeGraph::AnimationGraph> AnimationGraphAsset::CreateGraph() const
 	{
-		auto graph = Ref<NodeGraph::AnimationGraph>::Create(m_SkeletonMesh);
+		auto graph = Ref<NodeGraph::AnimationGraph>::Create(Prototype->ID, m_SkeletonMesh);
 		auto skeleton = graph->GetSkeleton();
 
 		NodeGraph::AnimationNodeContext nodeContext;

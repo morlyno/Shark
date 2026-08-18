@@ -2,13 +2,11 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Asset/AssetTypes.h"
+#include "Shark/Animation/Pose.h"
 #include "Shark/NodeGraph/ProcessNode.h"
 
 namespace Shark {
 	class Skeleton;
-	namespace NodeGraph::Types {
-		struct IPose;
-	}
 }
 
 namespace Shark::NodeGraph {
@@ -16,7 +14,7 @@ namespace Shark::NodeGraph {
 	class AnimationGraph : public ProcessNode, public RefCount
 	{
 	public:
-		AnimationGraph(AssetHandle skeletonMesh);
+		AnimationGraph(UUID prototypeID, AssetHandle skeletonMesh);
 		~AnimationGraph();
 
 		void InitializeGraph();
@@ -27,7 +25,8 @@ namespace Shark::NodeGraph {
 		AssetHandle GetSkeletonMesh() const;
 		const Skeleton* GetSkeleton() const;
 
-		const Types::IPose* GetPose();
+		const Pose* GetPose();
+		UUID GetPrototypeID() const { return m_PrototypeID; }
 
 	public:
 		void AddNode(ProcessNode* node);
@@ -40,15 +39,16 @@ namespace Shark::NodeGraph {
 		bool ConnectInput(UUID nodeID, Identifier id, Identifier inputID);
 		bool ConnectOutput(UUID nodeID, Identifier id, Identifier outputID);
 
-		void AddGraphInput(Identifier id, choc::value::ValueView value);
+		void AddGraphInput(Identifier id, choc::value::Value value);
 		void AddGraphOutput(Identifier id, choc::value::ValueView value);
 
 	private:
+		UUID m_PrototypeID;
 		AssetHandle m_SkeletonMesh;
 		const Skeleton* m_Skeleton = nullptr;
 
 		std::vector<Scope<ProcessNode>> m_Nodes;
-		//std::list<choc::value::Value> m_GraphInputs; // References to Value must stay valid (#investigate replace with some kind of stable array)
+		std::vector<choc::value::Value> m_GraphInputs;
 
 	};
 

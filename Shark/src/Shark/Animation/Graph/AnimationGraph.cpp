@@ -12,8 +12,8 @@
 
 namespace Shark::NodeGraph {
 
-	AnimationGraph::AnimationGraph(AssetHandle skeletonMesh)
-		: ProcessNode(UUID::Make(skeletonMesh))
+	AnimationGraph::AnimationGraph(UUID prototypeID, AssetHandle skeletonMesh)
+		: ProcessNode(UUID::Make(skeletonMesh)), m_PrototypeID(prototypeID)
 	{
 		SetSkeletonMesh(skeletonMesh);
 	}
@@ -75,9 +75,9 @@ namespace Shark::NodeGraph {
 		return m_Skeleton;
 	}
 
-	const Types::IPose* AnimationGraph::GetPose()
+	const Pose* AnimationGraph::GetPose()
 	{
-		return static_cast<Types::IPose*>(GetOutput("Pose").getRawData());
+		return static_cast<Pose*>(GetOutput("Pose").getRawData());
 	}
 
 	void AnimationGraph::AddNode(ProcessNode* node)
@@ -107,7 +107,7 @@ namespace Shark::NodeGraph {
 		ProcessNode* startNode = find_as_ptr(m_Nodes, startNodeID, &ProcessNode::ID);
 		ProcessNode* endNode = find_as_ptr(m_Nodes, endNodeID, &ProcessNode::ID);
 
-		if (!startNode || !endNode || !startNode->IsOutput(outputID) || !endNode->IsInput(inputID))
+		if (!startNode || !endNode || !startNode->IsOutputEvent(outputID) || !endNode->IsInputEvent(inputID))
 			return false;
 
 		return AddConnection(startNode->GetOutputEvent(outputID), endNode->GetInputEvent(inputID));
@@ -118,7 +118,7 @@ namespace Shark::NodeGraph {
 		ProcessNode* startNode = find_as_ptr(m_Nodes, startNodeID, &ProcessNode::ID);
 		ProcessNode* endNode = find_as_ptr(m_Nodes, endNodeID, &ProcessNode::ID);
 
-		if (!startNode || !endNode || !startNode->IsOutputEvent(outputID) || !endNode->IsInputEvent(inputID))
+		if (!startNode || !endNode || !startNode->IsOutput(outputID) || !endNode->IsInput(inputID))
 			return false;
 
 		return AddConnection(startNode->GetOutput(outputID), endNode->GetInput(inputID));
@@ -144,9 +144,9 @@ namespace Shark::NodeGraph {
 		return AddConnection(startNode->GetOutput(id), GetOutput(id));
 	}
 
-	void AnimationGraph::AddGraphInput(Identifier id, choc::value::ValueView value)
+	void AnimationGraph::AddGraphInput(Identifier id, choc::value::Value value)
 	{
-		AddInput(id, value);
+		AddInput(id, m_GraphInputs.emplace_back(std::move(value)));
 	}
 
 	void AnimationGraph::AddGraphOutput(Identifier id, choc::value::ValueView value)

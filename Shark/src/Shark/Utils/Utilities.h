@@ -84,6 +84,9 @@ namespace Shark {
 	template<typename T, template<typename...> typename Template>
 	concept specialization = requires { is_specialization_v<T, Template>; };
 
+	template<bool TCond, typename T>
+	using add_const_conditional_t = std::conditional_t<TCond, std::add_const_t<T>, T>;
+
 	template <std::ranges::input_range _Rng, class _Ty, class _Pj = std::identity>
 		requires std::indirect_binary_predicate<std::ranges::equal_to, std::projected<std::ranges::iterator_t<_Rng>, _Pj>, const _Ty*>
 	[[nodiscard]] static constexpr std::add_pointer_t<std::ranges::range_value_t<_Rng>> find_as_ptr(_Rng&& _Range, const _Ty& _Val, _Pj _Proj = {})
@@ -96,8 +99,8 @@ namespace Shark {
 	}
 
 	template <std::ranges::input_range _Rng, class _Ty, class _Pj = std::identity>
-		requires std::indirect_binary_predicate<std::ranges::equal_to, std::projected<std::ranges::iterator_t<_Rng>, _Pj>, const _Ty*> &&
-				 (specialization<std::ranges::range_value_t<_Rng>, Scope> || specialization<std::ranges::range_value_t<_Rng>, Ref>)
+		requires (std::indirect_binary_predicate<std::ranges::equal_to, std::projected<std::ranges::iterator_t<_Rng>, _Pj>, const _Ty*> &&
+				  (specialization<std::ranges::range_value_t<_Rng>, Scope> || specialization<std::ranges::range_value_t<_Rng>, Ref>))
 	[[nodiscard]] static constexpr std::add_pointer_t<typename std::ranges::range_value_t<_Rng>::value_type> find_as_ptr(_Rng&& _Range, const _Ty& _Val, _Pj _Proj = {})
 	{
 		auto i = std::ranges::find(std::forward<_Rng>(_Range), _Val, _Proj);
@@ -105,6 +108,20 @@ namespace Shark {
 			return nullptr;
 
 		return (*i).Raw();
+	}
+
+	template <std::ranges::input_range _Rng, class _Ty, class _Pj = std::identity, class _GetPj = std::identity>
+		requires (
+			std::indirect_binary_predicate<std::ranges::equal_to, std::projected<std::ranges::iterator_t<_Rng>, _Pj>, const _Ty*> &&
+			specialization<std::invoke_result_t<_GetPj, std::ranges::range_value_t<_Rng>>, Ref>
+		)
+	[[nodiscard]] static constexpr std::remove_cvref_t<std::invoke_result_t<_GetPj, std::ranges::range_value_t<_Rng>>> find_as_ref(_Rng&& _Range, const _Ty& _Val, _Pj _Proj = {}, _GetPj _GetProj = {})
+	{
+		auto i = std::ranges::find(std::forward<_Rng>(_Range), _Val, _Proj);
+		if (i == std::ranges::end(_Range))
+			return nullptr;
+
+		return std::invoke(_GetProj, (*i));
 	}
 
 	template<typename T, typename TFunc>

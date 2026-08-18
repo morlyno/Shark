@@ -18,6 +18,8 @@ namespace Shark {
 	{
 		std::span<const Entity> Entities;
 
+		bool IsSingleEntity() const { return Entities.size() == 1; }
+
 		template<typename T>
 		Entity First() const { return Entities.front().GetComponent<T>(); }
 		Entity First() const { return Entities.front(); }
@@ -40,7 +42,14 @@ namespace Shark {
 		void ApplyTo(TCallable&& callable, TArgs&&... args) const
 		{
 			for (auto entity : Entities)
-				std::invoke(std::forward<TCallable>(callable), entity.GetComponent<TComponent>(), std::forward<TArgs>(args)...);
+			{
+				if constexpr (std::is_invocable_v<TCallable, TComponent&, TArgs...>)
+					std::invoke(std::forward<TCallable>(callable), entity.GetComponent<TComponent>(), std::forward<TArgs>(args)...);
+				else if constexpr (std::is_invocable_v<TCallable, Entity, TComponent&, TArgs...>)
+					std::invoke(std::forward<TCallable>(callable), entity, entity.GetComponent<TComponent>(), std::forward<TArgs>(args)...);
+				else
+					static_assert(false);
+			}
 		}
 
 		template<typename TComponent, typename TMember, typename T>
@@ -48,6 +57,16 @@ namespace Shark {
 		{
 			for (auto entity : Entities)
 				entity.GetComponent<TComponent>().*member = std::forward<T>(value);
+		}
+
+		template<typename TComponent, typename TMember>
+		bool IsMixed(TMember TComponent::* member) const
+		{
+			const auto& first = First().GetComponent<TComponent>().*member;
+			for (auto& entity : Entities)
+				if (first != entity.GetComponent<TComponent>().*member)
+					return true;
+			return false;
 		}
 
 	};

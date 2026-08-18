@@ -3,13 +3,26 @@
 
 #include "Shark/Asset/AssetManager.h"
 #include "Shark/Animation/Animation.h"
+#include "Shark/Animation/Graph/AnimationGraph.h"
+#include "Shark/Animation/Graph/AnimationGraphAsset.h"
+
+#include "Shark/NodeGraph/Prototype.h"
+
 #include "Shark/Scene/Scene.h"
 #include "Shark/Utils/Utilities.h"
 
 namespace Shark {
 
+	AnimationEngine::AnimationEngine()
+	{
+	}
+
 	AnimationEngine::AnimationEngine(Ref<Scene> scene)
 		: m_CurrentScene(scene.Raw())
+	{
+	}
+
+	AnimationEngine::~AnimationEngine()
 	{
 	}
 
@@ -21,6 +34,22 @@ namespace Shark {
 	void AnimationEngine::RegisterEntity(const Entity& entity)
 	{
 		auto& component = entity.GetComponent<AnimationComponent>();
+		if (AssetManager::GetAssetType(component.Animation) == AssetType::AnimationGraph)
+		{
+			auto graphAsset = AssetManager::GetAsset<AnimationGraphAsset>(component.Animation);
+			if (!graphAsset || !graphAsset->Prototype)
+				return;
+
+			auto graph = graphAsset->CreateGraph();
+			graph->InitializeGraph();
+
+			auto& entry = m_RegisteredGraphs.emplace_back();
+			entry.EntityID = entity.GetUUID();
+			entry.Animation = component.Animation;
+			entry.Graph = graph;
+			return;
+		}
+
 		auto animation = AssetManager::GetAsset<AnimationAsset>(component.Animation);
 		if (!animation)
 			return;
@@ -80,6 +109,11 @@ namespace Shark {
 	{
 		UpdateEntries();
 
+		for (auto& entry : m_RegisteredGraphs)
+		{
+			entry.Graph->Process(ts);
+		}
+
 		for (auto& entry : m_RegisteredAnimations)
 		{
 			UpdateAnimation(ts, entry);
@@ -128,6 +162,27 @@ namespace Shark {
 
 	}
 
+	bool AnimationEngine::Registered(UUID entityID) const
+	{
+		return RegisteredGraph(entityID) || RegisteredAnimation(entityID);
+	}
+
+	bool AnimationEngine::RegisteredAnimation(UUID entityID) const
+	{
+		for (auto& entry : m_RegisteredAnimations)
+			if (!entry.IsTransition && entry.EntityID == entityID)
+				return true;
+		return false;
+	}
+
+	bool AnimationEngine::RegisteredGraph(UUID entityID) const
+	{
+		for (auto& entry : m_RegisteredGraphs)
+			if (entry.EntityID == entityID)
+				return true;
+		return false;
+	}
+
 	const Pose* AnimationEngine::GetPose(UUID entityID) const
 	{
 		const auto i = std::ranges::find(m_RegisteredAnimations, entityID, &AnimationEntry::EntityID);
@@ -135,6 +190,11 @@ namespace Shark {
 			return nullptr;
 
 		return i->Pose.Raw();
+	}
+
+	Ref<NodeGraph::AnimationGraph> AnimationEngine::GetGraph(UUID entityID) const
+	{
+		return find_as_ref(m_RegisteredGraphs, entityID, &GraphEntry::EntityID, &GraphEntry::Graph);
 	}
 
 	void AnimationEngine::SetSamplePosition(UUID entityID, float position)
@@ -185,11 +245,22 @@ namespace Shark {
 				}
 			}
 		}
+
+		if (assetType == AssetType::AnimationGraph)
+		{
+			for (auto& entry : m_RegisteredGraphs)
+			{
+				if (entry.Animation == handle)
+					entry.Graph = nullptr;
+				break;
+			}
+		}
 	}
 
 	void AnimationEngine::UpdateEntries()
 	{
 		bool reindex = false;
+		bool reindexGraph = false;
 
 		for (auto& entry : m_RegisteredAnimations)
 		{
@@ -206,13 +277,22 @@ namespace Shark {
 
 			if (!currentAnimation)
 			{
-				entry.Animation = nullptr;
-				entry.Skeleton  = nullptr;
+				entry.EntityID = UUID::Invalid;
+				reindex = true;
 				continue;
 			}
 
 			if (currentAnimation != entry.ActiveAnimation || !entry.Animation || !entry.Skeleton)
 			{
+				auto type = AssetManager::GetAssetType(currentAnimation);
+				if (type == AssetType::AnimationGraph)
+				{
+					RegisterEntity(m_CurrentScene->GetEntityByID(entry.EntityID));
+					entry.EntityID = UUID::Invalid;
+					reindex = true;
+					continue;
+				}
+
 				auto animation = AssetManager::GetAsset<AnimationAsset>(currentAnimation);
 				entry.Animation = animation->GetAnimationAsync(true);
 				entry.Skeleton = entry.Animation->GetSkeleton();
@@ -226,6 +306,51 @@ namespace Shark {
 				entry.Update = component.Update;
 				entry.Loop = component.Loop;
 			}
+		}
+
+		for (auto& entry : m_RegisteredGraphs)
+		{
+			auto entity = m_CurrentScene->TryGetEntityByUUID(entry.EntityID);
+			if (!entity || !entity.HasComponent<AnimationComponent>())
+			{
+				entry.EntityID = UUID::Invalid;
+				reindexGraph = true;
+				continue;
+			}
+
+			const auto checkAgainstPrototype = [](const GraphEntry& entry) -> bool
+			{
+				auto graphAsset = AssetManager::GetAsset<AnimationGraphAsset>(entry.Animation);
+				return graphAsset->Prototype->ID == entry.Graph->GetPrototypeID();
+			};
+
+			const auto& component = entity.GetComponent<AnimationComponent>();
+			if (component.Animation != entry.Animation || !entry.Graph || !checkAgainstPrototype(entry))
+			{
+				auto type = AssetManager::GetAssetType(component.Animation);
+				if (type == AssetType::Animation)
+				{
+					RegisterEntity(m_CurrentScene->GetEntityByID(entry.EntityID));
+					entry.EntityID = UUID::Invalid;
+					reindexGraph = true;
+					continue;
+				}
+
+				auto graphAsset = AssetManager::GetAsset<AnimationGraphAsset>(component.Animation);
+				if (!graphAsset || !graphAsset->Prototype)
+				{
+					entry.EntityID = UUID::Invalid;
+					reindexGraph = true;
+					continue;
+				}
+
+				auto graph = graphAsset->CreateGraph();
+				graph->InitializeGraph();
+
+				entry.Graph = graph;
+				entry.Animation = component.Animation;
+			}
+
 		}
 
 		if (reindex)
@@ -326,6 +451,8 @@ namespace Shark {
 
 	void AnimationEngine::AdvanceIterator(PoseIterator& iterator)
 	{
+		SK_CORE_ASSERT(!iterator.IsAtEnd());
+
 		while (++iterator.m_Index < m_RegisteredAnimations.size())
 		{
 			auto& entry = m_RegisteredAnimations[iterator.m_Index];
@@ -335,6 +462,21 @@ namespace Shark {
 			iterator.m_Entry = GetEntityAndPose(iterator.m_Index);
 			return;
 		}
+		iterator.m_Index = ~0;
+
+		while (++iterator.m_GraphIndex < m_RegisteredGraphs.size())
+		{
+			auto& entry = m_RegisteredGraphs[iterator.m_GraphIndex];
+			if (!entry.EntityID || !entry.Graph)
+				continue;
+
+			iterator.m_Entry = { entry.EntityID, entry.Graph->GetPose() };
+			return;
+		}
+		iterator.m_GraphIndex = ~0;
+
+		// end iterator
+		iterator = {};
 	}
 
 	AnimationEngine::PoseIterator& AnimationEngine::PoseIterator::operator++()
