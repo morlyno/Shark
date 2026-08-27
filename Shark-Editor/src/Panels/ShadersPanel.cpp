@@ -1,7 +1,8 @@
 #include "ShadersPanel.h"
 
-#include "Shark/Core/Application.h"
 #include "Shark/Render/Renderer.h"
+#include "Shark/Render/Shader.h"
+
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/Widgets.h"
 
@@ -9,7 +10,6 @@ namespace Shark {
 
 	ShadersPanel::ShadersPanel()
 	{
-		memset(m_SearchBuffer, 0, sizeof(m_SearchBuffer));
 	}
 
 	ShadersPanel::~ShadersPanel()
@@ -38,8 +38,7 @@ namespace Shark {
 				}
 			}
 
-			UI::Widgets::Search(m_SearchBuffer);
-			UI::TextFilter filter(m_SearchBuffer);
+			UI::Widgets::Search(m_Filter);
 
 			ImGui::Separator();
 
@@ -47,7 +46,7 @@ namespace Shark {
 			{
 				for (const auto& [key, shader] : library->GetShadersMap())
 				{
-					if (!filter.PassesFilter(key))
+					if (!m_Filter.PassesFilter(key))
 						continue;
 
 					UI::ScopedID id(key);

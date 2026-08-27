@@ -1,9 +1,12 @@
 #pragma once
 
 #include "Shark/Scene/Scene.h"
-#include "Shark/Scene/Components.h"
 
 #include <entt.hpp>
+
+namespace Shark {
+	struct TransformComponent;
+}
 
 namespace Shark {
 
@@ -64,20 +67,20 @@ namespace Shark {
 		bool IsAncestorOf(Entity entity) const;
 		bool IsDescendantOf(Entity entity) const;
 
-		UUID GetUUID() const { return GetComponent<IDComponent>().ID; }
-		std::string& Tag() { return GetComponent<TagComponent>().Tag; }
-		const std::string& Tag() const { return GetComponent<TagComponent>().Tag; }
-		TransformComponent& Transform() { return GetComponent<TransformComponent>(); }
-		const TransformComponent& Transform() const { return GetComponent<TransformComponent>(); }
+		UUID GetUUID() const;
+		std::string& Tag();
+		const std::string& Tag() const;
+		TransformComponent& Transform();
+		const TransformComponent& Transform() const;
 
-		std::string& GetName() { return GetComponent<TagComponent>().Tag; }
-		const std::string& GetName() const { return GetComponent<TagComponent>().Tag; }
+		std::string& GetName();
+		const std::string& GetName() const;
 
-		operator bool() const { return IsValid(); }
-		operator entt::entity() const { return m_EntityHandle; }
-		operator uint32_t() const { return (uint32_t)m_EntityHandle; }
-		bool operator==(const Entity& rhs) { return m_EntityHandle == rhs.m_EntityHandle && m_Scene == rhs.m_Scene; }
-		bool operator!=(const Entity& rhs) { return !(*this == rhs); }
+		operator bool() const                    { return IsValid(); }
+		operator entt::entity() const            { return m_EntityHandle; }
+		operator uint32_t() const                { return (uint32_t)m_EntityHandle; }
+		bool operator==(const Entity& rhs) const { return m_EntityHandle == rhs.m_EntityHandle && m_Scene == rhs.m_Scene; }
+		bool operator!=(const Entity& rhs) const { return !(*this == rhs); }
 
 	private:
 		entt::entity m_EntityHandle{ entt::null };

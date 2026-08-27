@@ -1,11 +1,17 @@
 #include "StatisticsPanel.h"
 
 #include "Shark/Core/Application.h"
-#include "Shark/Debug/Profiler.h"
+
+#include "Shark/Scene/Scene.h"
+#include "Shark/Physics2D/Physics2DScene.h"
+
+#include "Shark/UI/ImGui/ImGuiLayer.h"
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/Widgets.h"
 #include "Shark/UI/Controls.h"
+
 #include "Shark/Utils/String.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 

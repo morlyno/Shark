@@ -11,9 +11,6 @@ namespace Shark {
 		ScriptHost();
 		~ScriptHost();
 
-		void Initialize();
-		void Shutdown();
-
 		bool IsInitialized() const { return m_Host && m_InitStatus == Coral::CoralInitStatus::Success; }
 		Coral::CoralInitStatus GetCoralInitStatus() const { return m_InitStatus; }
 

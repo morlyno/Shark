@@ -83,7 +83,7 @@ namespace Shark {
 		return s_SelectionData.m_Selections[contextID].back();
 	}
 
-	bool SelectionManager::IsEntityOrAncestorSelected(UUID contextID, Entity entity)
+	bool SelectionManager::IsEntityOrAncestorSelected(UUID contextID, const Entity& entity)
 	{
 		if (IsSelected(contextID, entity.GetUUID()))
 			return true;

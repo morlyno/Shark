@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Shark/Core/Reflection.h"
+#include "Shark/Core/Concepts.h"
 #include "Shark/NodeGraph/ProcessNode.h"
 
 #include "NodeGraph/EditorNodes.h"
@@ -66,7 +66,7 @@ namespace Shark::NodeGraph::Editor {
 		template<typename TList, typename TMemberPtr>
 		static bool InitializePin(TFactory* factory, Pin& pin, std::string_view memberName)
 		{
-			using TMember = Reflection::member_return_type<TMemberPtr>;
+			using TMember = TypeTraits::member_return_type<TMemberPtr>;
 			using TMemberRaw = std::remove_pointer_t<TMember>;
 
 			std::optional<int> pinType = GetPinTypeFromMember<TMemberPtr>();
@@ -80,7 +80,7 @@ namespace Shark::NodeGraph::Editor {
 		template<typename TMemberPtr>
 		static std::optional<int> GetPinTypeFromMember()
 		{
-			using TMember = Reflection::member_return_type<TMemberPtr>;
+			using TMember = TypeTraits::member_return_type<TMemberPtr>;
 			using TMemberRaw = std::remove_pointer_t<TMember>;
 
 			if constexpr (std::is_member_function_pointer_v<TMemberPtr> || std::is_same_v<TMemberRaw, ProcessNode::OutputEvent>)

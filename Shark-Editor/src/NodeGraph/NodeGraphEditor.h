@@ -11,6 +11,7 @@
 
 namespace Shark {
 	class Scene;
+	struct AssetMetaData;
 
 	namespace NodeGraph {
 		struct ProcessNode;

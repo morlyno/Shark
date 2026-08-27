@@ -2,7 +2,8 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Buffer.h"
-#include "Shark/Render/Texture.h"
+
+#include "Shark/Render/TextureCommon.h"
 
 namespace Shark {
 

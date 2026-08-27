@@ -1,10 +1,13 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Core/Project.h"
 #include "Shark/Core/TimeStep.h"
-#include "Shark/Event/Event.h"
-#include "Shark/Scene/Scene.h"
+
+namespace Shark {
+	class ProjectConfig;
+	class Event;
+	class Scene;
+}
 
 namespace Shark {
 
@@ -22,10 +25,10 @@ namespace Shark {
 		virtual void OnImGuiRender(bool& isOpen) {}
 		virtual void OnEvent(Event& event) {}
 
-		virtual void SetContext(Ref<Scene> context) {}
+		virtual void SetContext(const Ref<Scene>& context) {}
 		virtual void OnScenePlay() {};
 		virtual void OnSceneStop() {};
-		virtual void OnProjectChanged(Ref<ProjectConfig> projectConfig) {}
+		virtual void OnProjectChanged(const Ref<ProjectConfig>& projectConfig) {}
 
 		virtual const char* GetPanelID() const = 0;
 		//static const char* GetStaticID();

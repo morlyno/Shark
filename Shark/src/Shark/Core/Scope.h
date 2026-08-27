@@ -33,8 +33,6 @@ namespace Shark {
 		T* operator->() const { return m_Instance; }
 
 		operator bool() const { return m_Instance != nullptr; }
-		bool operator==(const Scope& rhs) const { return m_Instance == rhs.m_Instance; }
-		bool operator!=(const Scope& rhs) const { return !(*this == rhs); }
 
 		T* Raw() { return m_Instance; }
 		const T* Raw() const { return m_Instance; }
@@ -51,8 +49,34 @@ namespace Shark {
 
 		template<typename T2> friend class Scope;
 
-		template<typename T1, typename T2> friend Scope<T1> StaticCast(Scope<T2>& scope);
-		template<typename T1, typename T2> friend Scope<T1> DynamicCast(Scope<T2>& scope);
+		template<typename Left, typename Right>
+		friend bool operator==(const Scope<Left>& left, const Scope<Right>& right);
+		template<typename T>
+		friend bool operator==(const Scope<T>& left, std::nullptr_t);
 	};
+
+	template<typename Left, typename Right>
+	bool operator==(const Scope<Left>& left, const Scope<Right>& right)
+	{
+		return left.m_Instance == right.m_Instance;
+	}
+
+	template<typename Left, typename Right>
+	bool operator!=(const Scope<Left>& left, const Scope<Right>& right)
+	{
+		return !(left == right);
+	}
+
+	template<typename T>
+	bool operator==(const Scope<T>& left, std::nullptr_t)
+	{
+		return left.m_Instance == nullptr;
+	}
+
+	template<typename T>
+	bool operator==(std::nullptr_t, const Scope<T>& right)
+	{
+		return right == nullptr;
+	}
 
 }

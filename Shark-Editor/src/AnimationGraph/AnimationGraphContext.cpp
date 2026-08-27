@@ -3,7 +3,11 @@
 
 #include "Shark/Core/Project.h"
 #include "Shark/Asset/AssetManager.h"
+#include "Shark/Asset/AssetManager/EditorAssetManager.h"
+
 #include "Shark/Animation/Skeleton.h"
+
+#include "Shark/Render/MeshSource.h"
 
 #include "NodeGraph/EditorNodes.h"
 #include "AnimationGraph/EditorAnimationGraphAsset.h"

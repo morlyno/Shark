@@ -1,20 +1,36 @@
 #include "skpch.h"
 #include "Scene.h"
 
+#include "Shark/Core/Application.h"
+#include "Shark/Core/Project.h"
 #include "Shark/Core/SelectionManager.h"
+
 #include "Shark/Asset/AssetManager.h"
+#include "Shark/Asset/AssetManager/EditorAssetManager.h"
+
 #include "Shark/Audio/AudioEngine.h"
-#include "Shark/Animation/Animation.h"
+#include "Shark/Animation/Pose.h"
 #include "Shark/Animation/Skeleton.h"
 #include "Shark/Animation/AnimationEngine.h"
 
-#include "Shark/Scene/Entity.h"
-#include "Shark/Scene/Prefab.h"
+#include "Shark/Scripting/ScriptEngine.h"
+#include "Shark/Physics2D/Physics2DScene.h"
+
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/SceneRenderer.h"
+#include "Shark/Render/Renderer2D.h"
+#include "Shark/Render/EditorCamera.h"
 
-#include "Shark/Scripting/ScriptEngine.h"
-#include "Shark/Scripting/ScriptGlue.h"
+#include "Shark/Render/Texture.h"
+#include "Shark/Render/MaterialAsset.h"
+#include "Shark/Render/Font.h"
+#include "Shark/Render/Mesh.h"
+#include "Shark/Render/MeshSource.h"
+#include "Shark/Render/Environment.h"
+
+#include "Shark/Scene/Entity.h"
+#include "Shark/Scene/Prefab.h"
+#include "Shark/Scene/Components.h"
 
 #include "Shark/Math/Math.h"
 #include "Shark/File/FileSystem.h"
@@ -28,12 +44,11 @@
 #include <box2d/b2_polygon_shape.h>
 #include <box2d/b2_circle_shape.h>
 #include <box2d/b2_fixture.h>
-#include "box2d/b2_contact.h"
-#include "box2d/b2_friction_joint.h"
-#include "box2d/b2_distance_joint.h"
-#include "box2d/b2_revolute_joint.h"
-#include "box2d/b2_prismatic_joint.h"
-#include "box2d/b2_pulley_joint.h"
+#include <box2d/b2_friction_joint.h>
+#include <box2d/b2_distance_joint.h>
+#include <box2d/b2_revolute_joint.h>
+#include <box2d/b2_prismatic_joint.h>
+#include <box2d/b2_pulley_joint.h>
 
 namespace Shark {
 
@@ -108,7 +123,7 @@ namespace Shark {
 
 		m_ScriptStorage.CopyTo(destScene->m_ScriptStorage);
 
-		ForEach(AllComponents::Except<IDComponent>{}, [&]<typename TComp>()
+		Tuple::Each(Components::All::Except<IDComponent>{}, [&]<typename TComp>()
 		{
 			CopyComponents<TComp>(m_Registry, destRegistry, destScene->m_EntityUUIDMap);
 		});
@@ -129,31 +144,7 @@ namespace Shark {
 		m_ActiveCameraUUID = UUID::Invalid;
 
 		SK_CORE_ASSERT(m_EntityUUIDMap.size() == 0);
-		SK_CORE_ASSERT(m_Registry.size() == 0);
-	}
-
-	void Scene::Dump(std::ostream& stream)
-	{
-		stream << fmt::format("Scene '{}|{}'", Handle, m_SceneID);
-		auto rootEntities = GetRootEntities();
-		for (auto ent : rootEntities)
-		{
-			Dump(stream, { ent, this });
-		}
-	}
-
-	void Scene::Dump(std::ostream& stream, Entity entity, uint64_t depth)
-	{
-		stream << std::string(depth, ' ') << fmt::format(" - {} '{}'\n", entity.Tag(), entity.GetUUID());
-
-		for (UUID childID : entity.Children())
-		{
-			Entity child = TryGetEntityByUUID(childID);
-			if (child)
-				Dump(stream, child, depth + 3);
-			else
-				stream << std::string(depth + 3, ' ') << fmt::format(" - Invalid '{}'\n", childID);
-		}
+		SK_CORE_ASSERT(m_Registry.storage<entt::entity>().size() == 0);
 	}
 
 	void Scene::OnScenePlay()
@@ -718,7 +709,7 @@ namespace Shark {
 		const UUID parentID = entity.ParentID();
 		Entity newEntity = CreateChildEntity(parentID ? TryGetEntityByUUID(parentID) : Entity{});
 
-		ForEach(AllComponents::Except<IDComponent, RelationshipComponent>{}, [entity, newEntity, &registry = m_Registry]<typename T>() mutable
+		Tuple::Each(Components::All::Except<IDComponent, RelationshipComponent>{}, [entity, newEntity, &registry = m_Registry]<typename T>() mutable
 		{
 			CopyComponentIfExists<T>(entity, newEntity, registry);
 		});
@@ -888,7 +879,7 @@ namespace Shark {
 		Entity rootEntity = prefab->GetRootEntity();
 		DestroyPrefabChildEntities(this, rootEntity, rootEntity);
 
-		ForEach(AllComponents::Except<CoreComponents, PrefabComponent>{}, [entity]<typename T>() mutable
+		Tuple::Each(Components::All::Except<Components::Core, PrefabComponent>{}, [entity]<typename T>() mutable
 		{
 			entity.RemoveComponentIsExists<T>();
 		});
@@ -910,7 +901,7 @@ namespace Shark {
 		if (scale)
 			entity.Transform().Scale = *scale;
 
-		ForEach(AllComponents::ExceptCore{}, [entity, templateEntity]<typename TComponent>() mutable
+		Tuple::Each(Components::All::ExceptCore{}, [entity, templateEntity]<typename TComponent>() mutable
 		{
 			if (auto* component = templateEntity.TryGetComponent<TComponent>())
 				entity.AddOrReplaceComponent<TComponent>(*component);
@@ -1270,6 +1261,11 @@ namespace Shark {
 		return true;
 	}
 
+	bool Scene::HasParent(Entity entity) const
+	{
+		return entity.HasParent();
+	}
+
 	bool Scene::ConvertToLocalSpace(Entity entity, TransformComponent& transform)
 	{
 		if (!entity.HasParent())
@@ -1458,7 +1454,6 @@ namespace Shark {
 
 	void Scene::OnPhysics2DStop()
 	{
-		skdelete m_PhysicsScene;
 		m_PhysicsScene = nullptr;
 	}
 

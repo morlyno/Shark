@@ -1,21 +1,22 @@
 #include "skpch.h"
 #include "SceneSerializer.h"
 
+#include "Shark/Core/Hash.h"
 #include "Shark/Asset/AssetManager.h"
 
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
 #include "Shark/Scripting/ScriptEngine.h"
 
+#include "Shark/Render/Mesh.h"
+#include "Shark/Render/MeshSource.h"
+
+#include "Shark/File/FileSystem.h"
 #include "Shark/Serialization/YAML.h"
 #include "Shark/Serialization/SerializerUtilities.h"
 
-#include "Shark/File/FileSystem.h"
-
 #include "Shark/Debug/enttDebug.h"
 #include "Shark/Debug/Profiler.h"
-
-#include <magic_enum.hpp>
 
 #if SK_DEBUG
 #define SK_SERIALIZATION_ERROR(...) SK_CORE_ERROR_TAG("Serialization", __VA_ARGS__); SK_DEBUG_BREAK()

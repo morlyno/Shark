@@ -2,6 +2,7 @@
 #include "EnvironmentSerializer.h"
 
 #include "Shark/Render/Renderer.h"
+#include "Shark/Render/Texture.h"
 #include "Shark/Render/Environment.h"
 
 #include "Shark/File/FileSystem.h"

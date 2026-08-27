@@ -3,9 +3,11 @@
 #include "Shark/Serialization/SerializerBase.h"
 
 namespace Shark {
-
 	class Texture2D;
 	struct TextureSpecification;
+}
+
+namespace Shark {
 
 	class TextureSerializer : public SerializerBase
 	{

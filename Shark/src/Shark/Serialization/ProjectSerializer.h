@@ -1,6 +1,10 @@
 #pragma once
 
-#include "Shark/Core/Project.h"
+#include "Shark/Core/Base.h"
+
+namespace Shark {
+	class ProjectConfig;
+}
 
 namespace Shark {
 

@@ -1,11 +1,16 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Core/Enum.h"
 #include "Shark/Render/ShaderCompiler/Common.h"
 #include "Shark/Render/ShaderCompiler/ShaderPreprocessor.h"
-#include "Shark/Render/ShaderCompiler/HLSLIncludeHandler.h"
-#include "Shark/Render/ShaderCompiler/PlatformShaderCompiler.h"
+
 #include <memory>
+
+namespace Shark {
+	class PlatformShaderCompiler;
+	class HLSLIncludeHandler;
+}
 
 namespace Shark {
 
@@ -19,6 +24,7 @@ namespace Shark {
 	{
 	public:
 		ShaderCompiler(const std::filesystem::path& sourcePath, const CompilerOptions& options);
+		~ShaderCompiler();
 		//static Ref<ShaderCompiler> Load(const std::filesystem::path& sourcePath, const CompilerOptions& options);
 
 		bool Reload();
@@ -42,7 +48,7 @@ namespace Shark {
 	private:
 		CompilerOptions m_Options;
 		ShaderInfo m_Info;
-		nvrhi::ShaderType m_CompiledStages = nvrhi::ShaderType::None;
+		Enum::Flags<nvrhi::ShaderType> m_CompiledStages = nvrhi::ShaderType::None;
 
 		ShaderPreprocessor m_Preprocessor;
 		std::shared_ptr<HLSLIncludeHandler> m_IncludeHandler;

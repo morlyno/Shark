@@ -1,9 +1,12 @@
 #include "AssetsPanel.h"
 
+#include "Shark/Core/Project.h"
+#include "Shark/Asset/AssetMetadata.h"
+#include "Shark/Asset/AssetManager/EditorAssetManager.h"
+
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/Controls.h"
 #include "Shark/UI/Widgets.h"
-#include "Shark/Utils/String.h"
 
 namespace Shark {
 

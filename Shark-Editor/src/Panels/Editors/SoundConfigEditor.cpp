@@ -1,8 +1,12 @@
 #include "skpch.h"
 #include "SoundConfigEditor.h"
 
+#include "Shark/Core/Project.h"
 #include "Shark/Asset/AssetManager.h"
+#include "Shark/Asset/AssetManager/EditorAssetManager.h"
+
 #include "Shark/Audio/SoundConfig.h"
+
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/Controls.h"
 

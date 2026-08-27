@@ -1,12 +1,18 @@
 #include "skpch.h"
 #include "Widgets.h"
 
+#include "Shark/Core/Project.h"
 #include "Shark/Asset/AssetManager.h"
-#include "Shark/Scripting/ScriptEngine.h"
+#include "Shark/Asset/AssetManager/EditorAssetManager.h"
+
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
+#include "Shark/Scene/Components/CoreComponents.h"
+#include "Shark/Scripting/ScriptEngine.h"
+
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/UIUtilities.h"
+
 #include "Shark/Utils/PlatformUtils.h"
 #include "Shark/Utils/Utilities.h"
 

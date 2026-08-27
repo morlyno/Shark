@@ -1,7 +1,22 @@
 #include "MaterialEditorPanel.h"
 
+#include "Shark/Core/Project.h"
 #include "Shark/Core/SelectionManager.h"
+
 #include "Shark/Asset/AssetManager.h"
+#include "Shark/Asset/AssetManager/EditorAssetManager.h"
+
+#include "Shark/Scene/Components/CoreComponents.h"
+#include "Shark/Scene/Components/RendererComponents.h"
+
+#include "Shark/Render/SceneRenderer.h"
+#include "Shark/Render/Image.h"
+#include "Shark/Render/Shader.h"
+#include "Shark/Render/Material.h"
+
+#include "Shark/Render/Mesh.h"
+#include "Shark/Render/MeshSource.h"
+#include "Shark/Render/MaterialAsset.h"
 
 #include "Shark/File/FileSystem.h"
 
@@ -45,7 +60,7 @@ namespace Shark {
 			return;
 
 		ImGui::Text(fmt::format("Shader: {}", material->GetMaterial()->GetShader()->GetName()));
-		ImGui::Text(fmt::format("Name: {}", material->GetMaterial()->GetName()));
+		ImGui::Text(fmt::format("Name: {}", material->GetName()));
 
 		bool changed = false;
 
@@ -415,6 +430,11 @@ namespace Shark {
 		}
 
 		ImGui::End();
+	}
+
+	void MaterialPanel::SetContext(const Ref<Scene>& context)
+	{
+		m_Context = context;
 	}
 
 	std::string MaterialPanel::GetMaterialName(AssetHandle handle) const

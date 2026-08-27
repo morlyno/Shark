@@ -1,8 +1,5 @@
 #pragma once
 
-#include "Shark/Scene/Scene.h"
-#include "Shark/Event/Event.h"
-
 #include "Panel.h"
 
 namespace Shark {
@@ -13,7 +10,7 @@ namespace Shark {
 		PhysicsDebugPanel();
 
 		virtual void OnImGuiRender(bool& shown) override;
-		virtual void SetContext(Ref<Scene> scene) override { m_Scene = scene; }
+		virtual void SetContext(const Ref<Scene>& context) override;
 
 		static const char* GetStaticID() { return "PhysicsDebugPanel"; }
 		virtual const char* GetPanelID() const override { return GetStaticID(); }

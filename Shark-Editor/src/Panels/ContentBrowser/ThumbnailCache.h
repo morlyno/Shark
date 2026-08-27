@@ -1,8 +1,12 @@
 #pragma once
 
-#include "Shark/Asset/Asset.h"
-#include "Shark/Render/Image.h"
-#include "Shark/Render/RenderCommandBuffer.h"
+#include "Shark/Asset/AssetTypes.h"
+
+namespace Shark {
+	class RenderCommandBuffer;
+	class Image2D;
+	class StagingImage2D;
+}
 
 namespace Shark {
 

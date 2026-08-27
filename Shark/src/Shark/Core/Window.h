@@ -1,12 +1,16 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Event/Event.h"
-#include "Shark/Event/EventListener.h"
 #include "Shark/Input/MouseButtons.h"
-#include "Shark/Render/SwapChain.h"
 
 #undef IsMaximized
+
+namespace Shark {
+	class Event;
+	class EventListener;
+
+	class SwapChain;
+}
 
 namespace Shark {
 

@@ -1,14 +1,19 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Core/Project.h"
-#include "Shark/Asset/Asset.h"
-#include "Shark/Render/Texture.h"
+#include "Shark/Core/UUID.h"
 
 #include <imgui.h>
 
 #undef CreateDirectory
 #undef RemoveDirectory
+
+namespace Shark {
+	struct AssetMetaData;
+	class Texture2D;
+
+	class ContentBrowserPanel;
+}
 
 namespace Shark {
 

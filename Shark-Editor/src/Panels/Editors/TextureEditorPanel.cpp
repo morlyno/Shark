@@ -1,13 +1,19 @@
 #include "TextureEditorPanel.h"
 
+#include "Shark/Core/Project.h"
 #include "Shark/Event/ApplicationEvent.h"
+
 #include "Shark/Asset/AssetManager.h"
-#include "Shark/Scene/Components.h"
+#include "Shark/Asset/AssetManager/EditorAssetManager.h"
+
 #include "Shark/Render/Renderer.h"
+#include "Shark/Render/RenderCommandBuffer.h"
+#include "Shark/Render/Image.h"
 
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/Controls.h"
 
+#include "Shark/Utils/Utilities.h"
 #include "Shark/Debug/Profiler.h"
 
 namespace Shark {
@@ -29,7 +35,7 @@ namespace Shark {
 		if (metadata.Type != AssetType::Texture)
 			return;
 
-		m_IsSharkTexture = metadata.FilePath.extension() == ".sktex";
+		m_IsSharkTexture = Contains(AssetExtensions::Shark::Texture, metadata.FilePath.extension());
 		m_TextureHandle = metadata.Handle;
 		m_SetupWindows = true;
 		m_PerMipView.clear();

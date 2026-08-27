@@ -1,9 +1,17 @@
 #pragma once
 
-#include "Shark/Scene/Prefab.h"
-#include "Shark/Render/SceneRenderer.h"
-#include "Panels/SceneHierarchyPanel.h"
+#include "Shark/Asset/AssetTypes.h"
+#include "Shark/Render/EditorCamera.h"
+
 #include "Panels/AssetEditorPanel.h"
+
+namespace Shark {
+	class Prefab;
+	class SceneRenderer;
+	class SceneHierarchyPanel;
+
+	struct AssetMetaData;
+}
 
 namespace Shark {
 

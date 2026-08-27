@@ -1,11 +1,15 @@
 #pragma once
 
+#include "Shark/Core/Base.h"
+#include "Shark/Core/UUID.h"
+
 #include <span>
 
 namespace Shark {
-
-	class Scene;
 	class Entity;
+}
+
+namespace Shark {
 
 	class SelectionManager
 	{
@@ -25,7 +29,7 @@ namespace Shark {
 		static UUID GetFirstSelected(UUID contextID);
 		static UUID GetLastSelected(UUID contextID);
 
-		static bool IsEntityOrAncestorSelected(UUID contextID, Entity entity);
+		static bool IsEntityOrAncestorSelected(UUID contextID, const Entity& entity);
 	};
 
 }

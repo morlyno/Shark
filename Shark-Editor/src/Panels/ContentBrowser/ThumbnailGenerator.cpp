@@ -2,9 +2,24 @@
 
 #include "Shark/Core/Project.h"
 #include "Shark/Asset/AssetManager.h"
-#include "Shark/Serialization/Import/TextureImporter.h"
+#include "Shark/Asset/AssetManager/EditorAssetManager.h"
+
+#include "Shark/Scene/Components/RendererComponents.h"
+#include "Shark/Scene/Components/CoreComponents.h"
+
 #include "Shark/Render/Renderer.h"
-#include "Shark/Render/Font.h"
+#include "Shark/Render/RenderCommandBuffer.h"
+#include "Shark/Render/SceneRenderer.h"
+
+#include "Shark/Render/Image.h"
+#include "Shark/Render/Texture.h"
+
+#include "Shark/Render/Mesh.h"
+#include "Shark/Render/MeshSource.h"
+#include "Shark/Render/MaterialAsset.h"
+#include "Shark/Render/Environment.h"
+
+#include "Shark/Math/AABB.h"
 
 namespace Shark {
 

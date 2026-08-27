@@ -1,8 +1,15 @@
 #include "ThumbnailCache.h"
 
 #include "Shark/Core/Application.h"
+#include "Shark/Core/Project.h"
+
 #include "Shark/Asset/AssetManager.h"
+#include "Shark/Asset/AssetManager/EditorAssetManager.h"
+
 #include "Shark/Render/Renderer.h"
+#include "Shark/Render/RenderCommandBuffer.h"
+#include "Shark/Render/Image.h"
+
 #include "Shark/File/FileSystem.h"
 #include "Shark/File/Serialization/FileStream.h"
 #include "Shark/Debug/Profiler.h"

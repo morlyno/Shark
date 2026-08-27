@@ -1,6 +1,13 @@
 #pragma once
 
-#include "Shark/Render/Image.h"
+#include "Shark/Core/Base.h"
+#include "Shark/Render/TextureCommon.h"
+
+#include <nvrhi/nvrhi.h>
+
+namespace Shark {
+	class Image2D;
+}
 
 namespace Shark {
 
@@ -63,8 +70,8 @@ namespace Shark {
 		void SetClearColor(const glm::vec4& clearColor) { std::ranges::fill(m_ClearColors, nvrhi::Color{ clearColor.x, clearColor.y, clearColor.z, clearColor.w }); }
 		void SetClearColor(uint32_t colorAtachmentIndex, const glm::vec4& clearColor) { m_ClearColors[colorAtachmentIndex] = nvrhi::Color(clearColor.x, clearColor.y, clearColor.z, clearColor.w); }
 
-		Ref<Image2D> GetImage(uint32_t index) const { return m_ColorImages[index]; }
-		Ref<Image2D> GetDepthImage() const { return m_DepthImage; }
+		RefArg<Image2D> GetImage(uint32_t index) const;
+		RefArg<Image2D> GetDepthImage() const;
 		bool HasDepthAtachment() const { return m_DepthImage != nullptr; }
 
 		nvrhi::FramebufferHandle GetHandle() const { return m_FramebufferHandle; }

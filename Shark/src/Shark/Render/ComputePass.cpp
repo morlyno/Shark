@@ -2,6 +2,12 @@
 #include "ComputePass.h"
 
 #include "Shark/Render/Renderer.h"
+#include "Shark/Render/Shader.h"
+
+#include "Shark/Render/Image.h"
+#include "Shark/Render/Texture.h"
+#include "Shark/Render/ConstantBuffer.h"
+#include "Shark/Render/StorageBuffer.h"
 
 namespace Shark {
 

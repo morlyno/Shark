@@ -2,6 +2,7 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Core/UUID.h"
+#include "Shark/Core/Concepts.h"
 #include "Shark/Core/Reflection.h"
 #include "Shark/Core/Identifier.h"
 #include "Shark/NodeGraph/PinTypes.h"
@@ -67,6 +68,8 @@ namespace Shark::NodeGraph {
 		ProcessNode(UUID id)
 			: ID(id)
 		{}
+
+		virtual ~ProcessNode() = default;
 
 		UUID ID;
 		std::unordered_map<Identifier, choc::value::ValueView> Inputs;
@@ -174,7 +177,7 @@ namespace Shark::NodeGraph::Details {
 			auto unpack = [&node, nodeIndex = 0](auto memberPtr) mutable
 			{
 				std::string_view name = RemovePinPrefix(N::Outputs::Members[nodeIndex++]);
-				using TMember = Reflection::member_return_type<decltype(memberPtr)>;
+				using TMember = TypeTraits::member_return_type<decltype(memberPtr)>;
 
 				if constexpr (std::is_same_v<TMember, ProcessNode::OutputEvent>)
 				{

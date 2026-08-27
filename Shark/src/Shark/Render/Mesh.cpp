@@ -1,14 +1,25 @@
 #include "skpch.h"
 #include "Mesh.h"
 
-#include "Shark/Asset/AssetManager.h"
+#include "Shark/Render/MeshSource.h"
+#include "Shark/Render/MaterialTable.h"
 
 namespace Shark {
+
+	Mesh::Mesh()
+	{
+
+	}
 
 	Mesh::Mesh(Ref<MeshSource> meshSource)
 		: m_MeshSource(meshSource->Handle)
 	{
 		InitializeFromThis(meshSource);
+	}
+
+	Mesh::~Mesh()
+	{
+
 	}
 
 #if TODO

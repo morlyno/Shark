@@ -1,11 +1,14 @@
 #pragma once
 
-#include "Shark/Render/Material.h"
-#include "Shark/Render/SceneRenderer.h"
-#include "Shark/Scene/Scene.h"
+#include "Shark/Asset/AssetTypes.h"
 #include "Shark/Scene/Entity.h"
 
 #include "Panels/AssetEditorPanel.h"
+
+namespace Shark {
+	class Scene;
+	class SceneRenderer;
+}
 
 namespace Shark {
 
@@ -42,7 +45,7 @@ namespace Shark {
 		~MaterialPanel();
 
 		virtual void OnImGuiRender(bool& shown) override;
-		virtual void SetContext(Ref<Scene> context) override { m_Context = context; }
+		virtual void SetContext(const Ref<Scene>& context) override;
 
 		static const char* GetStaticID() { return "MaterialPanel"; }
 		virtual const char* GetPanelID() const { return GetStaticID(); }

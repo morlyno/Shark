@@ -2,11 +2,14 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Core/TimeStep.h"
-#include "Shark/Event/Event.h"
 #include "Shark/Render/Camera.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+
+namespace Shark {
+	class Event;
+}
 
 namespace Shark {
 

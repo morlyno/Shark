@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "EntityNodes.h"
 
+#include "Shark/Scene/Components/CoreComponents.h"
+
 namespace Shark::NodeGraph {
 
 	Nodes::EntityTransform::EntityTransform(UUID id, NodeContext* context)

@@ -195,8 +195,8 @@ namespace Shark {
 
 		virtual void OnImGuiRender(bool& shown) override;
 		virtual void OnEvent(Event& event) override;
-		virtual void OnProjectChanged(Ref<ProjectConfig> project) override;
-		virtual void SetContext(Ref<Scene> context) override { m_SceneContext = context; }
+		virtual void OnProjectChanged(const Ref<ProjectConfig>& projectConfig) override;
+		virtual void SetContext(const Ref<Scene>& context) override { m_SceneContext = context; }
 
 		void ScheduleReload() { m_ReloadScheduled = true; }
 		Ref<ProjectConfig> GetProject() const { return m_ProjectConfig; }
@@ -245,41 +245,10 @@ namespace Shark {
 		Ref<ContentBrowserItem> CreateDirectory(const std::string& name, bool startRenaming);
 
 		template<typename TAsset, typename... TArgs>
-		void CreateAsset(const std::string& name, bool startRename, TArgs&&... args)
-		{
-			std::filesystem::path directoryPath = m_ProjectConfig->GetAbsolute(m_CurrentDirectory->Filepath / name);
-			Ref<EditorAssetManager> assetManager = Project::GetEditorAssetManager();
-			Ref<TAsset> asset = assetManager->CreateAsset<TAsset>(directoryPath, std::forward<TArgs>(args)...);
-			const auto& metadata = assetManager->GetMetadata(asset);
-			Ref<ContentBrowserItem> newItem = Ref<ContentBrowserAsset>::Create(this, metadata, GetAssetIcon(FileSystem::GetExtensionString(metadata.FilePath)));
-			m_CurrentItems.Add(newItem);
-			m_CurrentDirectory->AddFile(name);
-			SelectItem(metadata.Handle);
+		void CreateAsset(const std::string& name, bool startRename, TArgs&&... args);
 
-			if (startRename)
-				newItem->StartRenaming();
-		}
-		
 		template<typename TAsset, typename... TArgs>
-		void CreateAsset(Ref<DirectoryInfo> directory, const std::string& name, bool startRename, TArgs&&... args)
-		{
-			std::filesystem::path directoryPath = m_ProjectConfig->GetAbsolute(directory->Filepath / name);
-			Ref<EditorAssetManager> assetManager = Project::GetEditorAssetManager();
-			Ref<TAsset> asset = assetManager->CreateAsset<TAsset>(directoryPath, std::forward<TArgs>(args)...);
-			const auto& metadata = assetManager->GetMetadata(asset);
-			Ref<ContentBrowserItem> newItem = Ref<ContentBrowserAsset>::Create(this, metadata, GetAssetIcon(FileSystem::GetExtensionString(metadata.FilePath)));
-
-			directory->AddFile(name);
-			if (m_CurrentDirectory == directory)
-			{
-				m_CurrentItems.Add(newItem);
-				m_CurrentDirectory->AddFile(name);
-				SelectItem(metadata.Handle);
-
-				if (startRename)
-					newItem->StartRenaming();
-			}
-		}
+		void CreateAsset(Ref<DirectoryInfo> directory, const std::string& name, bool startRename, TArgs&&... args);
 
 	private:
 		Ref<ProjectConfig> m_ProjectConfig;

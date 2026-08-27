@@ -1,17 +1,27 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Render/Shader.h"
-#include "Shark/Render/ConstantBuffer.h"
-#include "Shark/Render/StorageBuffer.h"
-#include "Shark/Render/Image.h"
-#include "Shark/Render/Texture.h"
+
+#include "Shark/Render/ShaderReflection.h"
 #include "Shark/Render/DescriptorSetManager.h"
 
 #include <nvrhi/nvrhi.h>
 
 namespace Shark {
-	 
+	class Shader;
+
+	class RendererResource;
+	class ConstantBuffer;
+	class StorageBuffer;
+	class Sampler;
+	class ViewableResource;
+	class Image2D;
+	class ImageView;
+	class Texture2D;
+	class TextureCube;
+}
+
+namespace Shark {
 
 #if 0
 	// Defined in DescriptorSetManager.h
@@ -48,26 +58,19 @@ namespace Shark {
 		ShaderInputType Type = ShaderInputType::None;
 		std::vector<InputResource> Items;
 
-		void Set(Ref<RendererResource> resource, RenderInputType type, uint32_t arrayIndex) { Items[arrayIndex].Item = resource, Items[arrayIndex].Type = type; }
-		void Set(const InputViewArgs& args, uint32_t arrayIndex)                            { Items[arrayIndex].ViewArgs = args; }
+		void Set(Ref<RendererResource> resource, RenderInputType type, uint32_t arrayIndex);
+		void Set(const InputViewArgs& args, uint32_t arrayIndex);
 
-		void Set(uint32_t arrayIndex, Ref<ConstantBuffer> constantBuffer, const InputViewArgs& viewArgs = {}) { Items[arrayIndex].Item = constantBuffer; Items[arrayIndex].Type = RenderInputType::ConstantBuffer; Items[arrayIndex].ViewArgs = viewArgs; }
-		void Set(uint32_t arrayIndex, Ref<StorageBuffer> storageBuffer,   const InputViewArgs& viewArgs = {}) { Items[arrayIndex].Item = storageBuffer;  Items[arrayIndex].Type = RenderInputType::StorageBuffer;  Items[arrayIndex].ViewArgs = viewArgs; }
-		void Set(uint32_t arrayIndex, Ref<Sampler> sampler,               const InputViewArgs& viewArgs = {}) { Items[arrayIndex].Item = sampler;        Items[arrayIndex].Type = RenderInputType::Sampler;        Items[arrayIndex].ViewArgs = viewArgs; }
-		void Set(uint32_t arrayIndex, Ref<ViewableResource> viewable,     const InputViewArgs& viewArgs = {}) { Items[arrayIndex].Item = viewable;       Items[arrayIndex].Type = RenderInputType::Viewable;       Items[arrayIndex].ViewArgs = viewArgs; }
-		void Set(uint32_t arrayIndex, Ref<Image2D> image,                 const InputViewArgs& viewArgs = {}) { Items[arrayIndex].Item = image;          Items[arrayIndex].Type = RenderInputType::Image2D;        Items[arrayIndex].ViewArgs = viewArgs; }
-		void Set(uint32_t arrayIndex, Ref<ImageView> imageView,           const InputViewArgs& viewArgs = {}) { Items[arrayIndex].Item = imageView;      Items[arrayIndex].Type = RenderInputType::ImageView;      Items[arrayIndex].ViewArgs = viewArgs; }
-		void Set(uint32_t arrayIndex, Ref<Texture2D> texture,             const InputViewArgs& viewArgs = {}) { Items[arrayIndex].Item = texture;        Items[arrayIndex].Type = RenderInputType::Texture2D;      Items[arrayIndex].ViewArgs = viewArgs; }
-		void Set(uint32_t arrayIndex, Ref<TextureCube> textureCube,       const InputViewArgs& viewArgs = {}) { Items[arrayIndex].Item = textureCube;    Items[arrayIndex].Type = RenderInputType::TextureCube;    Items[arrayIndex].ViewArgs = viewArgs; }
+		void Set(uint32_t arrayIndex, Ref<ConstantBuffer> constantBuffer, const InputViewArgs& viewArgs = {});
+		void Set(uint32_t arrayIndex, Ref<StorageBuffer> storageBuffer,   const InputViewArgs& viewArgs = {});
+		void Set(uint32_t arrayIndex, Ref<Sampler> sampler,               const InputViewArgs& viewArgs = {});
+		void Set(uint32_t arrayIndex, Ref<ViewableResource> viewable,     const InputViewArgs& viewArgs = {});
+		void Set(uint32_t arrayIndex, Ref<Image2D> image,                 const InputViewArgs& viewArgs = {});
+		void Set(uint32_t arrayIndex, Ref<ImageView> imageView,           const InputViewArgs& viewArgs = {});
+		void Set(uint32_t arrayIndex, Ref<Texture2D> texture,             const InputViewArgs& viewArgs = {});
+		void Set(uint32_t arrayIndex, Ref<TextureCube> textureCube,       const InputViewArgs& viewArgs = {});
 
-		bool IsSame(uint32_t arrayIndex, Ref<RendererResource> resource, const InputViewArgs& viewArgs = {}) const
-		{
-			return
-				Items[arrayIndex].Item                    == resource &&
-				Items[arrayIndex].ViewArgs.Format         == viewArgs.Format &&
-				Items[arrayIndex].ViewArgs.Dimension      == viewArgs.Dimension &&
-				Items[arrayIndex].ViewArgs.SubresourceSet == viewArgs.SubresourceSet;
-		}
+		bool IsSame(uint32_t arrayIndex, Ref<RendererResource> resource, const InputViewArgs& viewArgs = {}) const;
 
 		BindingSetInput() = default;
 	};

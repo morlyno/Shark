@@ -1,10 +1,11 @@
 #pragma once
 
+#include "Shark/Core/Enum.h"
+
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/TextFilter.h"
-#include "Panel.h"
 
-#include <magic_enum_containers.hpp>
+#include "Panel.h"
 
 namespace Shark {
 
@@ -21,7 +22,7 @@ namespace Shark {
 		~ProjectSettingsPanel();
 
 		virtual void OnImGuiRender(bool& shown) override;
-		virtual void OnProjectChanged(Ref<ProjectConfig> projectConfig) override;
+		virtual void OnProjectChanged(const Ref<ProjectConfig>& projectConfig) override;
 
 		static const char* GetStaticID() { return "ProjectSettingsPanel"; }
 		virtual const char* GetPanelID() const override { return GetStaticID(); }
@@ -40,7 +41,7 @@ namespace Shark {
 		Ref<ProjectConfig> m_TempConfig;
 
 		bool m_ConfigDirty = false;
-		magic_enum::containers::array<ActiveContext, bool> m_DirtyMenu;
+		Enum::Array<ActiveContext, bool> m_DirtyMenu;
 
 		bool m_Focused = false;
 		ImGuiID m_UnsavedSettingsID = UI::GenerateUniqueID();

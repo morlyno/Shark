@@ -2,7 +2,9 @@
 
 #include "Shark/Asset/Asset.h"
 
-#include "Shark/Render/Texture.h"
+namespace Shark {
+	class TextureCube;
+}
 
 namespace Shark {
 
@@ -11,8 +13,8 @@ namespace Shark {
 	public:
 		Environment(Ref<TextureCube> radianceMap, Ref<TextureCube> irradianceMap);
 
-		Ref<TextureCube> GetRadianceMap() const { return m_RadianceMap; }
-		Ref<TextureCube> GetIrradianceMap() const { return m_IrradianceMap; }
+		RefArg<TextureCube> GetRadianceMap() const { return m_RadianceMap; }
+		RefArg<TextureCube> GetIrradianceMap() const { return m_IrradianceMap; }
 
 	public: // Asset Interface
 		static AssetType GetStaticType() { return AssetType::Environment; }

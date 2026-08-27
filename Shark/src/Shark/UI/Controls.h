@@ -3,8 +3,6 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Enum.h"
 #include "Shark/Asset/AssetTypes.h"
-#include "Shark/UI/UICore.h"
-#include "Shark/UI/Widgets.h"
 
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/Widgets.h"
@@ -120,12 +118,12 @@ namespace Shark::UI {
 	using EntityControlArgs = SelectEntityArgs;
 	using ScriptControlArgs = ButtonArgs;
 
-	bool ControlEntity(std::string_view label, Ref<Scene> scene, UUID& entityID, const EntityControlArgs& args = {});
+	bool ControlEntity(std::string_view label, const Ref<Scene>& scene, UUID& entityID, const EntityControlArgs& args = {});
 	bool ControlAsset(std::string_view label, AssetType assetType, AssetHandle& assetHandle, const AssetControlArgs& args = {});
 	bool ControlAsset(std::string_view label, std::span<const AssetType> assetTypes, AssetHandle& assetHandle, const AssetControlArgs& args = {});
 	bool ControlScript(std::string_view label, uint64_t& scriptID, const ScriptControlArgs& args = {});
 
-	bool ControlEntity(std::string_view label, Ref<Scene> scene, const UUID& entityID, const EntityControlArgs& args = {});
+	bool ControlEntity(std::string_view label, const Ref<Scene>& scene, const UUID& entityID, const EntityControlArgs& args = {});
 	bool ControlAsset(std::string_view label, AssetType assetType, const AssetHandle& assetHandle, const AssetControlArgs& args = {});
 
 	// #TODO move to UICore.h

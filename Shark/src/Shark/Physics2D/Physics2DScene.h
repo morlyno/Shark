@@ -4,28 +4,26 @@
 #include "Shark/Core/UUID.h"
 #include "Shark/Core/TimeStep.h"
 
-#include "Shark/Physics2D/ContactListener.h"
+#include "Shark/Physics2D/PhysicsTypes.h"
 
-#include <box2d/b2_world.h>
+#include <box2d/b2_math.h>
 #include <box2d/b2_body.h>
+
+class b2World;
+class b2Body;
+struct b2Profile;
+
+namespace Shark {
+	class Entity;
+	class Scene;
+
+	class ContactListener;
+}
 
 namespace Shark {
 
 	class Entity;
 	class Scene;
-
-	enum class Collider2DType
-	{
-		BoxCollider,
-		CircleCollider
-	};
-
-	enum class RigidbodyType
-	{
-		Static,
-		Dynamic,
-		Kinematic
-	};
 
 	struct PhysicsProfile
 	{
@@ -51,8 +49,12 @@ namespace Shark {
 		~Physics2DScene();
 
 		void Step(TimeStep ts);
-
 		void DestroyAllBodies();
+
+		glm::vec2 GetGravity() const { return m_Gravity; }
+		void SetGravity(const glm::vec2& gravity);
+		bool GetAllowSleeping() const;
+		void SetAllowSleeping(bool allow) const;
 
 		bool Active() const { return m_World != nullptr; }
 		const PhysicsProfile& GetProfile() const { return m_Profile; }

@@ -1,8 +1,6 @@
 #include "skpch.h"
 #include "ImGuiFonts.h"
 
-#include "Shark/File/FileSystem.h"
-
 namespace Shark::UI {
 
 	static std::unordered_map<std::string, ImFont*> s_Fonts;

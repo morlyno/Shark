@@ -2,7 +2,7 @@
 #include "FrameBuffer.h"
 
 #include "Shark/Render/Renderer.h"
-#include "Shark/Core/Application.h"
+#include "Shark/Render/Image.h"
 
 namespace Shark {
 
@@ -56,7 +56,7 @@ namespace Shark {
 			framebufferDesc.setDepthAttachment(m_DepthImage->GetHandle());
 		}
 
-		auto device = Application::Get().GetDeviceManager()->GetDevice();
+		auto device = Renderer::GetGraphicsDevice();
 		m_FramebufferHandle = device->createFramebuffer(framebufferDesc);
 
 		m_Viewport = nvrhi::Viewport((float)m_Specification.Width, (float)m_Specification.Height);
@@ -108,6 +108,16 @@ namespace Shark {
 		});
 	}
 
+	RefArg<Image2D> FrameBuffer::GetImage(uint32_t index) const
+	{
+		return m_ColorImages[index];
+	}
+
+	RefArg<Image2D> FrameBuffer::GetDepthImage() const
+	{
+		return m_DepthImage;
+	}
+
 	void FrameBuffer::InvalidateFromState(const RT_State& state)
 	{
 		auto framebufferDesc = nvrhi::FramebufferDesc();
@@ -118,7 +128,7 @@ namespace Shark {
 		if (m_DepthImage)
 			framebufferDesc.setDepthAttachment(m_DepthImage->GetHandle());
 
-		auto device = Application::Get().GetDeviceManager()->GetDevice();
+		auto device = Renderer::GetGraphicsDevice();
 		m_FramebufferHandle = device->createFramebuffer(framebufferDesc);
 
 		m_Viewport = nvrhi::Viewport((float)state.Width, (float)state.Height);

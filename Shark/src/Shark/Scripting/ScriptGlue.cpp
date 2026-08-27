@@ -2,15 +2,16 @@
 #include "ScriptGlue.h"
 
 #include "Shark/Core/Application.h"
+#include "Shark/Core/Window.h"
 #include "Shark/Core/Log.h"
-#include "Shark/Core/Project.h"
+
 #include "Shark/Asset/AssetManager.h"
 
 #include "Shark/Audio/AudioEngine.h"
 #include "Shark/Audio/SoundConfig.h"
 #include "Shark/Audio/Sound.h"
 
-#include "Shark/Animation/Animation.h"
+#include "Shark/Animation/Pose.h"
 #include "Shark/Animation/AnimationEngine.h"
 
 #include "Shark/Scene/Scene.h"
@@ -19,9 +20,11 @@
 #include "Shark/Scene/Prefab.h"
 
 #include "Shark/Scripting/ScriptEngine.h"
-#include "Shark/Math/Math.h"
+#include "Shark/Physics2D/Physics2DScene.h"
 
-#include "Shark/Debug/Profiler.h"
+#include "Shark/UI/ImGui/ImGuiLayer.h"
+
+#include "Shark/Math/Math.h"
 
 #include <box2d/b2_body.h>
 #include <box2d/b2_contact.h>
@@ -1036,10 +1039,7 @@ namespace Shark {
 			auto& physicsScene = currentScene->GetPhysicsScene();
 			SK_ICALL_VERIFY_PARAMETER(physicsScene.Active());
 
-
-			auto gravity = physicsScene.GetWorld()->GetGravity();
-			out_Gravity->x = gravity.x;
-			out_Gravity->y = gravity.y;
+			*out_Gravity = physicsScene.GetGravity();
 		}
 
 		void Physics2D_SetGravity(glm::vec2* gravity)
@@ -1048,7 +1048,7 @@ namespace Shark {
 			auto& physicsScene = currentScene->GetPhysicsScene();
 			SK_ICALL_VERIFY_PARAMETER(physicsScene.Active());
 
-			physicsScene.GetWorld()->SetGravity({ gravity->x, gravity->y });
+			physicsScene.SetGravity(*gravity);
 		}
 
 		Coral::Bool32 Physics2D_GetAllowSleep()
@@ -1057,7 +1057,7 @@ namespace Shark {
 			auto& physicsScene = currentScene->GetPhysicsScene();
 			SK_ICALL_VERIFY_PARAMETER(physicsScene.Active());
 
-			return physicsScene.GetWorld()->GetAllowSleeping();
+			return physicsScene.GetAllowSleeping();
 		}
 
 		void Physics2D_SetAllowSleep(bool allowSleep)
@@ -1066,7 +1066,7 @@ namespace Shark {
 			auto& physicsScene = currentScene->GetPhysicsScene();
 			SK_ICALL_VERIFY_PARAMETER(physicsScene.Active());
 
-			physicsScene.GetWorld()->SetAllowSleeping(allowSleep);
+			physicsScene.SetAllowSleeping(allowSleep);
 		}
 
 		#pragma endregion

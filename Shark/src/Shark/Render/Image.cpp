@@ -1,8 +1,9 @@
 #include "skpch.h"
 #include "Image.h"
 
-#include "Shark/Core/Application.h"
 #include "Shark/Core/Memory.h"
+
+#include "Shark/Render/DeviceManager.h"
 #include "Shark/Render/Renderer.h"
 
 #include "Shark/Debug/Profiler.h"
@@ -112,7 +113,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		auto deviceManager = Application::Get().GetDeviceManager();
+		auto deviceManager = Renderer::GetDeviceManager();
 		deviceManager->ExecuteCommand([this, buffer](nvrhi::ICommandList* cmd)
 		{
 			cmd->writeTexture(m_ImageHandle, 0, 0, buffer.As<const void>(), m_Specification.Width * ImageUtils::GetFormatBPP(m_Specification.Format));

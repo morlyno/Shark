@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Shark/Core/UUID.h"
+#include "Shark/Core/Enum.h"
 #include "Shark/Core/TimeStep.h"
-#include "Shark/Core/Reflection.h"
-#include "Shark/Utils/Utilities.h"
+#include "Shark/Core/Concepts.h"
 
 #include <glm/glm.hpp>
 #include <yaml-cpp/yaml.h>
@@ -228,6 +228,21 @@ namespace YAML {
 		}
 	};
 
+	template<typename T>
+	struct convert<Shark::Enum::Flags<T>>
+	{
+		static Node encode(const Shark::Enum::Flags<T>& flags)
+		{
+			return Node(flags.Enum());
+		}
+
+		static bool decode(const Node& node, Shark::Enum::Flags<T>& flags)
+		{
+			flags = node.as<T>();
+			return true;
+		}
+	};
+
 	template<>
 	struct convert<std::chrono::system_clock::time_point>
 	{
@@ -291,10 +306,10 @@ struct convert<_Type>                                                \
 	}
 
 	template<typename Conversion>
-		requires requires { Shark::Reflection::function_args<Conversion>{}; }
+		requires requires { Shark::TypeTraits::function_args<Conversion>{}; }
 	void Read(const YAML::Node& node, std::string_view key, Conversion&& conversion)
 	{
-		using T = std::tuple_element_t<0, Shark::Reflection::function_args_type<Conversion>>;
+		using T = std::tuple_element_t<0, Shark::TypeTraits::function_args_type<Conversion>>;
 
 		try
 		{

@@ -1,13 +1,16 @@
 #pragma once
 
+#include "Shark/Asset/Asset.h"
 #include "Shark/Asset/AssetMetadata.h"
 #include "Shark/Asset/AssetManager/AssetRegistry.h"
 #include "Shark/Asset/AssetManager/AssetManagerBase.h"
 
 namespace Shark {
-
 	class ProjectConfig;
 	class EditorAssetThread;
+}
+
+namespace Shark {
 
 	class EditorAssetManager : public AssetManagerBase
 	{

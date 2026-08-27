@@ -1,5 +1,7 @@
 #include "AssetEditorPanel.h"
 
+#include "Shark/Asset/AssetMetadata.h"
+
 #include "Shark/UI/UICore.h"
 #include "Shark/Debug/Profiler.h"
 

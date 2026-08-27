@@ -4,9 +4,16 @@
 #include "Shark/Core/Project.h"
 #include "Shark/Core/SelectionManager.h"
 
-#include "Shark/Audio/AudioEngine.h"
+#include "Shark/Render/DeviceManager.h"
+#include "Shark/Render/RenderCommandBuffer.h"
+#include "Shark/Render/Mesh.h"
+#include "Shark/Render/MeshSource.h"
+
+#include "Shark/Asset/AssetManager.h"
+#include "Shark/Asset/AssetManager/EditorAssetManager.h"
 
 #include "Shark/Scene/Components.h"
+#include "Shark/Scene/Prefab.h"
 #include "Shark/Scripting/ScriptEngine.h"
 
 #include "Shark/Serialization/ProjectSerializer.h"
@@ -20,6 +27,7 @@
 
 #include "EditorSettings.h"
 
+#include "Panels/PanelManager.h"
 #include "Panels/AssetEditorPanel.h"
 #include "Panels/AssetsPanel.h"
 #include "Panels/ContentBrowser/ContentBrowserPanel.h"
@@ -41,14 +49,13 @@
 #include "Panels/Editors/SoundConfigEditor.h"
 #include "Panels/Editors/TextureEditorPanel.h"
 
-//#include "NodeGraph/NodeGraphEditor.h"
 #include "AnimationGraph/AnimationGraphEditor.h"
 #include "AnimationGraph/EditorAnimationGraphSerializer.h"
 
 #include "Shark/Debug/Profiler.h"
-#include "Shark/Debug/enttDebug.h"
 
 #include <glm/gtc/type_ptr.hpp>
+#include <ranges>
 
 namespace Shark {
 

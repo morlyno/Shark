@@ -1,7 +1,10 @@
 #pragma once
 
-#include "Panel.h"
+#include "Shark/Asset/AssetTypes.h"
+#include "Shark/Asset/AssetMetadata.h"
 #include "Shark/File/FileSystem.h"
+
+#include "Panel.h"
 
 #include <imgui.h>
 

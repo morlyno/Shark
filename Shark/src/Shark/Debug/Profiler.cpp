@@ -1,6 +1,9 @@
 #include "skpch.h"
 #include "Profiler.h"
 
+#include "Shark/Core/Application.h"
+#include "Shark/Utils/PlatformUtils.h"
+
 namespace Shark {
 
 	void PerformanceProfiler::Clear()
@@ -26,6 +29,11 @@ namespace Shark {
 		m_Profiler = profiler;
 		m_Name = name;
 		m_StartTime = Platform::GetTicks();
+	}
+
+	ProfilerEvent::ProfilerEvent(std::string_view name)
+		: ProfilerEvent(Application::Get().GetProfiler(), name)
+	{
 	}
 
 	ProfilerEvent::~ProfilerEvent()

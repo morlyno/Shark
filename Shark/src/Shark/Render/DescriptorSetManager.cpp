@@ -1,9 +1,12 @@
 #include "skpch.h"
 #include "DescriptorSetManager.h"
 
+#include "Shark/Render/DeviceManager.h"
+#include "Shark/Render/Renderer.h"
+#include "Shark/Render/Shader.h"
+
 #include "Shark/Utils/Utilities.h"
 #include "Shark/Utils/std.h"
-#include "Shark/Render/Renderer.h"
 #include "Shark/Utils/String.h"
 
 namespace Shark {
@@ -202,6 +205,11 @@ namespace Shark {
 				)
 			);
 		}
+
+	}
+
+	DescriptorSetManager::~DescriptorSetManager()
+	{
 
 	}
 
@@ -537,6 +545,11 @@ namespace Shark {
 		if (m_InputInfos.contains({ graphicsType, slot }))
 			return m_InputInfos.at({ graphicsType, slot });
 		return nullptr;
+	}
+
+	const ShaderBindingLayout& DescriptorSetManager::GetReflectionLayout() const
+	{
+		return m_Shader->GetReflectionData().BindingLayouts[m_Set];
 	}
 
 	std::optional<uint32_t> DescriptorSetManager::GetInputIndex(std::string_view name) const

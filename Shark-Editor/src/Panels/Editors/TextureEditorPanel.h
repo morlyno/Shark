@@ -2,17 +2,18 @@
 
 #define SK_TEXTURE_EDITOR_PANEL_NEW_UI 0
 
-#include "Shark/Event/Event.h"
-#include "Shark/Event/KeyEvent.h"
-#include "Shark/Core/TimeStep.h"
-#include "Shark/Asset/Asset.h"
-#include "Shark/Scene/Scene.h"
-#include "Shark/Scene/Entity.h"
-#include "Shark/Render/SceneRenderer.h"
-#include "Shark/Render/EditorCamera.h"
-#include "Shark/UI/UICore.h"
+#include "Shark/Asset/AssetTypes.h"
 
 #include "Panels/AssetEditorPanel.h"
+
+namespace Shark {
+	class Event;
+	struct AssetMetaData;
+
+	class RenderCommandBuffer;
+	class Texture2D;
+	class ImageView;
+}
 
 namespace Shark {
 

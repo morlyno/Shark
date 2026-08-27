@@ -1,7 +1,19 @@
 #include "skpch.h"
 #include "ShaderInputManager.h"
 
+#include "Shark/Render/DeviceManager.h"
 #include "Shark/Render/Renderer.h"
+
+#include "Shark/Render/Shader.h"
+#include "Shark/Render/ShaderReflection.h"
+#include "Shark/Render/DescriptorSetManager.h"
+
+#include "Shark/Render/Image.h"
+#include "Shark/Render/Texture.h"
+#include "Shark/Render/TextureCommon.h"
+#include "Shark/Render/ConstantBuffer.h"
+#include "Shark/Render/StorageBuffer.h"
+
 #include "Shark/Utils/String.h"
 
 namespace Shark {
@@ -815,6 +827,81 @@ namespace Shark {
 		}
 		SK_CORE_ASSERT(false, "Unknown RenderInputType");
 		return false;
+	}
+
+	void BindingSetInput::Set(uint32_t arrayIndex, Ref<TextureCube> textureCube, const InputViewArgs& viewArgs)
+	{
+		Items[arrayIndex].Item = textureCube;
+		Items[arrayIndex].Type = RenderInputType::TextureCube;
+		Items[arrayIndex].ViewArgs = viewArgs;
+	}
+
+	void BindingSetInput::Set(uint32_t arrayIndex, Ref<Texture2D> texture, const InputViewArgs& viewArgs)
+	{
+		Items[arrayIndex].Item = texture;
+		Items[arrayIndex].Type = RenderInputType::Texture2D;
+		Items[arrayIndex].ViewArgs = viewArgs;
+	}
+
+	void BindingSetInput::Set(uint32_t arrayIndex, Ref<ImageView> imageView, const InputViewArgs& viewArgs)
+	{
+		Items[arrayIndex].Item = imageView;
+		Items[arrayIndex].Type = RenderInputType::ImageView;
+		Items[arrayIndex].ViewArgs = viewArgs;
+	}
+
+	void BindingSetInput::Set(uint32_t arrayIndex, Ref<Image2D> image, const InputViewArgs& viewArgs)
+	{
+		Items[arrayIndex].Item = image;
+		Items[arrayIndex].Type = RenderInputType::Image2D;
+		Items[arrayIndex].ViewArgs = viewArgs;
+	}
+
+	void BindingSetInput::Set(uint32_t arrayIndex, Ref<ViewableResource> viewable, const InputViewArgs& viewArgs)
+	{
+		Items[arrayIndex].Item = viewable;
+		Items[arrayIndex].Type = RenderInputType::Viewable;
+		Items[arrayIndex].ViewArgs = viewArgs;
+	}
+
+	void BindingSetInput::Set(uint32_t arrayIndex, Ref<Sampler> sampler, const InputViewArgs& viewArgs)
+	{
+		Items[arrayIndex].Item = sampler;
+		Items[arrayIndex].Type = RenderInputType::Sampler;
+		Items[arrayIndex].ViewArgs = viewArgs;
+	}
+
+	void BindingSetInput::Set(uint32_t arrayIndex, Ref<StorageBuffer> storageBuffer, const InputViewArgs& viewArgs)
+	{
+		Items[arrayIndex].Item = storageBuffer;
+		Items[arrayIndex].Type = RenderInputType::StorageBuffer;
+		Items[arrayIndex].ViewArgs = viewArgs;
+	}
+
+	void BindingSetInput::Set(uint32_t arrayIndex, Ref<ConstantBuffer> constantBuffer, const InputViewArgs& viewArgs)
+	{
+		Items[arrayIndex].Item = constantBuffer;
+		Items[arrayIndex].Type = RenderInputType::ConstantBuffer;
+		Items[arrayIndex].ViewArgs = viewArgs;
+	}
+
+	void BindingSetInput::Set(const InputViewArgs& args, uint32_t arrayIndex)
+	{
+		Items[arrayIndex].ViewArgs = args;
+	}
+
+	void BindingSetInput::Set(Ref<RendererResource> resource, RenderInputType type, uint32_t arrayIndex)
+	{
+		Items[arrayIndex].Item = resource, Items[arrayIndex].Type = type;
+	}
+
+	bool BindingSetInput::IsSame(uint32_t arrayIndex, Ref<RendererResource> resource, const InputViewArgs& viewArgs) const
+	{
+		return
+			Items[arrayIndex].Item == resource &&
+			Items[arrayIndex].ViewArgs.Format == viewArgs.Format &&
+			Items[arrayIndex].ViewArgs.Dimension == viewArgs.Dimension &&
+			Items[arrayIndex].ViewArgs.SubresourceSet == viewArgs.SubresourceSet;
 	}
 
 }

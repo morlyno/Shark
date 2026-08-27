@@ -2,19 +2,45 @@
 
 #include "Shark/Core/Base.h"
 
-#include "Shark/Render/RenderCommandBuffer.h"
-#include "Shark/Render/RenderPass.h"
-#include "Shark/Render/ComputePass.h"
-#include "Shark/Render/Pipeline.h"
-#include "Shark/Render/ComputePipeline.h"
-#include "Shark/Render/Material.h"
-#include "Shark/Render/Buffers.h"
-#include "Shark/Render/Mesh.h"
-#include "Shark/Render/MeshSource.h"
+namespace Shark {
+	class Buffer;
+
+	class ResourceCache;
+	class RenderCommandBuffer;
+
+	class Shader;
+	class FrameBuffer;
+
+	class RenderPass;
+	class Pipeline;
+	class ComputePass;
+	class ComputePipeline;
+
+	class Mesh;
+	class MeshSource;
+	class Material;
+
+	class Image2D;
+	class StagingImage2D;
+	class Texture2D;
+	class TextureCube;
+
+	class GpuBuffer;
+	class IndexBuffer;
+	class VertexBuffer;
+
+	struct ImageSlice;
+}
+
+namespace nvrhi {
+	class IDevice;
+	class ICommandList;
+	class ITexture;
+	struct DrawArguments;
+}
 
 namespace Shark {
 
-	class ResourceCache;
 
 	namespace RT {
 

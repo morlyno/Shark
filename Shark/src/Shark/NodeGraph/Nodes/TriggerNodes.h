@@ -32,7 +32,7 @@ namespace Shark::NodeGraph {
 
 			virtual void Process(float ts) override
 			{
-				if (Triggered = *Value && *TriggerIfTrue || !*Value && *TriggerIfFalse)
+				if ((Triggered = *Value) && *TriggerIfTrue || !*Value && *TriggerIfFalse)
 					Trigger();
 			}
 

@@ -1,8 +1,6 @@
 #include "skpch.h"
 #include "DeviceManager.h"
 
-#include "Shark/Core/Application.h"
-
 #if SK_WITH_DX11
 	#include "Shark/Platform/DirectX11/DirectX11DeviceManager.h"
 #endif

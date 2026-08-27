@@ -1,7 +1,8 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "nvrhi/nvrhi.h"
+
+#include <nvrhi/nvrhi.h>
 
 namespace Shark {
 

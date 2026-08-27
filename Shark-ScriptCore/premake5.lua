@@ -3,6 +3,7 @@ SharkDir = os.getenv("SHARK_DIR")
 include (path.join(SharkDir, "Shark", "dependencies", "Coral", "Coral.Managed"))
 
 project "Shark-ScriptCore"
+    tags { "Shark" }
     kind "SharedLib"
     language "C#"
     dotnetframework "net9.0"

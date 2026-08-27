@@ -132,7 +132,7 @@ namespace Shark::Threading {
 
 	void Threading::ProcessSignal::Wait(std::chrono::milliseconds time)
 	{
-		WaitForSingleObject(m_Handle, time.count());
+		WaitForSingleObject(m_Handle, static_cast<DWORD>(time.count()));
 	}
 
 	Threading::ProcessSignal::operator bool() const

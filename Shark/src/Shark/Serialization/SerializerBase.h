@@ -9,6 +9,8 @@ namespace Shark {
 	class SerializerBase
 	{
 	public:
+		virtual ~SerializerBase() = default;
+
 		virtual bool Serialize(Ref<Asset> asset, const AssetMetaData& metadata) = 0;
 		virtual bool TryLoadAsset(Ref<Asset>& asset, const AssetMetaData& metadata, AssetLoadContext* context) = 0;
 	};

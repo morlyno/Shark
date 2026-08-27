@@ -1,12 +1,35 @@
 #include "skpch.h"
 #include "Renderer.h"
 
+#include "Shark/Core/Application.h"
+
+#include "Shark/Render/DeviceManager.h"
 #include "Shark/Render/RendererRT.h"
+#include "Shark/Render/RenderCommandBuffer.h"
+#include "Shark/Render/DescriptorSetManager.h"
+#include "Shark/Render/ShaderCompiler/ShaderCache.h"
+
+#include "Shark/Render/Buffers.h"
+#include "Shark/Render/ComputePass.h"
+#include "Shark/Render/ComputePipeline.h"
+#include "Shark/Render/Environment.h"
+#include "Shark/Render/FrameBuffer.h"
+#include "Shark/Render/GpuBuffer.h"
+#include "Shark/Render/Image.h"
+#include "Shark/Render/Material.h"
+#include "Shark/Render/Mesh.h"
+#include "Shark/Render/MeshSource.h"
+#include "Shark/Render/Pipeline.h"
+#include "Shark/Render/RenderCommandBuffer.h"
+#include "Shark/Render/RenderCommandQueue.h"
+#include "Shark/Render/RenderPass.h"
+#include "Shark/Render/Shader.h"
+#include "Shark/Render/Texture.h"
+#include "Shark/Render/TextureCommon.h"
+
 #include "Shark/Serialization/Import/TextureImporter.h"
 
 #include "Shark/Debug/Profiler.h"
-
-#include <nvrhi/utils.h>
 
 #define SK_SIMULTE_MULTITHREADED 0
 
@@ -1098,7 +1121,7 @@ namespace Shark {
 		SK_CORE_TRACE_TAG("Renderer", "[RT] CreateEnvironmentMap '{}'", filepath);
 
 		/////////////////////////////////////////////////
-		/// Setupt
+		/// Setup
 		/////////////////////////////////////////////////
 
 		const uint32_t cubemapSize = radianceTarget->GetWidth();
@@ -1270,7 +1293,7 @@ namespace Shark {
 
 	#pragma region Multi Treaded
 
-	void Renderer::MT::GenerateMips(Ref<Image2D> targetImage)
+	void Renderer::MT::GenerateMips(RefArg<Image2D> targetImage)
 	{
 		MT::Submit([targetImage]()
 		{

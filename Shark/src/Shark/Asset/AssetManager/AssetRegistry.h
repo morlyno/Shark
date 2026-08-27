@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Shark/Asset/AssetMetadata.h"
-#include <shared_mutex>
 
 namespace Shark {
 

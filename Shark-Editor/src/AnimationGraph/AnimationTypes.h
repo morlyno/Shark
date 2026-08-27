@@ -2,7 +2,7 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Core/UUID.h"
-#include "Shark/Core/Reflection.h"
+#include "Shark/Core/Concepts.h"
 #include "Shark/Animation/Pose.h"
 #include "Shark/Animation/Graph/PinTypes.h"
 #include "NodeGraph/EditorNodes.h"
@@ -34,7 +34,7 @@ namespace Shark::NodeGraph::Editor {
 		{
 			bool initialized = false;
 
-			Reflection::ForEach(PinTypes{}, [&pin, &type, &initialized]<typename TDesc>()
+			Tuple::Each(PinTypes{}, [&pin, &type, &initialized]<typename TDesc>()
 			{
 				bool same = false;
 				if constexpr (std::is_same_v<TType, EPinType> || std::is_same_v<TType, int>)

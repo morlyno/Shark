@@ -1,7 +1,12 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Render/Shader.h"
+
+#include <nvrhi/nvrhi.h>
+
+namespace Shark {
+	class Shader;
+}
 
 namespace Shark {
 
@@ -11,8 +16,8 @@ namespace Shark {
 		static Ref<ComputePipeline> Create(Ref<Shader> computeShader, const std::string& debugName = {}) { return Ref<ComputePipeline>::Create(computeShader, debugName); }
 
 	public:
-		nvrhi::ComputePipelineHandle GetHandle() const { return m_PipelineHandle; }
-		Ref<Shader> GetShader() const { return m_Shader; }
+		nvrhi::ComputePipelineHandle GetHandle() const;
+		RefArg<Shader> GetShader() const;
 		const std::string& GetDebugName() const { return m_DebugName; }
 
 	public:

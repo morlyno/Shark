@@ -2,6 +2,7 @@
 #include "Animation.h"
 
 #include "Shark/Asset/AssetManager.h"
+#include "Shark/Animation/Pose.h"
 #include "Shark/Animation/Skeleton.h"
 #include "Shark/Render/MeshSource.h"
 

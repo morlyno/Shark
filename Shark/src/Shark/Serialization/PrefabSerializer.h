@@ -3,8 +3,10 @@
 #include "Shark/Serialization/SerializerBase.h"
 
 namespace Shark {
-
 	class Prefab;
+}
+
+namespace Shark {
 
 	class PrefabSerializer : public SerializerBase
 	{

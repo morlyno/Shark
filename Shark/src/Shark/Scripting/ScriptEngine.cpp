@@ -1,10 +1,16 @@
 #include "skpch.h"
 #include "ScriptEngine.h"
 
-#include "Shark/Core/Application.h"
+#include "Shark/Core/Hash.h"
 #include "Shark/Core/Project.h"
+
+#include "Shark/Scene/Scene.h"
+#include "Shark/Scene/Entity.h"
+#include "Shark/Scene/Components/SceneComponents.h"
+
+#include "Shark/Scripting/ScriptHost.h"
 #include "Shark/Scripting/ScriptGlue.h"
-#include "Shark/File/FileSystem.h"
+#include "Shark/Scripting/ScriptTypes.h"
 
 #include <Coral/Attribute.hpp>
 #include <Coral/FieldInfo.hpp>
@@ -282,6 +288,21 @@ namespace Shark {
 		entityStorage.Instance.Destroy();
 	}
 
+	void ScriptEngine::SetCurrentScene(Ref<Scene> scene)
+	{
+		m_CurrentScene = scene;
+	}
+
+	Ref<Scene> ScriptEngine::GetCurrentSceen() const
+	{
+		return m_CurrentScene;
+	}
+
+	const ScriptMetadata& ScriptEngine::GetScriptMetadata(uint64_t scriptID) const
+	{
+		return m_ScriptMetadata.at(scriptID);
+	}
+
 	uint64_t ScriptEngine::FindScriptMetadata(std::string_view fullName) const
 	{
 		uint64_t id = Hash::GenerateFNV(fullName);
@@ -293,6 +314,11 @@ namespace Shark {
 			return i->first;
 
 		return 0;
+	}
+
+	const std::unordered_map<uint64_t, ScriptMetadata>& ScriptEngine::GetScripts() const
+	{
+		return m_ScriptMetadata;
 	}
 
 }

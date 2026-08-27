@@ -1,6 +1,10 @@
 #include "SceneRendererPanel.h"
 
 #include "Shark/Core/Application.h"
+#include "Shark/Core/Window.h"
+
+#include "Shark/Render/SceneRenderer.h"
+
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/Controls.h"
 

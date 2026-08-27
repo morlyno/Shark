@@ -3,7 +3,10 @@
 #include "Shark/File/FileSystem.h"
 #include "Shark/Serialization/YAML.h"
 #include "Shark/Serialization/SerializationMacros.h"
+
 #include "Shark/Debug/Profiler.h"
+
+#include <imgui.h>
 
 namespace Shark {
 
@@ -121,7 +124,7 @@ namespace Shark {
 		Call(&Panel::OnEvent, event);
 	}
 
-	void PanelManager::SetContext(Ref<Scene> context)
+	void PanelManager::SetContext(const Ref<Scene>& context)
 	{
 		Call(&Panel::SetContext, context);
 	}
@@ -136,7 +139,7 @@ namespace Shark {
 		Call(&Panel::OnSceneStop);
 	}
 
-	void PanelManager::OnProjectChanged(Ref<ProjectConfig> projectConfig)
+	void PanelManager::OnProjectChanged(const Ref<ProjectConfig>& projectConfig)
 	{
 		Call(&Panel::OnProjectChanged, projectConfig);
 	}

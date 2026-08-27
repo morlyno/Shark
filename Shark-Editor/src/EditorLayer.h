@@ -1,24 +1,32 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Core/Project.h"
 #include "Shark/Layer/Layer.h"
 
-#include "Shark/Scene/Scene.h"
-#include "Shark/Scene/Entity.h"
-
-#include "Shark/Render/Renderer2D.h"
-#include "Shark/Render/SceneRenderer.h"
+#include "Shark/Asset/AssetTypes.h"
 #include "Shark/Render/EditorCamera.h"
 
-#include "Shark/Event/Event.h"
-#include "Shark/Event/WindowEvent.h"
-#include "Shark/Event/KeyEvent.h"
-
-#include "Panels/PanelManager.h"
+#include "Shark/Input/MouseButtons.h"
 
 #include <imgui.h>
 #include <ImGuizmo.h>
+
+namespace Shark {
+	class Event;
+	class KeyPressedEvent;
+	class WindowDropEvent;
+
+	class ProjectConfig;
+	class PanelManager;
+
+	class Scene;
+
+	class SceneRenderer;
+	class Renderer2D;
+
+	class RenderCommandBuffer;
+	class StagingImage2D;
+}
 
 namespace Shark {
 

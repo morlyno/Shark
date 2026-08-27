@@ -1,14 +1,12 @@
 #include "NodeGraphEditor.h"
 
+#include "Shark/Scene/Scene.h"
+
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/Controls.h"
 #include "Shark/UI/Widgets.h"
 
 #include "Shark/NodeGraph/ProcessNode.h"
-#include "Shark/NodeGraph/NodeContext.h"
-#include "Shark/NodeGraph/Prototype.h"
-
-#include "Shark/Utils/Utilities.h"
 
 #include "NodeGraph/NodeGraphContext.h"
 #include "NodeGraph/Factory.h"
@@ -18,6 +16,8 @@
 #include "NodeGraph/Utilities/builders.h"
 #include "NodeGraph/Utilities/drawing.h"
 #include "NodeGraph/Utilities/widgets.h"
+
+#include <choc/text/choc_StringUtilities.h>
 #include <functional>
 
 namespace Shark::NodeGraph::Editor {
@@ -569,8 +569,8 @@ namespace Shark::NodeGraph::Editor {
 			Pin* pin = m_EntityPinPopup.EntityPin;
 
 			UUID value;
-			bool isEntityObject = false;
-			if (isEntityObject = pin->Value.isObjectWithClassName("EntityID"))
+			const bool isEntityObject = pin->Value.isObjectWithClassName("EntityID");
+			if (isEntityObject)
 				value = UUID::Make(pin->Value["ID"].getInt64());
 
 			if (UI::Widgets::SearchEntityPopup(m_Scene, value, m_EntityPinPopup.PopupID))
@@ -591,8 +591,8 @@ namespace Shark::NodeGraph::Editor {
 			Pin* pin = m_AssetPinPopup.AssetPin;
 
 			AssetHandle value;
-			bool isAssetObject = false;
-			if (isAssetObject = pin->Value.isObjectWithClassName("AssetHandle"))
+			const bool isAssetObject = pin->Value.isObjectWithClassName("AssetHandle");
+			if (isAssetObject)
 				value = AssetHandle::Make(pin->Value["Handle"].getInt64());
 
 			AssetType assetType = m_Context->GetPinAssetType(pin);
@@ -725,7 +725,7 @@ namespace Shark::NodeGraph::Editor {
 			{
 				bool value = pin->Value.getWithDefault<bool>(false);
 
-				if (modified = UI::Checkbox("##bool", &value))
+				if ((modified = UI::Checkbox("##bool", &value)))
 					pin->Value = choc::value::createBool(value);
 				break;
 			}
@@ -737,7 +737,7 @@ namespace Shark::NodeGraph::Editor {
 				ImFormatString(buffer, std::size(buffer), "%d", value);
 				ImGui::SetNextItemWidth(ImGui::CalcTextSize(buffer).x + ImGui::GetStyle().FramePadding.x * 2.0f);
 
-				if (modified = UI::DragInt32("##int", &value, 0.05f))
+				if ((modified = UI::DragInt32("##int", &value, 0.05f)))
 					pin->Value = choc::value::createInt32(value);
 				break;
 			}
@@ -749,7 +749,7 @@ namespace Shark::NodeGraph::Editor {
 				ImFormatString(buffer, std::size(buffer), "%.3f", value);
 				ImGui::SetNextItemWidth(ImGui::CalcTextSize(buffer).x + ImGui::GetStyle().FramePadding.x * 2.0f);
 
-				if (modified = UI::DragFloat("##float", &value, 0.05f))
+				if ((modified = UI::DragFloat("##float", &value, 0.05f)))
 					pin->Value = choc::value::createFloat32(value);
 
 				break;
@@ -764,7 +764,7 @@ namespace Shark::NodeGraph::Editor {
 					value.t = pin->Value[2].getFloat32();
 				}
 
-				if (modified = UI::DragFloat3("##float3", glm::value_ptr(value)))
+				if ((modified = UI::DragFloat3("##float3", glm::value_ptr(value))))
 					pin->Value = CreateVec3(value);
 				break;
 			}

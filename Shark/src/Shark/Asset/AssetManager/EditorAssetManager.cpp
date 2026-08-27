@@ -1,15 +1,21 @@
 #include "skpch.h"
 #include "EditorAssetManager.h"
 
+#include "Shark/Core/Application.h"
 #include "Shark/Core/Project.h"
 #include "Shark/Event/ApplicationEvent.h"
 #include "Shark/Asset/AssetSerializer.h"
 #include "Shark/Asset/AssetThread/EditorAssetThread.h"
 #include "Shark/Asset/AssetThread/AssetLoadContext.h"
 
+#include "Shark/Scene/Scene.h"
+#include "Shark/Scene/Entity.h"
+#include "Shark/Scene/Components/RendererComponents.h"
+
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/Mesh.h"
 #include "Shark/Render/MeshSource.h"
+#include "Shark/Render/MaterialAsset.h"
 
 #include "Shark/Serialization/YAML.h"
 #include "Shark/File/FileSystem.h"

@@ -2,6 +2,7 @@
 #include "EditorCamera.h"
 
 #include "Shark/Input/Input.h"
+#include "Shark/Event/Event.h"
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Event/MouseEvent.h"
 

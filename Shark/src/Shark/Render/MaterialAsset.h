@@ -1,6 +1,11 @@
 #pragma once
 
-#include "Shark/Render/Material.h"
+#include "Shark/Core/Base.h"
+#include "Shark/Asset/Asset.h"
+
+namespace Shark {
+	class Material;
+}
 
 namespace Shark {
 
@@ -13,11 +18,11 @@ namespace Shark {
 		void SetDefaults();
 		void Bake();
 		void MT_Bake();
-		void Update();
+		void Update(bool async = true);
 
-		void SetName(const std::string& name) { m_Material->SetName(name); }
-		const std::string& GetName() const { return m_Material->GetName(); }
-		Ref<Material> GetMaterial() const { return m_Material; }
+		void SetName(const std::string& name);
+		const std::string& GetName() const;
+		Ref<Material> GetMaterial() const;
 
 		AssetHandle GetAlbedoMap();
 		void SetAlbedoMap(AssetHandle handle);
@@ -74,35 +79,6 @@ namespace Shark {
 
 		Uniforms m_Uniforms;
 		Uniforms m_ActiveState;
-	};
-
-	class MaterialTable : public RefCount
-	{
-	public:
-		using MaterialMap = std::map<uint32_t, AssetHandle>;
-
-	public:
-		MaterialTable(uint32_t slots = 1);
-		~MaterialTable() = default;
-
-		bool HasMaterial(uint32_t index) const { return m_Materials.contains(index); }
-		void SetMaterial(uint32_t index, AssetHandle material);
-		void ClearMaterial(uint32_t index);
-
-		AssetHandle GetMaterial(uint32_t index) const;
-
-		MaterialMap& GetMaterials() { return m_Materials; }
-		const MaterialMap& GetMaterials() const { return m_Materials; }
-
-		uint32_t GetSlotCount() const { return m_MaterialSlots; }
-		void SetSlotCount(uint32_t count) { m_MaterialSlots = count; }
-
-		void Clear();
-
-	private:
-		uint32_t m_MaterialSlots = 0;
-		MaterialMap m_Materials;
-
 	};
 
 }

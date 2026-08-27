@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Core/Enum.h"
 
 #include <nvrhi/nvrhi.h>
 
@@ -61,7 +62,7 @@ namespace Shark {
 			std::string Name;
 			uint32_t StructSize = 0;
 			uint32_t Slot = 0;
-			nvrhi::ShaderType Stage = nvrhi::ShaderType::None;
+			Enum::Flags<nvrhi::ShaderType> Stage = nvrhi::ShaderType::None;
 		};
 		
 		struct Image
@@ -70,7 +71,7 @@ namespace Shark {
 			uint32_t Slot = 0;
 			uint32_t ArraySize = 1;
 			uint32_t Dimension = 0;
-			nvrhi::ShaderType Stage = nvrhi::ShaderType::None;
+			Enum::Flags<nvrhi::ShaderType> Stage = nvrhi::ShaderType::None;
 		};
 
 		struct Sampler
@@ -78,13 +79,13 @@ namespace Shark {
 			std::string Name;
 			uint32_t Slot = 0;
 			uint32_t ArraySize = 1;
-			nvrhi::ShaderType Stage = nvrhi::ShaderType::None;
+			Enum::Flags<nvrhi::ShaderType> Stage = nvrhi::ShaderType::None;
 		};
 
 		struct SampledImage
 		{
 			std::string Name;
-			nvrhi::ShaderType Stage = nvrhi::ShaderType::None;
+			Enum::Flags<nvrhi::ShaderType> Stage = nvrhi::ShaderType::None;
 
 			Image SeparateImage;
 			Sampler SeparateSampler;
@@ -94,7 +95,7 @@ namespace Shark {
 		{
 			static constexpr uint32_t Slot = 0;
 			uint32_t StructSize = 0;
-			nvrhi::ShaderType Stage = nvrhi::ShaderType::None;
+			Enum::Flags<nvrhi::ShaderType> Stage = nvrhi::ShaderType::None;
 		};
 
 	}
@@ -120,7 +121,7 @@ namespace Shark {
 		std::map<std::string, ShaderInputInfo> InputInfos;
 		D3D11BindingSetOffsets BindingOffsets;
 
-		nvrhi::ShaderType Stage = nvrhi::ShaderType::None;
+		Enum::Flags<nvrhi::ShaderType> Stage = nvrhi::ShaderType::None;
 	};
 
 	struct ShaderReflection
@@ -131,7 +132,7 @@ namespace Shark {
 		std::optional<ShaderResource::PushConstant> PushConstant;
 	};
 
-	// Helper to deside how Graphics-/ComputePasses and Materials should share the binding layout
+	// Helper to decide how Graphics-/ComputePasses and Materials should share the binding layout
 	enum class LayoutShareMode
 	{
 		PassOnly,

@@ -1,17 +1,14 @@
 #pragma once
 
-#include "box2d/b2_contact.h"
+#include "Shark/Core/Base.h"
+#include "Shark/Core/UUID.h"
+#include "Shark/Physics2D/PhysicsTypes.h"
+
 #include <box2d/b2_world_callbacks.h>
 
-namespace Shark {
+class b2Contact;
 
-	enum class ContactType
-	{
-		CollisionBegin,
-		CollisionEnd,
-		TriggerBegin,
-		TriggerEnd
-	};
+namespace Shark {
 
 	using ContactEventCallbackFn = std::function<void(ContactType, UUID entityAID, UUID entityBID)>;
 

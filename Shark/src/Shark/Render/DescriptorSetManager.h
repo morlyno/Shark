@@ -1,10 +1,13 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Core/Hash.h"
-#include "Shark/Render/Shader.h"
+#include "Shark/Render/ShaderReflection.h"
 
 #include <nvrhi/nvrhi.h>
+
+namespace Shark {
+	class Shader;
+}
 
 namespace Shark {
 
@@ -35,6 +38,7 @@ namespace Shark {
 	{
 	public:
 		DescriptorSetManager(Ref<Shader> shader, uint32_t set, const std::string& debugName = {});
+		~DescriptorSetManager();
 
 		void Bake();
 		bool Validate();
@@ -72,7 +76,7 @@ namespace Shark {
 		const ShaderInputInfo* GetInputInfo(uint32_t slot, GraphicsResourceType graphicsType) const;
 
 	private:
-		const ShaderBindingLayout& GetReflectionLayout() const { return m_Shader->GetReflectionData().BindingLayouts[m_Set]; }
+		const ShaderBindingLayout& GetReflectionLayout() const;
 		std::optional<uint32_t> GetInputIndex(std::string_view name) const;
 
 		std::pair<GraphicsResourceType, uint32_t> GetBindingFromIndex(uint32_t index) const;

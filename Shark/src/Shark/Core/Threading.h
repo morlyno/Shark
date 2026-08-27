@@ -2,7 +2,11 @@
 
 #include "Shark/Utils/PlatformUtils.h"
 
-#include <tracy/Tracy.hpp>
+#if 0
+#if SK_ENABLE_PROFILER
+	#include <tracy/Tracy.hpp>
+#endif
+#endif
 
 namespace Shark {
 
@@ -79,11 +83,16 @@ namespace Shark {
 			friend class std::scoped_lock;
 		};
 
+#if 0
 		namespace Internal {
 			class TrackedMutex
 			{
 			public:
-				TrackedMutex(const tracy::SourceLocationData* srcloc);
+				TrackedMutex(
+#if SK_ENABLE_PROFILER
+					const tracy::SourceLocationData* srcloc
+#endif
+				);
 				~TrackedMutex();
 
 				TrackedMutex(const TrackedMutex&) = delete;
@@ -112,6 +121,7 @@ namespace Shark {
 #else
 		using TrackedMutex = Mutex;
 		#define SKLockableInit( varname ) ::Shark::Threading::Mutex()
+#endif
 #endif
 
 		class ConditionVariable

@@ -2,7 +2,9 @@
 #include "TextureSerializer.h"
 
 #include "Shark/Asset/AssetManager.h"
+
 #include "Shark/Render/Renderer.h"
+#include "Shark/Render/Image.h"
 #include "Shark/Render/Texture.h"
 
 #include "Shark/File/FileSystem.h"
@@ -98,7 +100,7 @@ namespace Shark {
 
 					Buffer& imageData = texture->GetBuffer();
 					auto& specification = texture->GetSpecification();
-					const auto filesystemPath = Project::GetEditorAssetManager()->GetFilesystemPath(sourceHandle);
+					const auto filesystemPath = Utilities::GetAssetFilesystemPath(sourceHandle);
 					utils::LoadImageData(filesystemPath, specification, imageData);
 
 					texture->RT_Invalidate();
@@ -186,7 +188,7 @@ namespace Shark {
 		DeserializeProperty(textureNode, "GenerateMips", outSpecification.HasMips, true);
 		DeserializeProperty(textureNode, "Filter", outSpecification.Filter, FilterMode::Linear);
 		DeserializeProperty(textureNode, "Address", outSpecification.Address, AddressMode::Repeat);
-		DeserializeProperty(textureNode, "MaxAnisotropy", outSpecification.MaxAnisotropy, 0);
+		DeserializeProperty(textureNode, "MaxAnisotropy", outSpecification.MaxAnisotropy, 0.0f);
 
 		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Generate Mips {}", outSpecification.HasMips);
 		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Filter {}", outSpecification.Filter);

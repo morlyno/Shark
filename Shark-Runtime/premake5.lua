@@ -1,4 +1,5 @@
 project "Shark-Runtime"
+    tags { "Shark" }
     kind "ConsoleApp"
 
     targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")

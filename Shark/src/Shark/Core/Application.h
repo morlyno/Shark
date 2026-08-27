@@ -1,19 +1,22 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Core/Window.h"
-#include "Shark/Event/Event.h"
-#include "Shark/Event/WindowEvent.h"
 #include "Shark/Layer/LayerStack.h"
-#include "Shark/Render/DeviceManager.h"
-#include "Shark/Scripting/ScriptHost.h"
-#include "Shark/UI/ImGui/ImGuiLayer.h"
 
 #include <queue>
 
 namespace Shark {
+	class Window;
+	class DeviceManager;
+
+	class ImGuiLayer;
+	class ScriptHost;
 	class MiniAudioEngine;
 	class PerformanceProfiler;
+
+	class WindowLostFocusEvent;
+	class WindowMinimizedEvent;
+	class WindowCloseEvent;
 }
 
 namespace Shark {
@@ -73,7 +76,7 @@ namespace Shark {
 		ImGuiLayer& GetImGuiLayer() { return *m_ImGuiLayer; }
 		const ImGuiLayer& GetImGuiLayer() const { return *m_ImGuiLayer; }
 
-		ScriptHost&      GetScriptHost()      { return m_ScriptHost; }
+		ScriptHost*      GetScriptHost()      { return m_ScriptHost.Raw(); }
 		DeviceManager*   GetDeviceManager()   { return m_DeviceManager.Raw(); }
 		MiniAudioEngine* GetAudioEngine()     { return m_AudioEngine.Raw(); }
 
@@ -124,7 +127,7 @@ namespace Shark {
 		ImGuiLayer* m_ImGuiLayer;
 		LayerStack m_LayerStack;
 
-		ScriptHost m_ScriptHost;
+		Scope<ScriptHost> m_ScriptHost;
 		Scope<DeviceManager> m_DeviceManager;
 		Scope<MiniAudioEngine> m_AudioEngine;
 

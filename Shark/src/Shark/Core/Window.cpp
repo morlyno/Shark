@@ -1,6 +1,9 @@
 #include "skpch.h"
 #include "Window.h"
 
+#include "Shark/Event/Event.h"
+#include "Shark/Event/EventListener.h"
+
 #include "Platform/Windows/WindowsWindow.h"
 
 namespace Shark {

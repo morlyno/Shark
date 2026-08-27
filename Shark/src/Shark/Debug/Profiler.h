@@ -1,10 +1,7 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Core/Application.h"
 #include "Shark/Core/TimeStep.h"
-#include "Shark/Utils/PlatformUtils.h"
-
 
 namespace Shark {
 
@@ -30,6 +27,7 @@ namespace Shark {
 
 	struct ProfilerEvent
 	{
+		ProfilerEvent(std::string_view name);
 		ProfilerEvent(PerformanceProfiler* profiler, std::string_view name);
 		~ProfilerEvent();
 
@@ -42,7 +40,7 @@ namespace Shark {
 }
 
 #if SK_ENABLE_PERF
-#define SK_PERF_SCOPED(name) ::Shark::ProfilerEvent SK_CONNECT(eventAutoGenName, __LINE__) = ::Shark::ProfilerEvent{ Application::Get().GetProfiler(), name }
+#define SK_PERF_SCOPED(name) ::Shark::ProfilerEvent SK_CONNECT(eventAutoGenName, __LINE__) = ::Shark::ProfilerEvent{ name }
 #define SK_PERF_FUNCTION() SK_PERF_SCOPED(SK_FUNCTION_DECORATED)
 #else
 #define SK_PERF_SCOPED(...)

@@ -1,8 +1,9 @@
 #include "skpch.h"
 #include "Texture.h"
 
-#include "Shark/Core/Application.h"
 #include "Shark/Render/Renderer.h"
+#include "Shark/Render/Image.h"
+
 #include "Shark/Serialization/Import/TextureImporter.h"
 
 namespace Shark {
@@ -114,6 +115,11 @@ namespace Shark {
 		InvalidateFromState(m_Image, RT_State(m_Specification));
 	}
 
+	uint32_t Texture2D::GetMipLevels() const
+	{
+		return m_Image->GetSpecification().MipLevels;
+	}
+
 	void Texture2D::InvalidateFromState(Ref<Image2D> image, const RT_State& state)
 	{
 		auto samplerDesc = nvrhi::SamplerDesc()
@@ -121,13 +127,18 @@ namespace Shark {
 			.setAllFilters(state.Filter == FilterMode::Linear)
 			.setAllAddressModes(utils::ConvertAddressMode(state.Address));
 
-		auto device = Application::Get().GetDeviceManager()->GetDevice();
+		auto device = Renderer::GetGraphicsDevice();
 		m_ViewInfo.TextureSampler = device->createSampler(samplerDesc);
 
 		m_ViewInfo.Handle = image->GetHandle();
 		m_ViewInfo.SubresourceSet = nvrhi::AllSubresources;
 		m_ViewInfo.Dimension = image->GetViewInfo().Dimension;
 		m_ViewInfo.Format = image->GetViewInfo().Format;
+	}
+
+	uint32_t TextureCube::GetMipLevelCount() const
+	{
+		return m_Image->GetSpecification().MipLevels;
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -159,7 +170,7 @@ namespace Shark {
 			.setAllFilters(m_Specification.Filter == FilterMode::Linear)
 			.setAllAddressModes(utils::ConvertAddressMode(m_Specification.Address));
 
-		auto device = Application::Get().GetDeviceManager()->GetDevice();
+		auto device = Renderer::GetGraphicsDevice();
 		m_ViewInfo.TextureSampler = device->createSampler(samplerDesc);
 
 		m_ViewInfo.Handle = m_Image->GetHandle();
@@ -186,7 +197,7 @@ namespace Shark {
 			.setAllFilters(m_Specification.Filter == FilterMode::Linear)
 			.setAllAddressModes(utils::ConvertAddressMode(m_Specification.Address));
 
-		auto device = Application::Get().GetDeviceManager()->GetDevice();
+		auto device = Renderer::GetGraphicsDevice();
 		m_SamplerHandle = device->createSampler(samplerDesc);
 	}
 

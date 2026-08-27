@@ -1,17 +1,22 @@
 #include "skpch.h"
 #include "ShaderCompiler.h"
 
+#include "Shark/Core/Hash.h"
 #include "Shark/Core/Memory.h"
+#include "Shark/Core/Enum.h"
 #include "Shark/File/FileSystem.h"
 
+#include "Shark/Render/DeviceManager.h"
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/ShaderCompiler/ShaderCache.h"
 #include "Shark/Render/ShaderCompiler/DirectX11ShaderCompiler.h"
 #include "Shark/Render/ShaderCompiler/VulkanShaderCompiler.h"
+#include "Shark/Render/ShaderCompiler/HLSLIncludeHandler.h"
 
 #include "Shark/Utils/String.h"
 #include "Shark/Utils/std.h"
 
+#include <dxc/dxcapi.h>
 #include <spirv_cross/spirv_cross.hpp>
 
 namespace Shark {
@@ -44,6 +49,10 @@ namespace Shark {
 
 		m_PlatformCompilers.push_back(Scope<D3D11::ShaderCompiler>::Create(options));
 		m_PlatformCompilers.push_back(Scope<Vulkan::ShaderCompiler>::Create(options));
+	}
+
+	ShaderCompiler::~ShaderCompiler()
+	{
 	}
 
 	/*Ref<ShaderCompiler> ShaderCompiler::Load(const std::filesystem::path& sourcePath, const CompilerOptions& options)

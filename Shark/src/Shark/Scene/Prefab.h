@@ -2,8 +2,10 @@
 
 #include "Shark/Asset/Asset.h"
 
-#include "Shark/Scene/Scene.h"
-#include "Shark/Scene/Entity.h"
+namespace Shark {
+	class Scene;
+	class Entity;
+}
 
 namespace Shark {
 
@@ -20,7 +22,7 @@ namespace Shark {
 		Entity GetRootEntity() const;
 
 		bool ShouldSetActiveCamera() const { return m_SetActiveCamera; }
-		UUID GetActiveCameraID() const { return m_Scene->GetActiveCameraUUID(); }
+		UUID GetActiveCameraID() const;
 
 	public:
 		bool HasValidRoot() const;

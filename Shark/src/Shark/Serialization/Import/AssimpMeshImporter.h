@@ -1,16 +1,18 @@
 #pragma once
 
-#include "Shark/Asset/AssetThread/AssetLoadContext.h"
-
-struct aiScene;
-struct aiNode;
-struct aiString;
+#include "Shark/Core/Base.h"
+#include "Shark/Asset/AssetTypes.h"
 
 namespace Shark {
 	class MeshSource;
 	class Skeleton;
 	class Animation;
+	class AssetLoadContext;
 }
+
+struct aiScene;
+struct aiNode;
+struct aiString;
 
 namespace Shark {
 

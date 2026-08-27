@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "AnimationFactory.h"
 
+#include "Shark/Core/Concepts.h"
+
 #include "Shark/Animation/Graph/Nodes/AnimationNodes.h"
 
 #include "NodeGraph/EditorNodes.h"
@@ -10,7 +12,7 @@
 namespace Shark::NodeGraph::Editor {
 
 	template<auto TFunc>
-		requires std::same_as<AnimationFactory*, std::tuple_element_t<0, Reflection::function_args_type<decltype(TFunc)>>>
+		requires std::same_as<AnimationFactory*, std::tuple_element_t<0, TypeTraits::function_args_type<decltype(TFunc)>>>
 	auto MakeFunction(AnimationFactory* factory)
 	{
 		return std::bind_front(TFunc, factory);

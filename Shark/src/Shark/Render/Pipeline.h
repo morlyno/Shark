@@ -1,10 +1,13 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-
-#include "Shark/Render/FrameBuffer.h"
-#include "Shark/Render/Shader.h"
 #include "Shark/Render/VertexLayout.h"
+
+#include <nvrhi/nvrhi.h>
+
+namespace Shark {
+	class Shader;
+}
 
 namespace Shark {
 

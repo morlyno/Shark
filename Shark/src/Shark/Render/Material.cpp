@@ -2,12 +2,17 @@
 #include "Material.h"
 
 #include "Shark/Render/Renderer.h"
+#include "Shark/Render/Shader.h"
+
+#include "Shark/Render/Image.h"
+#include "Shark/Render/Texture.h"
+#include "Shark/Render/ConstantBuffer.h"
 
 namespace Shark {
 
 	namespace utils {
 
-		static const std::string& GetMaterialName(Ref<Shader> shader, const std::string& name)
+		static std::string GetMaterialName(Ref<Shader> shader, const std::string& name)
 		{
 			if (name.empty() && shader->GetName().empty())
 				return "<UNNAMED>";

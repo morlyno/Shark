@@ -2,15 +2,17 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Layer/Layer.h"
-#include "Shark/Render/Image.h"
 
 #include <imgui.h>
 
 #undef CreateWindow
 
 namespace Shark {
-
 	class ImGuiRenderer;
+	class ViewableResource;
+}
+
+namespace Shark {
 
 	class ImGuiLayer : public Layer
 	{
@@ -34,7 +36,7 @@ namespace Shark {
 		bool BlocksKeyboardEvents() const { return m_BlockEvents && ImGui::GetIO().WantCaptureKeyboard; }
 		void BlockEvents(bool block) { m_BlockEvents = block; }
 
-		void AddViewable(Ref<ViewableResource> viewable) { m_Viewables.push_back(viewable); }
+		void AddViewable(Ref<ViewableResource> viewable);
 
 	private:
 		ImGuiLayer();

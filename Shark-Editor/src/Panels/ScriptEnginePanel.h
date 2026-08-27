@@ -2,7 +2,10 @@
 
 #include "Shark/UI/TextFilter.h"
 #include "Panel.h"
-#include <Coral/Assembly.hpp>
+
+namespace Coral {
+	class ManagedAssembly;
+}
 
 namespace Shark {
 

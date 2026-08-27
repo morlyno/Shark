@@ -4,9 +4,15 @@
 #include "Shark/Core/Project.h"
 #include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Entity.h"
+#include "Shark/Scene/Components/Physics2DComponents.h"
+#include "Shark/Scene/Components/SceneComponents.h"
+
+#include "Shark/Physics2D/ContactListener.h"
 
 #include "Shark/Debug/Profiler.h"
 
+#include <box2d/b2_world.h>
+#include <box2d/b2_body.h>
 #include <box2d/b2_contact.h>
 
 namespace Shark {
@@ -73,6 +79,22 @@ namespace Shark {
 			iter = iter->GetNext();
 			m_World->DestroyBody(body);
 		}
+	}
+
+	void Physics2DScene::SetGravity(const glm::vec2& gravity)
+	{
+		m_Gravity = gravity;
+		m_World->SetGravity({ gravity.x, gravity.y });
+	}
+
+	bool Physics2DScene::GetAllowSleeping() const
+	{
+		return m_World->GetAllowSleeping();
+	}
+
+	void Physics2DScene::SetAllowSleeping(bool allow) const
+	{
+		m_World->SetAllowSleeping(allow);
 	}
 
 	b2Body* Physics2DScene::GetBody(Entity entity) const

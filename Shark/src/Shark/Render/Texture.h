@@ -3,26 +3,20 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Buffer.h"
 #include "Shark/Render/RendererResource.h"
-#include "Shark/Render/Image.h"
+#include "Shark/Render/TextureCommon.h"
+#include "Shark/Render/Viewable.h"
+
+#include <nvrhi/nvrhi.h>
+
+namespace Shark {
+	class Image2D;
+}
 
 namespace Shark {
 
 	//////////////////////////////////////////////////////////////////////////
 	//// Texture2D
 	//////////////////////////////////////////////////////////////////////////
-
-	enum class FilterMode : uint16_t
-	{
-		Nearest,
-		Linear
-	};
-
-	enum class AddressMode : uint16_t
-	{
-		Repeat,
-		ClampToEdge,
-		MirrorRepeat
-	};
 
 	struct TextureSpecification
 	{
@@ -50,7 +44,7 @@ namespace Shark {
 		void Invalidate();
 		void RT_Invalidate();
 
-		Ref<Image2D> GetImage() const { return m_Image; }
+		RefArg<Image2D> GetImage() const { return m_Image; }
 		nvrhi::TextureHandle GetHandle() const { return m_ViewInfo.Handle; }
 		virtual nvrhi::ResourceHandle GetResourceHandle() const override { return m_ViewInfo.Handle; }
 		virtual const ViewInfo& GetViewInfo() const override { return m_ViewInfo; }
@@ -58,7 +52,7 @@ namespace Shark {
 
 		uint32_t GetWidth() const { return m_Specification.Width; }
 		uint32_t GetHeight() const { return m_Specification.Height; }
-		uint32_t GetMipLevels() const { return m_Image->GetSpecification().MipLevels; }
+		uint32_t GetMipLevels() const;
 		float GetAspectRatio() const { return (float)GetWidth() / (float)GetHeight(); }
 		float GetVerticalAspectRatio() const { return (float)GetHeight() / (float)GetWidth(); }
 
@@ -121,9 +115,9 @@ namespace Shark {
 	public:
 		uint32_t GetWidth() const { return m_Specification.Width; }
 		uint32_t GetHeight() const { return m_Specification.Height; }
-		uint32_t GetMipLevelCount() const { return m_Image->GetSpecification().MipLevels; }
+		uint32_t GetMipLevelCount() const;
 
-		Ref<Image2D> GetImage() const { return m_Image; }
+		RefArg<Image2D> GetImage() const { return m_Image; }
 		const TextureSpecification& GetSpecification() const { return m_Specification; }
 
 		nvrhi::TextureHandle GetHandle() const { return m_ViewInfo.Handle; }

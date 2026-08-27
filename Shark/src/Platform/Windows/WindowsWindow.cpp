@@ -1,11 +1,16 @@
 #include "skpch.h"
 #include "WindowsWindow.h"
 
+#include "Shark/Event/EventListener.h"
+
+#include "Shark/Render/DeviceManager.h"
 #include "Shark/Render/Renderer.h"
+#include "Shark/Render/SwapChain.h"
 
 #include "Shark/Input/KeyCodes.h"
 #include "Shark/Input/MouseButtons.h"
 
+#include "Shark/Utils/PlatformUtils.h"
 #include "Shark/Utils/String.h"
 #include "Shark/Debug/Profiler.h"
 
@@ -207,10 +212,12 @@ namespace Shark {
 			}
 		}
 
+#if 0
 		RECT clientRect;
 		GetClientRect(m_WindowHandle, &clientRect);
 		const int width = clientRect.right - clientRect.left;
 		const int height = clientRect.bottom - clientRect.top;
+#endif
 
 		if (m_SwapChain)
 		{
@@ -306,6 +313,11 @@ namespace Shark {
 		else
 			SetCursor(nullptr);
 
+	}
+
+	Ref<SwapChain> WindowsWindow::GetSwapChain() const
+	{
+		return m_SwapChain;
 	}
 
 	HINSTANCE WindowsWindow::GetNativeInstance() const
@@ -648,7 +660,6 @@ namespace Shark {
 					::SetCapture(hWnd);
 				m_DownMouseButtons |= BIT((int)mouseButton);
 
-				bool handled = false;
 				if (doubleClick)
 					m_EventListener->OnMouseButtonDoubleClickedEvent(mouseButton);
 				else
@@ -693,7 +704,7 @@ namespace Shark {
 				int virtualKey = (int)wParam;
 				KeyCode key = (KeyCode)virtualKey;
 				bool repeat = lParam & BIT(30);
-				bool altDown = lParam & BIT(29);
+				//bool altDown = lParam & BIT(29);
 				addKeyEvent(key, repeat, isKeyDown, modifierKeys);
 
 				if (key == KeyCode::Alt)

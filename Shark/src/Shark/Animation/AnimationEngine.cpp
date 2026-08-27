@@ -5,10 +5,12 @@
 #include "Shark/Animation/Animation.h"
 #include "Shark/Animation/Graph/AnimationGraph.h"
 #include "Shark/Animation/Graph/AnimationGraphAsset.h"
-
 #include "Shark/NodeGraph/Prototype.h"
 
 #include "Shark/Scene/Scene.h"
+#include "Shark/Scene/Entity.h"
+#include "Shark/Scene/Components/SceneComponents.h"
+
 #include "Shark/Utils/Utilities.h"
 
 namespace Shark {

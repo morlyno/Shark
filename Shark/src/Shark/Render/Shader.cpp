@@ -1,8 +1,9 @@
 #include "skpch.h"
 #include "Shader.h"
 
-#include "Shark/Core/Application.h"
+#include "Shark/Render/DeviceManager.h"
 #include "Shark/Render/Renderer.h"
+#include "Shark/Render/Texture.h"
 #include "Shark/Render/ShaderCompiler/ShaderCompiler.h"
 
 namespace Shark {
@@ -61,7 +62,7 @@ namespace Shark {
 			SK_CORE_ASSERT(false, "Invalid bind '{}'", bindingName);
 		}
 
-		auto deviceManager = Application::Get().GetDeviceManager();
+		auto deviceManager = Renderer::GetDeviceManager();
 		auto device = deviceManager->GetDevice();
 
 		const auto& platformBinary = result->PlatformBinary.at(deviceManager->GetGraphicsAPI());
@@ -92,7 +93,7 @@ namespace Shark {
 	{
 		m_LayoutMapping.fill(-1);
 
-		auto deviceManager = Application::Get().GetDeviceManager();
+		auto deviceManager = Renderer::GetDeviceManager();
 		auto device = deviceManager->GetDevice();
 
 		const bool usesOffsets = deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::D3D11;

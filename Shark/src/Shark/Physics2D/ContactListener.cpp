@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "ContactListener.h"
 
+#include <box2d/b2_contact.h>
+
 namespace Shark {
 
 	ContactListener::ContactListener(ContactEventCallbackFn contactEventCallback)

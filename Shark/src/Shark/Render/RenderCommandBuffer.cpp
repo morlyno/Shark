@@ -1,8 +1,9 @@
 #include "skpch.h"
 #include "RenderCommandBuffer.h"
 
-#include "Shark/Core/Application.h"
+#include "Shark/Render/DeviceManager.h"
 #include "Shark/Render/Renderer.h"
+
 #include "Shark/Debug/Profiler.h"
 
 namespace Shark {
@@ -10,7 +11,7 @@ namespace Shark {
 	RenderCommandBuffer::RenderCommandBuffer(const std::string& name, bool enableQueries)
 		: m_Name(name), m_EnableQueries(enableQueries), m_DoQuery(enableQueries)
 	{
-		auto deviceManager = Application::Get().GetDeviceManager();
+		auto deviceManager = Renderer::GetDeviceManager();
 		auto device = deviceManager->GetDevice();
 
 		// NOTE(moro): nvrhi doesn't support deferred command lists for d3d11
@@ -149,7 +150,7 @@ namespace Shark {
 		SK_PERF_SCOPED("CommandBuffer Execute");
 		SK_CORE_TRACE_TAG("Renderer", "[RT] CommandBuffer Execute '{}'", m_Name);
 
-		auto deviceManager = Application::Get().GetDeviceManager();
+		auto deviceManager = Renderer::GetDeviceManager();
 		auto device = deviceManager->GetDevice();
 
 		deviceManager->LockQueue();

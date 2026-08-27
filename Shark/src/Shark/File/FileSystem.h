@@ -1,14 +1,11 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Core/RefCount.h"
 #include "Shark/Core/Buffer.h"
-
 
 #undef CreateFile
 #undef CopyFile
 #undef CreateDirectory
-
 
 namespace Shark {
 

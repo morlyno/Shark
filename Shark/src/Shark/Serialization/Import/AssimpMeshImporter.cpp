@@ -1,15 +1,19 @@
 #include "skpch.h"
 #include "AssimpMeshImporter.h"
 
+#include "Shark/Asset/AssetThread/AssetLoadContext.h"
+
+#include "Shark/Render/Renderer.h"
+#include "Shark/Render/MeshSource.h"
+#include "Shark/Render/MaterialAsset.h"
+#include "Shark/Render/Texture.h"
+
 #include "Shark/Animation/Animation.h"
 #include "Shark/Animation/Skeleton.h"
-#include "Shark/Render/MeshSource.h"
-#include "Shark/Render/Renderer.h"
 
 #include "Shark/Serialization/Import/TextureImporter.h"
 
 #include "Shark/Math/Math.h"
-#include "Shark/File/FileSystem.h"
 #include "Shark/Debug/Profiler.h"
 
 #include <assimp/scene.h>
@@ -700,7 +704,7 @@ namespace Shark {
 		if (samplingRate < 0.0001)
 			samplingRate = 1.0;
 
-		return Scope<Animation>::Create(&skeleton, std::move(channels), animation->mDuration / samplingRate);
+		return Scope<Animation>::Create(&skeleton, std::move(channels), static_cast<float>(animation->mDuration / samplingRate));
 	}
 
 	void AssimpMeshImporter::TraverseNodes(Ref<MeshSource> meshSource, aiNode* assimpNode, uint32_t nodeIndex, const glm::mat4& parentTransform, uint32_t level)
@@ -718,7 +722,7 @@ namespace Shark {
 		for (uint32_t i = 0; i < assimpNode->mNumChildren; i++)
 		{
 			MeshNode& parentNode = meshSource->m_Nodes[nodeIndex];
-			parentNode.Children.emplace_back(meshSource->m_Nodes.size());
+			parentNode.Children.emplace_back(static_cast<uint32_t>(meshSource->m_Nodes.size()));
 
 			MeshNode& child = meshSource->m_Nodes.emplace_back();
 			child.Parent = nodeIndex;

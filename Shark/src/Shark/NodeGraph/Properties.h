@@ -3,6 +3,8 @@
 #include "Shark/Core/Base.h"
 #include <choc/containers/choc_Value.h>
 
+#include <ranges>
+
 namespace Shark::NodeGraph {
 
 	class Properties

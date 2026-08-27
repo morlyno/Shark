@@ -9,90 +9,6 @@ namespace Shark {
 
 namespace Shark::Reflection {
 
-	template<typename TFunc, typename... TArgs>
-	void ForEach(std::tuple<TArgs...>, TFunc&& func)
-	{
-		(func.operator() < TArgs > (), ...);
-	}
-
-}
-
-namespace Shark::Reflection {
-
-	namespace Internal {
-
-		template<typename T>
-		struct return_type_object;
-
-		template<typename Return, typename Object>
-		struct return_type_object<Return Object::*>
-		{
-			using type = Return;
-		};
-
-		template<typename T>
-		struct return_type_function;
-
-		template<typename Return, typename Object, typename... Args>
-		struct return_type_function<Return(Object::*)(Args...)>
-		{
-			using type = Return;
-		};
-
-		template<typename Return, typename Object, typename... Args>
-		struct return_type_function<Return(Object::*)(Args...) const>
-		{
-			using type = Return;
-		};
-
-
-		template<typename T>
-		struct function_args;
-
-		template<typename Return, typename... Args>
-		struct function_args<Return(*)(Args...)>
-		{
-			using type = std::tuple<Args...>;
-		};
-
-		template<typename Return, typename Object, typename... Args>
-		struct function_args<Return(Object::*)(Args...)>
-		{
-			using type = std::tuple<Args...>;
-		};
-
-		template<typename Return, typename Object, typename... Args>
-		struct function_args<Return(Object::*)(Args...) const>
-		{
-			using type = std::tuple<Args...>;
-		};
-
-		template<typename T>
-			requires requires { &T::operator(); }
-		struct function_args<T> : function_args<decltype(&T::operator())>
-		{};
-
-	}
-
-	template<typename T>
-		requires std::is_member_pointer_v<T>
-	using member_return_type = typename
-		std::conditional_t<
-			std::is_member_object_pointer_v<T>,
-			Internal::return_type_object<T>,
-			Internal::return_type_function<T>
-		>::type;
-
-	template<typename T>
-	using function_args = Internal::function_args<T>;
-
-	template<typename T>
-	using function_args_type = typename Internal::function_args<T>::type;
-
-}
-
-namespace Shark::Reflection {
-
 	template<auto... TMembers>
 	struct MemberList
 	{
@@ -108,7 +24,7 @@ namespace Shark::Reflection {
 		static constexpr auto ForEachTypeIndexed(TFunc&& func)
 		{
 			size_t index = 0;
-			(func.operator()<decltype(TMembers)> (index++), ...);
+			(func.template operator()<decltype(TMembers)>(index++), ...);
 		}
 
 	};

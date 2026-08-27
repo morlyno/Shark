@@ -2,10 +2,17 @@
 #include "SerializerUtilities.h"
 
 #include "Shark/Core/Project.h"
+#include "Shark/Asset/AssetManager/EditorAssetManager.h"
 #include "Shark/Asset/AssetThread/AssetLoadContext.h"
 #include "Shark/File/FileSystem.h"
 
 namespace Shark::Utilities {
+
+	std::filesystem::path GetAssetFilesystemPath(AssetHandle handle)
+	{
+		// #investigate #assets should the asset manager be called here
+		return GetAssetFilesystemPath(Project::GetEditorAssetManager()->GetMetadata(handle));
+	}
 
 	std::filesystem::path GetAssetFilesystemPath(const AssetMetaData& metadata)
 	{

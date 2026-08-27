@@ -41,6 +41,7 @@ namespace Shark::NodeGraph::Editor {
 
 	public:
 		virtual Scope<Prototype> CreatePrototype();
+		virtual ~NodeGraphContext() = default;
 
 	public:
 		std::span<Node>       GetNodes();

@@ -13,6 +13,8 @@ workspace "Shark"
 	staticruntime "Off"
 	multiprocessorcompile "On"
 
+	externalwarnings "Off"
+
 	defines {
 		"_CRT_SECURE_NO_WARNINGS",
 		"NOMINMAX",
@@ -32,6 +34,21 @@ workspace "Shark"
 		"SK_WITH_DX11",
 		"SK_WITH_VULKAN"
 	}
+
+	filter "tags:Shark"
+		warnings "Extra"
+		fatalwarnings {
+			-- "All",
+			"4150", -- deletion of pointer to incomplete type
+			"4390", -- empty controlled statement found
+			"4706", -- assignment used as a condition
+			"5205", -- delete of an abstract class with non-virtual destructor
+		}
+		
+		disablewarnings {
+			"4100", -- unreferenced formal parameter
+			"4505", -- unreferenced function with internal linkage has been removed
+		}
 
 	filter "action:vs*"
 		linkoptions { "/ignore:4099" } -- ignore no PDB found warning

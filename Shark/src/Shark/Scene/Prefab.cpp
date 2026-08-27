@@ -1,6 +1,12 @@
 #include "skpch.h"
 #include "Prefab.h"
 
+#include "Shark/Core/Concepts.h"
+
+#include "Shark/Scene/Scene.h"
+#include "Shark/Scene/Entity.h"
+#include "Shark/Scene/Components.h"
+
 namespace Shark {
 
 	Prefab::Prefab()
@@ -38,6 +44,11 @@ namespace Shark {
 		return m_Scene->TryGetEntityByUUID(m_RootEntityID);
 	}
 
+	UUID Prefab::GetActiveCameraID() const
+	{
+		return m_Scene->GetActiveCameraUUID();
+	}
+
 	bool Prefab::HasValidRoot() const
 	{
 		return m_Scene->IsValidEntityID(m_RootEntityID);
@@ -72,10 +83,9 @@ namespace Shark {
 		SK_CORE_ASSERT(sourceContext->IsEditorScene());
 		Entity entity = m_Scene->CreateChildEntityWithUUID(parent, sourceEntity.GetUUID(), sourceEntity.Tag());
 		entity.AddComponent<PrefabComponent>(Handle, entity.GetUUID());
-		
 		entity.AddOrReplaceComponent<TransformComponent>(sourceEntity.GetComponent<TransformComponent>());
 
-		ForEach(AllComponents::Except<CoreComponents, PrefabComponent>{}, [entity, sourceEntity]<typename TComponent>() mutable
+		Tuple::Each(Components::All::Except<Components::Core, PrefabComponent>{}, [entity, sourceEntity]<typename TComponent>() mutable
 		{
 			if (TComponent* component = sourceEntity.TryGetComponent<TComponent>())
 				entity.AddOrReplaceComponent<TComponent>(*component);

@@ -1,11 +1,14 @@
 #include "ProjectSettingsPanel.h"
 
+#include "Shark/Core/Project.h"
 #include "Shark/Asset/AssetManager.h"
+#include "Shark/Asset/AssetManager/EditorAssetManager.h"
+
+#include "Shark/Serialization/ProjectSerializer.h"
 
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/Controls.h"
 #include "Shark/UI/Widgets.h"
-#include "Shark/Serialization/ProjectSerializer.h"
 
 namespace Shark {
 
@@ -100,7 +103,7 @@ namespace Shark {
 		ImGui::End();
 	}
 
-	void ProjectSettingsPanel::OnProjectChanged(Ref<ProjectConfig> projectConfig)
+	void ProjectSettingsPanel::OnProjectChanged(const Ref<ProjectConfig>& projectConfig)
 	{
 		if (m_Focused)
 			ImGui::ClearActiveID();

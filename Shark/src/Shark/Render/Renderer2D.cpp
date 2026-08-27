@@ -2,6 +2,20 @@
 #include "Renderer2D.h"
 
 #include "Shark/Render/Renderer.h"
+#include "Shark/Render/RenderCommandBuffer.h"
+
+#include "Shark/Render/Shader.h"
+#include "Shark/Render/Pipeline.h"
+#include "Shark/Render/RenderPass.h"
+#include "Shark/Render/FrameBuffer.h"
+
+#include "Shark/Render/Image.h"
+#include "Shark/Render/Texture.h"
+#include "Shark/Render/ConstantBuffer.h"
+#include "Shark/Render/Buffers.h"
+#include "Shark/Render/Material.h"
+
+#include "Shark/Render/Font.h"
 #include "Shark/Render/MSDFData.h"
 
 #include "Shark/Math/Math.h"
@@ -36,7 +50,6 @@ namespace Shark {
 		m_CirclePass->SetTargetFramebuffer(framebuffer);
 		m_LinePass->SetTargetFramebuffer(framebuffer);
 		m_TextPass->SetTargetFramebuffer(framebuffer);
-
 	}
 
 	void Renderer2D::Init(Ref<FrameBuffer> targetFramebuffer)

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Shark/Core/UUID.h"
-#include "Shark/Core/Reflection.h"
+#include "Shark/Core/Concepts.h"
 
 #include "Shark/NodeGraph/ProcessNode.h"
 #include "Shark/NodeGraph/PinTypes.h"
@@ -9,7 +9,6 @@
 
 #include <imgui_node_editor.h>
 #include <choc/containers/choc_Value.h>
-#include <choc/text/choc_StringUtilities.h>
 
 #include <tuple>
 
@@ -49,7 +48,7 @@ namespace Shark::NodeGraph::Editor {
 		template<typename TMemberPtr>
 		static EPinType GetPinTypeFromMember()
 		{
-			using TMember = Reflection::member_return_type<TMemberPtr>;
+			using TMember = TypeTraits::member_return_type<TMemberPtr>;
 			using TMemberRaw = std::remove_pointer_t<TMember>;
 
 			if constexpr (std::is_member_function_pointer_v<TMemberPtr> || std::is_same_v<TMemberPtr, ProcessNode::OutputEvent>)
@@ -57,7 +56,7 @@ namespace Shark::NodeGraph::Editor {
 
 			EPinType pinType = EPinType::Flow;
 
-			Reflection::ForEach(PinTypes{}, [&pinType]<typename TDesc>()
+			Tuple::Each(PinTypes{}, [&pinType]<typename TDesc>()
 			{
 				if constexpr (std::is_same_v<const TDesc::value_type, const TMemberRaw>)
 				{
@@ -73,7 +72,7 @@ namespace Shark::NodeGraph::Editor {
 		{
 			bool initialized = false;
 
-			Reflection::ForEach(PinTypes{}, [&pin, &type, &initialized]<typename TDesc>()
+			Tuple::Each(PinTypes{}, [&pin, &type, &initialized]<typename TDesc>()
 			{
 				bool same = false;
 				if constexpr (std::is_same_v<TType, EPinType> || std::is_same_v<TType, int>)

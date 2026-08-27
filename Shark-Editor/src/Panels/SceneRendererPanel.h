@@ -1,8 +1,10 @@
 #pragma once
 
-#include "Shark/Render/SceneRenderer.h"
-
 #include "Panel.h"
+
+namespace Shark {
+	class SceneRenderer;
+}
 
 namespace Shark {
 

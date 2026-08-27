@@ -2,7 +2,9 @@
 #include "Font.h"
 
 #include "Shark/Render/Renderer.h"
+#include "Shark/Render/Texture.h"
 #include "Shark/Render/MSDFData.h"
+
 #include "Shark/Debug/Profiler.h"
 
 #undef INFINITE
@@ -33,6 +35,11 @@ namespace Shark {
 		textureSpecification.HasMips = false;
 
 		return Texture2D::Create(textureSpecification, Buffer{ (void*)bitmap.pixels, bitmap.width * bitmap.height * N * sizeof(T) });
+	}
+
+	Font::Font()
+	{
+
 	}
 
 	Font::Font(const std::filesystem::path& fontPath)

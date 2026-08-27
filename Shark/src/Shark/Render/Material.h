@@ -1,9 +1,20 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Render/Shader.h"
-#include "Shark/Render/Texture.h"
+#include "Shark/Core/Buffer.h"
 #include "Shark/Render/ShaderInputManager.h"
+
+namespace Shark {
+	class Shader;
+	
+	class Image2D;
+	class Texture2D;
+	class TextureCube;
+	class ViewableResource;
+	class Sampler;
+
+	class ConstantBuffer;
+}
 
 namespace Shark {
 

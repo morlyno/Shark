@@ -2,6 +2,7 @@
 #include "VulkanShaderCompiler.h"
 
 #include "Shark/Render/Renderer.h"
+#include "Shark/Render/ShaderCompiler/ShaderCache.h"
 
 #include <spirv_cross/spirv_cross.hpp>
 #include <nvrhi/nvrhi.h>

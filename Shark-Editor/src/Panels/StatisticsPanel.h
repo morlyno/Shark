@@ -10,7 +10,7 @@ namespace Shark {
 		StatisticsPanel();
 
 		virtual void OnImGuiRender(bool& shown) override;
-		virtual void SetContext(Ref<Scene> context) override { m_Scene = context; }
+		virtual void SetContext(const Ref<Scene>& context) override { m_Scene = context; }
 
 		static const char* GetStaticID() { return "StatisticsPanel"; }
 		virtual const char* GetPanelID() const override { return GetStaticID(); }

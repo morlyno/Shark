@@ -1,22 +1,30 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-
-#include "Shark/Render/EditorCamera.h"
-
-#include "Shark/Render/Renderer2D.h"
-#include "Shark/Render/RenderCommandBuffer.h"
-#include "Shark/Render/Pipeline.h"
-#include "Shark/Render/FrameBuffer.h"
-#include "Shark/Render/Mesh.h"
-#include "Shark/Render/StorageBuffer.h"
-#include "Shark/Render/Environment.h"
+#include "Shark/Core/UUID.h"
+#include "Shark/Core/TimeStep.h"
 
 #include <set>
+#include <span>
 
 namespace Shark {
-
 	class Scene;
+
+	class Renderer2D;
+	class RenderCommandBuffer;
+
+	class Pipeline;
+	class RenderPass;
+	class FrameBuffer;
+	class ConstantBuffer;
+	class StorageBuffer;
+	class Image2D;
+	class Mesh;
+	class MeshSource;
+	class PBRMaterial;
+}
+
+namespace Shark {
 
 	struct SceneRendererSpecification
 	{
@@ -70,14 +78,14 @@ namespace Shark {
 
 		void SubmitMesh(Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<PBRMaterial> material, const glm::mat4& transform, std::span<const glm::mat4> boneTransforms, UUID contextID, bool isSelected, int id);
 
-		Ref<Renderer2D> GetRenderer2D() const { return m_Renderer2D; }
-		Ref<Image2D> GetFinalPassImage() const { return m_CompositePass->GetOutput(0); }
-		Ref<Image2D> GetIDImage() const { return m_CompositePass->GetOutput(1); }
-		Ref<FrameBuffer> GetTargetFramebuffer() const { return m_CompositePass->GetTargetFramebuffer(); }
+		Ref<Renderer2D> GetRenderer2D() const;
+		RefArg<Image2D> GetFinalPassImage() const;
+		RefArg<Image2D> GetIDImage() const;
+		RefArg<FrameBuffer> GetTargetFramebuffer() const;
 
 		Options& GetOptions() { return m_Options; }
 		const Statistics& GetStatisitcs() const { return m_Statistics; }
-		const Renderer2D::Statistics& GetRenderer2DStats() const { return m_Renderer2D->GetStatistics(); }
+		//const Renderer2D::Statistics& GetRenderer2DStats() const { return m_Renderer2D->GetStatistics(); }
 
 		uint32_t GetViewportWidth() const { return m_Specification.Width; }
 		uint32_t GetViewportHeight() const { return m_Specification.Height; }
@@ -219,8 +227,6 @@ namespace Shark {
 		Ref<Pipeline> m_JumpFloodCompositePipeline;
 
 		std::vector<Ref<FrameBuffer>> m_TempFramebuffers;
-
-
 
 		bool m_NeedsResize = true;
 		glm::vec4 m_ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };

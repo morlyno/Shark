@@ -1,15 +1,18 @@
 #include "skpch.h"
 #include "ImGuiRenderer.h"
 
-#include "Shark/Core/Application.h"
 #include "Shark/Render/Renderer.h"
+#include "Shark/Render/RenderCommandBuffer.h"
+#include "Shark/Render/SwapChain.h"
+#include "Shark/Render/Shader.h"
+
 #include "Shark/Debug/Profiler.h"
 
 #include <nvrhi/utils.h>
 
 namespace Shark {
 
-	bool ImGuiRenderer::Initialize(Ref<SwapChain> swapchain)
+	ImGuiRenderer::ImGuiRenderer(Ref<SwapChain> swapchain)
 	{
 		m_Swapchain = swapchain;
 
@@ -19,7 +22,7 @@ namespace Shark {
 		io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
 		io.BackendFlags |= ImGuiBackendFlags_RendererHasViewports;
 
-		nvrhi::IDevice* device = Application::Get().GetDeviceManager()->GetDevice();
+		nvrhi::IDevice* device = Renderer::GetGraphicsDevice();
 
 		m_CommandBuffer = RenderCommandBuffer::Create("ImGuiRenderer");
 
@@ -90,7 +93,10 @@ namespace Shark {
 			m_FontSampler = device->createSampler(desc);
 		}
 
-		return true;
+	}
+
+	ImGuiRenderer::~ImGuiRenderer()
+	{
 	}
 
 	void ImGuiRenderer::DestroyTextures()
@@ -242,7 +248,7 @@ namespace Shark {
 			desc.initialState = isIndexBuffer ? nvrhi::ResourceStates::IndexBuffer : nvrhi::ResourceStates::VertexBuffer;
 			desc.keepInitialState = true;
 
-			auto device = Application::Get().GetDeviceManager()->GetDevice();
+			auto device = Renderer::GetGraphicsDevice();
 			buffer = device->createBuffer(desc);
 
 			if (!buffer)
@@ -256,7 +262,7 @@ namespace Shark {
 
 	void ImGuiRenderer::UpdateTexture(Ref<RenderCommandBuffer> commandBuffer, ImTextureData* texture)
 	{
-		auto device = Application::Get().GetDeviceManager()->GetDevice();
+		auto device = Renderer::GetGraphicsDevice();
 
 		if (texture->Status == ImTextureStatus_WantCreate)
 		{
@@ -313,7 +319,7 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("ImGui binding cache");
 
-		auto device = Application::Get().GetDeviceManager()->GetDevice();
+		auto device = Renderer::GetGraphicsDevice();
 
 		const auto iter = m_BindingsCache.find(viewable->GetViewInfo());
 		if (iter != m_BindingsCache.end())

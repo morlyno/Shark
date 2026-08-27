@@ -3,29 +3,38 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Buffer.h"
 
-#include "Shark/Render/DeviceManager.h"
-
 #include "Shark/Render/RenderCommandQueue.h"
-#include "Shark/Render/RenderCommandBuffer.h"
-
-#include "Shark/Render/GpuBuffer.h"
-#include "Shark/Render/Buffers.h"
-#include "Shark/Render/Image.h"
-#include "Shark/Render/Texture.h"
-#include "Shark/Render/Environment.h"
-#include "Shark/Render/Mesh.h"
-#include "Shark/Render/MeshSource.h"
-
-#include "Shark/Render/Material.h"
-#include "Shark/Render/RenderPass.h"
-#include "Shark/Render/Pipeline.h"
-#include "Shark/Render/ComputePass.h"
-#include "Shark/Render/ComputePipeline.h"
-
-#include "Shark/Render/Shader.h"
-#include "Shark/Render/ShaderCompiler/ShaderCache.h"
+#include "Shark/Render/TextureCommon.h"
 
 #include <nvrhi/nvrhi.h>
+
+namespace Shark {
+	class DeviceManager;
+	class RenderCommandBuffer;
+
+	class Shader;
+	class ShaderCache;
+	class ShaderLibrary;
+	class RenderPass;
+	class Pipeline;
+	class ComputePass;
+	class ComputePipeline;
+
+	class GpuBuffer;
+	class VertexBuffer;
+	class IndexBuffer;
+
+	class Image2D;
+	class StagingImage2D;
+	class Texture2D;
+	class TextureCube;
+	class Sampler;
+
+	class Material;
+	class Environment;
+	class Mesh;
+	class MeshSource;
+}
 
 namespace Shark {
 
@@ -212,7 +221,7 @@ namespace Shark {
 				new (storage) TFunc(func);
 			}
 
-			static void GenerateMips(Ref<Image2D> targetImage);
+			static void GenerateMips(RefArg<Image2D> targetImage);
 			static std::pair<Ref<TextureCube>, Ref<TextureCube>> CreateEnvironmentMap(const std::filesystem::path& filepath);
 		};
 	public:

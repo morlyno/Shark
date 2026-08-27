@@ -2,34 +2,34 @@
 #pragma once
 
 #include "Shark/Asset/Asset.h"
-#include "Shark/Core/Project.h"
+#include "Shark/Core/Threading.h"
 
 namespace Shark {
 
 	class AssetManager
 	{
 	public:
-		static AssetType GetAssetType(AssetHandle handle) { return Project::GetAssetManager()->GetAssetType(handle); }
-		static Ref<Asset> GetAsset(AssetHandle handle) { return Project::GetEditorAssetManager()->GetAsset(handle); }
-		static Ref<Asset> GetAssetAsync(AssetHandle handle) { return Project::GetEditorAssetManager()->GetAssetAsync(handle); }
-		static Threading::Future<Ref<Asset>> GetAssetFuture(AssetHandle handle) { return Project::GetEditorAssetManager()->GetAssetFuture(handle); }
+		static AssetType GetAssetType(AssetHandle handle);
+		static Ref<Asset> GetAsset(AssetHandle handle);
+		static Ref<Asset> GetAssetAsync(AssetHandle handle);
+		static Threading::Future<Ref<Asset>> GetAssetFuture(AssetHandle handle);
 
-		static bool WaitForAsset(AssetHandle handle, bool queueLoad = true) { return Project::GetAssetManager()->WaitForAsset(handle, queueLoad); }
-		static void LoadAssetAsync(AssetHandle handle) { return Project::GetAssetManager()->LoadAssetAsync(handle); }
+		static bool WaitForAsset(AssetHandle handle, bool queueLoad = true);
+		static void LoadAssetAsync(AssetHandle handle);
 
-		static std::vector<AssetHandle> GetAllAssetsOfType(AssetType assetType) { return Project::GetAssetManager()->GetAllAssetsOfType(assetType); }
+		static std::vector<AssetHandle> GetAllAssetsOfType(AssetType assetType);
 
-		static AssetHandle AddMemoryAsset(Ref<Asset> asset) { return Project::GetAssetManager()->AddMemoryAsset(asset); }
-		static bool ReloadAsset(AssetHandle handle) { return Project::GetAssetManager()->ReloadAsset(handle); }
-		static void ReloadAssetAsync(AssetHandle handle) { Project::GetAssetManager()->ReloadAssetAsync(handle); }
-		static bool DependenciesLoaded(AssetHandle handle, bool loadIfNotReady = false) { return Project::GetAssetManager()->DependenciesLoaded(handle, loadIfNotReady); }
-		static bool IsValidAssetHandle(AssetHandle handle) { return Project::GetAssetManager()->IsValidAssetHandle(handle); }
-		static bool IsMemoryAsset(AssetHandle handle) { return Project::GetAssetManager()->IsMemoryAsset(handle); }
-		static bool IsAssetLoaded(AssetHandle handle) { return Project::GetAssetManager()->IsAssetLoaded(handle); }
-		static void DeleteAsset(AssetHandle handle) { return Project::GetAssetManager()->DeleteAsset(handle); }
-		static void DeleteMemoryAsset(AssetHandle handle) { return Project::GetAssetManager()->DeleteMemoryAsset(handle); }
+		static AssetHandle AddMemoryAsset(Ref<Asset> asset);
+		static bool ReloadAsset(AssetHandle handle);
+		static void ReloadAssetAsync(AssetHandle handle);
+		static bool DependenciesLoaded(AssetHandle handle, bool loadIfNotReady = false);
+		static bool IsValidAssetHandle(AssetHandle handle);
+		static bool IsMemoryAsset(AssetHandle handle);
+		static bool IsAssetLoaded(AssetHandle handle);
+		static void DeleteAsset(AssetHandle handle);
+		static void DeleteMemoryAsset(AssetHandle handle);
 		
-		static void SyncWithAssetThread() { Project::GetAssetManager()->SyncWithAssetThread(); }
+		static void SyncWithAssetThread();
 
 		template<typename TAsset>
 		static Ref<TAsset> GetAsset(AssetHandle handle)

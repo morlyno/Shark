@@ -1,17 +1,34 @@
 #include "skpch.h"
 #include "SceneRenderer.h"
 
-#include "Shark/Asset/AssetManager.h"
+#include "Shark/Core/Buffer.h"
 #include "Shark/Scene/Scene.h"
 
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/Renderer2D.h"
-#include "Shark/Math/Math.h"
-#include "Shark/Utils/Utilities.h"
+#include "Shark/Render/RenderCommandBuffer.h"
+
+#include "Shark/Render/Shader.h"
+#include "Shark/Render/Pipeline.h"
+#include "Shark/Render/RenderPass.h"
+#include "Shark/Render/FrameBuffer.h"
+#include "Shark/Render/Material.h"
+
+#include "Shark/Render/Image.h"
+#include "Shark/Render/Texture.h"
+#include "Shark/Render/TextureCommon.h"
+#include "Shark/Render/ConstantBuffer.h"
+#include "Shark/Render/StorageBuffer.h"
+#include "Shark/Render/VertexLayout.h"
+
+#include "Shark/Render/Mesh.h"
+#include "Shark/Render/MeshSource.h"
+#include "Shark/Render/MaterialAsset.h"
+#include "Shark/Render/Environment.h"
 
 #include "Shark/Debug/Profiler.h"
+
 #include <glm/gtx/optimum_pow.hpp>
-#include <algorithm>
 
 namespace Shark {
 
@@ -206,6 +223,26 @@ namespace Shark {
 				}
 			}
 		}
+	}
+
+	Ref<Renderer2D> SceneRenderer::GetRenderer2D() const
+	{
+		return m_Renderer2D;
+	}
+
+	RefArg<Image2D> SceneRenderer::GetFinalPassImage() const
+	{
+		return m_CompositePass->GetOutput(0);
+	}
+
+	RefArg<Image2D> SceneRenderer::GetIDImage() const
+	{
+		return m_CompositePass->GetOutput(1);
+	}
+
+	RefArg<FrameBuffer> SceneRenderer::GetTargetFramebuffer() const
+	{
+		return m_CompositePass->GetTargetFramebuffer();
 	}
 
 	void SceneRenderer::PreRender()

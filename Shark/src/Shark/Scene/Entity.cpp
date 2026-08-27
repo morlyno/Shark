@@ -1,7 +1,7 @@
 #include "skpch.h"
 #include "Entity.h"
 
-#include "Shark/Debug/enttDebug.h"
+#include "Shark/Scene/Components.h"
 
 namespace Shark {
 
@@ -101,6 +101,41 @@ namespace Shark {
 			return true;
 
 		return parent.IsDescendantOf(entity);
+	}
+
+	UUID Entity::GetUUID() const
+	{
+		return GetComponent<IDComponent>().ID;
+	}
+
+	std::string& Entity::Tag()
+	{
+		return GetComponent<TagComponent>().Tag;
+	}
+
+	const std::string& Entity::Tag() const
+	{
+		return GetComponent<TagComponent>().Tag;
+	}
+
+	TransformComponent& Entity::Transform()
+	{
+		return GetComponent<TransformComponent>();
+	}
+
+	const TransformComponent& Entity::Transform() const
+	{
+		return GetComponent<TransformComponent>();
+	}
+
+	std::string& Entity::GetName()
+	{
+		return GetComponent<TagComponent>().Tag;
+	}
+
+	const std::string& Entity::GetName() const
+	{
+		return GetComponent<TagComponent>().Tag;
 	}
 
 }

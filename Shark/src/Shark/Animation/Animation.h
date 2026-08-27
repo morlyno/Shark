@@ -2,11 +2,11 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Asset/Asset.h"
-#include "Shark/Animation/Pose.h"
 
 namespace Shark {
 	class Skeleton;
 	class MeshSource;
+	struct Pose;
 }
 
 namespace Shark {

@@ -1,7 +1,7 @@
 project "Shark"
+    tags { "Shark" }
     kind "StaticLib"
-    
-    debuggertype "NativeWithManagedCore"
+
     dependson "Shark-ScriptCore"
 
     targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")

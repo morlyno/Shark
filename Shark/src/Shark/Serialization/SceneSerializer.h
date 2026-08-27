@@ -2,12 +2,17 @@
 
 #include "Shark/Serialization/SerializerBase.h"
 
-#include <yaml-cpp/yaml.h>
-
 namespace Shark {
-
 	class Scene;
 	class Entity;
+}
+
+namespace YAML {
+	class Emitter;
+	class Node;
+}
+
+namespace Shark {
 
 	class SceneSerializer
 	{

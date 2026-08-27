@@ -1,14 +1,15 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Core/Hash.h"
-
-#include "Shark/Render/RenderCommandBuffer.h"
-#include "Shark/Render/SwapChain.h"
-#include "Shark/Render/Image.h"
+#include "Shark/Render/Viewable.h"
 
 #include <imgui.h>
 #include <nvrhi/nvrhi.h>
+
+namespace Shark {
+	class SwapChain;
+	class RenderCommandBuffer;
+}
 
 namespace Shark {
 
@@ -25,7 +26,9 @@ namespace Shark {
 	class ImGuiRenderer
 	{
 	public:
-		bool Initialize(Ref<SwapChain> swapchain);
+		ImGuiRenderer(Ref<SwapChain> swapchain);
+		~ImGuiRenderer();
+
 		void DestroyTextures();
 		bool Render(ImGuiViewport* viewport);
 

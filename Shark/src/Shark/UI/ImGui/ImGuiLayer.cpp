@@ -1,12 +1,18 @@
 #include "skpch.h"
 #include "ImGuiLayer.h"
 
+#include "Shark/Core/Application.h"
+#include "Shark/Core/Window.h"
+
+#include "Shark/Render/DeviceManager.h"
+#include "Shark/Render/Renderer.h"
+#include "Shark/Render/SwapChain.h"
+#include "Shark/Render/Viewable.h"
+
 #include "Shark/UI/Theme.h"
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/ImGui/ImGuiRenderer.h"
 #include "Shark/UI/ImGui/ImGuiFonts.h"
-
-#include "Shark/Render/Renderer.h"
 
 #include "Shark/File/FileSystem.h"
 #include "Shark/Debug/Profiler.h"
@@ -103,8 +109,7 @@ namespace Shark {
 		Window& window = Application::Get().GetWindow();
 		ImGui_ImplWin32_Init(window.GetHandle());
 
-		m_Renderer = Scope<ImGuiRenderer>::Create();
-		m_Renderer->Initialize(window.GetSwapChain());
+		m_Renderer = Scope<ImGuiRenderer>::Create(window.GetSwapChain());
 
 		ImGuiPlatformIO& platformIO = ImGui::GetPlatformIO();
 		platformIO.Renderer_CreateWindow = &Callbacks::CreateWindow;
@@ -172,6 +177,11 @@ namespace Shark {
 		m_Viewables.clear();
 	}
 
+	void ImGuiLayer::AddViewable(Ref<ViewableResource> viewable)
+	{
+		m_Viewables.push_back(viewable);
+	}
+
 	ImGuiLayer::ImGuiLayer()
 		: Layer("ImGuiLayer")
 	{
@@ -190,8 +200,7 @@ namespace Shark {
 		auto deviceManager = Renderer::GetDeviceManager();
 		auto swapchain = deviceManager->CreateSwapchain(specification);
 
-		auto renderer = sknew ImGuiRenderer();
-		renderer->Initialize(swapchain);
+		auto renderer = sknew ImGuiRenderer(swapchain);
 		viewport->RendererUserData = renderer;
 	}
 

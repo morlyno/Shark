@@ -2,72 +2,17 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Buffer.h"
-#include "Shark/Core/Hash.h"
-#include "Shark/Render/RendererResource.h"
+
+#include "Shark/Render/Viewable.h"
+#include "Shark/Render/TextureCommon.h"
+
 #include <nvrhi/nvrhi.h>
 
 namespace Shark {
 
 	//////////////////////////////////////////////////////////////////////////
-	//// Viewable & ViewInfo 
-	//////////////////////////////////////////////////////////////////////////
-
-	struct ImageSlice
-	{
-		uint32_t Mip;
-		uint32_t Layer;
-
-		static ImageSlice Zero() { return ImageSlice{ 0, 0 }; }
-	};
-
-	struct ViewInfo
-	{
-		nvrhi::TextureHandle Handle;
-		nvrhi::Format Format = nvrhi::Format::UNKNOWN;
-		nvrhi::TextureDimension Dimension = nvrhi::TextureDimension::Unknown;
-		nvrhi::TextureSubresourceSet SubresourceSet = nvrhi::AllSubresources;
-
-		// Optional, only used by Texture and ImGui renderer
-		nvrhi::SamplerHandle TextureSampler;
-
-		bool operator==(const ViewInfo&) const = default;
-	};
-
-	class ViewableResource : public RendererResource
-	{
-	public:
-		virtual const ViewInfo& GetViewInfo() const = 0;
-		virtual bool HasSampler() const = 0;
-
-	};
-
-	//////////////////////////////////////////////////////////////////////////
 	//// Image2D
 	//////////////////////////////////////////////////////////////////////////
-
-	enum class ImageFormat : uint16_t
-	{
-		None = 0,
-		RGBA,
-		sRGBA,
-
-		RG16F,
-		RGBA16F,
-		RGBA32F,
-
-		RED32SI,
-		RED32UI,
-
-		Depth32,
-		Depth24UNormStencil8UINT
-	};
-
-	enum class ImageUsage
-	{
-		Texture,
-		Attachment,
-		Storage,
-	};
 
 	struct ImageSpecification
 	{
@@ -259,25 +204,5 @@ namespace Shark {
 		uint32_t GetFormatBPP(ImageFormat format);
 
 	}
-
-}
-
-namespace std {
-
-	template<>
-	struct hash<Shark::ViewInfo>
-	{
-		static_assert(sizeof(Shark::ViewInfo) == 40);
-		size_t operator()(const Shark::ViewInfo& viewInfo) const
-		{
-			uint64_t hash = Shark::Hash::FNVBase;
-			Shark::Hash::HashCombine(hash, Shark::StandartHash(viewInfo.Handle));
-			Shark::Hash::HashCombine(hash, Shark::StandartHash(viewInfo.Format));
-			Shark::Hash::HashCombine(hash, Shark::StandartHash(viewInfo.Dimension));
-			Shark::Hash::HashCombine(hash, Shark::StandartHash(viewInfo.SubresourceSet));
-			Shark::Hash::HashCombine(hash, Shark::StandartHash(viewInfo.TextureSampler));
-			return hash;
-		}
-	};
 
 }

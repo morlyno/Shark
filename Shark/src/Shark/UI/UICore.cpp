@@ -1,10 +1,19 @@
 #include "skpch.h"
 #include "UICore.h"
 
-#include "Shark/Core/Application.h"
 #include "Shark/Core/Hash.h"
+#include "Shark/Core/Project.h"
 #include "Shark/Asset/AssetManager.h"
-#include "Shark/UI/ImGui/ImGuiRenderer.h"
+#include "Shark/Asset/AssetManager/EditorAssetManager.h"
+
+#include "Shark/Render/Texture.h"
+#include "Shark/Render/Image.h"
+#include "Shark/Render/Viewable.h"
+
+#include "Shark/UI/Theme.h"
+#include "Shark/UI/UIUtilities.h"
+#include "Shark/UI/ImGui/ImGuiLayer.h"
+#include "Shark/UI/ImGui/ImGuiHelpers.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -490,7 +499,7 @@ namespace Shark::UI {
 		DrawImage(texture->GetImage(), rect, uv0, uv1, tint_col);
 	}
 
-	void Image(Ref<Texture2D> texture, const ImVec2& size, const ImageArgs args)
+	void Image(const Ref<Texture2D>& texture, const ImVec2& size, const ImageArgs args)
 	{
 		ImGuiWindow* window = ImGui::GetCurrentWindow();
 		if (window->SkipItems)
@@ -499,7 +508,7 @@ namespace Shark::UI {
 		ImGui::ImageWithBg(utils::GetTextureID(texture), size, args.UV0, args.UV1, args.BackgroundColor, args.TintColor);
 	}
 
-	void Image(Ref<ImageView> imageView, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col)
+	void Image(const Ref<ImageView>& imageView, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col)
 	{
 		ImGuiWindow* window = ImGui::GetCurrentWindow();
 		if (window->SkipItems)
@@ -508,7 +517,7 @@ namespace Shark::UI {
 		ImGui::ImageWithBg(utils::GetTextureID(imageView), size, uv0, uv1, ImVec4(0, 0, 0, 0), tint_col);
 	}
 
-	void Image(Ref<Image2D> image, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col)
+	void Image(const Ref<Image2D>& image, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col)
 	{
 		ImGuiWindow* window = ImGui::GetCurrentWindow();
 		if (window->SkipItems)
@@ -517,7 +526,7 @@ namespace Shark::UI {
 		ImGui::ImageWithBg(utils::GetTextureID(image), size, uv0, uv1, ImVec4(0, 0, 0, 0), tint_col);
 	}
 
-	void Image(Ref<Texture2D> texture, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col)
+	void Image(const Ref<Texture2D>& texture, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col)
 	{
 		ImGuiWindow* window = ImGui::GetCurrentWindow();
 		if (window->SkipItems)

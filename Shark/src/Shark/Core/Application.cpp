@@ -3,13 +3,19 @@
 
 #include "Shark/Core/TimeStep.h"
 #include "Shark/Core/Timer.h"
-#include "Shark/Asset/AssetManager.h"
-
-#include "Shark/Audio/AudioEngine.h"
+#include "Shark/Core/Window.h"
+#include "Shark/Event/WindowEvent.h"
 
 #include "Shark/Input/Input.h"
+
+#include "Shark/Asset/AssetManager.h"
+#include "Shark/Audio/AudioEngine.h"
+#include "Shark/Scripting/ScriptHost.h"
+
+#include "Shark/Render/DeviceManager.h"
 #include "Shark/Render/Renderer.h"
-#include "Shark/Scripting/ScriptEngine.h"
+
+#include "Shark/UI/ImGui/ImGuiLayer.h"
 
 #include "Shark/File/FileSystem.h"
 #include "Shark/Utils/String.h"
@@ -67,7 +73,7 @@ namespace Shark {
 			PushOverlay(m_ImGuiLayer);
 		}
 
-		m_ScriptHost.Initialize();
+		m_ScriptHost = Scope<ScriptHost>::Create();
 		m_AudioEngine = Scope<MiniAudioEngine>::Create();
 	}
 
@@ -79,7 +85,7 @@ namespace Shark {
 
 		m_LayerStack.Clear();
 		m_ImGuiLayer = nullptr;
-		m_ScriptHost.Shutdown();
+		m_ScriptHost = nullptr;
 		m_AudioEngine = nullptr;
 
 		m_Window = nullptr;

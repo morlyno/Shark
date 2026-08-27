@@ -1,9 +1,13 @@
 #include "skpch.h"
 #include "MaterialAsset.h"
 
-#include "Shark/Asset/AssetManager.h"
-#include "Shark/Render/Renderer.h"
 #include "Shark/Core/Memory.h"
+#include "Shark/Asset/AssetManager.h"
+
+#include "Shark/Render/Renderer.h"
+#include "Shark/Render/Shader.h"
+#include "Shark/Render/Texture.h"
+#include "Shark/Render/Material.h"
 
 namespace Shark {
 
@@ -39,7 +43,6 @@ namespace Shark {
 
 	PBRMaterial::~PBRMaterial()
 	{
-
 	}
 
 	void PBRMaterial::SetDefaults()
@@ -66,8 +69,16 @@ namespace Shark {
 		m_Material->MT_Bake();
 	}
 
-	void PBRMaterial::Update()
+	void PBRMaterial::Update(bool async)
 	{
+		if (!async)
+		{
+			AssetManager::WaitForAsset(m_AlbedoMap);
+			AssetManager::WaitForAsset(m_NormalMap);
+			AssetManager::WaitForAsset(m_MetalnessMap);
+			AssetManager::WaitForAsset(m_RoughnessMap);
+		}
+
 		if (auto result = AssetManager::GetAssetAsync<Texture2D>(m_AlbedoMap))
 			m_Material->Set(s_AlbedoMapName, result);
 
@@ -88,6 +99,21 @@ namespace Shark {
 
 		SK_CORE_ASSERT(m_Material->Validate());
 		m_Material->Update();
+	}
+
+	void PBRMaterial::SetName(const std::string& name)
+	{
+		m_Material->SetName(name);
+	}
+
+	const std::string& PBRMaterial::GetName() const
+	{
+		return m_Material->GetName();
+	}
+
+	Ref<Material> PBRMaterial::GetMaterial() const
+	{
+		return m_Material;
 	}
 
 	AssetHandle PBRMaterial::GetAlbedoMap()
@@ -194,43 +220,6 @@ namespace Shark {
 	void PBRMaterial::SetRoughness(float value)
 	{
 		m_Uniforms.Roughness = value;
-	}
-
-
-	  //=//========================================================//=//
-	 //=//  Material Table                                        //=//
-	//=//========================================================//=//
-
-	MaterialTable::MaterialTable(uint32_t slots)
-		: m_MaterialSlots(slots)
-	{
-	}
-
-	void MaterialTable::SetMaterial(uint32_t index, AssetHandle material)
-	{
-		m_Materials[index] = material;
-		if (index >= m_MaterialSlots)
-			m_MaterialSlots = index + 1;
-	}
-
-	void MaterialTable::ClearMaterial(uint32_t index)
-	{
-		if (!HasMaterial(index))
-			return;
-		m_Materials.erase(index);
-		if (index >= m_MaterialSlots)
-			m_MaterialSlots = index + 1;
-	}
-
-	AssetHandle MaterialTable::GetMaterial(uint32_t index) const
-	{
-		SK_CORE_VERIFY(HasMaterial(index));
-		return m_Materials.at(index);
-	}
-
-	void MaterialTable::Clear()
-	{
-		m_Materials.clear();
 	}
 
 }

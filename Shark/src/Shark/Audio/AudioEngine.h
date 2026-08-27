@@ -62,7 +62,7 @@ namespace Shark {
 		Audio::Sound* GetSound(UUID entityID) const;
 
 		ma_engine* GetEngine() { return &m_Engine; }
-		Ref<Scene> GetActiveScene() const;
+		const Ref<Scene>& GetActiveScene() const;
 		Ref<AudioFile> QueryFileInfo(AssetHandle handle);
 
 		bool IsStreaming(AssetHandle audioFile);

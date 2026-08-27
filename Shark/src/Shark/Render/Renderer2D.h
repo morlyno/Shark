@@ -1,22 +1,26 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Render/EditorCamera.h"
-#include "Shark/Render/Texture.h"
-
-#include "Shark/Render/RenderCommandBuffer.h"
-#include "Shark/Render/Shader.h"
-#include "Shark/Render/FrameBuffer.h"
-#include "Shark/Render/Buffers.h"
-#include "Shark/Render/ConstantBuffer.h"
-#include "Shark/Render/Pipeline.h"
-#include "Shark/Render/Material.h"
-#include "Shark/Render/Font.h"
-#include "Shark/Render/RenderPass.h"
+#include "Shark/Core/Buffer.h"
 
 #include <glm/glm.hpp>
 
 #define RENDERER2D_DEPTH_ONLY_PASS 1
+
+namespace Shark {
+	class RenderCommandBuffer;
+
+	class Pipeline;
+	class RenderPass;
+	class FrameBuffer;
+	class ConstantBuffer;
+	class Texture2D;
+	class Material;
+	class VertexBuffer;
+	class IndexBuffer;
+
+	class Font;
+}
 
 namespace Shark {
 

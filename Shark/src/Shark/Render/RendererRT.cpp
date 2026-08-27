@@ -1,7 +1,25 @@
 #include "skpch.h"
 #include "RendererRT.h"
 
+#include "Shark/Core/Buffer.h"
+
 #include "Shark/Render/Renderer.h"
+#include "Shark/Render/Buffers.h"
+#include "Shark/Render/ComputePass.h"
+#include "Shark/Render/ComputePipeline.h"
+#include "Shark/Render/FrameBuffer.h"
+#include "Shark/Render/GpuBuffer.h"
+#include "Shark/Render/Image.h"
+#include "Shark/Render/Material.h"
+#include "Shark/Render/Mesh.h"
+#include "Shark/Render/MeshSource.h"
+#include "Shark/Render/Pipeline.h"
+#include "Shark/Render/RenderCommandBuffer.h"
+#include "Shark/Render/RenderPass.h"
+#include "Shark/Render/Shader.h"
+#include "Shark/Render/ShaderInputManager.h"
+#include "Shark/Render/TextureCommon.h"
+
 #include "Shark/Debug/Profiler.h"
 
 #include <nvrhi/nvrhi.h>

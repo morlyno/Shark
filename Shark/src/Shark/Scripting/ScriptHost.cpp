@@ -7,18 +7,6 @@ namespace Shark {
 
 	ScriptHost::ScriptHost()
 	{
-	}
-
-	ScriptHost::~ScriptHost()
-	{
-		if (m_Host)
-		{
-			Shutdown();
-		}
-	}
-
-	void ScriptHost::Initialize()
-	{
 		Coral::HostSettings settings;
 		settings.CoralDirectory = FileSystem::Absolute("DotNet").string();
 		settings.MessageCallback = OnCoralMessage;
@@ -36,7 +24,7 @@ namespace Shark {
 		SK_CORE_INFO_TAG("Scripting", "Coral host initialized");
 	}
 
-	void ScriptHost::Shutdown()
+	ScriptHost::~ScriptHost()
 	{
 		m_Host->Shutdown();
 		m_Host = nullptr;

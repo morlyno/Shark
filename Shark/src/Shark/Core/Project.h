@@ -1,9 +1,15 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Asset/AssetManager/EditorAssetManager.h"
-#include "Shark/Asset/AssetManager/RuntimeAssetManager.h"
-#include "Shark/Scripting/ScriptEngine.h"
+#include "Shark/Core/TimeStep.h"
+#include "Shark/Asset/AssetTypes.h"
+
+namespace Shark {
+	class AssetManagerBase;
+	class RuntimeAssetManager;
+	class EditorAssetManager;
+	class ScriptEngine;
+}
 
 namespace Shark {
 
@@ -51,11 +57,11 @@ namespace Shark {
 		static void SetActiveRuntime(Ref<ProjectConfig> config);
 		static Ref<ProjectConfig> GetActive();
 
-		static Ref<AssetManagerBase> GetAssetManager() { return s_AssetManager; }
-		static Ref<EditorAssetManager> GetEditorAssetManager() { return s_AssetManager.As<EditorAssetManager>(); }
-		static Ref<RuntimeAssetManager> GetRuntimeAssetManager() { return s_AssetManager.As<RuntimeAssetManager>(); }
+		static Ref<AssetManagerBase> GetAssetManager();
+		static Ref<EditorAssetManager> GetEditorAssetManager();
+		static Ref<RuntimeAssetManager> GetRuntimeAssetManager();
 
-		static Ref<ScriptEngine> GetScriptEngine() { return s_ScriptEngine; }
+		static Ref<ScriptEngine> GetScriptEngine();
 		static void RestartScriptEngine(bool loadAppAssembly = true);
 
 		static const std::string& GetName() { return s_ActiveConfig->Name; }
@@ -64,10 +70,9 @@ namespace Shark {
 		static std::filesystem::path GetActiveAssetsDirectory() { return s_ActiveConfig->GetAssetsDirectory(); }
 
 	private:
-		static inline Ref<AssetManagerBase> s_AssetManager;
-		static inline Ref<ScriptEngine> s_ScriptEngine;
-		static inline Ref<ProjectConfig> s_ActiveConfig;
+		static Ref<AssetManagerBase> s_AssetManager;
+		static Ref<ScriptEngine> s_ScriptEngine;
+		static Ref<ProjectConfig> s_ActiveConfig;
 	};
-
 
 }

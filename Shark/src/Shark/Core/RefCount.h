@@ -216,7 +216,10 @@ namespace Shark {
 		template<typename T2>
 		Ref<T2> As() const
 		{
-			SK_CORE_VERIFY(m_Instance ? dynamic_cast<T2*>(m_Instance) : true);
+			if constexpr (requires { { dynamic_cast<T2*>(m_Instance) } ->std::same_as<T2*>; })
+			{
+				SK_CORE_VERIFY(m_Instance ? dynamic_cast<T2*>(m_Instance) : true);
+			}
 			return (T2*)m_Instance;
 		}
 
@@ -343,5 +346,11 @@ namespace Shark {
 		template<typename> friend class Weak;
 		template<typename> friend class Ref;
 	};
+
+	template<typename T>
+	using RefArg = const Ref<T>&;
+
+	template<typename T>
+	using WeakArg = const Weak<T>&;
 
 }

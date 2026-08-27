@@ -2,6 +2,7 @@
 #include "PrefabSerializer.h"
 
 #include "Shark/Scene/Scene.h"
+#include "Shark/Scene/Entity.h"
 #include "Shark/Scene/Prefab.h"
 
 #include "Shark/Serialization/YAML.h"

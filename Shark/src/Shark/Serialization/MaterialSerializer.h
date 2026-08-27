@@ -1,11 +1,12 @@
 #pragma once
 
-#include "Shark/Asset/AssetThread/AssetLoadContext.h"
 #include "Shark/Serialization/SerializerBase.h"
 
 namespace Shark {
-
 	class PBRMaterial;
+}
+
+namespace Shark {
 
 	class MaterialSerializer : public SerializerBase
 	{

@@ -1,16 +1,20 @@
 ﻿#include "ContentBrowserPanel.h"
 
 #include "Shark/Core/SelectionManager.h"
-#include "Shark/Event/ApplicationEvent.h"
 
-#include "Shark/Asset/Assets.h"
+#include "Shark/Asset/AssetManager.h"
+#include "Shark/Asset/AssetManager/EditorAssetManager.h"
+
 #include "Shark/Animation/Animation.h"
 #include "Shark/Audio/SoundConfig.h"
+
+#include "Shark/Render/MaterialAsset.h"
+
+#include "Shark/Scene/Scene.h"
 #include "Shark/Scene/Prefab.h"
 
 #include "Shark/UI/Widgets.h"
 #include "Shark/UI/EditorResources.h"
-
 #include "Shark/Utils/Utilities.h"
 
 #include "EditorSettings.h"
@@ -404,17 +408,17 @@ namespace Shark {
 		dispacher.DispachEvent<KeyPressedEvent>(SK_BIND_EVENT_FN(ContentBrowserPanel::OnKeyPressedEvent));
 	}
 
-	void ContentBrowserPanel::OnProjectChanged(Ref<ProjectConfig> project)
+	void ContentBrowserPanel::OnProjectChanged(const Ref<ProjectConfig>& projectConfig)
 	{
 		SK_CORE_ASSERT(!m_ChangesBlocked);
 
 		// #TODO add ignore settings
 		m_IgnoredDirectories = {
-			project->GetAssetsDirectory() / "Scripts/Intermediates",
-			project->GetAssetsDirectory() / "Scripts/obj"
+			projectConfig->GetAssetsDirectory() / "Scripts/Intermediates",
+			projectConfig->GetAssetsDirectory() / "Scripts/obj"
 		};
 
-		m_ProjectConfig = project;
+		m_ProjectConfig = projectConfig;
 		m_ReloadScheduled = false;
 		m_BaseDirectory = nullptr;
 		m_CurrentDirectory = nullptr;
@@ -424,7 +428,7 @@ namespace Shark {
 		m_ThumbnailGenerator = nullptr;
 		m_ThumbnailCache = nullptr;
 
-		if (project)
+		if (projectConfig)
 		{
 			m_ThumbnailGenerator = Ref<ThumbnailGenerator>::Create();
 			m_ThumbnailCache = Ref<ThumbnailCache>::Create();
@@ -1294,5 +1298,43 @@ namespace Shark {
 
 		return item;
 	}
+
+	template<typename TAsset, typename... TArgs>
+	void ContentBrowserPanel::CreateAsset(const std::string& name, bool startRename, TArgs&&... args)
+	{
+		std::filesystem::path directoryPath = m_ProjectConfig->GetAbsolute(m_CurrentDirectory->Filepath / name);
+		Ref<EditorAssetManager> assetManager = Project::GetEditorAssetManager();
+		Ref<TAsset> asset = assetManager->CreateAsset<TAsset>(directoryPath, std::forward<TArgs>(args)...);
+		const auto& metadata = assetManager->GetMetadata(asset);
+		Ref<ContentBrowserItem> newItem = Ref<ContentBrowserAsset>::Create(this, metadata, GetAssetIcon(FileSystem::GetExtensionString(metadata.FilePath)));
+		m_CurrentItems.Add(newItem);
+		m_CurrentDirectory->AddFile(name);
+		SelectItem(metadata.Handle);
+
+		if (startRename)
+			newItem->StartRenaming();
+	}
+
+	template<typename TAsset, typename... TArgs>
+	void ContentBrowserPanel::CreateAsset(Ref<DirectoryInfo> directory, const std::string& name, bool startRename, TArgs&&... args)
+	{
+		std::filesystem::path directoryPath = m_ProjectConfig->GetAbsolute(directory->Filepath / name);
+		Ref<EditorAssetManager> assetManager = Project::GetEditorAssetManager();
+		Ref<TAsset> asset = assetManager->CreateAsset<TAsset>(directoryPath, std::forward<TArgs>(args)...);
+		const auto& metadata = assetManager->GetMetadata(asset);
+		Ref<ContentBrowserItem> newItem = Ref<ContentBrowserAsset>::Create(this, metadata, GetAssetIcon(FileSystem::GetExtensionString(metadata.FilePath)));
+
+		directory->AddFile(name);
+		if (m_CurrentDirectory == directory)
+		{
+			m_CurrentItems.Add(newItem);
+			m_CurrentDirectory->AddFile(name);
+			SelectItem(metadata.Handle);
+
+			if (startRename)
+				newItem->StartRenaming();
+		}
+	}
+
 
 }

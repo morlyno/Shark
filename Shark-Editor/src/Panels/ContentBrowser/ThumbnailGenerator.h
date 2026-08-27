@@ -1,11 +1,14 @@
 #pragma once
 
-#include "Shark/Asset/Asset.h"
-#include "Shark/Render/Texture.h"
-
-#include "Shark/Scene/Scene.h"
+#include "Shark/Asset/AssetTypes.h"
 #include "Shark/Scene/Entity.h"
-#include "Shark/Render/SceneRenderer.h"
+
+namespace Shark {
+	class Scene;
+	class SceneRenderer;
+	class RenderCommandBuffer;
+	class Image2D;
+}
 
 namespace Shark {
 

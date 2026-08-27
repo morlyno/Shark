@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Layer.h"
+#include "Shark/Layer/Layer.h"
 
 namespace Shark {
 

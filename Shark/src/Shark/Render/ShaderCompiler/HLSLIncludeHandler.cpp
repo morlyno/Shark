@@ -2,7 +2,6 @@
 #include "HLSLIncludeHandler.h"
 
 #include "Shark/Render/ShaderCompiler/ShaderPreprocessor.h"
-#include "Shark/Utils/String.h"
 
 namespace Shark {
 

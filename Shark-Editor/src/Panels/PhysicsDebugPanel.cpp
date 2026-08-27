@@ -1,9 +1,8 @@
 #include "PhysicsDebugPanel.h"
 
-#include "Shark/Event/ApplicationEvent.h"
-
 #include "Shark/Scene/Entity.h"
-#include "Shark/Scene/Components.h"
+#include "Shark/Scene/Components/Physics2DComponents.h"
+#include "Shark/Physics2D/Physics2DScene.h"
 
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/Controls.h"
@@ -121,6 +120,11 @@ namespace Shark {
 		}
 
 		ImGui::End();
+	}
+
+	void PhysicsDebugPanel::SetContext(const Ref<Scene>& context)
+	{
+		m_Scene = context;
 	}
 
 }

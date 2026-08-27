@@ -1,7 +1,9 @@
 #include "skpch.h"
 #include "DirectX11Swapchain.h"
 
-#include "Shark/Core/Application.h"
+#include "Shark/Core/Window.h"
+#include "Shark/Render/Renderer.h"
+
 #include "Shark/Debug/Profiler.h"
 
 #include "Shark/Platform/DirectX11/DirectX11DeviceManager.h"
@@ -49,7 +51,7 @@ namespace Shark {
 
 	void DirectX11SwapChain::CreateSwapchain()
 	{
-		auto* deviceManager = (DirectX11DeviceManager*)Application::Get().GetDeviceManager();
+		auto* deviceManager = static_cast<DirectX11DeviceManager*>(Renderer::GetDeviceManager());
 		const auto& deviceSpec = deviceManager->GetSpecification();
 
 		ZeroMemory(&m_SwapchainDesc, sizeof(m_SwapchainDesc));
@@ -91,7 +93,7 @@ namespace Shark {
 			.setIsRenderTarget(true)
 			.setDebugName("Swap Chain Image");
 
-		auto device = Application::Get().GetDeviceManager()->GetDevice();
+		auto device = Renderer::GetGraphicsDevice();
 
 		m_SwapchainTexture = device->createHandleForNativeTexture(nvrhi::ObjectTypes::D3D11_Resource, m_D3D11BackBuffer.Get(), textureDesc);
 
@@ -110,7 +112,7 @@ namespace Shark {
 
 	void DirectX11SwapChain::RT_ResizeSwapChain()
 	{
-		auto* deviceManager = (DirectX11DeviceManager*)Application::Get().GetDeviceManager();
+		auto* deviceManager = Renderer::GetDeviceManager();
 		const auto& deviceSpec = deviceManager->GetSpecification();
 
 		ReleaseRenderTarget();

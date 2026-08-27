@@ -4,24 +4,24 @@
 #include "Shark/Core/UUID.h"
 #include "Shark/Core/TimeStep.h"
 
-#include "Shark/Asset/AssetTypes.h"
-#include "Shark/Scene/Components.h"
+#include "Shark/Asset/Asset.h"
 #include "Shark/Scripting/ScriptStorage.h"
 
 #include <entt.hpp>
-#include <ranges>
 
 namespace Shark {
-	class Entity;
-	class SceneRenderer;
 	class AnimationEngine;
-
 	class EditorCamera;
-	struct SceneRendererCamera;
-
-	class Prefab;
+	class Entity;
 	class Environment;
+	class Mesh;
 	class Physics2DScene;
+	class Prefab;
+	class SceneRenderer;
+	class Skeleton;
+	struct MeshNode;
+	struct SceneRendererCamera;
+	struct TransformComponent;
 }
 
 namespace Shark {
@@ -77,9 +77,6 @@ namespace Shark {
 
 		void DestroyEntities();
 
-		void Dump(std::ostream& stream);
-		void Dump(std::ostream& stream, Entity entity, uint64_t depth = 0);
-
 		void IsEditorScene(bool isEditorScene) { m_IsEditorScene = isEditorScene; }
 		bool IsEditorScene() const { return m_IsEditorScene; }
 		bool IsRunning() const { return m_IsRunning; }
@@ -120,12 +117,6 @@ namespace Shark {
 		decltype(auto) GetAllEntitysWith()
 		{
 			return m_Registry.view<Component>();
-		}
-
-		decltype(auto) GetRootEntities()
-		{
-			auto view = m_Registry.group<RelationshipComponent>();
-			return view | std::views::filter([this](entt::entity ent) { return m_Registry.get<RelationshipComponent>(ent).Parent == UUID::Invalid; });
 		}
 
 		Entity Instansitate(Ref<Prefab> prefab, const glm::vec3* translation = nullptr, const glm::vec3* rotation = nullptr, const glm::vec3* scale = nullptr);
@@ -170,6 +161,7 @@ namespace Shark {
 		bool ConvertToLocalSpace(Entity entity);
 		bool ConvertToWorldSpace(Entity entity);
 
+		bool HasParent(Entity entity) const;
 		void ParentEntity(Entity entity, Entity parent);
 		void UnparentEntity(Entity entity);
 		Entity GetRootEntity(Entity entity) const;
@@ -178,6 +170,7 @@ namespace Shark {
 
 		// returns all entities sorted by UUID
 		std::vector<Entity> GetEntitiesSorted();
+		Physics2DScene& GetPhysicsScene()             { return *m_PhysicsScene; }
 		const Physics2DScene& GetPhysicsScene() const { return *m_PhysicsScene; }
 
 		ScriptStorage& GetScriptStorage() { return m_ScriptStorage; }
@@ -247,7 +240,7 @@ namespace Shark {
 		std::unordered_map<UUID, Entity> m_EntityUUIDMap;
 
 		ScriptStorage m_ScriptStorage;
-		Physics2DScene* m_PhysicsScene = nullptr;
+		Scope<Physics2DScene> m_PhysicsScene;
 		Scope<AnimationEngine> m_AnimationEngine;
 
 		bool m_AnimateEditor = true;

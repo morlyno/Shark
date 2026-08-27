@@ -1,10 +1,7 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Core/Buffer.h"
 #include "Shark/Render/GpuBuffer.h"
-
-#include <nvrhi/nvrhi.h>
 
 namespace Shark {
 

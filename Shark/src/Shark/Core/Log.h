@@ -57,8 +57,8 @@ namespace Shark {
 		static void PrintMessageTag(LoggerType loggerType, LogLevel level, std::string_view tag, std::string_view message);
 
 		template<typename... TArgs>
-		static void PrintAssertMessage(LoggerType loggerType, std::string_view prefix, fmt::format_string<TArgs...> format, TArgs&&... args);
-		static void PrintAssertMessage(LoggerType loggerType, std::string_view prefix);
+		static void PrintAssertMessage(LoggerType loggerType, const std::source_location& location, std::string_view prefix, fmt::format_string<TArgs...> format, TArgs&&... args);
+		static void PrintAssertMessage(LoggerType loggerType, const std::source_location& location, std::string_view prefix);
 
 	private:
 		static inline std::shared_ptr<spdlog::logger> s_CoreLogger;
@@ -152,16 +152,16 @@ namespace Shark {
 	}
 
 	template<typename... TArgs>
-	inline void Log::PrintAssertMessage(LoggerType loggerType, std::string_view prefix, fmt::format_string<TArgs...> format, TArgs&&... args)
+	inline void Log::PrintAssertMessage(LoggerType loggerType, const std::source_location& location, std::string_view prefix, fmt::format_string<TArgs...> format, TArgs&&... args)
 	{
 		auto logger = GetLogger(loggerType);
-		logger->error("{0}: {1}", prefix, fmt::format(format, std::forward<TArgs>(args)...));
+		logger->error("{0}: {1}: {2}", prefix, location, fmt::format(format, std::forward<TArgs>(args)...));
 	}
 	
-	inline void Log::PrintAssertMessage(LoggerType loggerType, std::string_view prefix)
+	inline void Log::PrintAssertMessage(LoggerType loggerType, const std::source_location& location, std::string_view prefix)
 	{
 		auto logger = GetLogger(loggerType);
-		logger->error("{0}", prefix);
+		logger->error("{0}: {1}", prefix, location);
 	}
 
 }

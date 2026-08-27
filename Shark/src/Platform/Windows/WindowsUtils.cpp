@@ -3,9 +3,10 @@
 #include "Shark/Utils/PlatformUtils.h"
 
 #include "Shark/Core/Application.h"
+#include "Shark/Core/Window.h"
+#include "Shark/Core/Memory.h"
 
 #include "Shark/Utils/String.h"
-#include "Shark/Utils/MemoryUtils.h"
 
 #include <shellapi.h>
 #include <ShlObj.h>
@@ -299,7 +300,7 @@ namespace Shark {
 			return false;
 
 		SHELLEXECUTEINFOW executeInfo;
-		MemoryUtils::ZeroMemory(executeInfo);
+		Memory::WriteZero(executeInfo);
 		executeInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
 		executeInfo.lpVerb = utils::ExectueVerbToLPCWSTR(specs.Verb);
 		executeInfo.lpFile = specs.Target.c_str();

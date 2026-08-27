@@ -1,5 +1,6 @@
 #include "skpch.h"
 #include "String.h"
+
 #include <functional>
 
 namespace Shark::String {

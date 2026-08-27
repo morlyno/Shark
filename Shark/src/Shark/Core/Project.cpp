@@ -1,8 +1,13 @@
 #include "skpch.h"
 #include "Project.h"
 
+#include "Shark/Core/Application.h"
+
+#include "Shark/Asset/AssetManager/EditorAssetManager.h"
+#include "Shark/Asset/AssetManager/RuntimeAssetManager.h"
+#include "Shark/Scripting/ScriptEngine.h"
+
 #include "Shark/File/FileSystem.h"
-#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
@@ -47,6 +52,10 @@ namespace Shark {
 	//// Project //////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////////
 
+	Ref<AssetManagerBase> Project::s_AssetManager = nullptr;
+	Ref<ScriptEngine>     Project::s_ScriptEngine = nullptr;
+	Ref<ProjectConfig>    Project::s_ActiveConfig = nullptr;
+
 	Project::Project()
 	{
 
@@ -71,7 +80,7 @@ namespace Shark {
 		{
 			auto& app = Application::Get();
 			s_AssetManager = Ref<EditorAssetManager>::Create(config);
-			s_ScriptEngine = Ref<ScriptEngine>::Create(app.GetScriptHost(), config);
+			s_ScriptEngine = Ref<ScriptEngine>::Create(*app.GetScriptHost(), config);
 		}
 	}
 
@@ -89,7 +98,7 @@ namespace Shark {
 		{
 			auto& app = Application::Get();
 			s_AssetManager = Ref<RuntimeAssetManager>::Create();
-			s_ScriptEngine = Ref<ScriptEngine>::Create(app.GetScriptHost(), config);
+			s_ScriptEngine = Ref<ScriptEngine>::Create(*app.GetScriptHost(), config);
 		}
 	}
 
@@ -98,12 +107,32 @@ namespace Shark {
 		return s_ActiveConfig;
 	}
 
+	Ref<AssetManagerBase> Project::GetAssetManager()
+	{
+		return s_AssetManager;
+	}
+
+	Ref<EditorAssetManager> Project::GetEditorAssetManager()
+	{
+		return s_AssetManager.As<EditorAssetManager>();
+	}
+
+	Ref<RuntimeAssetManager> Project::GetRuntimeAssetManager()
+	{
+		return s_AssetManager.As<RuntimeAssetManager>();
+	}
+
+	Ref<ScriptEngine> Project::GetScriptEngine()
+	{
+		return s_ScriptEngine;
+	}
+
 	void Project::RestartScriptEngine(bool loadAppAssembly)
 	{
 		auto& app = Application::Get();
 
 		s_ScriptEngine = nullptr;
-		s_ScriptEngine = Ref<ScriptEngine>::Create(app.GetScriptHost(), s_ActiveConfig);
+		s_ScriptEngine = Ref<ScriptEngine>::Create(*app.GetScriptHost(), s_ActiveConfig);
 		if (loadAppAssembly)
 			s_ScriptEngine->LoadAppAssembly();
 	}

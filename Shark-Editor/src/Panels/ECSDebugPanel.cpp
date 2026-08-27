@@ -1,7 +1,9 @@
 #include "ECSDebugPanel.h"
 
 #include "Shark/Scene/Scene.h"
-#include "Shark/UI/UICore.h"
+#include "Shark/Scene/Components/CoreComponents.h"
+
+#include <imgui.h>
 
 namespace Shark {
 
@@ -48,6 +50,11 @@ namespace Shark {
 			}
 		}
 		ImGui::End();
+	}
+
+	void ECSDebugPanel::SetContext(const Ref<Scene>& context)
+	{
+		m_Context = context;
 	}
 
 }

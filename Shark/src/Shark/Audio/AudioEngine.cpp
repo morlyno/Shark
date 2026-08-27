@@ -342,7 +342,7 @@ namespace Shark {
 		return soundObject->Sound;
 	}
 
-	Ref<Scene> MiniAudioEngine::GetActiveScene() const
+	const Ref<Scene>& MiniAudioEngine::GetActiveScene() const
 	{
 		return m_ActiveScene;
 	}

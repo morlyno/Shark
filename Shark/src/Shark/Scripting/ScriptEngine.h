@@ -1,18 +1,22 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Scene/Scene.h"
-#include "Shark/Scene/Entity.h"
-#include "Shark/Scripting/ScriptHost.h"
-#include "Shark/Scripting/ScriptStorage.h"
-#include "Shark/Scripting/ScriptTypes.h"
+#include "Shark/Core/UUID.h"
 
 #include <Coral/HostInstance.hpp>
 
 namespace Shark {
+	class ProjectConfig;
 
 	class Scene;
-	class ProjectConfig;
+	class Entity;
+
+	class ScriptHost;
+	class ScriptStorage;
+	struct ScriptMetadata;
+}
+
+namespace Shark {
 
 	class ScriptEngine : public RefCount
 	{
@@ -34,12 +38,12 @@ namespace Shark {
 		void Destoy(UUID entityID, ScriptStorage& storage);
 
 	public:
-		void SetCurrentScene(Ref<Scene> scene) { m_CurrentScene = scene; }
-		Ref<Scene> GetCurrentSceen() const { return m_CurrentScene; }
+		void SetCurrentScene(Ref<Scene> scene);
+		Ref<Scene> GetCurrentSceen() const;
 
-		const ScriptMetadata& GetScriptMetadata(uint64_t scriptID) const { return m_ScriptMetadata.at(scriptID); }
+		const ScriptMetadata& GetScriptMetadata(uint64_t scriptID) const;
 		uint64_t FindScriptMetadata(std::string_view fullName) const;
-		const std::unordered_map<uint64_t, ScriptMetadata>& GetScripts() const { return m_ScriptMetadata; }
+		const std::unordered_map<uint64_t, ScriptMetadata>& GetScripts() const;
 
 	private:
 		void BuildScriptCache();

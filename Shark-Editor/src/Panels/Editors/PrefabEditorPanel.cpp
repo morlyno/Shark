@@ -1,13 +1,26 @@
 #include "skpch.h"
 #include "PrefabEditorPanel.h"
 
+#include "Shark/Core/Project.h"
 #include "Shark/Core/SelectionManager.h"
+
+#include "Shark/Render/SceneRenderer.h"
+
 #include "Shark/Asset/AssetManager.h"
+#include "Shark/Asset/AssetManager/EditorAssetManager.h"
+
+#include "Shark/Scene/Scene.h"
+#include "Shark/Scene/Entity.h"
+#include "Shark/Scene/Prefab.h"
+#include "Shark/Scene/Components/SceneComponents.h"
+
 #include "Shark/Input/Input.h"
+
 #include "Shark/UI/UICore.h"
-#include "Shark/UI/Widgets.h"
 #include "Shark/Utils/std.h"
+
 #include "EditorSettings.h"
+#include "Panels/SceneHierarchyPanel.h"
 
 namespace Shark {
 

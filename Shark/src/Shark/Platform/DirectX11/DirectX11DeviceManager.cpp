@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "DirectX11DeviceManager.h"
 
+#include "Shark/Core/Window.h"
+
 #include "Shark/Platform/DirectX11/DirectX11Swapchain.h"
 #include "Shark/Debug/Profiler.h"
 

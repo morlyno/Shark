@@ -1,16 +1,17 @@
 #include "skpch.h"
 #include "SoundPanel.h"
 
+#include "Shark/Core/Project.h"
 #include "Shark/Core/Application.h"
+
+#include "Shark/Asset/AssetManager.h"
+#include "Shark/Asset/AssetManager/EditorAssetManager.h"
+
 #include "Shark/Audio/AudioEngine.h"
 #include "Shark/Audio/Sound.h"
 
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/Controls.h"
-
-#include "Shark/Asset/AssetManager.h"
-#include "Shark/File/FileSystem.h"
-
 
 namespace Shark {
 
@@ -48,7 +49,7 @@ namespace Shark {
 		if (ImGui::Begin(m_PanelName, &isOpen))
 		{
 			const auto audioEngine = Application::Get().GetAudioEngine();
-			const auto scene = audioEngine->GetActiveScene();
+			const auto& scene = audioEngine->GetActiveScene();
 			const auto sounds = audioEngine->GetAllSound();
 
 			UI::CheckboxButton("Hide Inactive", &m_ShowActive);

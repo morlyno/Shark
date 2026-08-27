@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "ProjectSerializer.h"
 
+#include "Shark/Core/Project.h"
+
 #include "Shark/Serialization/YAML.h"
 #include "Shark/Serialization/SerializationMacros.h"
 #include "Shark/File/FileSystem.h"

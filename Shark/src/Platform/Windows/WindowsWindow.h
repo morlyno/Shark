@@ -3,13 +3,15 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Window.h"
 
-#include "Shark/Render/SwapChain.h"
-
 #undef IsMaximized
 
 namespace Shark {
+	class EventListener;
 
-	enum class CursorMode;
+	class SwapChain;
+}
+
+namespace Shark {
 
 	class WindowsWindow : public Window
 	{
@@ -64,7 +66,7 @@ namespace Shark {
 		virtual void SetCursorMode(CursorMode mode) override;
 
 		virtual WindowHandle GetHandle() const override { return m_WindowHandle; }
-		virtual Ref<SwapChain> GetSwapChain() const override { return m_SwapChain; }
+		virtual Ref<SwapChain> GetSwapChain() const override;
 
 		HWND GetNativeWindow() const { return m_WindowHandle; }
 		HINSTANCE GetNativeInstance() const;

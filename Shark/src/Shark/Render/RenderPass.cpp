@@ -1,6 +1,13 @@
 #include "skpch.h"
 #include "RenderPass.h"
-#include "Renderer.h"
+
+#include "Shark/Render/Renderer.h"
+#include "Shark/Render/Shader.h"
+#include "Shark/Render/FrameBuffer.h"
+#include "Shark/Render/Image.h"
+#include "Shark/Render/Texture.h"
+#include "Shark/Render/ConstantBuffer.h"
+#include "Shark/Render/StorageBuffer.h"
 
 namespace Shark {
 
@@ -93,12 +100,12 @@ namespace Shark {
 		m_InputManager.SetInput(name, sampler, arrayIndex);
 	}
 
-	Ref<Image2D> RenderPass::GetOutput(uint32_t index) const
+	RefArg<Image2D> RenderPass::GetOutput(uint32_t index) const
 	{
 		return m_Specification.TargetFramebuffer->GetImage(index);
 	}
 
-	Ref<Image2D> RenderPass::GetDepthOutput() const
+	RefArg<Image2D> RenderPass::GetDepthOutput() const
 	{
 		return m_Specification.TargetFramebuffer->GetDepthImage();
 	}
@@ -108,7 +115,7 @@ namespace Shark {
 		return m_Specification.Shader;
 	}
 
-	Ref<FrameBuffer> RenderPass::GetTargetFramebuffer() const
+	RefArg<FrameBuffer> RenderPass::GetTargetFramebuffer() const
 	{
 		return m_Specification.TargetFramebuffer;
 	}

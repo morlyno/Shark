@@ -1,8 +1,9 @@
 #pragma once
 
 #include "Shark/Core/Threading.h"
+
 #include "Shark/Asset/Asset.h"
-#include "Shark/Asset/AssetMetadata.h"
+#include "Shark/Asset/AssetTypes.h"
 
 namespace Shark {
 

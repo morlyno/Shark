@@ -3,10 +3,14 @@
 
 #include "Shark/Core/Application.h"
 #include "Shark/Core/Window.h"
+
+#include "Shark/Event/Event.h"
 #include "Shark/Event/KeyEvent.h"
 #include "Shark/Event/MouseEvent.h"
-#include "Shark/Utils/PlatformUtils.h"
+
 #include "Shark/Debug/Profiler.h"
+
+#include <imgui.h>
 
 namespace Shark {
 

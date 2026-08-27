@@ -1,16 +1,27 @@
 #pragma once
 
-#include "Shark/Asset/Asset.h"
-#include "Shark/Scripting/ScriptEngine.h"
-#include "Shark/Scene/Components.h"
-#include "Shark/Input/Input.h"
+#include "Shark/Core/Base.h"
+#include "Shark/Asset/AssetTypes.h"
 
-#include <Coral/String.hpp>
+#include "Shark/Input/Input.h"
+#include "Shark/Input/KeyCodes.h"
+#include "Shark/Input/MouseButtons.h"
+
+#include "Shark/Physics2D/PhysicsTypes.h"
+
 #include <Coral/Array.hpp>
+#include <Coral/String.hpp>
+#include <Coral/Type.hpp>
 
 namespace Shark {
+	struct TransformComponent;
+}
 
-	class Entity;
+namespace Coral {
+	class ManagedAssembly;
+}
+
+namespace Shark {
 
 	class ScriptGlue
 	{

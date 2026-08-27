@@ -1,10 +1,16 @@
 #include "ScriptEnginePanel.h"
 
+#include "Shark/Core/Project.h"
 #include "Shark/Event/KeyEvent.h"
+
 #include "Shark/Scripting/ScriptEngine.h"
+#include "Shark/Scripting/ScriptTypes.h"
+
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/Widgets.h"
 #include "Shark/UI/EditorResources.h"
+
+#include <Coral/Assembly.hpp>
 
 namespace Shark {
 
@@ -17,7 +23,6 @@ namespace Shark {
 	//   - ...     | - classes
 	//   - ...	   |     - name, id, fields
 	//
-
 
 	ScriptEnginePanel::ScriptEnginePanel()
 	{

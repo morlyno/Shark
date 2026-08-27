@@ -115,4 +115,3 @@ namespace Shark {
 
 #include "Shark/Core/RefCount.h"
 #include "Shark/Core/Scope.h"
-

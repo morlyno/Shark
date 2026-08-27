@@ -1,8 +1,20 @@
 #include "skpch.h"
 #include "ComputePipeline.h"
+
 #include "Shark/Render/Renderer.h"
+#include "Shark/Render/Shader.h"
 
 namespace Shark {
+
+	nvrhi::ComputePipelineHandle ComputePipeline::GetHandle() const
+	{
+		return m_PipelineHandle;
+	}
+
+	RefArg<Shader> ComputePipeline::GetShader() const
+	{
+		return m_Shader;
+	}
 
 	ComputePipeline::ComputePipeline(Ref<Shader> computeShader, const std::string& debugName)
 		: m_Shader(computeShader), m_DebugName(debugName)

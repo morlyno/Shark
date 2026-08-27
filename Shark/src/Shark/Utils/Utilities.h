@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Core/Concepts.h"
 
 namespace Shark {
 
@@ -32,8 +33,8 @@ namespace Shark {
 		static constexpr Type::Invoke Invoke;
 	}
 
-	template<std::ranges::range TRange>
-	bool Contains(const TRange& range, const typename TRange::value_type& value)
+	template<std::ranges::range TRange, std::equality_comparable_with<std::ranges::range_value_t<TRange>> TValue>
+	bool Contains(const TRange& range, const TValue& value)
 	{
 		return std::ranges::find(range, value) != std::ranges::end(range);
 	}
@@ -65,24 +66,6 @@ namespace Shark {
 	{
 		return { &args... };
 	}
-
-	template<typename String>
-	concept StringLike = requires(String string)
-	{
-		{ std::string_view{ string } } -> std::same_as<std::string_view>;
-	};
-
-	template <class T, template <class...> class Template>
-	constexpr bool is_specialization_v = false;
-
-	template <template <class...> class Template, class... Types>
-	constexpr bool is_specialization_v<Template<Types...>, Template> = true;
-
-	template<typename T, template<typename...> typename Template>
-	struct is_specialization : std::bool_constant<is_specialization_v<T, Template>> {};
-
-	template<typename T, template<typename...> typename Template>
-	concept specialization = requires { is_specialization_v<T, Template>; };
 
 	template<bool TCond, typename T>
 	using add_const_conditional_t = std::conditional_t<TCond, std::add_const_t<T>, T>;

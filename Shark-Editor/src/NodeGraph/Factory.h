@@ -31,6 +31,7 @@ namespace Shark::NodeGraph::Editor {
 	class AbstractFactory
 	{
 	public:
+		virtual ~AbstractFactory() = default;
 		virtual bool InitializePin(Pin& outPin, int pinType) const = 0;
 		virtual bool InitializePin(Pin& outPin, const std::type_info& type) const = 0;
 		virtual bool InitializePin(Pin& outPin, const choc::value::Type& type) const = 0;

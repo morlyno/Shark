@@ -1,8 +1,8 @@
 #include "skpch.h"
 #include "Pipeline.h"
 
-#include "Shark/Core/Application.h"
 #include "Shark/Render/Renderer.h"
+#include "Shark/Render/Shader.h"
 
 namespace Shark {
 
@@ -166,7 +166,7 @@ namespace Shark {
 			bufferIndex += 1;
 		}
 
-		auto device = Application::Get().GetDeviceManager()->GetDevice();
+		auto device = Renderer::GetGraphicsDevice();
 		pipelineDesc.inputLayout = device->createInputLayout(attributes.data(), static_cast<uint32_t>(attributes.size()), pipelineDesc.VS);
 
 		m_PipelineHandle = device->createGraphicsPipeline(pipelineDesc, framebufferInfo);

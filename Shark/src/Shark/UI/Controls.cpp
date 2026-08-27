@@ -1,9 +1,11 @@
 #include "skpch.h"
 #include "Controls.h"
 
+#include "Shark/Core/Project.h"
 #include "Shark/Asset/AssetManager.h"
-#include "Shark/UI/Widgets.h"
-#include "Shark/Utils/Utilities.h"
+#include "Shark/Asset/AssetManager/EditorAssetManager.h"
+
+#include "Shark/Scene/Scene.h"
 
 namespace Shark::UI {
 
@@ -326,7 +328,7 @@ namespace Shark::UI {
 		return details::StringComboControl(label, selectedString, strings);
 	}
 
-	bool ControlEntity(std::string_view label, Ref<Scene> scene, UUID& entityID, const EntityControlArgs& args)
+	bool ControlEntity(std::string_view label, const Ref<Scene>& scene, UUID& entityID, const EntityControlArgs& args)
 	{
 		return Control(label, [&scene, &entityID, &args]()
 		{
@@ -358,7 +360,7 @@ namespace Shark::UI {
 		});
 	}
 
-	bool ControlEntity(std::string_view label, Ref<Scene> scene, const UUID& entityID, const EntityControlArgs& args)
+	bool ControlEntity(std::string_view label, const Ref<Scene>& scene, const UUID& entityID, const EntityControlArgs& args)
 	{
 		ScopedItemFlag readOnly(ImGuiItemFlags_ReadOnly);
 

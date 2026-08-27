@@ -3,6 +3,10 @@
 #include "Panel.h"
 
 namespace Shark {
+	class Scene;
+}
+
+namespace Shark {
 
 	class ECSDebugPanel : public Panel
 	{
@@ -10,7 +14,7 @@ namespace Shark {
 		ECSDebugPanel(Ref<Scene> context);
 
 		virtual void OnImGuiRender(bool& shown) override;
-		virtual void SetContext(Ref<Scene> context) override { m_Context = context; }
+		virtual void SetContext(const Ref<Scene>& context) override;
 
 		static const char* GetStaticID() { return "ECSDebugPanel"; }
 		virtual const char* GetPanelID() const override { return GetStaticID(); }

@@ -1,13 +1,15 @@
 #include "skpch.h"
 #include "AnimationEditor.h"
 
+#include "Shark/Core/Project.h"
 #include "Shark/Asset/AssetManager.h"
+#include "Shark/Asset/AssetManager/EditorAssetManager.h"
+
 #include "Shark/Animation/Animation.h"
 #include "Shark/Render/MeshSource.h"
 
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/Controls.h"
-#include "Shark/UI/Widgets.h"
 
 namespace Shark {
 

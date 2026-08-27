@@ -1,22 +1,23 @@
 #pragma once
 
 #include "Shark/Asset/Asset.h"
-#include "Shark/Render/MeshSource.h"
-#include "Shark/Render/MaterialAsset.h"
 
-#include <span>
+namespace Shark {
+	class MeshSource;
+	class MaterialTable;
+}
 
 namespace Shark {
 
 	class Mesh : public Asset
 	{
 	public:
-		Mesh() = default;
+		Mesh();
 		Mesh(Ref<MeshSource> meshSource);
-		virtual ~Mesh() = default;
+		~Mesh();
 
 		AssetHandle GetMeshSource() const { return m_MeshSource; }
-		Ref<MaterialTable> GetMaterials() const { return m_MaterialTable; }
+		RefArg<MaterialTable> GetMaterials() const { return m_MaterialTable; }
 
 #if TODO
 		std::vector<uint32_t>& GetSubmeshes() { return m_Submeshes; }

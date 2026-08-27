@@ -3,6 +3,8 @@
 #include "Panel.h"
 #include <magic_enum_containers.hpp>
 
+#include <span>
+
 namespace Shark {
 
 	enum class PanelCategory
@@ -58,10 +60,10 @@ namespace Shark {
 		void OnImGuiRender();
 		void OnEvent(Event& event);
 
-		void SetContext(Ref<Scene> context);
+		void SetContext(const Ref<Scene>& context);
 		void OnScenePlay();
 		void OnSceneStop();
-		void OnProjectChanged(Ref<ProjectConfig> projectConfig);
+		void OnProjectChanged(const Ref<ProjectConfig>& projectConfig);
 
 	private:
 		PanelData* GetPanelData(const char* panelID);

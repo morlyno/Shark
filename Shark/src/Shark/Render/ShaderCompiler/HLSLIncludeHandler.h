@@ -4,8 +4,10 @@
 #include <nvrhi/nvrhi.h>
 
 namespace Shark {
-
 	class ShaderPreprocessor;
+}
+
+namespace Shark {
 
 	class HLSLIncludeHandler : public IDxcIncludeHandler
 	{

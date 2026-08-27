@@ -1,17 +1,19 @@
 #include "ContentBrowserItem.h"
 
+#include "Shark/Core/Project.h"
 #include "Shark/Core/SelectionManager.h"
+
+#include "Shark/Asset/AssetManager.h"
+#include "Shark/Asset/AssetManager/EditorAssetManager.h"
+#include "Shark/Render/Mesh.h"
 
 #include "Shark/UI/UICore.h"
 #include "Shark/UI/EditorResources.h"
 
-#include "EditorSettings.h"
-#include "Panels/ContentBrowser/ContentBrowserPanel.h"
-
 #include "Shark/Debug/Profiler.h"
 
-#include <imgui.h>
-
+#include "EditorSettings.h"
+#include "Panels/ContentBrowser/ContentBrowserPanel.h"
 
 namespace Shark {
 

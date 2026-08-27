@@ -1,75 +1,24 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
-#include "Shark/Scene/Scene.h"
-#include "Shark/Scene/Entity.h"
+#include "Shark/Scene/Components/CoreComponents.h"
 
-#include "Shark/Event/Event.h"
-#include "Shark/Event/KeyEvent.h"
-
-#include "Shark/UI/UIUtilities.h"
 #include "Shark/UI/TextFilter.h"
 
 #include "Panel.h"
 
 namespace Shark {
+	class ProjectConfig;
+	class Event;
+	class KeyPressedEvent;
 
-	struct EntityList
-	{
-		std::span<const Entity> Entities;
+	class Scene;
+	class Entity;
+}
 
-		bool IsSingleEntity() const { return Entities.size() == 1; }
+struct ImGuiMultiSelectIO;
 
-		template<typename T>
-		Entity First() const { return Entities.front().GetComponent<T>(); }
-		Entity First() const { return Entities.front(); }
-
-		EntityList() = default;
-		EntityList(std::span<const Entity> entities)
-			: Entities(entities) {
-		}
-
-		operator std::span<const Entity>() const { return Entities; }
-
-		template<typename TCallable, typename... TArgs>
-		void Apply(TCallable&& callable, TArgs&&... args) const
-		{
-			for (auto entity : Entities)
-				std::invoke(std::forward<TCallable>(callable), entity, std::forward<TArgs>(args)...);
-		}
-
-		template<typename TComponent, typename TCallable, typename... TArgs>
-		void ApplyTo(TCallable&& callable, TArgs&&... args) const
-		{
-			for (auto entity : Entities)
-			{
-				if constexpr (std::is_invocable_v<TCallable, TComponent&, TArgs...>)
-					std::invoke(std::forward<TCallable>(callable), entity.GetComponent<TComponent>(), std::forward<TArgs>(args)...);
-				else if constexpr (std::is_invocable_v<TCallable, Entity, TComponent&, TArgs...>)
-					std::invoke(std::forward<TCallable>(callable), entity, entity.GetComponent<TComponent>(), std::forward<TArgs>(args)...);
-				else
-					static_assert(false);
-			}
-		}
-
-		template<typename TComponent, typename TMember, typename T>
-		void Set(TMember TComponent::* member, T&& value) const
-		{
-			for (auto entity : Entities)
-				entity.GetComponent<TComponent>().*member = std::forward<T>(value);
-		}
-
-		template<typename TComponent, typename TMember>
-		bool IsMixed(TMember TComponent::* member) const
-		{
-			const auto& first = First().GetComponent<TComponent>().*member;
-			for (auto& entity : Entities)
-				if (first != entity.GetComponent<TComponent>().*member)
-					return true;
-			return false;
-		}
-
-	};
+namespace Shark {
 
 	class SceneHierarchyPanel : public Panel
 	{
@@ -79,8 +28,8 @@ namespace Shark {
 		virtual void OnImGuiRender(bool& shown) override;
 		virtual void OnEvent(Event& event) override;
 
-		virtual void OnProjectChanged(Ref<ProjectConfig> projectConfig) override;
-		virtual void SetContext(Ref<Scene> scene) override;
+		virtual void OnProjectChanged(const Ref<ProjectConfig>& projectConfig) override;
+		virtual void SetContext(const Ref<Scene>& scene) override;
 		Ref<Scene> GetContext() const { return m_Context; }
 
 		template<typename Func> // void(Entity)
@@ -123,8 +72,8 @@ namespace Shark {
 		bool m_HierarchyFocused = false;
 		bool m_PropertiesFocused = false;
 
-		std::function<void(Entity entity)> m_SelectionChangedCallback = [](auto) {};
-		std::function<void(Entity entity)> m_SnapToEditorCameraCallback;
+		std::function<void(Entity)> m_SelectionChangedCallback;
+		std::function<void(Entity)> m_SnapToEditorCameraCallback;
 		std::function<void(Entity)> m_EntityCreatedCallback;
 		std::function<void(Entity)> m_EntityDestoyedCallback;
 
@@ -141,6 +90,7 @@ namespace Shark {
 
 		bool m_ScriptFound = false;
 
+		// #TODO use Scene to store copies
 		bool m_HasTransformCopy;
 		TransformComponent m_TransformCopy;
 
@@ -159,298 +109,5 @@ namespace Shark {
 			bool ApplyRequest = false;
 		} m_RangeSelectRequest;
 	};
-
-	template<typename Comp, typename UIFunction>
-	void Shark::SceneHierarchyPanel::DrawComponet(Entity entity, const char* lable, UIFunction func)
-	{
-		if (entity.HasComponent<Comp>())
-		{
-			ImGui::PushID(typeid(Comp).name());
-			const bool opened = ImGui::CollapsingHeader(lable, ImGuiTreeNodeFlags_AllowOverlap | ImGuiTreeNodeFlags_DefaultOpen);
-
-			UI::ScopedID scopedEntityID(entity.GetUUID());
-			const ImVec2 headerEnd = ImGui::GetItemRectMax() - ImGui::GetWindowPos();
-			const float buttonSize = ImGui::GetItemRectSize().y;
-			ImGui::SameLine(headerEnd.x - buttonSize);
-			{
-				UI::ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
-				UI::ScopedColorStack colors(
-					ImGuiCol_Button, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f },
-					ImGuiCol_ButtonActive, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f },
-					ImGuiCol_ButtonHovered, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f }
-				);
-
-				if (ImGui::Button("+", { buttonSize, buttonSize }))
-					ImGui::OpenPopup("Component Settings");
-			}
-
-			if (opened)
-			{
-				auto& comp = entity.GetComponent<Comp>();
-				func(comp, entity);
-			}
-
-			if (ImGui::BeginPopup("Component Settings"))
-			{
-				if (ImGui::MenuItem("Delete", nullptr, false, !std::is_same_v<Comp, TransformComponent>))
-					entity.RemoveComponent<Comp>();
-
-				if (ImGui::MenuItem("Reset"))
-				{
-					if (std::is_same_v<Comp, TransformComponent> && m_TransformInWorldSpace)
-					{
-						auto& transform = entity.Transform();
-						transform = TransformComponent{};
-						m_Context->ConvertToLocalSpace(entity, transform);
-					}
-					else
-					{
-						auto& comp = entity.GetComponent<Comp>();
-						comp = Comp{};
-					}
-				}
-
-				if constexpr (std::is_same_v<Comp, TransformComponent>)
-				{
-					ImGui::Separator();
-
-					if (ImGui::MenuItem("Reset Translation"))
-					{
-						if (m_TransformInWorldSpace)
-						{
-							m_Context->ConvertToWorldSpace(entity);
-							entity.Transform().Translation = glm::vec3(0.0f);
-							m_Context->ConvertToLocalSpace(entity);
-						}
-						else
-						{
-							entity.Transform().Translation = glm::vec3(0.0f);
-						}
-					}
-
-					if (ImGui::MenuItem("Reset Rotation"))
-					{
-						if (m_TransformInWorldSpace)
-						{
-							m_Context->ConvertToWorldSpace(entity);
-							entity.Transform().Rotation = glm::vec3(0.0f);
-							m_Context->ConvertToLocalSpace(entity);
-						}
-						else
-						{
-							entity.Transform().Rotation = glm::vec3(0.0f);
-						}
-					}
-
-					if (ImGui::MenuItem("Reset Scale"))
-					{
-						if (m_TransformInWorldSpace)
-						{
-							m_Context->ConvertToWorldSpace(entity);
-							entity.Transform().Scale = glm::vec3(1.0f);
-							m_Context->ConvertToLocalSpace(entity);
-						}
-						else
-						{
-							entity.Transform().Scale = glm::vec3(1.0f);
-						}
-					}
-
-					ImGui::Separator();
-
-					if (ImGui::MenuItem("Copy"))
-					{
-						m_HasTransformCopy = true;
-						m_TransformCopy = entity.Transform();
-					}
-
-					if (ImGui::MenuItem("Paste"))
-					{
-						if (m_HasTransformCopy)
-						{
-							entity.Transform() = m_TransformCopy;
-						}
-					}
-
-					ImGui::MenuItem("Show World Space", nullptr, &m_TransformInWorldSpace);
-				}
-
-				if constexpr (std::is_same_v<Comp, MeshComponent>)
-				{
-					ImGui::Separator();
-					if (ImGui::MenuItem("Rebuild Mesh Hierarchy"))
-					{
-						m_Context->RebuildMeshEntityHierarchy(entity);
-					}
-				}
-
-				ImGui::EndPopup();
-			}
-
-			ImGui::PopID();
-		}
-	}
-
-	template<typename Comp, typename UIFunction>
-	void SceneHierarchyPanel::DrawComponetMultiSelect(const std::vector<Entity>& entities, const char* lable, UIFunction func)
-	{
-		for (Entity entity : entities)
-		{
-			if (!entity.HasComponent<Comp>())
-				return;
-		}
-
-		auto firstEntity = entities.front();
-		auto entityList = EntityList(entities);
-
-		ImGui::PushID(typeid(Comp).name());
-		const bool opened = ImGui::CollapsingHeader(lable, ImGuiTreeNodeFlags_AllowOverlap | ImGuiTreeNodeFlags_DefaultOpen);
-
-		UI::ScopedID scopedEntityID(firstEntity.GetUUID());
-		const ImVec2 headerEnd = ImGui::GetItemRectMax() - ImGui::GetWindowPos();
-		const float buttonSize = ImGui::GetItemRectSize().y;
-		ImGui::SameLine(headerEnd.x - buttonSize);
-		{
-			UI::ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
-			UI::ScopedColorStack colors(
-				ImGuiCol_Button, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f },
-				ImGuiCol_ButtonActive, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f },
-				ImGuiCol_ButtonHovered, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f }
-			);
-
-			if (ImGui::Button("+", { buttonSize, buttonSize }))
-				ImGui::OpenPopup("Component Settings");
-		}
-
-		if (opened)
-		{
-			auto& firstComponent = firstEntity.GetComponent<Comp>();
-			if constexpr (requires { func(firstComponent, entityList); })
-				func(firstComponent, entityList);
-			else
-				func(firstComponent, entities);
-		}
-
-		if (ImGui::BeginPopup("Component Settings"))
-		{
-			if (ImGui::MenuItem("Delete", nullptr, false, !std::is_same_v<Comp, TransformComponent>))
-			{
-				for (Entity entity : entities)
-					entity.RemoveComponent<Comp>();
-			}
-
-			if (ImGui::MenuItem("Reset"))
-			{
-				if (std::is_same_v<Comp, TransformComponent> && m_TransformInWorldSpace)
-				{
-					for (Entity entity : entities)
-					{
-						auto& transform = entity.Transform();
-						transform = TransformComponent{};
-						m_Context->ConvertToLocalSpace(entity, transform);
-					}
-				}
-				else
-				{
-					for (Entity entity : entities)
-					{
-						auto& comp = entity.GetComponent<Comp>();
-						comp = Comp{};
-					}
-				}
-			}
-
-			if constexpr (std::is_same_v<Comp, TransformComponent>)
-			{
-				ImGui::Separator();
-
-				if (ImGui::MenuItem("Reset Translation"))
-				{
-					for (Entity entity : entities)
-					{
-						if (m_TransformInWorldSpace)
-						{
-							m_Context->ConvertToWorldSpace(entity);
-							entity.Transform().Translation = glm::vec3(0.0f);
-							m_Context->ConvertToLocalSpace(entity);
-						}
-						else
-						{
-							entity.Transform().Translation = glm::vec3(0.0f);
-						}
-					}
-				}
-
-				if (ImGui::MenuItem("Reset Rotation"))
-				{
-					for (Entity entity : entities)
-					{
-						if (m_TransformInWorldSpace)
-						{
-							m_Context->ConvertToWorldSpace(entity);
-							entity.Transform().Rotation = glm::vec3(0.0f);
-							m_Context->ConvertToLocalSpace(entity);
-						}
-						else
-						{
-							entity.Transform().Rotation = glm::vec3(0.0f);
-						}
-					}
-				}
-
-				if (ImGui::MenuItem("Reset Scale"))
-				{
-					for (Entity entity : entities)
-					{
-						if (m_TransformInWorldSpace)
-						{
-							m_Context->ConvertToWorldSpace(entity);
-							entity.Transform().Scale = glm::vec3(1.0f);
-							m_Context->ConvertToLocalSpace(entity);
-						}
-						else
-						{
-							entity.Transform().Scale = glm::vec3(1.0f);
-						}
-					}
-				}
-
-				ImGui::Separator();
-
-				if (ImGui::MenuItem("Copy", nullptr, nullptr, entities.size() == 1))
-				{
-					m_HasTransformCopy = true;
-					m_TransformCopy = firstEntity.Transform();
-				}
-
-				if (ImGui::MenuItem("Paste"))
-				{
-					if (m_HasTransformCopy)
-					{
-						for (Entity entity : entities)
-							entity.Transform() = m_TransformCopy;
-					}
-				}
-
-				ImGui::MenuItem("Show World Space", nullptr, &m_TransformInWorldSpace);
-			}
-
-			if constexpr (std::is_same_v<Comp, MeshComponent>)
-			{
-				ImGui::Separator();
-				if (ImGui::MenuItem("Rebuild Mesh Hierarchy"))
-				{
-					for (auto entity : entities)
-					{
-						m_Context->RebuildMeshEntityHierarchy(entity);
-					}
-				}
-			}
-
-			ImGui::EndPopup();
-		}
-
-		ImGui::PopID();
-	}
 
 }

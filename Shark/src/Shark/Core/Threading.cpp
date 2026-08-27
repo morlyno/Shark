@@ -62,12 +62,17 @@ namespace Shark {
 	//// Tracked Mutex ////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////////
 
-	Threading::Internal::TrackedMutex::TrackedMutex(const tracy::SourceLocationData* srcloc)
+#if 0
 #if SK_ENABLE_PROFILER
+	Threading::Internal::TrackedMutex::TrackedMutex(const tracy::SourceLocationData* srcloc)
 		: m_Context(srcloc)
-#endif
 	{
 	}
+#else
+	Threading::Internal::TrackedMutex::TrackedMutex()
+	{
+	}
+#endif
 
 	Threading::Internal::TrackedMutex::~TrackedMutex()
 	{
@@ -110,6 +115,7 @@ namespace Shark {
 	{
 		m_Mutex.Unlock();
 	}
+#endif
 #endif
 
 	///////////////////////////////////////////////////////////////////////////////////////////////

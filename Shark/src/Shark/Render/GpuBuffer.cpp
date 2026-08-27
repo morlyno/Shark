@@ -1,8 +1,9 @@
 #include "skpch.h"
 #include "GpuBuffer.h"
 
-#include "Shark/Core/Application.h"
+#include "Shark/Render/DeviceManager.h"
 #include "Shark/Render/Renderer.h"
+
 #include "Shark/Debug/Profiler.h"
 
 namespace Shark {
@@ -47,7 +48,7 @@ namespace Shark {
 	{
 		m_Desc.setByteSize(state.ByteSize);
 
-		auto device = Application::Get().GetDeviceManager()->GetDevice();
+		auto device = Renderer::GetGraphicsDevice();
 		m_BufferHandle = device->createBuffer(m_Desc);
 	}
 

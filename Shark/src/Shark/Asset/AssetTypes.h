@@ -63,6 +63,23 @@ namespace Shark {
 		static constexpr std::array SoundConfig    = { ".sksc"sv };
 		static constexpr std::array Animation      = { ".sanim"sv };
 		static constexpr std::array AnimationGraph = { ".sagraph"sv };
+
+		namespace Shark {
+			static constexpr std::array Scene          = { AssetExtensions::Scene[0] };
+			static constexpr std::array Texture        = { AssetExtensions::Texture[0] };
+			static constexpr std::array Mesh           = { AssetExtensions::Mesh[0] };
+			static constexpr std::array Material       = { AssetExtensions::Material[0] };
+			static constexpr std::array Prefab         = { AssetExtensions::Prefab[0] };
+			static constexpr std::array SoundConfig    = { AssetExtensions::SoundConfig[0] };
+			static constexpr std::array Animation      = { AssetExtensions::Animation[0] };
+			static constexpr std::array AnimationGraph = { AssetExtensions::AnimationGraph[0] };
+
+			//static constexpr std::array ScriptFile     = std::array<std::string_view, 0>{};
+			//static constexpr std::array Font           = std::array<std::string_view, 0>{};
+			//static constexpr std::array MeshSource     = std::array<std::string_view, 0>{};
+			//static constexpr std::array Environment    = std::array<std::string_view, 0>{};
+			//static constexpr std::array AudioFile      = std::array<std::string_view, 0>{};
+		}
 	}
 
 	inline static const std::map<AssetType, std::span<const std::string_view>> AssetTypeExtensions =
@@ -82,7 +99,7 @@ namespace Shark {
 		{ AssetType::AnimationGraph, AssetExtensions::AnimationGraph },
 	};
 
-	static AssetType AssetTypeFromExtension(std::string_view extension)
+	inline AssetType AssetTypeFromExtension(std::string_view extension)
 	{
 		for (const auto& [type, extensions] : AssetTypeExtensions)
 			for (const auto& ext : extensions)
@@ -92,7 +109,7 @@ namespace Shark {
 		return AssetType::None;
 	}
 
-	static AssetType AssetTypeFromPath(const std::filesystem::path& assetPath)
+	inline AssetType AssetTypeFromPath(const std::filesystem::path& assetPath)
 	{
 		std::string extension = assetPath.extension().string();
 		return AssetTypeFromExtension(extension);
