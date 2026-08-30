@@ -5,7 +5,7 @@
 
 namespace Shark {
 
-	bool StreamReader::ReadBuffer(Buffer& buffer)
+	bool StreamReader::ReadBuffer(UniqueBuffer& buffer)
 	{
 		if (!ReadData(&buffer.Size, sizeof(uint64_t)))
 			return false;

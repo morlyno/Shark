@@ -20,9 +20,9 @@ namespace Shark {
 		static void Shutdown();
 
 	public:
-		static Buffer ReadBinary(const std::filesystem::path& filePath);
+		static UniqueBuffer ReadBinary(const std::filesystem::path& filePath);
 		static std::string ReadString(const std::filesystem::path& filePath);
-		static bool WriteBinary(const std::filesystem::path& filePath, Buffer fileData, bool createDirectoriesIfNeeded = true);
+		static bool WriteBinary(const std::filesystem::path& filePath, const Buffer fileData, bool createDirectoriesIfNeeded = true);
 		static bool WriteString(const std::filesystem::path& filePath, std::string_view fileData, bool createDirectoriesIfNeeded = true);
 
 	public:

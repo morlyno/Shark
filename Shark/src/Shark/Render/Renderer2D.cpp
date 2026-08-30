@@ -262,10 +262,11 @@ namespace Shark {
 		m_Active = true;
 
 		m_ViewProj = viewProj;
-		m_CBCamera->Upload(Buffer::FromValue(m_ViewProj));
+		m_CBCamera->Upload(m_ViewProj);
 
 		m_QuadBatches.clear();
 		m_QuadIndexCount = 0;
+		m_QuadVertexCount = 0;
 		m_QuadBatch = &m_QuadBatches.emplace_back(0);
 		m_CircleIndexCount = 0;
 		m_CircleVertexCount = 0;
@@ -361,7 +362,7 @@ namespace Shark {
 		auto& batch = *m_QuadBatch;
 		AssureQuadVertexDataSize();
 
-		QuadVertex* memory = m_QuadVertexData.Offset<QuadVertex>(batch.VertexOffset + batch.VertexCount);
+		QuadVertex* memory = m_QuadVertexData.At<QuadVertex>(batch.VertexOffset + batch.VertexCount);
 		for (uint32_t i = 0; i < 4; i++)
 		{
 			memory->WorldPosition = transform * m_QuadVertexPositions[i];
@@ -376,6 +377,7 @@ namespace Shark {
 		batch.VertexCount += 4;
 		batch.IndexCount += 6;
 		m_QuadIndexCount += 6;
+		m_QuadVertexCount += 4;
 
 		m_Statistics.QuadCount++;
 		m_Statistics.VertexCount += 4;
@@ -412,7 +414,7 @@ namespace Shark {
 
 		AssureCircleVertexDataSize();
 
-		CircleVertex* memory = m_CircleVertexData.Offset<CircleVertex>(m_CircleVertexCount);
+		CircleVertex* memory = m_CircleVertexData.At<CircleVertex>(m_CircleVertexCount);
 		for (uint32_t i = 0; i < 4; i++)
 		{
 			memory->WorldPosition = transform * m_QuadVertexPositions[i];
@@ -486,7 +488,7 @@ namespace Shark {
 
 		AssureLineVertexDataSize();
 
-		LineVertex* memory = m_LineVertexData.Offset<LineVertex>(m_LineVertexCount);
+		LineVertex* memory = m_LineVertexData.At<LineVertex>(m_LineVertexCount);
 		memory->WorldPosition = pos0;
 		memory->Color = color;
 
@@ -610,7 +612,7 @@ namespace Shark {
 			const std::array<glm::vec2, 4> quadPositions = { glm::vec2(quadMin.x, quadMax.y), quadMax, glm::vec2(quadMax.x,quadMin.y), quadMin };
 			const std::array<glm::vec2, 4> textCoords = { glm::vec2(textCoordMin.x, textCoordMax.y), textCoordMax, glm::vec2(textCoordMax.x,textCoordMin.y), textCoordMin };
 
-			TextVertex* vertex = m_TextVertexData.Offset<TextVertex>(m_TextVertexCount);
+			TextVertex* vertex = m_TextVertexData.At<TextVertex>(m_TextVertexCount);
 			for (uint32_t i = 0; i < 4; i++)
 			{
 				vertex->WorldPosition = transform * glm::vec4(quadPositions[i], 0.0f, 1.0f);
@@ -653,7 +655,7 @@ namespace Shark {
 		if (m_QuadIndexCount)
 		{
 			m_CommandBuffer->BeginTimer("QuadPass");
-			Renderer::WriteBuffer(m_CommandBuffer, m_QuadVertexBuffer, m_QuadVertexData);
+			Renderer::WriteBuffer(m_CommandBuffer, m_QuadVertexBuffer, m_QuadVertexData.Range(m_QuadVertexCount * sizeof(QuadVertex)));
 			Renderer::BeginRenderPass(m_CommandBuffer, m_QuadPass);
 
 			uint32_t batchIndex = 0;
@@ -681,7 +683,7 @@ namespace Shark {
 		if (m_CircleIndexCount)
 		{
 			m_CommandBuffer->BeginTimer("CirclePass");
-			Renderer::WriteBuffer(m_CommandBuffer, m_CircleVertexBuffer, m_CircleVertexData);
+			Renderer::WriteBuffer(m_CommandBuffer, m_CircleVertexBuffer, m_CircleVertexData.Range(m_CircleVertexCount * sizeof(CircleVertex)));
 
 			Renderer::BeginRenderPass(m_CommandBuffer, m_CirclePass);
 			Renderer::RenderGeometry(m_CommandBuffer, m_CirclePipeline, nullptr, m_CircleVertexBuffer, m_CircleIndexBuffer, m_CircleIndexCount);
@@ -694,10 +696,10 @@ namespace Shark {
 		if (m_LineVertexCount)
 		{
 			m_CommandBuffer->BeginTimer("LinePass");
-			Renderer::WriteBuffer(m_CommandBuffer, m_LineVertexBuffer, m_LineVertexData);
+			Renderer::WriteBuffer(m_CommandBuffer, m_LineVertexBuffer, m_LineVertexData.Range(m_LineVertexCount * sizeof(LineVertex)));
 
 			Renderer::BeginRenderPass(m_CommandBuffer, m_LinePass);
-			Renderer::RenderGeometry(m_CommandBuffer, m_LinePipeline, nullptr, m_LineVertexBuffer, m_LineVertexCount);
+			Renderer::RenderGeometry(m_CommandBuffer, m_LinePipeline, nullptr, m_LineVertexBuffer, nullptr, m_LineVertexCount);
 			Renderer::EndRenderPass(m_CommandBuffer, m_LinePass);
 
 			m_Statistics.DrawCalls++;
@@ -709,7 +711,7 @@ namespace Shark {
 			m_TextMaterial->Update();
 
 			m_CommandBuffer->BeginTimer("TextPass");
-			Renderer::WriteBuffer(m_CommandBuffer, m_TextVertexBuffer, m_TextVertexData);
+			Renderer::WriteBuffer(m_CommandBuffer, m_TextVertexBuffer, m_TextVertexData.Range(m_TextVertexCount * sizeof(LineVertex)));
 
 			Renderer::BeginRenderPass(m_CommandBuffer, m_TextPass);
 			Renderer::RenderGeometry(m_CommandBuffer, m_TextPipeline, m_TextMaterial, m_TextVertexBuffer, m_TextIndexBuffer, m_TextIndexCount);
@@ -724,7 +726,7 @@ namespace Shark {
 
 	void Renderer2D::AssureQuadVertexDataSize()
 	{
-		if (m_QuadBatch->VertexOffset + m_QuadBatch->VertexCount >= m_QuadVertexData.Count<QuadVertex>())
+		if (m_QuadBatch->VertexOffset + m_QuadBatch->VertexCount >= m_QuadVertexData.Size / sizeof(QuadVertex))
 		{
 			m_QuadVertexData.Resize(m_QuadVertexData.Size * 2);
 			Allocator::SetMemoryDescription(m_QuadVertexData.Data, "QuadVertexData");
@@ -733,19 +735,19 @@ namespace Shark {
 
 	void Renderer2D::AssureCircleVertexDataSize()
 	{
-		if (m_CircleVertexCount >= m_CircleVertexData.Count<CircleVertex>())
+		if (m_CircleVertexCount >= m_CircleVertexData.Size / sizeof(CircleVertex))
 			m_CircleVertexData.Resize(m_CircleVertexData.Size * 2);
 	}
 
 	void Renderer2D::AssureLineVertexDataSize()
 	{
-		if (m_LineVertexCount >= m_LineVertexData.Count<LineVertex>())
+		if (m_LineVertexCount >= m_LineVertexData.Size / sizeof(LineVertex))
 			m_LineVertexData.Resize(m_LineVertexData.Size * 2);
 	}
 
 	void Renderer2D::AssureTextVertexDataSize(uint32_t glyphCount)
 	{
-		if ((m_TextVertexCount + glyphCount * 4) >= m_TextVertexData.Count<TextVertex>())
+		if ((m_TextVertexCount + glyphCount * 4) >= m_TextVertexData.Size / sizeof(TextVertex))
 			m_TextVertexData.Resize(std::max<uint64_t>(m_TextVertexData.Size * 2, m_TextVertexCount + glyphCount * sizeof TextVertex * 4));
 	}
 

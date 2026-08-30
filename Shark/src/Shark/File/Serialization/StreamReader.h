@@ -3,7 +3,7 @@
 #include "Shark/Core/Base.h"
 
 namespace Shark {
-	class Buffer;
+	class UniqueBuffer;
 }
 
 namespace Shark {
@@ -28,7 +28,7 @@ namespace Shark {
 		virtual bool ReadData(void* destination, uint64_t size, uint64_t& bytesRead) = 0;
 		virtual std::istream& GetStream() = 0;
 
-		bool ReadBuffer(Buffer& buffer);
+		bool ReadBuffer(UniqueBuffer& buffer);
 		bool ReadString(std::string& string);
 
 		template<typename T>

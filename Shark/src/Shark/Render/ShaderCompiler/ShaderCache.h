@@ -37,7 +37,7 @@ namespace Shark {
 
 		bool LoadStageInfo(const ShaderInfo& info, std::vector<StageInfo>& outStageInfo) const;
 		bool LoadSpirv(const ShaderInfo& info, nvrhi::ShaderType stage, std::vector<uint32_t>& outBinary) const;
-		bool LoadBinary(const ShaderInfo& info, nvrhi::ShaderType stage, nvrhi::GraphicsAPI platform, Buffer& outBinary) const;
+		bool LoadBinary(const ShaderInfo& info, nvrhi::ShaderType stage, nvrhi::GraphicsAPI platform, UniqueBuffer& outBinary) const;
 		bool LoadReflection(const ShaderInfo& info, ShaderReflection& outReflection, std::vector<std::string>& outRequestedBindingSets, LayoutShareMode& outShareMode) const;
 
 		void SaveShaderInfo(const ShaderInfo& info, std::span<const StageInfo> stages, std::span<const std::filesystem::path> includes);

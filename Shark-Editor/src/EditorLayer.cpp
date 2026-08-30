@@ -1347,7 +1347,7 @@ namespace Shark {
 				Renderer::Submit([this, x, y]()
 				{
 					uint32_t hoveredEntity;
-					m_MousePickingImage->RT_ReadPixel(x, y, Buffer::FromValue(hoveredEntity));
+					m_MousePickingImage->RT_ReadPixel(x, y, { &hoveredEntity, sizeof hoveredEntity });
 
 					Entity entity = { (entt::entity)hoveredEntity, m_ActiveScene };
 					if (!entity)

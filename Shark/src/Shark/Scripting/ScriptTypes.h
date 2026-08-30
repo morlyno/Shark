@@ -66,7 +66,7 @@ namespace Shark {
 		Coral::Type* Type;
 		ManagedFieldType DataType = ManagedFieldType::None;
 
-		Buffer DefaultValue;
+		UniqueBuffer DefaultValue;
 	};
 
 	struct ScriptMetadata
@@ -89,7 +89,7 @@ namespace Shark {
 			if (m_Instance)
 				return m_Instance->GetFieldValue<T>(m_Name);
 			else
-				return m_ValueBuffer.Value<T>();
+				return *m_ValueBuffer.As<T>();
 		}
 
 		template<typename T>
@@ -124,14 +124,14 @@ namespace Shark {
 
 	public:
 		FieldStorage() = default;
-		~FieldStorage() { m_ValueBuffer.Release(); }
+		~FieldStorage() = default;
 
 	private:
 		std::string m_Name;
 		ManagedFieldType m_DataType = ManagedFieldType::None;
 		Coral::ManagedObject* m_Instance = nullptr;
 
-		Buffer m_ValueBuffer;
+		UniqueBuffer m_ValueBuffer;
 
 		friend class ScriptEngine;
 		friend class ScriptStorage;

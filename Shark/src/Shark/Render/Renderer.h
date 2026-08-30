@@ -104,7 +104,7 @@ namespace Shark {
 		static void WaitAndRender();
 
 		template<typename TFunc>
-		static void Submit(const TFunc& func)
+		static void Submit(TFunc&& func)
 		{
 			auto& commandQueue = GetCommandQueue();
 			//SK_CORE_VERIFY(!commandQueue.IsExecuting());
@@ -117,7 +117,7 @@ namespace Shark {
 			};
 
 			void* storage = commandQueue.Allocate(command, sizeof(TFunc));
-			new (storage) TFunc(func);
+			new (storage) TFunc(std::forward<TFunc>(func));
 		}
 
 	public:
@@ -126,20 +126,19 @@ namespace Shark {
 		static void BeginComputePass(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePass> computePass);
 		static void EndComputePass(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePass> computePass);
 
-		static void Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, const glm::uvec3& workGroups, const Buffer pushConstantData = {});
-		static void Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, Ref<Material> material, const glm::uvec3& workGroups, const Buffer pushConstantData = {});
+		static void Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, const glm::uvec3& workGroups, BufferHandle pushConstantData = {});
+		static void Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, Ref<Material> material, const glm::uvec3& workGroups, BufferHandle pushConstantData = {});
 
-		static void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, Buffer pushConstant = {});
-		static void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, const nvrhi::DrawArguments& drawArguments, Buffer pushConstant = {});
-		static void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount, const Buffer pushConstant = {});
-		static void RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material, bool isRigged, const Buffer pushConstantsData);
+		static void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, BufferHandle pushConstant = {});
+		static void RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, const nvrhi::DrawArguments& drawArguments, BufferHandle pushConstant = {});
+		static void RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material, bool isRigged, BufferHandle pushConstantsData);
 
-		static void RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Buffer pushConstantsData = {});
+		static void RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, BufferHandle pushConstantsData = {});
 		static void RenderCube(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material);
 
 	public:
-		static void WriteBuffer(Ref<RenderCommandBuffer> commandBuffer, Ref<GpuBuffer> buffer, const Buffer bufferData);
-		static void WriteImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> image, const ImageSlice& slice, const Buffer imageData);
+		static void WriteBuffer(Ref<RenderCommandBuffer> commandBuffer, Ref<GpuBuffer> buffer, BufferHandle bufferData);
+		static void WriteImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> image, const ImageSlice& slice, BufferHandle imageData);
 
 		static void CopySlice(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D>        sourceImage, const ImageSlice& sourceSlice, Ref<Image2D>        destinationImage, const ImageSlice& destinationSlice);
 		static void CopySlice(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D>        sourceImage, const ImageSlice& sourceSlice, Ref<StagingImage2D> destinationImage, const ImageSlice& destinationSlice);
@@ -171,11 +170,11 @@ namespace Shark {
 		static void RT_Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, const glm::uvec3& workGroups, const Buffer pushConstantData = {});
 		static void RT_Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, Ref<Material> material, const glm::uvec3& workGroups, const Buffer pushConstantData = {});
 
-		static void RT_RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, Buffer pushConstant = {});
-		static void RT_RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, const nvrhi::DrawArguments& drawArguments, Buffer pushConstant = {});
+		static void RT_RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, const Buffer pushConstant = {});
+		static void RT_RenderGeometry(Ref<RenderCommandBuffer> renderCommandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, const nvrhi::DrawArguments& drawArguments, const Buffer pushConstant = {});
 		static void RT_RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material, bool isRigged, const Buffer pushConstantsData);
 
-		static void RT_RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Buffer pushConstantsData = {});
+		static void RT_RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, const Buffer pushConstantsData = {});
 		static void RT_RenderCube(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material);
 
 	public:
@@ -206,7 +205,7 @@ namespace Shark {
 		{
 		public:
 			template<typename TFunc>
-			static void Submit(const TFunc& func)
+			static void Submit(TFunc&& func)
 			{
 				auto command = [](void* funcPtr)
 				{
@@ -218,7 +217,7 @@ namespace Shark {
 				auto mtQueue = GetMTCommandQueue();
 
 				void* storage = mtQueue.first.Allocate(command, sizeof(TFunc));
-				new (storage) TFunc(func);
+				new (storage) TFunc(std::forward<TFunc>(func));
 			}
 
 			static void GenerateMips(RefArg<Image2D> targetImage);

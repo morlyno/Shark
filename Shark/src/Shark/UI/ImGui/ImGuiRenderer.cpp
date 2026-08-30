@@ -291,13 +291,12 @@ namespace Shark {
 		{
 			Ref<ImGuiTexture> tex = static_cast<ImGuiTexture*>(texture->BackendUserData);
 
-			Renderer::Submit([commandBuffer, tex, temp = Buffer::Copy(texture->Pixels, texture->GetSizeInBytes()), pitch = texture->GetPitch()]() mutable
+			Renderer::Submit([commandBuffer, tex, temp = UniqueBuffer::Copy(texture->Pixels, texture->GetSizeInBytes()), pitch = texture->GetPitch()]() mutable
 			{
 				auto commandList = commandBuffer->GetHandle();
 				const auto& viewInfo = tex->GetViewInfo();
 
 				commandList->writeTexture(viewInfo.Handle, 0, 0, temp.As<const void>(), pitch);
-				temp.Release();
 			});
 
 			texture->SetStatus(ImTextureStatus_OK);

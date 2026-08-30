@@ -94,7 +94,7 @@ namespace Shark {
 		if (m_Uniforms != m_ActiveState)
 		{
 			m_ActiveState = m_Uniforms;
-			m_Material->Set(s_MaterialUniformsName, Buffer::FromValue(m_ActiveState));
+			m_Material->Set(s_MaterialUniformsName, m_ActiveState);
 		}
 
 		SK_CORE_ASSERT(m_Material->Validate());

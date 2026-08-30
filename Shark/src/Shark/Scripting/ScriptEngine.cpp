@@ -37,11 +37,6 @@ namespace Shark {
 		m_CoreAssembly = nullptr;
 		m_AppAssembly = nullptr;
 		m_Host.DestroyAssemblyLoadContext(m_LoadContext);
-
-		for (auto& [scriptID, scriptMetadata] : m_ScriptMetadata)
-			for (auto& [fieldID, fieldMetadata] : scriptMetadata.Fields)
-				fieldMetadata.DefaultValue.Release();
-
 		m_ScriptMetadata.clear();
 
 		Coral::TypeCache::Get().Clear();
@@ -152,7 +147,7 @@ namespace Shark {
 				if (!hasAttribute(showInEditorAttribute) && accessibility != Coral::TypeAccessibility::Public)
 					continue;
 
-				Buffer defaultValue;
+				UniqueBuffer defaultValue;
 				ManagedFieldType dataType = s_DataTypeLookupTable.at(typeName);
 
 				// #TODO(moro): Arrays
@@ -195,7 +190,7 @@ namespace Shark {
 					case ManagedFieldType::Entity:
 					{
 						defaultValue.Allocate(sizeof(UUID));
-						defaultValue.SetZero();
+						defaultValue.WriteZero();
 						break;
 					}
 
@@ -204,13 +199,13 @@ namespace Shark {
 					case ManagedFieldType::Animation:
 					{
 						defaultValue.Allocate(sizeof(UUID));
-						defaultValue.SetZero();
+						defaultValue.WriteZero();
 						break;
 					}
 
 				}
 
-				scriptMetadata.Fields[Hash::GenerateFNV(name)] = { name, &fieldType, dataType, defaultValue };
+				scriptMetadata.Fields[Hash::GenerateFNV(name)] = { name, &fieldType, dataType, std::move(defaultValue) };
 			}
 
 			tempInstance.Destroy();

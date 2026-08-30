@@ -221,10 +221,11 @@ namespace Shark {
 		Ref<Pipeline> m_QuadPipeline;
 		Ref<VertexBuffer> m_QuadVertexBuffer;
 		Ref<IndexBuffer> m_QuadIndexBuffer;
-		Buffer m_QuadVertexData;
+		UniqueBuffer m_QuadVertexData;
 		std::vector<QuadBatch> m_QuadBatches;
 		QuadBatch* m_QuadBatch;
 		uint32_t m_QuadIndexCount = 0;
+		uint32_t m_QuadVertexCount = 0;
 
 		std::vector<Ref<Material>> m_Materials;
 
@@ -233,7 +234,7 @@ namespace Shark {
 		Ref<Pipeline> m_CirclePipeline;
 		Ref<VertexBuffer> m_CircleVertexBuffer;
 		Ref<IndexBuffer> m_CircleIndexBuffer;
-		Buffer m_CircleVertexData;
+		UniqueBuffer m_CircleVertexData;
 		uint32_t m_CircleIndexCount = 0;
 		uint32_t m_CircleVertexCount = 0;
 		
@@ -241,7 +242,7 @@ namespace Shark {
 		Ref<RenderPass> m_LinePass;
 		Ref<Pipeline> m_LinePipeline;
 		Ref<VertexBuffer> m_LineVertexBuffer;
-		Buffer m_LineVertexData;
+		UniqueBuffer m_LineVertexData;
 		uint32_t m_LineVertexCount = 0;
 
 		// Text
@@ -250,7 +251,7 @@ namespace Shark {
 		Ref<Material> m_TextMaterial;
 		Ref<VertexBuffer> m_TextVertexBuffer;
 		Ref<IndexBuffer> m_TextIndexBuffer;
-		Buffer m_TextVertexData;
+		UniqueBuffer m_TextVertexData;
 		uint32_t m_TextIndexCount = 0;
 		uint32_t m_TextVertexCount = 0;
 

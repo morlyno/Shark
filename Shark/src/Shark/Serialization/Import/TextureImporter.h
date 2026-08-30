@@ -10,8 +10,8 @@ namespace Shark {
 	class TextureImporter
 	{
 	public:
-		static Buffer ToBufferFromFile(const std::filesystem::path& filepath, ImageFormat& outFormat, uint32_t& outWidth, uint32_t& outHeight);
-		static Buffer ToBufferFromMemory(Buffer memory, ImageFormat& outFormat, uint32_t& outWidth, uint32_t& outHeight);
+		static UniqueBuffer ToBufferFromFile(const std::filesystem::path& filepath, ImageFormat& outFormat, uint32_t& outWidth, uint32_t& outHeight);
+		static UniqueBuffer ToBufferFromMemory(Buffer memory, ImageFormat& outFormat, uint32_t& outWidth, uint32_t& outHeight);
 	};
 
 }

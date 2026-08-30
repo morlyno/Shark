@@ -24,7 +24,7 @@ namespace Shark {
 			CacheStatus status = shaderCache.GetCacheStatus(info, stage, nvrhi::GraphicsAPI::VULKAN);
 			if (!m_Options.Force && status == CacheStatus::OK)
 			{
-				Buffer binary;
+				UniqueBuffer binary;
 				if (shaderCache.LoadBinary(info, stage, nvrhi::GraphicsAPI::VULKAN, binary))
 				{
 					platformBinary[stage] = std::move(binary);
@@ -44,8 +44,6 @@ namespace Shark {
 				SK_CORE_ERROR_TAG("ShaderCompiler", "Compiling shader '{}' failed!", info.SourcePath.filename());
 				SK_DEBUG_BREAK_CONDITIONAL(BREAK_ON_FAILED_COMPILATION);
 
-				for (auto& [stage, binary] : platformBinary)
-					binary.Release();
 				result.PlatformBinary.erase(nvrhi::GraphicsAPI::VULKAN);
 				return false;
 			}
@@ -84,7 +82,7 @@ namespace Shark {
 		std::ranges::for_each(shaderResources.storage_images, std::bind(applyOffsets, std::placeholders::_1, &nvrhi::VulkanBindingOffsets::unorderedAccess));
 		std::ranges::for_each(shaderResources.separate_samplers, std::bind(applyOffsets, std::placeholders::_1, &nvrhi::VulkanBindingOffsets::sampler));
 
-		Buffer& platformBinary = result.PlatformBinary[nvrhi::GraphicsAPI::VULKAN][stage];
+		auto& platformBinary = result.PlatformBinary[nvrhi::GraphicsAPI::VULKAN][stage];
 
 		const uint64_t byteSize = binary.size() * sizeof(uint32_t);
 		platformBinary.Allocate(byteSize);

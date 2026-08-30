@@ -10,7 +10,7 @@ namespace Shark {
 	public:
 		static void Write(void* destination, void* source, uint64_t byteSize);
 		static void Write(void* destination, const Buffer source);
-		static void Write(Buffer& destination, void* source, uint64_t byteSize);
+		static void Write(UniqueBuffer& destination, void* source, uint64_t byteSize);
 		static void WriteZero(void* destination, uint64_t byteSize);
 
 		// This will resize the vector if the size is not enough

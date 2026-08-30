@@ -99,13 +99,12 @@ namespace Shark {
 		});
 	}
 
-	void Image2D::Submit_UploadData(const Buffer buffer)
+	void Image2D::Submit_UploadData(BufferHandle buffer)
 	{
 		Ref instance = this;
-		Renderer::Submit([instance, tempBuffer = Buffer::Copy(buffer)]() mutable
+		Renderer::Submit([instance, tempBuffer = buffer.Store()]() mutable
 		{
-			instance->RT_UploadData(tempBuffer);
-			tempBuffer.Release();
+			instance->RT_UploadData(tempBuffer.AsBuffer());
 		});
 	}
 
@@ -272,7 +271,7 @@ namespace Shark {
 		device->unmapStagingTexture(m_Handle);
 	}
 
-	void StagingImage2D::RT_ReadPixel(uint32_t x, uint32_t y, Buffer outPixel)
+	void StagingImage2D::RT_ReadPixel(uint32_t x, uint32_t y, MutableBuffer outPixel)
 	{
 		const uint32_t pixelSize = GetPixelSize();
 		SK_CORE_VERIFY(outPixel.Size == pixelSize);

@@ -36,16 +36,6 @@ namespace Shark {
 		return seed;
 	}
 
-	uint64_t Hash::GenerateFNV(const std::string_view str)
-	{
-		return CombineFNV(FNVBase, { (void*)str.data(), str.size() });
-	}
-
-	uint64_t Hash::GenerateFNV(const char* str)
-	{
-		return GenerateFNV(std::string_view(str));
-	}
-
 	uint64_t Hash::GenerateFNV(const Buffer buffer)
 	{
 		return CombineFNV(FNVBase, buffer);

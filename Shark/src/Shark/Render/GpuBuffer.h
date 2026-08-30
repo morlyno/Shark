@@ -11,7 +11,7 @@ namespace Shark {
 	class GpuBuffer : public RendererResource
 	{
 	public:
-		void Upload(const Buffer data);
+		void Upload(BufferHandle data);
 		void RT_Upload(const Buffer data);
 
 		virtual nvrhi::ResourceHandle GetResourceHandle() const override { return m_BufferHandle; }
@@ -29,7 +29,6 @@ namespace Shark {
 
 	protected:
 		uint64_t m_ByteSize;
-		Buffer m_LocalStorage;
 
 		nvrhi::BufferDesc m_Desc;
 		nvrhi::BufferHandle m_BufferHandle;

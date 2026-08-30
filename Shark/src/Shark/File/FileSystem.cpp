@@ -24,22 +24,22 @@ namespace Shark {
 	{
 	}
 
-	Buffer FileSystem::ReadBinary(const std::filesystem::path& filePath)
+	UniqueBuffer FileSystem::ReadBinary(const std::filesystem::path& filePath)
 	{
 		std::ifstream stream(GetFilesystemPath(filePath), std::ios::ate | std::ios::binary);
 		if (!stream)
-			return Buffer{};
+			return {};
 
 		uint64_t streamSize = (uint64_t)stream.tellg();
 		if (!streamSize)
 		{
 			SK_CORE_ERROR_TAG("Filesystem", "Failed to ReadBinary from file: {}\n\t Error: {}", filePath, strerror(errno));
-			return Buffer{};
+			return {};
 		}
 
 		stream.seekg(0, std::ios::beg);
 
-		Buffer filedata;
+		UniqueBuffer filedata;
 		filedata.Allocate(streamSize);
 		stream.read(filedata.As<char>(), streamSize);
 		return filedata;
@@ -59,7 +59,7 @@ namespace Shark {
 		return strStream.str();
 	}
 
-	bool FileSystem::WriteBinary(const std::filesystem::path& filePath, Buffer fileData, bool createDirectoriesIfNeeded)
+	bool FileSystem::WriteBinary(const std::filesystem::path& filePath, const Buffer fileData, bool createDirectoriesIfNeeded)
 	{
 		const auto filesystemPath = GetFilesystemPath(filePath);
 

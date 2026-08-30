@@ -12,6 +12,7 @@
 #include "Shark/Serialization/Import/TextureImporter.h"
 #include "Shark/Serialization/SerializerUtilities.h"
 
+#include "Shark/Utils/Utilities.h"
 #include "Shark/Debug/Profiler.h"
 
 #define SK_SERIALIZATION_ERROR(...) SK_CORE_ERROR_TAG("Serialization", __VA_ARGS__); SK_DEBUG_BREAK();
@@ -22,10 +23,10 @@ namespace Shark {
 
 		static bool ShouldBeSharkTexture(const std::filesystem::path& filepath)
 		{
-			return FileSystem::GetExtensionString(filepath) == ".sktex";
+			return Contains(AssetExtensions::Shark::Texture, FileSystem::GetExtensionString(filepath));
 		}
 
-		static bool LoadImageData(const std::filesystem::path& filepath, TextureSpecification& outSpecification, Buffer& outBuffer)
+		static bool LoadImageData(const std::filesystem::path& filepath, TextureSpecification& outSpecification, UniqueBuffer& outBuffer)
 		{
 			outBuffer = TextureImporter::ToBufferFromFile(filepath, outSpecification.Format, outSpecification.Width, outSpecification.Height);
 			if (!outBuffer)
@@ -46,7 +47,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		if (metadata.FilePath.extension() != ".sktex")
+		if (Contains(AssetExtensions::Shark::Texture, metadata.FilePath.extension()))
 		{
 			SK_CORE_ERROR_TAG("Serialization", "[Texture] Serializing a non shark texture is not allowed! Please convert the texture into one.");
 			return false;
@@ -98,26 +99,26 @@ namespace Shark {
 						);
 					}
 
-					Buffer& imageData = texture->GetBuffer();
+					UniqueBuffer imageData;
 					auto& specification = texture->GetSpecification();
 					const auto filesystemPath = Utilities::GetAssetFilesystemPath(sourceHandle);
 					utils::LoadImageData(filesystemPath, specification, imageData);
 
 					texture->RT_Invalidate();
+					texture->RT_Upload(imageData);
 				});
 			}
 		}
 
 		if (!texture)
 		{
-			Buffer imageData;
+			UniqueBuffer imageData;
 			TextureSpecification specification;
 			specification.DebugName = FileSystem::GetStemString(metadata.FilePath);
 
 			utils::LoadImageData(filesystemPath, specification, imageData);
 			texture = Texture2D::Create(specification, imageData);
 			texture->SetFilepath(filesystemPath);
-			imageData.Release();
 		}
 
 		if (texture->GetSpecification().HasMips)

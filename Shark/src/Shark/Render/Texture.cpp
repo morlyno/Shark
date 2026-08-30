@@ -34,19 +34,24 @@ namespace Shark {
 	}
 
 	Texture2D::Texture2D(const TextureSpecification& specification, const Buffer imageData)
-		: m_Specification(specification), m_Image(Image2D::Create()), m_ImageData(Buffer::Copy(imageData))
+		: m_Specification(specification), m_Image(Image2D::Create())
 	{
 		RT_Invalidate();
+
+		if (imageData)
+		{
+			m_Image->RT_UploadData(imageData);
+		}
 	}
 
 	Texture2D::Texture2D(const TextureSpecification& specification, const std::filesystem::path& filepath)
 		: m_Specification(specification), m_Image(Image2D::Create()), m_Filepath(filepath)
 	{
-		m_ImageData = TextureImporter::ToBufferFromFile(filepath, m_Specification.Format, m_Specification.Width, m_Specification.Height);
-		if (!m_ImageData)
+		auto imageData = TextureImporter::ToBufferFromFile(filepath, m_Specification.Format, m_Specification.Width, m_Specification.Height);
+		if (!imageData)
 		{
-			m_ImageData = TextureImporter::ToBufferFromFile("Resources/Textures/ErrorTexture.png", m_Specification.Format, m_Specification.Width, m_Specification.Height);
-			SK_CORE_VERIFY(m_ImageData.Data);
+			imageData = TextureImporter::ToBufferFromFile("Resources/Textures/ErrorTexture.png", m_Specification.Format, m_Specification.Width, m_Specification.Height);
+			SK_CORE_VERIFY(imageData);
 
 			SetFlag(AssetFlag::Fallback, true);
 		}
@@ -55,6 +60,7 @@ namespace Shark {
 			m_Specification.DebugName = filepath.string();
 
 		RT_Invalidate();
+		m_Image->RT_UploadData(imageData);
 	}
 
 	Texture2D::~Texture2D()
@@ -62,7 +68,6 @@ namespace Shark {
 		m_Image = nullptr;
 		m_ViewInfo.Handle = nullptr;
 		m_ViewInfo.TextureSampler = nullptr;
-		m_ImageData.Release();
 	}
 
 	void Texture2D::Invalidate()
@@ -76,16 +81,6 @@ namespace Shark {
 		specification.DebugName = m_Specification.DebugName;
 
 		m_Image->Invalidate();
-
-		if (m_ImageData)
-		{
-			Renderer::Submit([image = m_Image, buffer = m_ImageData]() mutable
-			{
-				image->RT_UploadData(buffer);
-				buffer.Release();
-			});
-			m_ImageData = {};
-		}
 
 		Ref instance = this;
 		Renderer::Submit([instance, image = m_Image, state = RT_State(m_Specification)]()
@@ -106,13 +101,17 @@ namespace Shark {
 
 		m_Image->RT_Invalidate();
 
-		if (m_ImageData)
-		{
-			m_Image->RT_UploadData(m_ImageData);
-			m_ImageData.Release();
-		}
-
 		InvalidateFromState(m_Image, RT_State(m_Specification));
+	}
+
+	void Texture2D::Upload(BufferHandle imageData)
+	{
+		m_Image->Submit_UploadData(std::move(imageData));
+	}
+
+	void Texture2D::RT_Upload(const Buffer imageData)
+	{
+		m_Image->RT_UploadData(imageData);
 	}
 
 	uint32_t Texture2D::GetMipLevels() const
@@ -146,7 +145,7 @@ namespace Shark {
 	/////////////////////////////////////////////////////////////////////////////////////
 
 	TextureCube::TextureCube(const TextureSpecification& specification, Buffer imageData)
-		: m_Specification(specification), m_ImageData(Buffer::Copy(imageData)), m_Image(Image2D::Create())
+		: m_Specification(specification), m_Image(Image2D::Create())
 	{
 		ImageSpecification& imageSpec = m_Image->GetSpecification();
 		imageSpec.Width = m_Specification.Width;
@@ -159,10 +158,9 @@ namespace Shark {
 		imageSpec.DebugName = m_Specification.DebugName;
 		m_Image->RT_Invalidate();
 
-		if (m_ImageData)
+		if (imageData.Data)
 		{
-			m_Image->RT_UploadData(m_ImageData);
-			m_ImageData.Release();
+			m_Image->RT_UploadData(imageData);
 		}
 
 		auto samplerDesc = nvrhi::SamplerDesc()
@@ -182,7 +180,6 @@ namespace Shark {
 	TextureCube::~TextureCube()
 	{
 		m_Image = nullptr;
-		m_ImageData.Release();
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////

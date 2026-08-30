@@ -391,13 +391,13 @@ namespace Shark {
 		}
 
 		if (!meshSource->m_Vertices.empty())
-			meshSource->m_VertexBuffer = VertexBuffer::Create(Buffer::FromArray(meshSource->m_Vertices));
+			meshSource->m_VertexBuffer = VertexBuffer::Create(meshSource->m_Vertices);
 
 		if (!meshSource->m_BoneInfluences.empty())
 			meshSource->m_BoneInfluenceBuffer = VertexBuffer::Create({ meshSource->m_BoneInfluences.data(), meshSource->m_BoneInfluences.size() * sizeof(BoneInfluence) });
 
 		if (!meshSource->m_Indices.empty())
-			meshSource->m_IndexBuffer = IndexBuffer::Create(Buffer::FromArray(meshSource->m_Indices));
+			meshSource->m_IndexBuffer = IndexBuffer::Create(meshSource->m_Indices);
 
 		return meshSource;
 	}
@@ -744,16 +744,16 @@ namespace Shark {
 			specification.DebugName = aiTexEmbedded->mFilename.C_Str();
 			specification.Width = aiTexEmbedded->mWidth;
 			specification.Height = aiTexEmbedded->mHeight;
-			Buffer imageData = Buffer{ aiTexEmbedded->pcData, aiTexEmbedded->mWidth * aiTexEmbedded->mHeight * sizeof(aiTexel) };
-			if (specification.Height == 0)
+			MutableBuffer imageData = MutableBuffer{ aiTexEmbedded->pcData, aiTexEmbedded->mWidth * aiTexEmbedded->mHeight * sizeof(aiTexel) };
+			if (aiTexEmbedded->mHeight == 0)
 			{
-				imageData = TextureImporter::ToBufferFromMemory(Buffer(aiTexEmbedded->pcData, aiTexEmbedded->mWidth), specification.Format, specification.Width, specification.Height);
+				imageData = TextureImporter::ToBufferFromMemory(Buffer(aiTexEmbedded->pcData, aiTexEmbedded->mWidth), specification.Format, specification.Width, specification.Height).ExtractBuffer();
 			}
 
 			Ref<Texture2D> texture = Texture2D::Create(specification, imageData);
 			Renderer::MT::GenerateMips(texture->GetImage());
 
-			if (specification.Height == 0)
+			if (aiTexEmbedded->mHeight == 0)
 				imageData.Release();
 
 			return context->AddMemoryOnlyAsset(texture);
@@ -761,7 +761,7 @@ namespace Shark {
 
 		// #TODO #async find a way to do this through the asset system
 		const auto texturePath = m_Filepath.parent_path() / path.C_Str();
-		ScopedBuffer imageData = TextureImporter::ToBufferFromFile(texturePath, specification.Format, specification.Width, specification.Height);
+		UniqueBuffer imageData = TextureImporter::ToBufferFromFile(texturePath, specification.Format, specification.Width, specification.Height);
 		if (!imageData)
 		{
 			// #TODO handle file not found

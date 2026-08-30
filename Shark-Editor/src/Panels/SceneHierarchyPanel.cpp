@@ -891,7 +891,7 @@ namespace Shark {
 			{
 				Buffer payloadData = { payload->Data, (uint64_t)payload->DataSize };
 
-				uint32_t count = payloadData.Count<UUID>();
+				uint32_t count = payloadData.Size / sizeof(UUID);
 				for (uint32_t index = 0; index < count; index++)
 				{
 					UUID droppedID;

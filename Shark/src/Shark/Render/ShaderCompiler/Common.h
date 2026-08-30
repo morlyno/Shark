@@ -46,7 +46,7 @@ namespace Shark {
 		std::map<nvrhi::ShaderType, std::string> PreprocessedSource;
 
 		std::map<nvrhi::ShaderType, std::vector<uint32_t>> SpirvBinary;
-		std::map<nvrhi::GraphicsAPI, std::map<nvrhi::ShaderType, Buffer>> PlatformBinary;
+		std::map<nvrhi::GraphicsAPI, std::map<nvrhi::ShaderType, UniqueBuffer>> PlatformBinary;
 
 		ShaderReflection Reflection;
 		std::vector<std::string> RequestedBindingSets;

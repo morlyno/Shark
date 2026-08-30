@@ -7,11 +7,11 @@
 
 namespace Shark {
 
-	Buffer TextureImporter::ToBufferFromFile(const std::filesystem::path& filepath, ImageFormat& outFormat, uint32_t& outWidth, uint32_t& outHeight)
+	UniqueBuffer TextureImporter::ToBufferFromFile(const std::filesystem::path& filepath, ImageFormat& outFormat, uint32_t& outWidth, uint32_t& outHeight)
 	{
 		SK_PROFILE_FUNCTION();
 
-		Buffer buffer;
+		UniqueBuffer buffer;
 		std::string pathString = filepath.string();
 
 		bool isSRGB = outFormat == ImageFormat::sRGBA;
@@ -42,11 +42,11 @@ namespace Shark {
 		return buffer;
 	}
 
-	Buffer TextureImporter::ToBufferFromMemory(Buffer memory, ImageFormat& outFormat, uint32_t& outWidth, uint32_t& outHeight)
+	UniqueBuffer TextureImporter::ToBufferFromMemory(Buffer memory, ImageFormat& outFormat, uint32_t& outWidth, uint32_t& outHeight)
 	{
 		SK_PROFILE_FUNCTION();
 
-		Buffer buffer;
+		UniqueBuffer buffer;
 
 		int width, height, channels;
 		if (stbi_is_hdr_from_memory(memory.As<stbi_uc>(), (int)memory.Size))

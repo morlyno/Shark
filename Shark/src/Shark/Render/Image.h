@@ -43,7 +43,7 @@ namespace Shark {
 		float GetAspectRatio() const { return static_cast<float>(m_Specification.Width) / static_cast<float>(m_Specification.Height); }
 		float GetVerticalAspectRatio() const { return static_cast<float>(m_Specification.Height) / static_cast<float>(m_Specification.Width); }
 
-		void Submit_UploadData(const Buffer buffer);
+		void Submit_UploadData(BufferHandle buffer);
 		void RT_UploadData(const Buffer buffer);
 
 		ImageSpecification& GetSpecification() { return m_Specification; }
@@ -114,7 +114,7 @@ namespace Shark {
 		void RT_OpenReadableBuffer(Buffer& outMemory);
 		void RT_CloseReadableBuffer();
 
-		void RT_ReadPixel(uint32_t x, uint32_t y, Buffer outPixel);
+		void RT_ReadPixel(uint32_t x, uint32_t y, MutableBuffer outPixel);
 
 		uint32_t GetWidth() const { return m_Specification.Width; }
 		uint32_t GetHeight() const { return m_Specification.Height; }

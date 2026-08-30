@@ -225,37 +225,12 @@ namespace Shark::RT {
 		vbufBinding.offset = 0;
 		graphicsState.vertexBuffers[0] = vbufBinding;
 
-		if (material)
+		if (indexBuffer)
 		{
-			utils::BindShaderInputManager(graphicsState, material->GetInputManager());
+			graphicsState.indexBuffer.buffer = indexBuffer->GetHandle();
+			graphicsState.indexBuffer.format = nvrhi::Format::R32_UINT;
+			graphicsState.indexBuffer.offset = 0;
 		}
-
-		graphicsState.indexBuffer.buffer = indexBuffer->GetHandle();
-		graphicsState.indexBuffer.format = nvrhi::Format::R32_UINT;
-		graphicsState.indexBuffer.offset = 0;
-
-		auto commandList = commandBuffer->GetHandle();
-		commandList->setGraphicsState(graphicsState);
-		if (pushConstant.Size)
-			commandList->setPushConstants(pushConstant.As<const void>(), pushConstant.Size);
-
-		commandList->drawIndexed(drawArguments);
-	}
-
-	void RenderGeometry(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, const nvrhi::DrawArguments& drawArguments, const Buffer pushConstant)
-	{
-		SK_PROFILE_SCOPED("Renderer - RenderGeometry");
-		SK_CORE_TRACE_TAG("Renderer", "[RT] RenderGeometry '{}' '{}'", material ? material->GetName() : "<null>", pipeline->GetSpecification().DebugName);
-
-		nvrhi::GraphicsState graphicsState = commandBuffer->GetGraphicsState();
-
-		graphicsState.pipeline = pipeline->GetHandle();
-
-		nvrhi::VertexBufferBinding vbufBinding;
-		vbufBinding.buffer = vertexBuffer->GetHandle();
-		vbufBinding.slot = 0;
-		vbufBinding.offset = 0;
-		graphicsState.vertexBuffers[0] = vbufBinding;
 
 		if (material)
 		{

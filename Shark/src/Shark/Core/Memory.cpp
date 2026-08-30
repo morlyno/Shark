@@ -13,7 +13,7 @@ namespace Shark {
 		memcpy(destination, source.Data, source.Size);
 	}
 
-	void Memory::Write(Buffer& destination, void* source, uint64_t byteSize)
+	void Memory::Write(UniqueBuffer& destination, void* source, uint64_t byteSize)
 	{
 		if (destination.Size < byteSize)
 			destination.Resize(byteSize);

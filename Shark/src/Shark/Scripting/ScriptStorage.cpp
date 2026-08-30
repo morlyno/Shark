@@ -27,12 +27,6 @@ namespace Shark {
 		auto& scriptEngine = ScriptEngine::Get();
 		//SK_CORE_ASSERT(scriptEngine.IsValidScriptID(scriptID));
 		//SK_CORE_ASSERT(EntityInstances.contains(entityID));
-		if (!EntityInstances.contains(entityID))
-			return;
-
-		auto& entityStorage = EntityInstances.at(entityID);
-		for (auto& [fieldID, storage] : entityStorage.Fields)
-			storage.m_ValueBuffer.Release();
 
 		EntityInstances.erase(entityID);
 	}
@@ -75,7 +69,7 @@ namespace Shark {
 			auto& destinationField = destinationStorage.Fields[fieldID];
 			destinationField.m_Name = sourceField.m_Name;
 			destinationField.m_DataType = sourceField.m_DataType;
-			destinationField.m_ValueBuffer = Buffer::Copy(sourceField.m_ValueBuffer);
+			destinationField.m_ValueBuffer = UniqueBuffer::Copy(sourceField.m_ValueBuffer);
 			destinationField.m_Instance = nullptr;
 		}
 
@@ -98,11 +92,11 @@ namespace Shark {
 		fieldStorage.m_Instance = nullptr;
 
 		if (metadata.DefaultValue)
-			fieldStorage.m_ValueBuffer = Buffer::Copy(metadata.DefaultValue);
+			fieldStorage.m_ValueBuffer = UniqueBuffer::Copy(metadata.DefaultValue);
 		else
 		{
 			fieldStorage.m_ValueBuffer.Allocate(GetDataTypeSize(metadata.DataType));
-			fieldStorage.m_ValueBuffer.SetZero();
+			fieldStorage.m_ValueBuffer.WriteZero();
 		}
 	}
 

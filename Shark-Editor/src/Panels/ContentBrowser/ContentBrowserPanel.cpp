@@ -1261,7 +1261,7 @@ namespace Shark {
 	void ContentBrowserPanel::HandleEntityPayload(const ImGuiPayload* payload, Ref<DirectoryInfo> directory)
 	{
 		Buffer idsBuffer = { payload->Data, (uint64_t)payload->DataSize };
-		if (idsBuffer.Count<UUID>() == 1)
+		if (idsBuffer.Size == sizeof(UUID))
 		{
 			UUID entityID;
 			idsBuffer.Read(&entityID, sizeof(UUID));

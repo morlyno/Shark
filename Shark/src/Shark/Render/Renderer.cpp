@@ -163,8 +163,8 @@ namespace Shark {
 				2, 3, 0
 			};
 
-			s_Data->m_QuadVertexBuffer = VertexBuffer::Create(Buffer::FromArray(vertices));
-			s_Data->m_QuadIndexBuffer = IndexBuffer::Create(Buffer::FromArray(indices));
+			s_Data->m_QuadVertexBuffer = VertexBuffer::Create(vertices);
+			s_Data->m_QuadIndexBuffer = IndexBuffer::Create(indices);
 		}
 
 		{
@@ -188,8 +188,8 @@ namespace Shark {
 				0, 1, 4, 1, 5, 4
 			};
 
-			s_Data->m_CubeVertexBuffer = VertexBuffer::Create(Buffer::FromArray(vertices));
-			s_Data->m_CubeIndexBuffer = IndexBuffer::Create(Buffer::FromArray(indices));
+			s_Data->m_CubeVertexBuffer = VertexBuffer::Create(vertices);
+			s_Data->m_CubeIndexBuffer = IndexBuffer::Create(indices);
 		}
 
 		s_Data->m_BRDFLUTTexture = CreateBRDFLUT();
@@ -202,17 +202,17 @@ namespace Shark {
 			spec.HasMips = false;
 
 			spec.DebugName = "White Texture";
-			s_Data->m_WhiteTexture = Texture2D::Create(spec, Buffer::FromValue(0xFFFFFFFF));
+			s_Data->m_WhiteTexture = Texture2D::Create(spec, 0xFFFFFFFF | AsBuffer);
 
 			spec.DebugName = "Black Texture";
-			s_Data->m_BlackTexture = Texture2D::Create(spec, Buffer::FromValue(0x00000000));
+			s_Data->m_BlackTexture = Texture2D::Create(spec, 0x00000000 | AsBuffer);
 
 			spec.Format = ImageFormat::RGBA32F;
 			spec.DebugName = "Black Texture Cube";
 			spec.Format = ImageFormat::RGBA32F;
 			glm::vec4 imageData[6]{};
 
-			s_Data->m_BlackTextureCube = TextureCube::Create(spec, Buffer::FromArray(imageData));
+			s_Data->m_BlackTextureCube = TextureCube::Create(spec, imageData);
 			s_Data->m_EmptyEnvironment = Ref<Environment>::Create(s_Data->m_BlackTextureCube, s_Data->m_BlackTextureCube);
 		}
 
@@ -364,76 +364,60 @@ namespace Shark {
 		});
 	}
 
-	void Renderer::Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, const glm::uvec3& workGroups, const Buffer pushConstantData)
+	void Renderer::Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, const glm::uvec3& workGroups, BufferHandle pushConstantData)
 	{
 		SK_CORE_TRACE_TAG("Renderer", "Dispatch '{}' {}", pipeline->GetDebugName(), workGroups);
 
-		Submit([commandBuffer, pipeline, workGroups, temp = Buffer::Copy(pushConstantData)]() mutable
+		Submit([commandBuffer, pipeline, workGroups, temp = pushConstantData.Store()]()
 		{
 			RT::Dispatch(commandBuffer, pipeline, nullptr, workGroups, temp);
-			temp.Release();
 		});
 	}
 
-	void Renderer::Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, Ref<Material> material, const glm::uvec3& workGroups, const Buffer pushConstantData)
+	void Renderer::Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, Ref<Material> material, const glm::uvec3& workGroups, BufferHandle pushConstantData)
 	{
 		SK_CORE_TRACE_TAG("Renderer", "Dispatch '{}' '{}' {}", pipeline->GetDebugName(), material->GetName(), workGroups);
 		SK_CORE_VERIFY(material);
 
-		Submit([commandBuffer, pipeline, material, workGroups, temp = Buffer::Copy(pushConstantData)]() mutable
+		Submit([commandBuffer, pipeline, material, workGroups, temp = pushConstantData.Store()]() mutable
 		{
 			RT::Dispatch(commandBuffer, pipeline, material, workGroups, temp);
-			temp.Release();
 		});
 	}
 
-	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, Buffer pushConstant)
+	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, BufferHandle pushConstant)
 	{
 		SK_CORE_TRACE_TAG("Renderer", "RenderGeometry '{}' '{}'", material ? material->GetName() : "<null>", pipeline->GetSpecification().DebugName);
 
-		Submit([commandBuffer, pipeline, material, vertexBuffer, indexBuffer, indexCount, temp = Buffer::Copy(pushConstant)]() mutable
+		Submit([commandBuffer, pipeline, material, vertexBuffer, indexBuffer, indexCount, temp = pushConstant.Store()]() mutable
 		{
 			RT::RenderGeometry(commandBuffer, pipeline, material, vertexBuffer, indexBuffer, nvrhi::DrawArguments().setVertexCount(indexCount), temp);
-			temp.Release();
 		});
 	}
 
-	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, const nvrhi::DrawArguments& drawArguments, Buffer pushConstant)
+	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, const nvrhi::DrawArguments& drawArguments, BufferHandle pushConstant)
 	{
 		SK_CORE_TRACE_TAG("Renderer", "RenderGeometry '{}' '{}'", material ? material->GetName() : "<null>", pipeline->GetSpecification().DebugName);
 
-		Submit([commandBuffer, pipeline, material, vertexBuffer, indexBuffer, drawArguments, temp = Buffer::Copy(pushConstant)]() mutable
+		Submit([commandBuffer, pipeline, material, vertexBuffer, indexBuffer, drawArguments, temp = pushConstant.Store()]() mutable
 		{
 			RT::RenderGeometry(commandBuffer, pipeline, material, vertexBuffer, indexBuffer, drawArguments, temp);
-			temp.Release();
 		});
 	}
 
-	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, uint32_t vertexCount, const Buffer pushConstant)
-	{
-		SK_CORE_TRACE_TAG("Renderer", "RenderGeometry '{}' '{}'", material->GetName(), pipeline->GetSpecification().DebugName);
-
-		Submit([commandBuffer, pipeline, material, vertexBuffer, vertexCount, temp = Buffer::Copy(pushConstant)]() mutable
-		{
-			RT::RenderGeometry(commandBuffer, pipeline, material, vertexBuffer, nvrhi::DrawArguments().setVertexCount(vertexCount), temp);
-			temp.Release();
-		});
-	}
-
-	void Renderer::RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material, bool isRigged, const Buffer pushConstantsData)
+	void Renderer::RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material, bool isRigged, BufferHandle pushConstantsData)
 	{
 		SK_CORE_TRACE_TAG("Renderer", "RenderSubmesh '{}':{} '{}'", meshSource->GetName(), submeshIndex, material ? material->GetName() : "<null>");
 
-		Submit([commandBuffer, pipeline, mesh, meshSource, submeshIndex, material, isRigged, temp = Buffer::Copy(pushConstantsData)]() mutable
+		Submit([commandBuffer, pipeline, mesh, meshSource, submeshIndex, material, isRigged, temp = pushConstantsData.Store()]() mutable
 		{
 			RT::RenderSubmesh(commandBuffer, pipeline, mesh, meshSource, submeshIndex, material, isRigged, temp);
-			temp.Release();
 		});
 	}
 
-	void Renderer::RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Buffer pushConstantsData)
+	void Renderer::RenderFullScreenQuad(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, BufferHandle pushConstantsData)
 	{
-		RenderGeometry(commandBuffer, pipeline, material, s_Data->m_QuadVertexBuffer, s_Data->m_QuadIndexBuffer, s_Data->m_QuadIndexBuffer->GetCount(), pushConstantsData);
+		RenderGeometry(commandBuffer, pipeline, material, s_Data->m_QuadVertexBuffer, s_Data->m_QuadIndexBuffer, s_Data->m_QuadIndexBuffer->GetCount(), std::move(pushConstantsData));
 	}
 
 	void Renderer::RenderCube(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material)
@@ -441,21 +425,19 @@ namespace Shark {
 		RenderGeometry(commandBuffer, pipeline, material, s_Data->m_CubeVertexBuffer, s_Data->m_CubeIndexBuffer, s_Data->m_CubeIndexBuffer->GetCount());
 	}
 
-	void Renderer::WriteBuffer(Ref<RenderCommandBuffer> commandBuffer, Ref<GpuBuffer> buffer, const Buffer bufferData)
+	void Renderer::WriteBuffer(Ref<RenderCommandBuffer> commandBuffer, Ref<GpuBuffer> buffer, BufferHandle bufferData)
 	{
-		Submit([commandBuffer, buffer, temp = Buffer::Copy(bufferData)]() mutable
+		Submit([commandBuffer, buffer, temp = bufferData.Store()]() mutable
 		{
 			RT::WriteBuffer(commandBuffer, buffer, temp);
-			temp.Release();
 		});
 	}
 
-	void Renderer::WriteImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> image, const ImageSlice& slice, const Buffer imageData)
+	void Renderer::WriteImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> image, const ImageSlice& slice, BufferHandle imageData)
 	{
-		Submit([commandBuffer, image, slice, temp = Buffer::Copy(imageData)]() mutable
+		Submit([commandBuffer, image, slice, temp = imageData.Store()]() mutable
 		{
 			RT::WriteImage(commandBuffer, image, slice, temp);
-			temp.Release();
 		});
 	}
 
@@ -606,7 +588,7 @@ namespace Shark {
 		};
 
 		BeginComputePass(commandBuffer, pass);
-		Dispatch(commandBuffer, pipeline, workGroups, { &push, sizeof(push) });
+		Dispatch(commandBuffer, pipeline, workGroups, Buffer{ &push, sizeof(push) });
 		EndComputePass(commandBuffer, pass);
 	}
 
@@ -677,7 +659,7 @@ namespace Shark {
 				material->Bake();
 
 				const auto workGroups = glm::max({ targetMipWidth / 8, targetMipHeight / 8, 1 }, glm::uvec3(1));
-				Renderer::Dispatch(commandBuffer, pipeline, material, workGroups, Buffer::FromValue(settings));
+				Renderer::Dispatch(commandBuffer, pipeline, material, workGroups, settings | AsBuffer);
 			}
 		}
 
@@ -790,7 +772,7 @@ namespace Shark {
 				SK_CORE_VERIFY(material->Validate());
 				material->Bake();
 
-				Dispatch(commandBuffer, pipeline, material, { workGroups, workGroups, 6 }, Buffer::FromValue(roughness));
+				Dispatch(commandBuffer, pipeline, material, { workGroups, workGroups, 6 }, roughness | AsBuffer);
 			}
 			EndComputePass(commandBuffer, pass);
 		}
@@ -804,9 +786,8 @@ namespace Shark {
 			pass->Bake();
 
 			BeginComputePass(commandBuffer, pass);
-			Dispatch(commandBuffer, pipeline, { irradianceMap->GetWidth() / 32, irradianceMap->GetHeight() / 32, 6 }, Buffer::FromValue(GetConfig().IrradianceMapComputeSamples));
+			Dispatch(commandBuffer, pipeline, { irradianceMap->GetWidth() / 32, irradianceMap->GetHeight() / 32, 6 }, GetConfig().IrradianceMapComputeSamples | AsBuffer);
 			EndComputePass(commandBuffer, pass);
-
 
 			GenerateMips(commandBuffer, irradianceMap->GetImage());
 		}
@@ -1132,7 +1113,7 @@ namespace Shark {
 		const uint32_t samples = Renderer::GetConfig().IrradianceMapComputeSamples;
 
 		TextureSpecification textureSpecification = { .HasMips = false };
-		Buffer imageData = TextureImporter::ToBufferFromFile(filepath, textureSpecification.Format, textureSpecification.Width, textureSpecification.Height);
+		UniqueBuffer imageData = TextureImporter::ToBufferFromFile(filepath, textureSpecification.Format, textureSpecification.Width, textureSpecification.Height);
 
 		Ref<Texture2D> equirectangular = Texture2D::Create(textureSpecification);
 		SK_CORE_VERIFY(equirectangular->GetSpecification().Format == ImageFormat::RGBA32F, "Environment Texture is not HDR!");

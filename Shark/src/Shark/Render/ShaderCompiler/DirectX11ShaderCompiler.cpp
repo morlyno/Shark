@@ -33,7 +33,7 @@ namespace Shark {
 			CacheStatus status = shaderCache.GetCacheStatus(info, stage, nvrhi::GraphicsAPI::D3D11);
 			if (!m_Options.Force && status == CacheStatus::OK)
 			{
-				Buffer binary;
+				UniqueBuffer binary;
 				if (shaderCache.LoadBinary(info, stage, nvrhi::GraphicsAPI::D3D11, binary))
 				{
 					platformBinary[stage] = std::move(binary);
@@ -52,9 +52,7 @@ namespace Shark {
 			{
 				SK_CORE_ERROR_TAG("ShaderCompiler", "Compiling shader '{}' failed!", info.SourcePath.filename());
 				SK_DEBUG_BREAK_CONDITIONAL(BREAK_ON_FAILED_COMPILATION);
-				
-				for (auto& [stage, binary] : platformBinary)
-					binary.Release();
+
 				result.PlatformBinary.erase(nvrhi::GraphicsAPI::D3D11);
 				return false;
 			}

@@ -37,12 +37,15 @@ namespace Shark {
 	{
 	public:
 		static Ref<Texture2D> Create() { return Ref<Texture2D>::Create(); }
-		static Ref<Texture2D> Create(const TextureSpecification& specification, const Buffer imageData = Buffer()) { return Ref<Texture2D>::Create(specification, imageData); }
+		static Ref<Texture2D> Create(const TextureSpecification& specification, const Buffer imageData = {}) { return Ref<Texture2D>::Create(specification, std::move(imageData)); }
 		static Ref<Texture2D> Create(const TextureSpecification& specification, const std::filesystem::path& filepath) { return Ref<Texture2D>::Create(specification, filepath); }
 
 	public:
 		void Invalidate();
 		void RT_Invalidate();
+
+		void Upload(BufferHandle imageData);
+		void RT_Upload(const Buffer imageData);
 
 		RefArg<Image2D> GetImage() const { return m_Image; }
 		nvrhi::TextureHandle GetHandle() const { return m_ViewInfo.Handle; }
@@ -55,9 +58,6 @@ namespace Shark {
 		uint32_t GetMipLevels() const;
 		float GetAspectRatio() const { return (float)GetWidth() / (float)GetHeight(); }
 		float GetVerticalAspectRatio() const { return (float)GetHeight() / (float)GetWidth(); }
-
-		Buffer& GetBuffer() { return m_ImageData; }
-		Buffer GetBuffer() const { return m_ImageData; }
 
 		TextureSpecification& GetSpecification() { return m_Specification; }
 		const TextureSpecification& GetSpecification() const { return m_Specification; }
@@ -74,7 +74,7 @@ namespace Shark {
 
 	public:
 		Texture2D();
-		Texture2D(const TextureSpecification& specification, const Buffer imageData = Buffer());
+		Texture2D(const TextureSpecification& specification, const Buffer imageData = {});
 		Texture2D(const TextureSpecification& specification, const std::filesystem::path& filepath);
 		~Texture2D();
 
@@ -96,8 +96,6 @@ namespace Shark {
 
 		ViewInfo m_ViewInfo;
 		Ref<Image2D> m_Image;
-
-		Buffer m_ImageData;
 
 		std::filesystem::path m_Filepath;
 		AssetHandle m_SourceTextureHandle;
@@ -134,8 +132,6 @@ namespace Shark {
 
 		ViewInfo m_ViewInfo;
 		Ref<Image2D> m_Image;
-
-		Buffer m_ImageData;
 	};
 
 	//////////////////////////////////////////////////////////////////////////

@@ -221,24 +221,24 @@ namespace Shark {
 
 				switch (field.DataType)
 				{
-					case ManagedFieldType::Bool: ImGui::Text(field.DefaultValue.Value<bool>() ? "true" : "false"); break;
-					case ManagedFieldType::Byte: ImGui::Text(fmt::to_string(field.DefaultValue.Value<uint8_t>())); break;
-					case ManagedFieldType::SByte: ImGui::Text(fmt::to_string(field.DefaultValue.Value<int8_t>())); break;
-					case ManagedFieldType::Short: ImGui::Text(fmt::to_string(field.DefaultValue.Value<int16_t>())); break;
-					case ManagedFieldType::UShort: ImGui::Text(fmt::to_string(field.DefaultValue.Value<uint16_t>())); break;
-					case ManagedFieldType::Int: ImGui::Text(fmt::to_string(field.DefaultValue.Value<int32_t>())); break;
-					case ManagedFieldType::UInt: ImGui::Text(fmt::to_string(field.DefaultValue.Value<uint32_t>())); break;
-					case ManagedFieldType::Long: ImGui::Text(fmt::to_string(field.DefaultValue.Value<int64_t>())); break;
-					case ManagedFieldType::ULong: ImGui::Text(fmt::to_string(field.DefaultValue.Value<uint64_t>())); break;
-					case ManagedFieldType::Float: ImGui::Text(fmt::to_string(field.DefaultValue.Value<float>())); break;
-					case ManagedFieldType::Double: ImGui::Text(fmt::to_string(field.DefaultValue.Value<double>())); break;
+					case ManagedFieldType::Bool: ImGui::Text(field.DefaultValue.ReadAs<bool>() ? "true" : "false"); break;
+					case ManagedFieldType::Byte: ImGui::Text(fmt::to_string(field.DefaultValue.ReadAs<uint8_t>())); break;
+					case ManagedFieldType::SByte: ImGui::Text(fmt::to_string(field.DefaultValue.ReadAs<int8_t>())); break;
+					case ManagedFieldType::Short: ImGui::Text(fmt::to_string(field.DefaultValue.ReadAs<int16_t>())); break;
+					case ManagedFieldType::UShort: ImGui::Text(fmt::to_string(field.DefaultValue.ReadAs<uint16_t>())); break;
+					case ManagedFieldType::Int: ImGui::Text(fmt::to_string(field.DefaultValue.ReadAs<int32_t>())); break;
+					case ManagedFieldType::UInt: ImGui::Text(fmt::to_string(field.DefaultValue.ReadAs<uint32_t>())); break;
+					case ManagedFieldType::Long: ImGui::Text(fmt::to_string(field.DefaultValue.ReadAs<int64_t>())); break;
+					case ManagedFieldType::ULong: ImGui::Text(fmt::to_string(field.DefaultValue.ReadAs<uint64_t>())); break;
+					case ManagedFieldType::Float: ImGui::Text(fmt::to_string(field.DefaultValue.ReadAs<float>())); break;
+					case ManagedFieldType::Double: ImGui::Text(fmt::to_string(field.DefaultValue.ReadAs<double>())); break;
 
-					case ManagedFieldType::Vector2: ImGui::Text(fmt::to_string(field.DefaultValue.Value<glm::vec2>())); break;
-					case ManagedFieldType::Vector3: ImGui::Text(fmt::to_string(field.DefaultValue.Value<glm::vec3>())); break;
-					case ManagedFieldType::Vector4: ImGui::Text(fmt::to_string(field.DefaultValue.Value<glm::vec4>())); break;
+					case ManagedFieldType::Vector2: ImGui::Text(fmt::to_string(field.DefaultValue.ReadAs<glm::vec2>())); break;
+					case ManagedFieldType::Vector3: ImGui::Text(fmt::to_string(field.DefaultValue.ReadAs<glm::vec3>())); break;
+					case ManagedFieldType::Vector4: ImGui::Text(fmt::to_string(field.DefaultValue.ReadAs<glm::vec4>())); break;
 
 					case ManagedFieldType::String: ImGui::Text(std::string_view(field.DefaultValue.As<const char>(), field.DefaultValue.Size)); break;
-					case ManagedFieldType::Entity: ImGui::Text(fmt::to_string(field.DefaultValue.Value<UUID>())); break;
+					case ManagedFieldType::Entity: ImGui::Text(fmt::to_string(field.DefaultValue.ReadAs<UUID>())); break;
 
 					default: ImGui::Text("Unknown type"); break;
 				}

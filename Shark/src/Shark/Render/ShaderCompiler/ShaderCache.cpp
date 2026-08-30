@@ -200,20 +200,20 @@ namespace Shark {
 	{
 		const std::string cacheFile = utils::GetSpirvCacheFile(info.ShaderID, stage);
 
-		ScopedBuffer binary = FileSystem::ReadBinary(cacheFile);
-		if (!binary)
+		auto binary = FileSystem::ReadBinary(cacheFile);
+		if (!binary.Size)
 			return false;
 
-		Memory::Write(outBinary, binary);
+		Memory::Write(outBinary, binary.AsBuffer());
 		return !outBinary.empty();
 	}
 
-	bool ShaderCache::LoadBinary(const ShaderInfo& info, nvrhi::ShaderType stage, nvrhi::GraphicsAPI platform, Buffer& outBinary) const
+	bool ShaderCache::LoadBinary(const ShaderInfo& info, nvrhi::ShaderType stage, nvrhi::GraphicsAPI platform, UniqueBuffer& outBinary) const
 	{
 		const std::string cacheFile = utils::GetPlatformCacheFile(info.ShaderID, stage, platform);
 
 		outBinary = FileSystem::ReadBinary(cacheFile);
-		return outBinary;
+		return outBinary.Size;
 	}
 
 	bool ShaderCache::LoadReflection(const ShaderInfo& info, ShaderReflection& outReflection, std::vector<std::string>& outRequestedBindingSets, LayoutShareMode& outShareMode) const
@@ -277,7 +277,7 @@ namespace Shark {
 	{
 		const std::string cacheFile = utils::GetSpirvCacheFile(info.ShaderID, stage);
 
-		FileSystem::WriteBinary(cacheFile, Buffer::FromArray(binary));
+		FileSystem::WriteBinary(cacheFile, binary);
 	}
 
 	void ShaderCache::SaveBinary(const ShaderInfo& info, nvrhi::ShaderType stage, nvrhi::GraphicsAPI platform, const Buffer binary)

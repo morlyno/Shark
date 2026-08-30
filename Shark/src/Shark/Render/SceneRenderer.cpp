@@ -275,7 +275,7 @@ namespace Shark {
 		sceneData.DirectionalLightCount = m_Scene->GetLightEnvironment().DirectionalLightCount;
 		Renderer::Submit([buffer = m_CBScene, sceneData]()
 		{
-			buffer->RT_Upload(Buffer::FromValue(sceneData));
+			buffer->RT_Upload(sceneData);
 		});
 
 		CBCamera cameraData;
@@ -283,7 +283,7 @@ namespace Shark {
 		cameraData.Position = m_CameraPosition;
 		Renderer::Submit([buffer = m_CBCamera, cameraData]()
 		{
-			buffer->RT_Upload(Buffer::FromValue(cameraData));
+			buffer->RT_Upload(cameraData);
 		});
 
 		CBSkybox skybox;
@@ -295,8 +295,8 @@ namespace Shark {
 
 		Renderer::Submit([instance = Ref(this), skybox, settings]()
 		{
-			instance->m_CBSkybox->RT_Upload(Buffer::FromValue(skybox));
-			instance->m_CBSkyboxSettings->RT_Upload(Buffer::FromValue(settings));
+			instance->m_CBSkybox->RT_Upload(skybox);
+			instance->m_CBSkyboxSettings->RT_Upload(settings);
 		});
 
 		const auto& pointLights = m_Scene->GetPointLights();
@@ -306,8 +306,8 @@ namespace Shark {
 			m_SBPointLights->Resize(newCount);
 		}
 
-		m_SBPointLights->Upload(Buffer::FromArray(pointLights));
-		m_SBDirectionalLights->Upload(Buffer::FromArray(m_Scene->GetLightEnvironment().DirectionalLights));
+		m_SBPointLights->Upload(pointLights | AsBuffer);
+		m_SBDirectionalLights->Upload(m_Scene->GetLightEnvironment().DirectionalLights | AsBuffer);
 
 		CBCompositeSettings compositeSettings;
 		compositeSettings.Tonemap = m_Options.Tonemap;
@@ -315,7 +315,7 @@ namespace Shark {
 		compositeSettings.Exposure = m_Options.Exposure;
 		Renderer::Submit([buffer = m_CBCompositeSettings, compositeSettings]()
 		{
-			buffer->RT_Upload(Buffer::FromValue(compositeSettings));
+			buffer->RT_Upload(compositeSettings);
 		});
 
 		CBOutlineSettings outlineSettings;
@@ -324,7 +324,7 @@ namespace Shark {
 		outlineSettings.TexelSize = { 1.0f / static_cast<float>(m_Specification.Width), 1.0f / static_cast<float>(m_Specification.Height) };
 		Renderer::Submit([buffer = m_CBOutlineSettings, outlineSettings]()
 		{
-			buffer->RT_Upload(Buffer::FromValue(outlineSettings));
+			buffer->RT_Upload(outlineSettings);
 		});
 
 		auto frameIndex = Renderer::GetCurrentFrameIndex();
@@ -346,7 +346,7 @@ namespace Shark {
 			Renderer::Submit([instance = Ref(this), buffer = m_SBBoneTransforms]()
 			{
 				auto frameIndex = Renderer::RT_GetCurrentFrameIndex();
-				buffer->RT_Upload(Buffer::FromArray(instance->m_BoneTransformsUploadBuffer[frameIndex % 2]));
+				buffer->RT_Upload(instance->m_BoneTransformsUploadBuffer[frameIndex % 2]);
 			});
 		}
 
@@ -382,7 +382,7 @@ namespace Shark {
 			MeshPushConstant pcMesh;
 			pcMesh.Transform = mesh.Transform;
 			pcMesh.ID = mesh.ID;
-			Renderer::RenderSubmesh(m_CommandBuffer, m_GeometryPipeline, mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, mesh.Material->GetMaterial(), false, Buffer::FromValue(pcMesh));
+			Renderer::RenderSubmesh(m_CommandBuffer, m_GeometryPipeline, mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, mesh.Material->GetMaterial(), false, pcMesh | AsBuffer);
 
 			m_Statistics.DrawCalls++;
 			m_Statistics.VertexCount += mesh.MeshSource->GetSubmeshes()[mesh.SubmeshIndex].VertexCount;
@@ -403,7 +403,7 @@ namespace Shark {
 			pcMesh.ID = mesh.ID;
 			pcMesh.BoneBase = m_MeshBoneTransforms.at(mesh.ContextID).BaseIndex;
 			pcMesh.BoneStride = m_MeshBoneTransforms.at(mesh.ContextID).Stride;
-			Renderer::RenderSubmesh(m_CommandBuffer, m_GeometryAnimatedPipeline, mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, mesh.Material->GetMaterial(), true, Buffer::FromValue(pcMesh));
+			Renderer::RenderSubmesh(m_CommandBuffer, m_GeometryAnimatedPipeline, mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, mesh.Material->GetMaterial(), true, pcMesh | AsBuffer);
 
 			m_Statistics.DrawCalls++;
 			m_Statistics.VertexCount += mesh.MeshSource->GetSubmeshes()[mesh.SubmeshIndex].VertexCount;
@@ -421,7 +421,7 @@ namespace Shark {
 			if (mesh.IsRigged)
 				continue;
 
-			Renderer::RenderSubmesh(m_CommandBuffer, m_SelectedGeometryPipeline, mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, nullptr, false, Buffer::FromValue(mesh.Transform));
+			Renderer::RenderSubmesh(m_CommandBuffer, m_SelectedGeometryPipeline, mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, nullptr, false, mesh.Transform | AsBuffer);
 
 			m_Statistics.DrawCalls++;
 			m_Statistics.VertexCount += mesh.MeshSource->GetSubmeshes()[mesh.SubmeshIndex].VertexCount;
@@ -446,7 +446,7 @@ namespace Shark {
 			pc.Transform = mesh.Transform;
 			pc.BoneBase = m_MeshBoneTransforms.at(mesh.ContextID).BaseIndex;
 			pc.BoneStride = m_MeshBoneTransforms.at(mesh.ContextID).Stride;
-			Renderer::RenderSubmesh(m_CommandBuffer, m_SelectedGeometryAnimatedPipeline, mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, nullptr, false, { &pc, sizeof pc });
+			Renderer::RenderSubmesh(m_CommandBuffer, m_SelectedGeometryAnimatedPipeline, mesh.Mesh, mesh.MeshSource, mesh.SubmeshIndex, nullptr, false, pc | AsBuffer);
 
 			m_Statistics.DrawCalls++;
 			m_Statistics.VertexCount += mesh.MeshSource->GetSubmeshes()[mesh.SubmeshIndex].VertexCount;
@@ -480,27 +480,26 @@ namespace Shark {
 		Renderer::RenderFullScreenQuad(m_CommandBuffer, m_JumpFloodInitPipeline, nullptr);
 		Renderer::EndRenderPass(m_CommandBuffer, m_JumpFloodInitPass);
 
-		int steps = m_JumpFloodSteps;
-		int step = glm::pow2(steps - 1);
-		int index = 0;
-		Buffer vertexOverrides;
-		Ref<FrameBuffer> passFB = m_JumpFloodPass[0]->GetTargetFramebuffer();
-		glm::vec2 texelSize = { 1.0f / (float)passFB->GetSpecification().Width, 1.0f / (float)passFB->GetSpecification().Height };
-		vertexOverrides.Allocate(sizeof(glm::vec2) + sizeof(int));
-		vertexOverrides.Write(glm::value_ptr(texelSize), sizeof(glm::vec2));
-		while (step != 0)
+		struct Push
 		{
-			vertexOverrides.Write(&step, sizeof(int), sizeof(glm::vec2));
+			glm::vec2 TexelSize;
+			int Step;
+		} push;
+		
+		Ref<FrameBuffer> passFB = m_JumpFloodPass[0]->GetTargetFramebuffer();
+		push.TexelSize = { 1.0f / (float)passFB->GetSpecification().Width, 1.0f / (float)passFB->GetSpecification().Height };
+		push.Step = glm::pow2(m_JumpFloodSteps - 1);
 
+		int index = 0;
+		while (push.Step != 0)
+		{
 			Renderer::BeginRenderPass(m_CommandBuffer, m_JumpFloodPass[index]);
-			Renderer::RenderFullScreenQuad(m_CommandBuffer, m_JumpFloodPipeline, nullptr, vertexOverrides);
+			Renderer::RenderFullScreenQuad(m_CommandBuffer, m_JumpFloodPipeline, nullptr, push);
 			Renderer::EndRenderPass(m_CommandBuffer, m_JumpFloodPass[index]);
 
 			index = (index + 1) % 2;
-			step /= 2;
+			push.Step /= 2;
 		}
-
-		vertexOverrides.Release();
 
 		m_CommandBuffer->EndTimer();
 		m_CommandBuffer->EndMarker();

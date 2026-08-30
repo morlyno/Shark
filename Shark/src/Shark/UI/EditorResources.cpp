@@ -115,29 +115,25 @@ namespace Shark {
 		AlphaBackground = Texture2D::Create(specification, g_AlphaBackgroundPath);
 
 		{
-			Buffer textureData;
+			UniqueBuffer textureData;
 			TextureSpecification specification;
 			specification.HasMips = false;
 
 			specification.DebugName = "Window close icon";
-			textureData = TextureImporter::ToBufferFromMemory(Buffer::FromArray(g_WindowCloseIcon), specification.Format, specification.Width, specification.Height);
-			WindowCloseIcon = Texture2D::Create(specification, textureData);
-			textureData.Release();
+			textureData = TextureImporter::ToBufferFromMemory(g_WindowCloseIcon, specification.Format, specification.Width, specification.Height);
+			WindowCloseIcon = Texture2D::Create(specification, textureData.AsBuffer());
 
 			specification.DebugName = "Window minimize icon";
-			textureData = TextureImporter::ToBufferFromMemory(Buffer::FromArray(g_WindowMinimizeIcon), specification.Format, specification.Width, specification.Height);
-			WindowMinimizeIcon = Texture2D::Create(specification, textureData);
-			textureData.Release();
+			textureData = TextureImporter::ToBufferFromMemory(g_WindowMinimizeIcon, specification.Format, specification.Width, specification.Height);
+			WindowMinimizeIcon = Texture2D::Create(specification, textureData.AsBuffer());
 
 			specification.DebugName = "Window maximize icon";
-			textureData = TextureImporter::ToBufferFromMemory(Buffer::FromArray(g_WindowMaximizeIcon), specification.Format, specification.Width, specification.Height);
-			WindowMaximizeIcon = Texture2D::Create(specification, textureData);
-			textureData.Release();
+			textureData = TextureImporter::ToBufferFromMemory(g_WindowMaximizeIcon, specification.Format, specification.Width, specification.Height);
+			WindowMaximizeIcon = Texture2D::Create(specification, textureData.AsBuffer());
 
 			specification.DebugName = "Window restore icon";
-			textureData = TextureImporter::ToBufferFromMemory(Buffer::FromArray(g_WindowRestoreIcon), specification.Format, specification.Width, specification.Height);
-			WindowRestoreIcon = Texture2D::Create(specification, textureData);
-			textureData.Release();
+			textureData = TextureImporter::ToBufferFromMemory(g_WindowRestoreIcon, specification.Format, specification.Width, specification.Height);
+			WindowRestoreIcon = Texture2D::Create(specification, textureData.AsBuffer());
 		}
 
 		Logo = Texture2D::Create(
@@ -147,7 +143,7 @@ namespace Shark {
 				.HasMips = false,
 				.DebugName = "Logo Placeholder"
 			},
-			Buffer::FromValue(0xF01414FF)
+			0xF01414FF | AsBuffer
 		);
 	}
 
@@ -188,13 +184,11 @@ namespace Shark {
 
 	static void ReloadIconFromDisc(Ref<Texture2D> icon, const std::filesystem::path& filepath)
 	{
-		Buffer& imageData = icon->GetBuffer();
-		imageData.Release();
-
 		TextureSpecification& specification = icon->GetSpecification();
-		imageData = TextureImporter::ToBufferFromFile(filepath, specification.Format, specification.Width, specification.Height);
+		auto imageData = TextureImporter::ToBufferFromFile(filepath, specification.Format, specification.Width, specification.Height);
 
 		icon->Invalidate();
+		icon->Upload(std::move(imageData));
 	}
 
 	void EditorResources::ReloadIcons()

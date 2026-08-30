@@ -199,7 +199,7 @@ namespace Shark {
 		ThumbnailFileHeader header;
 		stream.ReadRaw(header);
 
-		Buffer imageData;
+		UniqueBuffer imageData;
 		stream.ReadBuffer(imageData);
 
 		ImageSpecification specification;
@@ -208,9 +208,8 @@ namespace Shark {
 		specification.Height = header.Height;
 		specification.DebugName = fmt::format("Thumbnail '{}'", handle);
 		Ref<Image2D> image = Image2D::Create(specification);
-		image->Submit_UploadData(imageData);
+		image->Submit_UploadData(std::move(imageData));
 		m_Thumbnails[handle] = { image, header.Timestamp };
-		imageData.Release();
 
 		m_LoadCount++;
 		SK_CORE_INFO_TAG("ThumbnailCache", "[FI={}] Loaded Thumbnail from disc (Handle={}, Timestamp={}", Application::Get().GetFrameCount(), handle, header.Timestamp);

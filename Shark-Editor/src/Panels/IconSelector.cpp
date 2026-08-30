@@ -41,10 +41,10 @@ namespace Shark {
 					path = FileSystem::Relative(path).generic_wstring();
 					if (texture)
 					{
-						Buffer& buffer = texture->GetBuffer();
 						TextureSpecification& specification = texture->GetSpecification();
-						buffer = TextureImporter::ToBufferFromFile(path, specification.Format, specification.Width, specification.Height);
+						auto buffer = TextureImporter::ToBufferFromFile(path, specification.Format, specification.Width, specification.Height);
 						texture->Invalidate();
+						texture->Upload(std::move(buffer));
 						return true;
 					}
 					return false;

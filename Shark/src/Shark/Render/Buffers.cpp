@@ -39,8 +39,9 @@ namespace Shark {
 	}
 
 	IndexBuffer::IndexBuffer(const Buffer indexData, nvrhi::CpuAccessMode cpuAccess)
-		: IndexBuffer((uint32_t)indexData.Count<uint32_t>(), cpuAccess)
+		: IndexBuffer(indexData.Size / sizeof(uint32_t), cpuAccess)
 	{
+		SK_CORE_ASSERT(indexData.Size % sizeof(uint32_t) == 0, "Buffer size must be aligned to a multiple of 4 bytes");
 		RT_Upload(indexData);
 	}
 

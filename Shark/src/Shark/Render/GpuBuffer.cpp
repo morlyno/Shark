@@ -13,29 +13,30 @@ namespace Shark {
 	{
 		InvalidateFromState(RT_State{ .ByteSize = m_ByteSize });
 
-		m_LocalStorage.Allocate(m_ByteSize);
-		Allocator::SetMemoryDescription(m_LocalStorage.Data, "LocalStorage");
 	}
 
 	GpuBuffer::~GpuBuffer()
 	{
-		m_LocalStorage.Release();
 	}
 
-	void GpuBuffer::Upload(const Buffer data)
+	void GpuBuffer::Upload(BufferHandle data)
 	{
-		m_LocalStorage.Write(data);
+		if (!data)
+			return;
 
 		Ref instance = this;
-		Renderer::Submit([instance, storage = m_LocalStorage]()
+		Renderer::Submit([instance, storage = data.Store()]()
 		{
-			instance->RT_Upload(storage);
+			instance->RT_Upload(storage.AsBuffer());
 		});
 	}
 
 	void GpuBuffer::RT_Upload(const Buffer data)
 	{
 		SK_PROFILE_FUNCTION();
+
+		if (!data)
+			return;
 
 		auto deviceManager = Renderer::GetDeviceManager();
 		deviceManager->ExecuteCommand([handle = m_BufferHandle, data](nvrhi::ICommandList* cmd)
@@ -59,15 +60,10 @@ namespace Shark {
 
 		m_ByteSize = newSize;
 
-		Buffer temp = std::exchange(m_LocalStorage, {});
-		m_LocalStorage.Allocate(m_ByteSize);
-		Allocator::SetMemoryDescription(m_LocalStorage.Data, "LocalStorage");
-
 		Ref instance = this;
-		Renderer::Submit([instance, state = RT_State{ .ByteSize = m_ByteSize }, temp]() mutable
+		Renderer::Submit([instance, state = RT_State{ .ByteSize = m_ByteSize }]() mutable
 		{
 			instance->InvalidateFromState(state);
-			temp.Release();
 		});
 	}
 
