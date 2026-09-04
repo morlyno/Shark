@@ -17,6 +17,7 @@ namespace Shark::UI {
 	class Fonts
 	{
 	public:
+		static void Clear();
 		static void Add(const FontConfiguration& config);
 		static void PushDefault();
 		static void Push(const std::string& name);

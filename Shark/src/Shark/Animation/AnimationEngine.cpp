@@ -217,7 +217,9 @@ namespace Shark {
 
 	AnimationEngine::PoseIterator AnimationEngine::GetPoses()
 	{
-		return PoseIterator(*this);
+		auto iterator = PoseIterator(*this);
+		AdvanceIterator(iterator);
+		return iterator;
 	}
 
 	void AnimationEngine::OnAssetReloaded(AssetHandle handle)
@@ -462,7 +464,7 @@ namespace Shark {
 
 	void AnimationEngine::AdvanceIterator(PoseIterator& iterator)
 	{
-		SK_CORE_ASSERT(!iterator.IsAtEnd());
+		//SK_CORE_ASSERT(!iterator.IsAtEnd());
 
 		while (++iterator.m_Index < m_RegisteredAnimations.size())
 		{

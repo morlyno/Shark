@@ -130,6 +130,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
+		UI::Fonts::Clear();
 		ImGui_ImplWin32_Shutdown();
 		ImGui::DestroyPlatformWindows();
 		m_Renderer->DestroyTextures();

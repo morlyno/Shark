@@ -1014,7 +1014,7 @@ namespace Shark {
 				ImGui::Text("Clear Disc");
 				ImGui::Spring();
 				if (ImGui::Button("Current"))
-					m_ThumbnailCache->ClearFor(GetAssetHandlesFromItems(m_CurrentItems));
+					m_ThumbnailCache->ClearDiscFor(GetAssetHandlesFromItems(m_CurrentItems));
 				if (ImGui::Button("All"))
 					m_ThumbnailCache->ClearDiscCache();
 				ImGui::EndHorizontal();

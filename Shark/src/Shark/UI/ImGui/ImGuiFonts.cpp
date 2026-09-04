@@ -5,6 +5,11 @@ namespace Shark::UI {
 
 	static std::unordered_map<std::string, ImFont*> s_Fonts;
 
+	void Fonts::Clear()
+	{
+		s_Fonts.clear();
+	}
+
 	void Fonts::Add(const FontConfiguration& config)
 	{
 		if (s_Fonts.contains(config.Name))

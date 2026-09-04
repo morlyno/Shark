@@ -99,10 +99,6 @@ namespace Shark {
 	{
 	public:
 		PoseIterator() = default;
-		PoseIterator(AnimationEngine& engine)
-			: m_Engine(&engine), m_Index(0), m_Entry(m_Engine->GetEntityAndPose(0))
-		{}
-
 		std::pair<UUID, const Pose*>& operator*() { return m_Entry; }
 		std::pair<UUID, const Pose*>* operator->() { return &m_Entry; }
 
@@ -114,6 +110,9 @@ namespace Shark {
 
 	private:
 		bool IsAtEnd() const { return !m_Engine || (m_Index == ~0 && m_GraphIndex == ~0); }
+
+		PoseIterator(AnimationEngine& engine)
+			: m_Engine(&engine) {}
 
 	private:
 		AnimationEngine* m_Engine = nullptr;

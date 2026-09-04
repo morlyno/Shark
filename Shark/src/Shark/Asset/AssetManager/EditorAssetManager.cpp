@@ -157,7 +157,7 @@ namespace Shark {
 
 			while (!future.Ready())
 			{
-				queueSize.wait(0);
+				queueSize.wait(queueSize);
 				SyncWithAssetThread();
 			}
 		}
