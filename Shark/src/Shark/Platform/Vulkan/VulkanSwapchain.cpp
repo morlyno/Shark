@@ -90,14 +90,13 @@ namespace Shark {
 		vk::Result result;
 
 		{
-			deviceManager->LockQueue();
+			SK_PROFILE_SCOPED("VulkanSwapChain - presentKHR");
 
 			device->queueSignalSemaphore(nvrhi::CommandQueue::Graphics, semaphore, 0);
 			device->executeCommandLists(nullptr, 0);
 
 			auto presentQueue = deviceManager->GetPresentQueue();
 			result = presentQueue.presentKHR(&presentInfo);
-			deviceManager->UnlockQueue();
 		}
 
 		if (result != vk::Result::eSuccess && result != vk::Result::eErrorOutOfDateKHR && result != vk::Result::eSuboptimalKHR)
@@ -143,9 +142,7 @@ namespace Shark {
 		auto deviceManager = static_cast<VulkanDeviceManager*>(Renderer::GetDeviceManager());
 		auto device = deviceManager->GetNvrhiVulkanDevice();
 
-		deviceManager->LockQueue();
 		device->queueWaitForSemaphore(nvrhi::CommandQueue::Graphics, m_ActiveSemaphore, 0);
-		deviceManager->UnlockQueue();
 	}
 
 	nvrhi::ITexture* VulkanSwapChain::GetCurrentImage()

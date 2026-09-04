@@ -1,6 +1,7 @@
 #include "skpch.h"
 #include "VulkanDeviceManager.h"
 
+#include "Shark/Core/Application.h"
 #include "Shark/Core/Window.h"
 #include "Shark/Render/Renderer.h"
 
@@ -117,21 +118,41 @@ namespace Shark {
 		createInfo.ppEnabledLayerNames = layers.data();
 		createInfo.pApplicationInfo = &applicationInfo;
 
-		#if 0
-		uint32_t data[] = { std::numeric_limits<uint32_t>::max() };
+#if 1
+		std::vector<vk::LayerSettingEXT> settings;
 
-		vk::LayerSettingEXT setting;
-		setting.pLayerName = "VK_LAYER_KHRONOS_validation";
-		setting.pSettingName = "duplicate_message_limit";
-		setting.type = vk::LayerSettingTypeEXT::eUint32;
-		setting.valueCount = static_cast<uint32_t>(std::size(data));
-		setting.pValues = data;
+		vk::Bool32 dataFalse[] = { VK_FALSE };
+		vk::Bool32 dataTrue[] = { VK_TRUE };
+
+		auto& args = Application::Get().GetArgumentList();
+		if (args.contains("no-validation-message-limit"))
+		{
+			auto& messageLimit = settings.emplace_back();
+			messageLimit.pLayerName = "VK_LAYER_KHRONOS_validation";
+			messageLimit.pSettingName = "enable_message_limit";
+			messageLimit.type = vk::LayerSettingTypeEXT::eBool32;
+			messageLimit.valueCount = static_cast<uint32_t>(std::size(dataFalse));
+			messageLimit.pValues = dataFalse;
+		}
+
+		// Nsight is not happy with this validation feature but turning it off doesn't help
+		// Only way to make Nsight work is not enabling the validation layer at the moment
+#if 0
+		{
+			auto& uniqueHandles = settings.emplace_back();
+			uniqueHandles.pLayerName = "VK_LAYER_KHRONOS_validation";
+			uniqueHandles.pSettingName = "unique_handles";
+			uniqueHandles.type = vk::LayerSettingTypeEXT::eBool32;
+			uniqueHandles.valueCount = static_cast<uint32_t>(std::size(dataFalse));
+			uniqueHandles.pValues = dataFalse;
+		}
+#endif
 
 		vk::LayerSettingsCreateInfoEXT settingsCreateInfo;
-		settingsCreateInfo.settingCount = 1;
-		settingsCreateInfo.pSettings = &setting;
+		settingsCreateInfo.settingCount = settings.size();
+		settingsCreateInfo.pSettings = settings.data();
 		createInfo.pNext = &settingsCreateInfo;
-		#endif
+#endif
 
 		result = vk::createInstance(&createInfo, nullptr, &m_VulkanInstance);
 		if (result != vk::Result::eSuccess)

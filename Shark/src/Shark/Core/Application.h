@@ -65,6 +65,8 @@ namespace Shark {
 	public:
 		void CloseApplication() { m_Running = false; }
 
+		choc::ArgumentList& GetArgumentList() { return m_ArgumentList; }
+
 		float GetTime() const { return m_Time; }
 		TimeStep GetCPUTime() const { return m_CPUTime; }
 		TimeStep GetFrameTime() const { return m_TimeStep; }

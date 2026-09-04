@@ -43,11 +43,7 @@ namespace Shark {
 		virtual nvrhi::GraphicsAPI GetGraphicsAPI() const = 0;
 		const DeviceSpecification& GetSpecification() const { return m_Specification; }
 
-		void ExecuteCommandList(nvrhi::ICommandList* commandList);
-		void ExecuteCommandListLocked(nvrhi::ICommandList* commandList);
-
-		void LockQueue() { m_ExecutionMutex.lock(); }
-		void UnlockQueue() { m_ExecutionMutex.unlock(); }
+		void ExecuteCommandList(nvrhi::ICommandList* commandList, nvrhi::CommandQueue queue);
 
 		auto ExecuteCommand(auto&& cmd) { ExecuteCommand(nvrhi::CommandQueue::Graphics, cmd); }
 		auto ExecuteCommand(nvrhi::CommandQueue queue, auto&& cmd)
@@ -56,10 +52,10 @@ namespace Shark {
 			commandList->open();
 			cmd(commandList);
 			commandList->close();
-			ExecuteCommandListLocked(commandList);
+			ExecuteCommandList(commandList, queue);
 		}
 
-		nvrhi::CommandListHandle GetTemporaryCommandList(nvrhi::CommandQueue queue = nvrhi::CommandQueue::Graphics);
+		nvrhi::CommandListHandle GetTemporaryCommandList(nvrhi::CommandQueue queue);
 
 	public:
 		DeviceManager();
@@ -79,8 +75,6 @@ namespace Shark {
 
 		std::shared_mutex m_CommandListMutex;
 		std::unordered_map<std::thread::id, Enum::Array<nvrhi::CommandQueue, nvrhi::CommandListHandle>> m_CommandLists;
-
-		std::mutex m_ExecutionMutex;
 	};
 
 	class MessageCallback : public nvrhi::IMessageCallback

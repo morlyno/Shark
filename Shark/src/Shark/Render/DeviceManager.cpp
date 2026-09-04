@@ -50,37 +50,6 @@ namespace Shark {
 		DestroyInternal();
 	}
 
-	nvrhi::CommandListHandle DeviceManager::GetTemporaryCommandList(nvrhi::CommandQueue queue)
-	{
-		return GetOrCreateThreadLocalCommandList(queue);
-	}
-
-	nvrhi::CommandListHandle DeviceManager::GetOrCreateThreadLocalCommandList(nvrhi::CommandQueue queue)
-	{
-		SK_PROFILE_FUNCTION();
-
-		auto threadID = std::this_thread::get_id();
-
-		{
-			std::shared_lock lock(m_CommandListMutex);
-			const auto i = m_CommandLists.find(threadID);
-
-			if (i != m_CommandLists.end() && i->second[queue])
-				return i->second[queue];
-		}
-
-		std::scoped_lock lock(m_CommandListMutex);
-
-		nvrhi::CommandListParameters params;
-		params.queueType = queue;
-		params.enableImmediateExecution = false;
-
-		auto commandList = m_NvrhiDevice->createCommandList(params);
-
-		m_CommandLists[threadID][queue] = commandList;
-		return commandList;
-	}
-
 	bool DeviceManager::CreateDevice(const DeviceSpecification& specification)
 	{
 		SK_PROFILE_FUNCTION();
@@ -115,20 +84,42 @@ namespace Shark {
 		RunGarbageCollectionInternal();
 	}
 
-	void DeviceManager::ExecuteCommandList(nvrhi::ICommandList* commandList)
+	void DeviceManager::ExecuteCommandList(nvrhi::ICommandList* commandList, nvrhi::CommandQueue queue)
 	{
 		SK_PROFILE_FUNCTION();
 
-		m_NvrhiDevice->executeCommandList(commandList);
+		m_NvrhiDevice->executeCommandList(commandList, queue);
 	}
 
-	void DeviceManager::ExecuteCommandListLocked(nvrhi::ICommandList* commandList)
+	nvrhi::CommandListHandle DeviceManager::GetTemporaryCommandList(nvrhi::CommandQueue queue)
+	{
+		return GetOrCreateThreadLocalCommandList(queue);
+	}
+
+	nvrhi::CommandListHandle DeviceManager::GetOrCreateThreadLocalCommandList(nvrhi::CommandQueue queue)
 	{
 		SK_PROFILE_FUNCTION();
 
-		LockQueue();
-		m_NvrhiDevice->executeCommandList(commandList);
-		UnlockQueue();
+		auto threadID = std::this_thread::get_id();
+
+		{
+			std::shared_lock lock(m_CommandListMutex);
+			const auto i = m_CommandLists.find(threadID);
+
+			if (i != m_CommandLists.end() && i->second[queue])
+				return i->second[queue];
+		}
+
+		std::scoped_lock lock(m_CommandListMutex);
+
+		nvrhi::CommandListParameters params;
+		params.queueType = queue;
+		params.enableImmediateExecution = false;
+
+		auto commandList = m_NvrhiDevice->createCommandList(params);
+
+		m_CommandLists[threadID][queue] = commandList;
+		return commandList;
 	}
 
 }

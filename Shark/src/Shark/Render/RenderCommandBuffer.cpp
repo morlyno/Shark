@@ -155,9 +155,7 @@ namespace Shark {
 		auto deviceManager = Renderer::GetDeviceManager();
 		auto device = deviceManager->GetDevice();
 
-		deviceManager->LockQueue();
-		deviceManager->ExecuteCommandList(m_CommandList);
-		deviceManager->UnlockQueue();
+		deviceManager->ExecuteCommandList(m_CommandList, nvrhi::CommandQueue::Graphics);
 
 		m_DoQuery = m_EnableQueries;
 	}
