@@ -6,7 +6,6 @@
 #include "Shark/Render/Shader.h"
 
 #include "Shark/Utils/Utilities.h"
-#include "Shark/Utils/std.h"
 #include "Shark/Utils/String.h"
 
 namespace Shark {

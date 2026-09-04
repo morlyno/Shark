@@ -23,7 +23,7 @@ namespace Shark {
 
 		static bool ShouldBeSharkTexture(const std::filesystem::path& filepath)
 		{
-			return Contains(AssetExtensions::Shark::Texture, FileSystem::GetExtensionString(filepath));
+			return std::ranges::contains(AssetExtensions::Shark::Texture, FileSystem::GetExtensionString(filepath));
 		}
 
 		static bool LoadImageData(const std::filesystem::path& filepath, TextureSpecification& outSpecification, UniqueBuffer& outBuffer)
@@ -47,7 +47,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		if (Contains(AssetExtensions::Shark::Texture, metadata.FilePath.extension()))
+		if (std::ranges::contains(AssetExtensions::Shark::Texture, metadata.FilePath.extension()))
 		{
 			SK_CORE_ERROR_TAG("Serialization", "[Texture] Serializing a non shark texture is not allowed! Please convert the texture into one.");
 			return false;

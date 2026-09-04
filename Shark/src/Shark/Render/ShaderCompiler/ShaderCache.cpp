@@ -7,7 +7,6 @@
 #include "Shark/File/FileSystem.h"
 #include "Shark/Serialization/YAML.h"
 #include "Shark/Serialization/YAML/ShaderReflection.h"
-#include "Shark/Utils/std.h"
 
 namespace Shark {
 

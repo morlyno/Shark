@@ -17,7 +17,6 @@
 #include "Shark/Input/Input.h"
 
 #include "Shark/UI/UICore.h"
-#include "Shark/Utils/std.h"
 
 #include "EditorSettings.h"
 #include "Panels/SceneHierarchyPanel.h"

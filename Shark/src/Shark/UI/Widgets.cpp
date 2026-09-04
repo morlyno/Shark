@@ -440,7 +440,7 @@ namespace Shark::UI {
 		else
 		{
 			const auto display = utils::GetDisplayName(handle, args.DisplayName);
-			const auto friendly = and_then(display, &String::GetStem);
+			const auto friendly = display.transform(&String::GetStem);
 
 			const bool push = !display || args.TextColor.has_value();
 			UI::ScopedColor textColor(ImGuiCol_Text,
@@ -557,7 +557,7 @@ namespace Shark::UI {
 				if (payload)
 				{
 					auto handle = *static_cast<const AssetHandle*>(payload->Data);
-					if (Contains(assetTypes, AssetManager::GetAssetType(handle)))
+					if (std::ranges::contains(assetTypes, AssetManager::GetAssetType(handle)))
 					{
 						assetHandle = handle;
 						modified = true;

@@ -4,6 +4,7 @@
 #include "Shark/Core/UUID.h"
 
 #include <span>
+#include <flat_map>
 
 namespace Shark {
 
@@ -25,28 +26,6 @@ namespace Shark {
 		SoundConfig,
 		Animation,
 		AnimationGraph
-	};
-
-	inline const std::unordered_map<std::string, AssetType> AssetExtensionMap = {
-		{ ".skscene", AssetType::Scene },
-		{ ".sktex", AssetType::Texture },
-		{ ".png", AssetType::Texture },
-		{ ".jpg", AssetType::Texture },
-		{ ".jpeg", AssetType::Texture },
-		{ ".cs", AssetType::ScriptFile },
-		{ ".ttf", AssetType::Font },
-		{ ".obj", AssetType::MeshSource },
-		{ ".fbx", AssetType::MeshSource },
-		{ ".gltf", AssetType::MeshSource },
-		{ ".glb", AssetType::MeshSource },
-		{ ".skmesh", AssetType::Mesh },
-		{ ".skmat", AssetType::Material },
-		{ ".hdr", AssetType::Environment },
-		{ ".sfab", AssetType::Prefab },
-		{ ".wav", AssetType::AudioFile },
-		{ ".sksc", AssetType::SoundConfig },
-		{ ".sanim", AssetType::Animation },
-		{ ".sagraph", AssetType::AnimationGraph }
 	};
 
 	namespace AssetExtensions {
@@ -82,7 +61,7 @@ namespace Shark {
 		}
 	}
 
-	inline static const std::map<AssetType, std::span<const std::string_view>> AssetTypeExtensions =
+	inline static const std::flat_map<AssetType, std::span<const std::string_view>> AssetTypeExtensions =
 	{
 		{ AssetType::Scene,          AssetExtensions::Scene       },
 		{ AssetType::Texture,        AssetExtensions::Texture     },

@@ -14,7 +14,6 @@
 #include "Shark/Render/ShaderCompiler/HLSLIncludeHandler.h"
 
 #include "Shark/Utils/String.h"
-#include "Shark/Utils/std.h"
 
 #include <dxc/dxcapi.h>
 #include <spirv_cross/spirv_cross.hpp>

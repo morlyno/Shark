@@ -2,7 +2,6 @@
 #include "VulkanDeviceManager.h"
 
 #include "Shark/Core/Window.h"
-#include "Shark/Utils/std.h"
 #include "Shark/Render/Renderer.h"
 
 #if SK_PLATFORM_WINDOWS

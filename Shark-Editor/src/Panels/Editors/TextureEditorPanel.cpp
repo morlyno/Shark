@@ -35,7 +35,7 @@ namespace Shark {
 		if (metadata.Type != AssetType::Texture)
 			return;
 
-		m_IsSharkTexture = Contains(AssetExtensions::Shark::Texture, metadata.FilePath.extension());
+		m_IsSharkTexture = std::ranges::contains(AssetExtensions::Shark::Texture, metadata.FilePath.extension());
 		m_TextureHandle = metadata.Handle;
 		m_SetupWindows = true;
 		m_PerMipView.clear();

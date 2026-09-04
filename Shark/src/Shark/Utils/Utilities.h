@@ -33,12 +33,6 @@ namespace Shark {
 		static constexpr Type::Invoke Invoke;
 	}
 
-	template<std::ranges::range TRange, std::equality_comparable_with<std::ranges::range_value_t<TRange>> TValue>
-	bool Contains(const TRange& range, const TValue& value)
-	{
-		return std::ranges::find(range, value) != std::ranges::end(range);
-	}
-
 	template<typename T>
 	bool ReserveAtLeast(std::vector<T>& vec, size_t requestedCapacity)
 	{
@@ -58,13 +52,6 @@ namespace Shark {
 		T proxy(t);
 		++t;
 		return proxy;
-	}
-
-	template<typename... TArgs>
-		//requires (std::is_same_v<std::add_const_t<std::tuple_element_t<0, std::tuple<TArgs...>>>, std::add_const<TArgs>> && ...)
-	std::array<std::tuple_element_t<0, std::tuple<TArgs...>>*, sizeof...(TArgs)> AsReferenceRange(TArgs&... args)
-	{
-		return { &args... };
 	}
 
 	template<bool TCond, typename T>
@@ -105,14 +92,6 @@ namespace Shark {
 			return nullptr;
 
 		return std::invoke(_GetProj, (*i));
-	}
-
-	template<typename T, typename TFunc>
-	auto and_then(const std::optional<T>& opt, TFunc&& func) -> std::optional<std::invoke_result_t<TFunc, T>>
-	{
-		if (opt)
-			return std::optional(func(*opt));
-		return {};
 	}
 
 }

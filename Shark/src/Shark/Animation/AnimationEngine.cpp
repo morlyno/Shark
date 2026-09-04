@@ -216,34 +216,30 @@ namespace Shark {
 	void AnimationEngine::OnAssetReloaded(AssetHandle handle)
 	{
 		auto assetType = AssetManager::GetAssetType(handle);
-		auto registeredEntries = AsReferenceRange(m_RegisteredAnimations/*, m_Transitions*/);
 
-		for (auto& array : registeredEntries)
+		for (auto& entry : m_RegisteredAnimations)
 		{
-			for (auto& entry : *array)
+			switch (assetType)
 			{
-				switch (assetType)
+				case AssetType::MeshSource:
 				{
-					case AssetType::MeshSource:
+					auto animation = AssetManager::GetAsset<AnimationAsset>(entry.ActiveAnimation);
+					if (handle == animation->GetAnimationSource())
 					{
-						auto animation = AssetManager::GetAsset<AnimationAsset>(entry.ActiveAnimation);
-						if (handle == animation->GetAnimationSource())
-						{
-							entry.Animation = nullptr;
-							entry.Skeleton = nullptr;
-						}
-						break;
+						entry.Animation = nullptr;
+						entry.Skeleton = nullptr;
 					}
+					break;
+				}
 
-					case AssetType::Animation:
+				case AssetType::Animation:
+				{
+					if (entry.ActiveAnimation == handle)
 					{
-						if (entry.ActiveAnimation == handle)
-						{
-							entry.Animation = nullptr;
-							entry.Skeleton = nullptr;
-						}
-						break;
+						entry.Animation = nullptr;
+						entry.Skeleton = nullptr;
 					}
+					break;
 				}
 			}
 		}

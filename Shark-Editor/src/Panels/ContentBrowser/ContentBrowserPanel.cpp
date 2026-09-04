@@ -489,7 +489,7 @@ namespace Shark {
 		{
 			if (entry.is_directory())
 			{
-				if (Contains(m_IgnoredDirectories, entry.path()))
+				if (std::ranges::contains(m_IgnoredDirectories, entry.path()))
 					continue;
 
 				directory->SubDirectories.emplace_back(Ref<DirectoryInfo>::Create(directory, entry.path()));
