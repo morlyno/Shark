@@ -26,6 +26,8 @@ namespace Shark {
 
 	void EditorAssetThread::Stop()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!m_Thread.joinable())
 			return;
 

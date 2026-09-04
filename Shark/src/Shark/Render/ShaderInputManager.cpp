@@ -15,6 +15,7 @@
 #include "Shark/Render/StorageBuffer.h"
 
 #include "Shark/Utils/String.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
@@ -164,6 +165,8 @@ namespace Shark {
 
 	void ShaderInputManager::Initialize(const ShaderInputManagerSpecification& specification)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_Specification = specification;
 
 		if (m_Specification.DebugName.empty())
@@ -245,6 +248,8 @@ namespace Shark {
 
 	void ShaderInputManager::Update(std::span<const InputUpdate> updates, bool force)
 	{
+		SK_PROFILE_FUNCTION();
+
 		for (const auto& input : updates)
 		{
 			auto* manager = m_Managers[input.Binding.Space].Raw();
@@ -345,6 +350,8 @@ namespace Shark {
 
 	bool ShaderInputManager::Validate() const
 	{
+		SK_PROFILE_FUNCTION();
+
 		const auto& reflection = m_Specification.Shader->GetReflectionData();
 
 		std::map<uint32_t, fmt::memory_buffer> setErrors;

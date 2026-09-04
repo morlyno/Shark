@@ -96,6 +96,8 @@ namespace Shark {
 
 	void WindowsWindow::CreateSwapchain()
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto deviceManager = Renderer::GetDeviceManager();
 
 		SwapChainSpecification swapChainSpecs;
@@ -350,6 +352,7 @@ namespace Shark {
 
 	void WindowsWindow::Initialize()
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_WARN_TAG("Window", "Init Windows Window {0} {1} {2}", m_Specification.Width, m_Specification.Height, m_Specification.Title);
 
 		m_WindowClass = s_WindowClass.TryGetRef();
@@ -385,7 +388,9 @@ namespace Shark {
 	}
 
 	bool WindowsWindow::CreateNativeWindow()
-{
+	{
+		SK_PROFILE_FUNCTION();
+
 		DWORD windowFlags = WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
 		{
 			windowFlags |= WS_SYSMENU | WS_MINIMIZEBOX;

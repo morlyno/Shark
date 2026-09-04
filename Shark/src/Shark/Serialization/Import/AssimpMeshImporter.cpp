@@ -313,6 +313,8 @@ namespace Shark {
 
 		if (meshSource->m_Skeleton)
 		{
+			SK_PROFILE_SCOPED("AssimpMeshImporter::ToMeshSourceFromFile [Load Bones]");
+
 			meshSource->m_BoneInfluences.resize(meshSource->m_Vertices.size());
 			for (size_t meshIndex = 0; meshIndex < scene->mNumMeshes; meshIndex++)
 			{
@@ -404,6 +406,8 @@ namespace Shark {
 
 	Scope<Skeleton> AssimpMeshImporter::ImportSkeleton(const aiScene* scene)
 	{
+		SK_PROFILE_FUNCTION();
+
 		std::set<std::string_view> bones;
 
 		for (size_t meshIndex = 0; meshIndex < scene->mNumMeshes; meshIndex++)
@@ -428,6 +432,8 @@ namespace Shark {
 
 	static std::vector<Channel> ImportChannels(aiAnimation* animation, const Skeleton& skeleton)
 	{
+		SK_PROFILE_FUNCTION();
+
 		std::vector<Channel> channels;
 
 		std::unordered_map<std::string_view, size_t> boneIndices;
@@ -638,6 +644,8 @@ namespace Shark {
 
 	void SanitizeChannels(std::vector<Channel>& channels)
 	{
+		SK_PROFILE_FUNCTION();
+
 		size_t desiredFrames = 2;
 		for (const auto& channel : channels)
 			desiredFrames = std::max({ desiredFrames, channel.Translations.size(), channel.Rotations.size(), channel.Scales.size() });
@@ -692,6 +700,8 @@ namespace Shark {
 
 	Scope<Animation> AssimpMeshImporter::ImportAnimation(const aiScene* scene, uint32_t animationIndex, const Skeleton& skeleton)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!scene || animationIndex >= scene->mNumAnimations)
 			return nullptr;
 

@@ -3,6 +3,7 @@
 
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/ShaderCompiler/ShaderCache.h"
+#include "Shark/Debug/Profiler.h"
 
 #include <spirv_cross/spirv_cross.hpp>
 #include <nvrhi/nvrhi.h>
@@ -16,6 +17,8 @@ namespace Shark {
 
 	bool Vulkan::ShaderCompiler::Reload(const ShaderInfo& info, nvrhi::ShaderType compiledStages, CompilerResult& result)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto& shaderCache = Renderer::GetShaderCache();
 		auto& platformBinary = result.PlatformBinary[nvrhi::GraphicsAPI::VULKAN];
 
@@ -56,6 +59,8 @@ namespace Shark {
 
 	bool Vulkan::ShaderCompiler::CompileStage(const ShaderInfo& info, nvrhi::ShaderType stage, CompilerResult& result)
 	{
+		SK_PROFILE_FUNCTION();
+
 		std::vector<uint32_t> binary = result.SpirvBinary.at(stage);
 
 		spirv_cross::Compiler compiler(binary);

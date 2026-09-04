@@ -6,6 +6,8 @@
 #include "Shark/Render/Texture.h"
 #include "Shark/Render/ShaderCompiler/ShaderCompiler.h"
 
+#include "Shark/Debug/Profiler.h"
+
 namespace Shark {
 
 	template<auto Value>
@@ -44,6 +46,8 @@ namespace Shark {
 	Shader::Shader(Scope<CompilerResult> result, const std::string& name)
 		: m_Name(name)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_ReflectionData = result->Reflection;
 		m_LayoutMode = result->LayoutMode;
 
@@ -91,6 +95,8 @@ namespace Shark {
 
 	void Shader::CreateBindingLayout()
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_LayoutMapping.fill(-1);
 
 		auto deviceManager = Renderer::GetDeviceManager();
@@ -176,6 +182,8 @@ namespace Shark {
 
 	Ref<Shader> ShaderLibrary::Load(const std::filesystem::path& filepath, const LoadArgs& options)
 	{
+		SK_PROFILE_FUNCTION();
+
 		CompilerOptions compilerOptions;
 		compilerOptions.Force = options.ForceCompile.value_or(m_DefaultOptions.ForceCompile);
 		compilerOptions.Optimize = options.Optimize.value_or(m_DefaultOptions.Optimize);

@@ -121,6 +121,8 @@ namespace Shark {
 
 	void Image2D::InvalidateFromState(const RT_State& state)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto textureDesc = nvrhi::TextureDesc()
 			.setWidth(state.Width)
 			.setHeight(state.Height)
@@ -237,6 +239,8 @@ namespace Shark {
 
 	MappedImageMemory StagingImage2D::RT_OpenReadable()
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto device = Renderer::GetGraphicsDevice();
 
 		nvrhi::TextureSlice slice;
@@ -252,6 +256,8 @@ namespace Shark {
 
 	void StagingImage2D::RT_OpenReadableBuffer(Buffer& outMemory)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto device = Renderer::GetGraphicsDevice();
 
 		nvrhi::TextureSlice slice;
@@ -266,6 +272,8 @@ namespace Shark {
 
 	void StagingImage2D::RT_CloseReadableBuffer()
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto device = Renderer::GetGraphicsDevice();
 
 		device->unmapStagingTexture(m_Handle);
@@ -273,6 +281,8 @@ namespace Shark {
 
 	void StagingImage2D::RT_ReadPixel(uint32_t x, uint32_t y, MutableBuffer outPixel)
 	{
+		SK_PROFILE_FUNCTION();
+
 		const uint32_t pixelSize = GetPixelSize();
 		SK_CORE_VERIFY(outPixel.Size == pixelSize);
 
@@ -298,6 +308,8 @@ namespace Shark {
 
 	void StagingImage2D::InvalidateFromState(const RT_State& state)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto textureDesc = nvrhi::TextureDesc()
 			.setWidth(state.Width)
 			.setHeight(state.Height)

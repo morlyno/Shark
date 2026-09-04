@@ -7,6 +7,7 @@
 #include "Shark/File/FileSystem.h"
 #include "Shark/Serialization/YAML.h"
 #include "Shark/Serialization/YAML/ShaderReflection.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
@@ -43,6 +44,8 @@ namespace Shark {
 
 	void ShaderCache::SaveRegistry()
 	{
+		SK_PROFILE_FUNCTION();
+
 		YAML::Emitter out;
 
 		out << YAML::BeginMap;
@@ -86,6 +89,8 @@ namespace Shark {
 
 	void ShaderCache::LoadRegistry()
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto fileData = FileSystem::ReadString("Cache/Shaders/CacheRegistry.yaml");
 		if (fileData.empty())
 			return;
@@ -138,6 +143,8 @@ namespace Shark {
 
 	bool ShaderCache::ShaderUpToDate(const ShaderInfo& info) const
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!m_CacheRegistry.contains(info.ShaderID))
 			return false;
 
@@ -155,6 +162,8 @@ namespace Shark {
 
 	CacheStatus ShaderCache::GetCacheStatus(const ShaderInfo& info, const StageInfo& stageInfo) const
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!m_CacheRegistry.contains(info.ShaderID))
 			return CacheStatus::Missing;
 
@@ -168,6 +177,8 @@ namespace Shark {
 
 	CacheStatus ShaderCache::GetCacheStatus(const ShaderInfo& info, nvrhi::ShaderType stage, nvrhi::GraphicsAPI platform) const
 	{
+		SK_PROFILE_FUNCTION();
+
 		const std::string spirvCacheFile = utils::GetSpirvCacheFile(info.ShaderID, stage);
 		const std::string platformCacheFile = utils::GetPlatformCacheFile(info.ShaderID, stage, platform);
 
@@ -187,6 +198,8 @@ namespace Shark {
 
 	bool ShaderCache::LoadStageInfo(const ShaderInfo& info, std::vector<StageInfo>& outStageInfo) const
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!m_CacheRegistry.contains(info.ShaderID))
 			return false;
 
@@ -197,6 +210,8 @@ namespace Shark {
 
 	bool ShaderCache::LoadSpirv(const ShaderInfo& info, nvrhi::ShaderType stage, std::vector<uint32_t>& outBinary) const
 	{
+		SK_PROFILE_FUNCTION();
+
 		const std::string cacheFile = utils::GetSpirvCacheFile(info.ShaderID, stage);
 
 		auto binary = FileSystem::ReadBinary(cacheFile);
@@ -209,6 +224,8 @@ namespace Shark {
 
 	bool ShaderCache::LoadBinary(const ShaderInfo& info, nvrhi::ShaderType stage, nvrhi::GraphicsAPI platform, UniqueBuffer& outBinary) const
 	{
+		SK_PROFILE_FUNCTION();
+
 		const std::string cacheFile = utils::GetPlatformCacheFile(info.ShaderID, stage, platform);
 
 		outBinary = FileSystem::ReadBinary(cacheFile);
@@ -217,6 +234,8 @@ namespace Shark {
 
 	bool ShaderCache::LoadReflection(const ShaderInfo& info, ShaderReflection& outReflection, std::vector<std::string>& outRequestedBindingSets, LayoutShareMode& outShareMode) const
 	{
+		SK_PROFILE_FUNCTION();
+
 		const std::string cacheFile = fmt::format("Cache/Shaders/Reflection/{}.yaml", info.ShaderID);
 		const std::string fileData = FileSystem::ReadString(cacheFile);
 		if (fileData.empty())
@@ -238,6 +257,8 @@ namespace Shark {
 
 	void ShaderCache::SaveShaderInfo(const ShaderInfo& info, std::span<const StageInfo> stages, std::span<const std::filesystem::path> includes)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto& entry = m_CacheRegistry[info.ShaderID];
 		entry.Info = info;
 		entry.FileHash = utils::HashFileContent(info.SourcePath);
@@ -257,6 +278,8 @@ namespace Shark {
 
 	void ShaderCache::SaveReflection(const ShaderInfo& info, const ShaderReflection& relfection, std::span<const std::string> requestedBindingSets, LayoutShareMode layoutMode)
 	{
+		SK_PROFILE_FUNCTION();
+
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "ShaderReflection" << YAML::Value;
@@ -274,6 +297,8 @@ namespace Shark {
 
 	void ShaderCache::SaveSpirv(const ShaderInfo& info, nvrhi::ShaderType stage, std::span<const uint32_t> binary)
 	{
+		SK_PROFILE_FUNCTION();
+
 		const std::string cacheFile = utils::GetSpirvCacheFile(info.ShaderID, stage);
 
 		FileSystem::WriteBinary(cacheFile, binary);
@@ -281,6 +306,8 @@ namespace Shark {
 
 	void ShaderCache::SaveBinary(const ShaderInfo& info, nvrhi::ShaderType stage, nvrhi::GraphicsAPI platform, const Buffer binary)
 	{
+		SK_PROFILE_FUNCTION();
+
 		const std::string cacheFile = utils::GetPlatformCacheFile(info.ShaderID, stage, platform);
 
 		FileSystem::WriteBinary(cacheFile, binary);

@@ -5,6 +5,7 @@
 #include "Shark/File/FileSystem.h"
 #include "Shark/String/RegexStream.h"
 #include "Shark/Utils/String.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
@@ -46,6 +47,7 @@ namespace Shark {
 
 	bool ShaderPreprocessor::PreprocessFile(const std::filesystem::path& filepath)
 	{
+		SK_PROFILE_FUNCTION();
 		ScopedTimer timer(fmt::format("PreprocessFile '{}'", filepath));
 
 		/////////////////////////////////////////////////
@@ -112,6 +114,8 @@ namespace Shark {
 
 	bool ShaderPreprocessor::InsertStageDeviders(String::ITokenStreamReader& stream, std::string& source)
 	{
+		SK_PROFILE_FUNCTION();
+
 		std::vector<std::tuple<size_t, size_t, nvrhi::ShaderType>> deviders;
 
 		bool insideStage = false;
@@ -155,6 +159,8 @@ namespace Shark {
 
 	bool ShaderPreprocessor::ParseCombine(String::ITokenStreamReader& stream)
 	{
+		SK_PROFILE_FUNCTION();
+
 		//
 		// #pragma combine : <texture>, <sampler>
 		//
@@ -178,6 +184,8 @@ namespace Shark {
 
 	bool ShaderPreprocessor::ParseBind(String::ITokenStreamReader& stream)
 	{
+		SK_PROFILE_FUNCTION();
+
 		// #pragma bind : <identifier>, <space>
 
 		if (stream.Read() != "bind" || stream.Read() != ":")
@@ -198,6 +206,8 @@ namespace Shark {
 
 	bool ShaderPreprocessor::ParseLayout(String::ITokenStreamReader& stream)
 	{
+		SK_PROFILE_FUNCTION();
+
 		// #pragma layout : <sharemode>
 
 		if (stream.Read() != "layout" || stream.Read() != ":")
@@ -218,6 +228,8 @@ namespace Shark {
 
 	bool ShaderPreprocessor::ParseInclude(String::ITokenStreamReader& stream)
 	{
+		SK_PROFILE_FUNCTION();
+
 		using namespace String::RegexLiterals;
 
 		stream.SeekPast(R"([<"])"_r);

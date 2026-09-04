@@ -12,6 +12,8 @@
 #include "Shark/Scripting/ScriptGlue.h"
 #include "Shark/Scripting/ScriptTypes.h"
 
+#include "Shark/Debug/Profiler.h"
+
 #include <Coral/Attribute.hpp>
 #include <Coral/FieldInfo.hpp>
 #include <Coral/TypeCache.hpp>
@@ -21,6 +23,8 @@ namespace Shark {
 	ScriptEngine::ScriptEngine(ScriptHost& host, Ref<ProjectConfig> projectConfig)
 		: m_Host(host)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_ProjectConfig = projectConfig;
 		m_LoadContext = m_Host.CreateAssemblyLoadContext("Shark-Load-Context");
 
@@ -32,6 +36,8 @@ namespace Shark {
 
 	ScriptEngine::~ScriptEngine()
 	{
+		SK_PROFILE_FUNCTION();
+
 		ScriptGlue::Shutdown();
 
 		m_CoreAssembly = nullptr;
@@ -50,6 +56,8 @@ namespace Shark {
 
 	void ScriptEngine::LoadAppAssembly()
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto assemblyPath = m_ProjectConfig->GetScriptModulePath();
 		
 		m_AppAssembly = &m_LoadContext.LoadAssembly(assemblyPath);
@@ -93,6 +101,7 @@ namespace Shark {
 
 	void ScriptEngine::BuildScriptCache()
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_ASSERT(m_ScriptMetadata.empty());
 
 		Coral::Type& entityType = m_AppAssembly->GetType("Shark.Entity");
@@ -214,6 +223,8 @@ namespace Shark {
 
 	Coral::ManagedObject* ScriptEngine::Instantiate(UUID entityID, ScriptStorage& storage)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!m_CurrentScene->IsValidEntityID(entityID))
 			return nullptr;
 
@@ -269,6 +280,8 @@ namespace Shark {
 
 	void ScriptEngine::Destoy(UUID entityID, ScriptStorage& storage)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!m_CurrentScene->IsValidEntityID(entityID))
 			return;
 

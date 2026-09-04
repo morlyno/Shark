@@ -100,11 +100,15 @@ namespace Shark {
 
 	void PanelManager::OnUpdate(TimeStep ts)
 	{
+		SK_PROFILE_FUNCTION();
+
 		Call(&Panel::OnUpdate, ts);
 	}
 
 	void PanelManager::OnImGuiRender()
 	{
+		SK_PROFILE_FUNCTION();
+
 		for (auto& panels : m_PanelsPerCategory)
 		{
 			for (auto& panelData : panels)
@@ -121,26 +125,36 @@ namespace Shark {
 
 	void PanelManager::OnEvent(Event& event)
 	{
+		SK_PROFILE_FUNCTION();
+
 		Call(&Panel::OnEvent, event);
 	}
 
 	void PanelManager::SetContext(const Ref<Scene>& context)
 	{
+		SK_PROFILE_FUNCTION();
+
 		Call(&Panel::SetContext, context);
 	}
 
 	void PanelManager::OnScenePlay()
 	{
+		SK_PROFILE_FUNCTION();
+
 		Call(&Panel::OnScenePlay);
 	}
 
 	void PanelManager::OnSceneStop()
 	{
+		SK_PROFILE_FUNCTION();
+
 		Call(&Panel::OnSceneStop);
 	}
 
 	void PanelManager::OnProjectChanged(const Ref<ProjectConfig>& projectConfig)
 	{
+		SK_PROFILE_FUNCTION();
+
 		Call(&Panel::OnProjectChanged, projectConfig);
 	}
 
@@ -236,6 +250,8 @@ namespace Shark {
 
 	void PanelManager::DrawMenus()
 	{
+		SK_PROFILE_FUNCTION();
+
 		bool anyChanged = false;
 
 		constexpr auto categories = magic_enum::enum_values<PanelCategory>();

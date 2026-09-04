@@ -26,6 +26,8 @@
 
 #include "Shark/Math/Math.h"
 
+#include "Shark/Debug/Profiler.h"
+
 #include <box2d/b2_body.h>
 #include <box2d/b2_contact.h>
 #include <box2d/b2_polygon_shape.h>
@@ -108,12 +110,16 @@ namespace Shark {
 
 	void ScriptGlue::Initialize(Coral::ManagedAssembly& assembly)
 	{
+		SK_PROFILE_FUNCTION();
+
 		RegisterComponents(assembly);
 		RegisterInternalCalls(assembly);
 	}
 
 	void ScriptGlue::Shutdown()
 	{
+		SK_PROFILE_FUNCTION();
+
 		s_HasComponentFunctions.clear();
 		s_AddComponentFunctions.clear();
 		s_RemoveComponentFunctions.clear();
@@ -122,6 +128,8 @@ namespace Shark {
 
 	void ScriptGlue::RegisterComponents(Coral::ManagedAssembly& assembly)
 	{
+		SK_PROFILE_FUNCTION();
+
 #define SK_REGISTER_COMPONENT(_component)\
 		s_HasComponentFunctions[assembly.GetType("Shark." #_component).GetTypeId()] = [](Entity entity) -> bool { return entity.HasComponent<_component>(); };\
 		s_AddComponentFunctions[assembly.GetType("Shark." #_component).GetTypeId()] = [](Entity entity) -> void { entity.AddComponent<_component>(); };\
@@ -142,6 +150,8 @@ namespace Shark {
 
 	void ScriptGlue::RegisterInternalCalls(Coral::ManagedAssembly& assembly)
 	{
+		SK_PROFILE_FUNCTION();
+
 		#define ADD_ICALL(_func) assembly.AddInternalCall("Shark.InternalCalls", #_func, &InternalCalls::_func)
 		ADD_ICALL(AssetHandle_IsValid);
 

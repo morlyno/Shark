@@ -145,6 +145,8 @@ namespace Shark {
 
 	void ThumbnailCache::SetThumbnail(AssetHandle assetHandle, Ref<Image2D> thumbnail)
 	{
+		SK_PROFILE_FUNCTION();
+
 		uint64_t lastWriteTime = Project::GetEditorAssetManager()->GetMetadata(assetHandle).LastWriteTime;
 		m_Thumbnails[assetHandle] = { thumbnail, lastWriteTime };
 		SK_CORE_TRACE_TAG("ThumbnailCache", "Thumbnail set (Handle={}, Timestamp={})", assetHandle, lastWriteTime);
@@ -166,6 +168,7 @@ namespace Shark {
 
 	void ThumbnailCache::WriteThumbnailToDisc(AssetHandle handle, Ref<StagingImage2D> thumbnail, uint64_t lastWriteTime)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_INFO_TAG("ThumbnailCache", "Writing Thumbnail to disc (Handle={}, Timestamp={})", handle, lastWriteTime);
 
 		utils::CreateCacheDirectoryIfNeeded();

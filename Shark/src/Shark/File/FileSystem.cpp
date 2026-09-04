@@ -1,11 +1,8 @@
 #include "skpch.h"
 #include "FileSystem.h"
 
-#include "Shark/Core/Project.h"
-#include "Shark/Utils/String.h"
 #include "Shark/Utils/PlatformUtils.h"
-
-#include <fmt/os.h>
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
@@ -26,6 +23,8 @@ namespace Shark {
 
 	UniqueBuffer FileSystem::ReadBinary(const std::filesystem::path& filePath)
 	{
+		SK_PROFILE_FUNCTION();
+
 		std::ifstream stream(GetFilesystemPath(filePath), std::ios::ate | std::ios::binary);
 		if (!stream)
 			return {};
@@ -47,6 +46,8 @@ namespace Shark {
 
 	std::string FileSystem::ReadString(const std::filesystem::path& filePath)
 	{
+		SK_PROFILE_FUNCTION();
+
 		std::ifstream stream(GetFilesystemPath(filePath));
 		if (!stream)
 		{
@@ -61,6 +62,8 @@ namespace Shark {
 
 	bool FileSystem::WriteBinary(const std::filesystem::path& filePath, const Buffer fileData, bool createDirectoriesIfNeeded)
 	{
+		SK_PROFILE_FUNCTION();
+
 		const auto filesystemPath = GetFilesystemPath(filePath);
 
 		const auto directory = filesystemPath.parent_path();
@@ -81,6 +84,8 @@ namespace Shark {
 
 	bool FileSystem::WriteString(const std::filesystem::path& filePath, std::string_view fileData, bool createDirectoriesIfNeeded)
 	{
+		SK_PROFILE_FUNCTION();
+
 		const auto filesystemPath = GetFilesystemPath(filePath);
 
 		const auto directory = filesystemPath.parent_path();

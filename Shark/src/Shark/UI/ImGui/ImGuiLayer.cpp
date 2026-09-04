@@ -128,6 +128,8 @@ namespace Shark {
 
 	void ImGuiLayer::OnDetach()
 	{
+		SK_PROFILE_FUNCTION();
+
 		ImGui_ImplWin32_Shutdown();
 		ImGui::DestroyPlatformWindows();
 		m_Renderer->DestroyTextures();

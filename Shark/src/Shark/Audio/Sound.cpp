@@ -5,6 +5,8 @@
 #include "Shark/Audio/AudioEngine.h"
 #include "Shark/Audio/SoundConfig.h"
 
+#include "Shark/Debug/Profiler.h"
+
 namespace Shark::Audio {
 
 	Sound::Sound(std::function<void(Sound*)> callback)
@@ -18,6 +20,7 @@ namespace Shark::Audio {
 
 	bool Sound::Initialize(AssetHandle audioAsset, MiniAudioEngine* audioEngine)
 	{
+		SK_PROFILE_FUNCTION();
 		ScopedTimer timer("Sound.Initialize");
 
 		m_Finished = false;
@@ -63,6 +66,8 @@ namespace Shark::Audio {
 
 	void Sound::Uninitialize()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (m_Ready)
 		{
 			ma_sound_uninit(&m_Sound);
@@ -72,6 +77,8 @@ namespace Shark::Audio {
 
 	bool Sound::Play()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!m_Ready)
 			return false;
 
@@ -83,6 +90,8 @@ namespace Shark::Audio {
 
 	bool Sound::Stop()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!m_Ready)
 			return false;
 
@@ -92,6 +101,8 @@ namespace Shark::Audio {
 
 	bool Sound::Pause()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!m_Ready)
 			return false;
 
@@ -114,6 +125,8 @@ namespace Shark::Audio {
 
 	bool Sound::StopSound(bool invokeCallback)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!m_Ready)
 			return false;
 

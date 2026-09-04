@@ -11,6 +11,8 @@ namespace Shark {
 	RenderCommandBuffer::RenderCommandBuffer(const std::string& name, bool enableQueries)
 		: m_Name(name), m_EnableQueries(enableQueries), m_DoQuery(enableQueries)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto deviceManager = Renderer::GetDeviceManager();
 		auto device = deviceManager->GetDevice();
 

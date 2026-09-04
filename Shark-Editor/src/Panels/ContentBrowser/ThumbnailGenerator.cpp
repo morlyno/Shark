@@ -20,6 +20,7 @@
 #include "Shark/Render/Environment.h"
 
 #include "Shark/Math/AABB.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
@@ -276,6 +277,8 @@ namespace Shark {
 
 	ThumbnailGenerator::ThumbnailGenerator()
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_Scene = Ref<Scene>::Create("Thumbnail Generator");
 		m_Scene->SetViewportSize(512, 512);
 
@@ -309,6 +312,8 @@ namespace Shark {
 
 	Ref<Image2D> ThumbnailGenerator::GenerateThumbnail(AssetHandle handle)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!AssetManager::IsValidAssetHandle(handle))
 			return nullptr;
 

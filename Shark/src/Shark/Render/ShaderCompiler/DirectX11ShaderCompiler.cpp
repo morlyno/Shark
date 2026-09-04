@@ -4,6 +4,7 @@
 #include "Shark/Core/Memory.h"
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/ShaderCompiler/ShaderCache.h"
+#include "Shark/Debug/Profiler.h"
 
 #include <spirv_cross/spirv_hlsl.hpp>
 
@@ -25,6 +26,8 @@ namespace Shark {
 
 	bool D3D11::ShaderCompiler::Reload(const ShaderInfo& info, nvrhi::ShaderType compiledStages, CompilerResult& result)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto& shaderCache = Renderer::GetShaderCache();
 		auto& platformBinary = result.PlatformBinary[nvrhi::GraphicsAPI::D3D11];
 
@@ -65,6 +68,8 @@ namespace Shark {
 
 	bool D3D11::ShaderCompiler::CompileStage(const ShaderInfo& info, nvrhi::ShaderType stage, CompilerResult& result)
 	{
+		SK_PROFILE_FUNCTION();
+
 		CrossCompile(info, stage, result);
 
 		std::string errorMessage = CompileHLSL(info, stage, result);
@@ -81,6 +86,8 @@ namespace Shark {
 
 	std::string D3D11::ShaderCompiler::CompileHLSL(const ShaderInfo& info, nvrhi::ShaderType stage, CompilerResult& result)
 	{
+		SK_PROFILE_FUNCTION();
+
 		UINT flags = 0;
 		flags |= D3DCOMPILE_ALL_RESOURCES_BOUND;
 
@@ -112,6 +119,8 @@ namespace Shark {
 
 	void D3D11::ShaderCompiler::CrossCompile(const ShaderInfo& info, nvrhi::ShaderType stage, CompilerResult& result)
 	{
+		SK_PROFILE_FUNCTION();
+
 		const auto& spirvBinary = result.SpirvBinary.at(stage);
 
 		spirv_cross::CompilerHLSL compiler(spirvBinary.data(), spirvBinary.size());

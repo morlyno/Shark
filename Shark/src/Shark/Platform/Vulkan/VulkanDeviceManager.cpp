@@ -9,6 +9,7 @@
 #endif
 
 #include "Shark/Platform/Vulkan/VulkanSwapchain.h"
+#include "Shark/Debug/Profiler.h"
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
@@ -54,6 +55,8 @@ namespace Shark {
 
 	Ref<SwapChain> VulkanDeviceManager::CreateSwapchain(const SwapChainSpecification& specification)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SurfaceParameters params;
 		params.Window = specification.Window;
 		params.Width = specification.Width;
@@ -77,12 +80,16 @@ namespace Shark {
 
 	void VulkanDeviceManager::DestroyInternal()
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_VulkanDevice.destroy();
 		m_VulkanInstance.destroy();
 	}
 
 	bool VulkanDeviceManager::CreateInstanceInternal()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (m_Specification.EnableDebugRuntime)
 		{
 			m_EnabledExtensions.instance.insert(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
@@ -140,6 +147,8 @@ namespace Shark {
 
 	bool VulkanDeviceManager::CreateDeviceInternal()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (m_Specification.EnableDebugRuntime)
 		{
 			InstallDebugCallback();
@@ -224,7 +233,9 @@ namespace Shark {
 	}
 
 	void VulkanDeviceManager::InstallDebugCallback()
-{
+	{
+		SK_PROFILE_FUNCTION();
+
 		auto info = vk::DebugReportCallbackCreateInfoEXT()
 			.setFlags(vk::DebugReportFlagBitsEXT::eError |
 				vk::DebugReportFlagBitsEXT::eWarning |
@@ -240,6 +251,8 @@ namespace Shark {
 
 	bool VulkanDeviceManager::PickPhysicalDevice(vk::SurfaceKHR windowSurface)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto devices = m_VulkanInstance.enumeratePhysicalDevices();
 
 		int adapterIndex = m_Specification.AdapterIndex;
@@ -383,6 +396,8 @@ namespace Shark {
 
 	bool VulkanDeviceManager::FindQueueFamilies(const vk::PhysicalDevice& physicalDevice)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto props = physicalDevice.getQueueFamilyProperties();
 
 		for (int i = 0; i < int(props.size()); i++)
@@ -442,6 +457,8 @@ namespace Shark {
 
 	bool VulkanDeviceManager::CreateVulkanDevice()
 	{
+		SK_PROFILE_FUNCTION();
+
 		EnumerateRequiredDeviceExtensions();
 
 		if (!m_Specification.Headless)
@@ -677,6 +694,8 @@ namespace Shark {
 
 	void VulkanDeviceManager::EnumerateRequiredExtensions()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!m_Specification.Headless)
 		{
 			m_EnabledExtensions.instance.insert(VK_KHR_SURFACE_EXTENSION_NAME);
@@ -715,6 +734,8 @@ namespace Shark {
 
 	void VulkanDeviceManager::EnumerateRequiredDeviceExtensions()
 	{
+		SK_PROFILE_FUNCTION();
+
 		for (const auto& ext : m_VulkanPhysicalDevice.enumerateDeviceExtensionProperties())
 		{
 			const std::string name = ext.extensionName;
@@ -737,6 +758,8 @@ namespace Shark {
 
 	vk::SurfaceKHR VulkanDeviceManager::CreateWindowSurface(WindowHandle handle)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto hWnd = static_cast<HWND>(handle);
 		auto inst = WindowsUtils::GetInstanceFromWindow(hWnd);
 
@@ -758,6 +781,8 @@ namespace Shark {
 
 	bool VulkanDeviceManager::WriteSurfaceReport(vk::SurfaceKHR windowSurface, const SurfaceParameters& params, const vk::PhysicalDevice& physicalDevice, fmt::writer& stream) const
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!physicalDevice.getSurfaceSupportKHR(m_PresentQueueFamily, windowSurface))
 		{
 			stream.print("\n  - does not support the window surface");

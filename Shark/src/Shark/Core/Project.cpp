@@ -8,6 +8,7 @@
 #include "Shark/Scripting/ScriptEngine.h"
 
 #include "Shark/File/FileSystem.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
@@ -68,6 +69,8 @@ namespace Shark {
 
 	void Project::SetActive(Ref<ProjectConfig> config)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (s_ActiveConfig)
 		{
 			s_AssetManager = nullptr;
@@ -86,6 +89,8 @@ namespace Shark {
 
 	void Project::SetActiveRuntime(Ref<ProjectConfig> config)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (s_ActiveConfig)
 		{
 			s_AssetManager = nullptr;
@@ -129,6 +134,8 @@ namespace Shark {
 
 	void Project::RestartScriptEngine(bool loadAppAssembly)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto& app = Application::Get();
 
 		s_ScriptEngine = nullptr;

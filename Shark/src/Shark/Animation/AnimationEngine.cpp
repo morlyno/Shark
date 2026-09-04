@@ -12,6 +12,7 @@
 #include "Shark/Scene/Components/SceneComponents.h"
 
 #include "Shark/Utils/Utilities.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
@@ -35,6 +36,8 @@ namespace Shark {
 
 	void AnimationEngine::RegisterEntity(const Entity& entity)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto& component = entity.GetComponent<AnimationComponent>();
 		if (AssetManager::GetAssetType(component.Animation) == AssetType::AnimationGraph)
 		{
@@ -69,6 +72,8 @@ namespace Shark {
 
 	void AnimationEngine::Transition(UUID targetEntityID, AssetHandle animationHandle, float duration, bool loop)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto animation = AssetManager::GetAsset<AnimationAsset>(animationHandle);
 		if (!animation)
 			return;
@@ -109,6 +114,8 @@ namespace Shark {
 
 	void AnimationEngine::Update(TimeStep ts)
 	{
+		SK_PROFILE_FUNCTION();
+
 		UpdateEntries();
 
 		for (auto& entry : m_RegisteredGraphs)
@@ -215,6 +222,8 @@ namespace Shark {
 
 	void AnimationEngine::OnAssetReloaded(AssetHandle handle)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto assetType = AssetManager::GetAssetType(handle);
 
 		for (auto& entry : m_RegisteredAnimations)
@@ -257,6 +266,8 @@ namespace Shark {
 
 	void AnimationEngine::UpdateEntries()
 	{
+		SK_PROFILE_FUNCTION();
+
 		bool reindex = false;
 		bool reindexGraph = false;
 
@@ -388,6 +399,8 @@ namespace Shark {
 
 	void AnimationEngine::UpdateAnimation(TimeStep ts, AnimationEntry& entry)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if ((!entry.Update || (!entry.Loop && entry.Pose->TimePosition >= 1.0f)) && entry.SamplePosition == entry.Pose->TimePosition)
 			return;
 

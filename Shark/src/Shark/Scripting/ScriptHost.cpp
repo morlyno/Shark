@@ -2,11 +2,14 @@
 #include "ScriptHost.h"
 
 #include "Shark/File/FileSystem.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
 	ScriptHost::ScriptHost()
 	{
+		SK_PROFILE_FUNCTION();
+
 		Coral::HostSettings settings;
 		settings.CoralDirectory = FileSystem::Absolute("DotNet").string();
 		settings.MessageCallback = OnCoralMessage;
@@ -26,6 +29,8 @@ namespace Shark {
 
 	ScriptHost::~ScriptHost()
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_Host->Shutdown();
 		m_Host = nullptr;
 	}

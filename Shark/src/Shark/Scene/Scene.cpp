@@ -483,10 +483,7 @@ namespace Shark {
 				m_LightEnvironment.SceneEnvironment = AssetManager::GetAssetAsync<Environment>(m_FallbackEnvironment);
 
 			if (!m_LightEnvironment.SceneEnvironment)
-			{
-				Ref<TextureCube> tex = Renderer::GetBlackTextureCube();
-				m_LightEnvironment.SceneEnvironment = Ref<Environment>::Create(tex, tex);
-			}
+				m_LightEnvironment.SceneEnvironment = Renderer::GetEmptyEnvironment();
 		}
 
 		// Directional Light
@@ -1473,6 +1470,8 @@ namespace Shark {
 
 	void Scene::UpdateAnimations(TimeStep ts)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_AnimationEngine->Update(ts);
 
 		for (auto& [entityID, pose] : m_AnimationEngine->GetPoses())

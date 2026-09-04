@@ -14,6 +14,8 @@ namespace Shark {
 
 	ImGuiRenderer::ImGuiRenderer(Ref<SwapChain> swapchain)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_Swapchain = swapchain;
 
 		ImGuiIO& io = ImGui::GetIO();

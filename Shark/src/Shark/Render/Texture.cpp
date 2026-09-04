@@ -5,6 +5,7 @@
 #include "Shark/Render/Image.h"
 
 #include "Shark/Serialization/Import/TextureImporter.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
@@ -36,6 +37,8 @@ namespace Shark {
 	Texture2D::Texture2D(const TextureSpecification& specification, const Buffer imageData)
 		: m_Specification(specification), m_Image(Image2D::Create())
 	{
+		SK_PROFILE_FUNCTION();
+
 		RT_Invalidate();
 
 		if (imageData)
@@ -47,6 +50,8 @@ namespace Shark {
 	Texture2D::Texture2D(const TextureSpecification& specification, const std::filesystem::path& filepath)
 		: m_Specification(specification), m_Image(Image2D::Create()), m_Filepath(filepath)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto imageData = TextureImporter::ToBufferFromFile(filepath, m_Specification.Format, m_Specification.Width, m_Specification.Height);
 		if (!imageData)
 		{
@@ -91,6 +96,8 @@ namespace Shark {
 
 	void Texture2D::RT_Invalidate()
 	{
+		SK_PROFILE_FUNCTION();
+
 		ImageSpecification& specification = m_Image->GetSpecification();
 		specification.Width = m_Specification.Width;
 		specification.Height = m_Specification.Height;
@@ -121,6 +128,8 @@ namespace Shark {
 
 	void Texture2D::InvalidateFromState(Ref<Image2D> image, const RT_State& state)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto samplerDesc = nvrhi::SamplerDesc()
 			.setMaxAnisotropy(state.MaxAnisotropy)
 			.setAllFilters(state.Filter == FilterMode::Linear)
@@ -147,6 +156,8 @@ namespace Shark {
 	TextureCube::TextureCube(const TextureSpecification& specification, Buffer imageData)
 		: m_Specification(specification), m_Image(Image2D::Create())
 	{
+		SK_PROFILE_FUNCTION();
+
 		ImageSpecification& imageSpec = m_Image->GetSpecification();
 		imageSpec.Width = m_Specification.Width;
 		imageSpec.Height = m_Specification.Height;
@@ -189,6 +200,8 @@ namespace Shark {
 	Sampler::Sampler(const SamplerSpecification& specification)
 		: m_Specification(specification)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto samplerDesc = nvrhi::SamplerDesc()
 			.setMaxAnisotropy(m_Specification.MaxAnisotropy)
 			.setAllFilters(m_Specification.Filter == FilterMode::Linear)

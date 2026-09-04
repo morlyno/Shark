@@ -410,6 +410,7 @@ namespace Shark {
 
 	void ContentBrowserPanel::OnProjectChanged(const Ref<ProjectConfig>& projectConfig)
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_ASSERT(!m_ChangesBlocked);
 
 		// #TODO add ignore settings

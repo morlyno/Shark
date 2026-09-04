@@ -236,6 +236,8 @@ namespace Shark {
 
 	void Renderer2D::ShutDown()
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_QuadVertexData.Release();
 		m_CircleVertexData.Release();
 		m_LineVertexData.Release();
@@ -634,6 +636,8 @@ namespace Shark {
 
 	void Renderer2D::GeometryPass()
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_CommandBuffer->BeginTimer("GeometryPass");
 
 		uint32_t maxIndexCount = std::max({ m_QuadIndexCount, m_CircleIndexCount, m_TextIndexCount });

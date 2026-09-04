@@ -37,6 +37,8 @@ namespace Shark {
 	EditorAssetManager::EditorAssetManager(Ref<ProjectConfig> projectConfig)
 		: m_Project(projectConfig)
 	{
+		SK_PROFILE_FUNCTION();
+
 		AssetSerializer::RegisterSerializers();
 		ReadImportedAssetsFromDisc();
 
@@ -47,6 +49,8 @@ namespace Shark {
 
 	EditorAssetManager::~EditorAssetManager()
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_AssetThread->Stop();
 
 		WriteImportedAssetsToDisc();
@@ -772,6 +776,8 @@ namespace Shark {
 
 	AssetHandle EditorAssetManager::AddEditorAsset(AssetHandle handle, const std::filesystem::path& filepath)
 	{
+		SK_PROFILE_FUNCTION();
+
 		const auto key = utils::GetFilesystemKey(filepath);
 		if (m_EditorAssets.contains(key))
 			return m_EditorAssets.at(key);
@@ -792,6 +798,8 @@ namespace Shark {
 
 	AssetHandle EditorAssetManager::AddEditorAsset(Ref<Asset> asset, const std::filesystem::path& filepath)
 	{
+		SK_PROFILE_FUNCTION();
+
 		const auto key = utils::GetFilesystemKey(filepath);
 		if (m_EditorAssets.contains(key))
 			return m_EditorAssets.at(key);
@@ -846,6 +854,8 @@ namespace Shark {
 
 	void EditorAssetManager::WriteImportedAssetsToDisc()
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (m_Project.Expired())
 			return;
 
@@ -885,6 +895,7 @@ namespace Shark {
 
 	void EditorAssetManager::ReadImportedAssetsFromDisc()
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_VERIFY(!m_Project.Expired());
 
 		auto project = m_Project.GetRef();

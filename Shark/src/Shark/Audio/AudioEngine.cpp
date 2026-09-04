@@ -14,6 +14,7 @@
 #include "Shark/Scene/Components.h"
 
 #include "Shark/Utils/String.h"
+#include "Shark/Debug/Profiler.h"
 
 namespace Shark {
 
@@ -75,6 +76,8 @@ namespace Shark {
 
 	MiniAudioEngine::MiniAudioEngine()
 	{
+		SK_PROFILE_FUNCTION();
+
 		ma_engine_config config = ma_engine_config_init();
 		ma_allocation_callbacks* allocationCallbacks = nullptr;
 
@@ -132,6 +135,8 @@ namespace Shark {
 
 	MiniAudioEngine::~MiniAudioEngine()
 	{
+		SK_PROFILE_FUNCTION();
+
 		StopAll();
 
 		for (auto& object : m_Sounds)
@@ -142,6 +147,8 @@ namespace Shark {
 
 	void MiniAudioEngine::OnScenePlay(Ref<Scene> scene)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_ActiveScene = scene;
 
 		auto entities = m_ActiveScene->GetAllEntitysWith<AudioComponent>();
@@ -158,6 +165,8 @@ namespace Shark {
 
 	void MiniAudioEngine::OnSceneStop(Ref<Scene> scene)
 	{
+		SK_PROFILE_FUNCTION();
+
 		StopAll();
 		m_ActiveScene = nullptr;
 	}
@@ -173,6 +182,8 @@ namespace Shark {
 
 	bool MiniAudioEngine::StartPlayback(UUID audioEntityID)
 	{
+		SK_PROFILE_FUNCTION();
+
 		// #audio #Investigate StartPlayback called multiple times
 		// 
 		// starting multiple sound is possible like this
@@ -201,6 +212,8 @@ namespace Shark {
 
 	bool MiniAudioEngine::StopPlayback(UUID audioEntityID)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto range = std::ranges::remove_if(m_ActiveSounds, [this, audioEntityID](SoundID soundID)
 		{
 			return m_Sounds[soundID].EntityID == audioEntityID;
@@ -219,6 +232,8 @@ namespace Shark {
 
 	bool MiniAudioEngine::PausePlayback(UUID audioEntityID)
 	{
+		SK_PROFILE_FUNCTION();
+
 		for (auto soundID : m_ActiveSounds)
 		{
 			auto& sound = m_Sounds[soundID];
@@ -234,6 +249,8 @@ namespace Shark {
 
 	bool MiniAudioEngine::ResumePlayback(UUID audioEntityID)
 	{
+		SK_PROFILE_FUNCTION();
+
 		for (auto soundID : m_ActiveSounds)
 		{
 			auto& sound = m_Sounds[soundID];
@@ -252,6 +269,8 @@ namespace Shark {
 
 	SoundID MiniAudioEngine::StartSoundPlayback(Ref<SoundConfig> soundConfig, UUID attachedEntityID, bool useComponent)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!soundConfig->AudioSourceHandle)
 			return SK_INVALID_SOUND_ID;
 
@@ -272,6 +291,8 @@ namespace Shark {
 
 	void MiniAudioEngine::StopSoundPlayback(SoundID soundID)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (soundID >= m_MaximumSounds)
 			return;
 
@@ -281,6 +302,8 @@ namespace Shark {
 
 	void MiniAudioEngine::PauseSoundPlayback(SoundID soundID)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (soundID >= m_MaximumSounds)
 			return;
 
@@ -290,6 +313,8 @@ namespace Shark {
 
 	void MiniAudioEngine::ResumeSoundPlayback(SoundID soundID)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (soundID >= m_MaximumSounds)
 			return;
 
@@ -321,6 +346,7 @@ namespace Shark {
 
 	void MiniAudioEngine::StopAll()
 	{
+		SK_PROFILE_FUNCTION();
 		SK_CORE_TRACE_TAG("Audio", "Stop all sounds");
 		for (auto soundId : m_ActiveSounds)
 		{
@@ -349,6 +375,8 @@ namespace Shark {
 
 	void MiniAudioEngine::OnSoundFinished(Audio::Sound* sound)
 	{
+		SK_PROFILE_FUNCTION();
+
 		const auto soundObject = std::ranges::find(m_Sounds, sound, &SoundObject::Sound);
 		if (soundObject == m_Sounds.end())
 			return;
@@ -392,6 +420,8 @@ namespace Shark {
 
 	SoundID MiniAudioEngine::StartPlayback(AssetHandle audioSource, Ref<SoundConfig> soundConfig, UUID attachedEntityID, AudioComponent* component)
 	{
+		SK_PROFILE_FUNCTION();
+
 		if (!audioSource)
 			return SK_INVALID_SOUND_ID;
 
@@ -427,6 +457,7 @@ namespace Shark {
 
 	Ref<AudioFile> MiniAudioEngine::QueryFileInfo(AssetHandle handle)
 	{
+		SK_PROFILE_FUNCTION();
 		ScopedTimer timer("QueryFileInfo");
 
 		auto filepath = fmt::to_string(handle);

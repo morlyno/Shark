@@ -12,7 +12,6 @@ namespace Shark {
 		: m_Desc(desc), m_ByteSize(desc.byteSize)
 	{
 		InvalidateFromState(RT_State{ .ByteSize = m_ByteSize });
-
 	}
 
 	GpuBuffer::~GpuBuffer()
@@ -47,6 +46,8 @@ namespace Shark {
 
 	void GpuBuffer::InvalidateFromState(const RT_State& state)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_Desc.setByteSize(state.ByteSize);
 
 		auto device = Renderer::GetGraphicsDevice();

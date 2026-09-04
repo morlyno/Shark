@@ -2,6 +2,7 @@
 #include "Shark/File/FileSystem.h"
 
 #include "Shark/Serialization/YAML.h"
+#include "Shark/Debug/Profiler.h"
 
 template<>
 struct YAML::convert<Shark::RecentProject>
@@ -34,6 +35,8 @@ namespace Shark {
 
 	void EditorSettings::Initialize()
 	{
+		SK_PROFILE_FUNCTION();
+
 		s_SettingsPath = FileSystem::Absolute("Config") / "EditorSettings.yaml";
 
 		SK_CORE_VERIFY(!s_Instance);
@@ -44,6 +47,8 @@ namespace Shark {
 
 	void EditorSettings::Shutdown()
 	{
+		SK_PROFILE_FUNCTION();
+
 		EditorSettingsSerializer::SaveSettings();
 
 		skdelete s_Instance;
@@ -57,6 +62,8 @@ namespace Shark {
 
 	void EditorSettingsSerializer::LoadSettings()
 	{
+		SK_PROFILE_FUNCTION();
+
 		// Create default settings if file doesn't exist
 		if (!FileSystem::Exists(s_SettingsPath))
 		{
@@ -97,6 +104,8 @@ namespace Shark {
 
 	void EditorSettingsSerializer::SaveSettings()
 	{
+		SK_PROFILE_FUNCTION();
+
 		const auto& settings = EditorSettings::Get();
 
 		YAML::Emitter out;

@@ -14,6 +14,7 @@
 #include "Shark/Render/ShaderCompiler/HLSLIncludeHandler.h"
 
 #include "Shark/Utils/String.h"
+#include "Shark/Debug/Profiler.h"
 
 #include <dxc/dxcapi.h>
 #include <spirv_cross/spirv_cross.hpp>
@@ -64,6 +65,8 @@ namespace Shark {
 
 	bool ShaderCompiler::Reload()
 	{
+		SK_PROFILE_FUNCTION();
+
 		utils::SetupDXC();
 
 		auto& shaderCache = Renderer::GetShaderCache();
@@ -186,6 +189,8 @@ namespace Shark {
 
 	bool ShaderCompiler::Preprocess(bool processAll)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_Preprocessor.PreprocessFile(m_Info.SourcePath);
 		if (!m_Preprocessor.Errors.empty())
 		{
@@ -209,6 +214,8 @@ namespace Shark {
 
 	bool ShaderCompiler::PreprocessStage(nvrhi::ShaderType stage)
 	{
+		SK_PROFILE_FUNCTION();
+
 		nvrhi::RefCountPtr<IDxcBlobEncoding> sourceBlob;
 		DxcInstances::g_Utils->CreateBlob(m_Preprocessor.Source.data(), static_cast<UINT32>(m_Preprocessor.Source.size()), CP_UTF8, &sourceBlob);
 
@@ -260,6 +267,8 @@ namespace Shark {
 
 	bool ShaderCompiler::CompileStage(nvrhi::ShaderType stage)
 	{
+		SK_PROFILE_FUNCTION();
+
 		std::string errorMessage = HLSLCompileStage(stage);
 
 		if (!errorMessage.empty())
@@ -275,6 +284,8 @@ namespace Shark {
 
 	std::string ShaderCompiler::HLSLCompileStage(nvrhi::ShaderType stage)
 	{
+		SK_PROFILE_FUNCTION();
+
 		const std::string& shaderSource = m_PreprocessedResult.at(stage).Source;
 
 		// 
@@ -351,6 +362,8 @@ namespace Shark {
 
 	void ShaderCompiler::Reflect()
 	{
+		SK_PROFILE_FUNCTION();
+
 		for (const auto& [stage, binary] : m_Result->SpirvBinary)
 			ReflectStage(stage);
 
@@ -455,6 +468,8 @@ namespace Shark {
 
 	void ShaderCompiler::ReflectStage(nvrhi::ShaderType stage)
 	{
+		SK_PROFILE_FUNCTION();
+
 		const auto& spirvBinary = m_Result->SpirvBinary.at(stage);
 		const spirv_cross::Compiler compiler(spirvBinary.data(), spirvBinary.size());
 		const spirv_cross::ShaderResources shaderResources = compiler.get_shader_resources();
@@ -762,6 +777,8 @@ namespace Shark {
 
 	void ShaderCompiler::BuildCombinedImageSampler(const std::string& imageName, const std::string& samplerName)
 	{
+		SK_PROFILE_FUNCTION();
+
 		ShaderInputInfo* imageInfo = FindInputInfo(imageName);
 		ShaderInputInfo* samplerInfo = FindInputInfo(samplerName);
 

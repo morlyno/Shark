@@ -304,12 +304,18 @@ namespace Shark::RT {
 
 	void WriteBuffer(Ref<RenderCommandBuffer> commandBuffer, Ref<GpuBuffer> buffer, const Buffer bufferData)
 	{
+		SK_PROFILE_FUNCTION();
+		//SK_CORE_TRACE_TAG("Renderer", "[RT] WriteBuffer '{}'", buffer->GetSpecification().DebugName);
+
 		auto commandList = commandBuffer->GetHandle();
 		commandList->writeBuffer(buffer->GetHandle(), bufferData.As<const void>(), bufferData.Size);
 	}
 
 	void WriteImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> image, const ImageSlice& slice, const Buffer imageData)
 	{
+		SK_PROFILE_FUNCTION();
+		SK_CORE_TRACE_TAG("Renderer", "[RT] WriteImage '{}':(Mip:{}, Level: {})", image->GetSpecification().DebugName, slice.Mip, slice.Layer);
+
 		auto commandList = commandBuffer->GetHandle();
 		auto imageHandle = image->GetHandle();
 		commandList->writeTexture(imageHandle, slice.Layer, slice.Mip, imageData.As<const void>(), imageHandle->getDesc().width * nvrhi::getFormatInfo(imageHandle->getDesc().format).bytesPerBlock);
@@ -429,6 +435,8 @@ namespace Shark::RT {
 
 	void CopyTexture(nvrhi::ICommandList* commandList, nvrhi::ITexture* source, nvrhi::ITexture* destination)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto slice = nvrhi::TextureSlice();
 
 		for (uint32_t mip = 0; mip < source->getDesc().mipLevels; mip++)

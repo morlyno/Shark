@@ -2002,8 +2002,6 @@ namespace Shark {
 			serializer.Serialize(Project::GetProjectFilePath());
 		}
 
-		Project::GetEditorAssetManager()->SerializeImportedAssets();
-
 		SK_CORE_INFO_TAG("Core", "Closing Project");
 
 		SelectionManager::DeselectAll();

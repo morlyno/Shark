@@ -9,6 +9,8 @@
 	#include "Shark/Platform/Vulkan/VulkanDeviceManager.h"
 #endif
 
+#include "Shark/Debug/Profiler.h"
+
 #include <nvrhi/validation.h>
 
 namespace Shark {
@@ -55,6 +57,8 @@ namespace Shark {
 
 	nvrhi::CommandListHandle DeviceManager::GetOrCreateThreadLocalCommandList(nvrhi::CommandQueue queue)
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto threadID = std::this_thread::get_id();
 
 		{
@@ -79,6 +83,8 @@ namespace Shark {
 
 	bool DeviceManager::CreateDevice(const DeviceSpecification& specification)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_Specification = specification;
 
 		if (!CreateInstanceInternal())
@@ -103,17 +109,23 @@ namespace Shark {
 
 	void DeviceManager::RunGarbageCollection()
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_NvrhiDevice->runGarbageCollection();
 		RunGarbageCollectionInternal();
 	}
 
 	void DeviceManager::ExecuteCommandList(nvrhi::ICommandList* commandList)
 	{
+		SK_PROFILE_FUNCTION();
+
 		m_NvrhiDevice->executeCommandList(commandList);
 	}
 
 	void DeviceManager::ExecuteCommandListLocked(nvrhi::ICommandList* commandList)
 	{
+		SK_PROFILE_FUNCTION();
+
 		LockQueue();
 		m_NvrhiDevice->executeCommandList(commandList);
 		UnlockQueue();

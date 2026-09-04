@@ -9,11 +9,15 @@
 #include "Shark/Render/ConstantBuffer.h"
 #include "Shark/Render/StorageBuffer.h"
 
+#include "Shark/Debug/Profiler.h"
+
 namespace Shark {
 
 	ComputePass::ComputePass(const ComputePassSpecification& specification)
 		: m_Specification(specification)
 	{
+		SK_PROFILE_FUNCTION();
+
 		const auto layoutMode = m_Specification.ComputeShader->GetLayoutMode();
 		if (layoutMode == LayoutShareMode::MaterialOnly)
 			return;
@@ -39,6 +43,8 @@ namespace Shark {
 
 	void ComputePass::Bake()
 	{
+		SK_PROFILE_FUNCTION();
+
 		std::vector<InputUpdate> updates;
 		m_InputManager.Package(updates);
 
@@ -51,6 +57,8 @@ namespace Shark {
 
 	void ComputePass::Update()
 	{
+		SK_PROFILE_FUNCTION();
+
 		std::vector<InputUpdate> updates;
 		if (!m_InputManager.Package(updates))
 			return; // No update needed

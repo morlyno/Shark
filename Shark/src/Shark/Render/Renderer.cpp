@@ -1468,6 +1468,8 @@ namespace Shark {
 
 	Ref<Image2D> Renderer::CreateBRDFLUT()
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto shader = Renderer::GetShaderLibrary()->Get("BRDF_LUT");
 		const uint32_t imageSize = 256;
 
