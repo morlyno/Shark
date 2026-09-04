@@ -1,7 +1,7 @@
 @echo off
 
 pushd %~dp0
-python Win-GenerateProjects.py
+python WinGenerateProjects.py
 popd
 
 PAUSE

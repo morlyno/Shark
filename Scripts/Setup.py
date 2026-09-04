@@ -1,3 +1,11 @@
+
+import CheckPython
+CheckPython.ValidatePackages()
+
+import Vulkan
+import Dotnet
+from GenerateProjects import generateProject
+
 import os
 import subprocess
 
@@ -8,23 +16,25 @@ from colorama import Fore
 
 colorama.init()
 
-os.chdir("./../")
+def setup():
 
-print(f"{Style.BRIGHT}{Back.GREEN}Setting SHARK_DIR to {os.getcwd()}{Style.RESET_ALL}")
-subprocess.call(["setx", "SHARK_DIR", os.getcwd()])
-os.environ['SHARK_DIR'] = os.getcwd()
+    os.chdir("./../")
 
-subprocess.call(["git", "submodule", "update", "--init", "--recursive"])
+    print(f"{Style.BRIGHT}{Back.GREEN}Setting SHARK_DIR to {os.getcwd()}{Style.RESET_ALL}")
+    subprocess.call(["setx", "SHARK_DIR", os.getcwd()])
+    os.environ['SHARK_DIR'] = os.getcwd()
 
-version = input("Version [2022|2026(default)] ").strip() or "2026"
-if version not in ["2022", "2026"]:
-    print(f"{Fore.RED}Invalid version '{version}'{Style.RESET_ALL}")
-    exit()
-            
+    if not Vulkan.ValidateVulkanSDK():
+        exit()
 
-print(f"{Style.BRIGHT}{Back.GREEN}Generating Visual Studio {version} solution.{Style.RESET_ALL}")
+    Vulkan.ValidateVulkanDebugLibs()
 
-action = f"vs{version}"
-premakePath = os.path.abspath("dependencies/premake/bin/premake5.exe")
-subprocess.call([premakePath, action])
-subprocess.call([premakePath, action, "--file=Shark-Editor/SandboxProject/premake5.lua"])
+    if not Dotnet.ValidateDotnet():
+        exit()
+
+    subprocess.call(["git", "submodule", "update", "--init", "--recursive"])
+
+    generateProject(options=["--with-vulkan"])
+
+if __name__ == "__main__":
+    setup()

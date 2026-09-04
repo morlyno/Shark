@@ -1,4 +1,19 @@
 
+newoption {
+	trigger = "with-d3d11",
+	description = "Allow the use of D3D11"
+}
+
+newoption {
+	trigger = "with-d3d12",
+	description = "Allow the use of D3D12"
+}
+
+newoption {
+	trigger = "with-vulkan",
+	description = "Allow the use of Vulkan"
+}
+
 include "Dependencies.lua"
 
 workspace "Shark"
@@ -29,11 +44,15 @@ workspace "Shark"
 		"FMT_UNICODE=0",
 
 		"IMGUI_DISABLE_OBSOLETE_FUNCTIONS",
-		"IMGUI_DEFINE_MATH_OPERATORS",
-
-		"SK_WITH_DX11",
-		"SK_WITH_VULKAN"
+		"IMGUI_DEFINE_MATH_OPERATORS"
 	}
+
+	filter "options:with-d3d11"
+		defines { "SK_WITH_DX11" }
+	filter "options:with-d3d12"
+		defines { "SK_WITH_DX12" }
+	filter "options:with-vulkan"
+		defines { "SK_WITH_VULKAN" }
 
 	filter "tags:Shark"
 		warnings "Extra"
