@@ -3,6 +3,7 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Layer/LayerStack.h"
 
+#include <choc/containers/choc_ArgumentList.h>
 #include <queue>
 
 namespace Shark {
@@ -44,14 +45,16 @@ namespace Shark {
 		Shutdown,
 	};
 
-	class Application
+	class Application final
 	{
 	public:
-		Application(const ApplicationSpecification& specification);
-		virtual ~Application();
+		Application(const ApplicationSpecification& specification, choc::ArgumentList args);
+		~Application();
 
-		virtual void OnInit() = 0;
+		Application(Application&&) = delete;
+		Application& operator=(Application&&) = delete;
 
+	public:
 		void PushLayer(Layer* layer);
 		void PopLayer(Layer* layer);
 		void PushOverlay(Layer* layer);
@@ -107,6 +110,7 @@ namespace Shark {
 	private:
 		static Application* s_Instance;
 		ApplicationSpecification m_Specification;
+		choc::ArgumentList m_ArgumentList;
 
 		std::thread::id m_MainThreadID;
 

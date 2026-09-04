@@ -26,8 +26,8 @@ namespace Shark {
 
 	Application* Application::s_Instance = nullptr;
 
-	Application::Application(const ApplicationSpecification& specification)
-		: m_Specification(specification), m_MainThreadID(std::this_thread::get_id())
+	Application::Application(const ApplicationSpecification& specification, choc::ArgumentList args)
+		: m_Specification(specification), m_MainThreadID(std::this_thread::get_id()), m_ArgumentList(std::move(args))
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -55,7 +55,7 @@ namespace Shark {
 		m_DeviceManager = DeviceManager::Create(nvrhi::GraphicsAPI::VULKAN);
 		m_DeviceManager->CreateDevice(
 			DeviceSpecification{
-				.EnableDebugRuntime = true,
+				.EnableDebugRuntime = !m_ArgumentList.contains("no-debug-runtime"),
 				.EnableNvrhiValidationLayer = true,
 				.SrgbSurface = false,
 				.Window = m_Window->GetHandle()
@@ -124,7 +124,6 @@ namespace Shark {
 
 	void Application::Run()
 	{
-		OnInit();
 		m_State = ApplicationState::Running;
 		m_LastTickCount = Platform::GetTicks();
 

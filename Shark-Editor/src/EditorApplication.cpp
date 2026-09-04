@@ -1,46 +1,52 @@
-#include <Shark.h>
-#include <Shark/Core/EntryPoint.h>
+
+#include "Shark/Core/Application.h"
+#include "Shark/Core/EntryPoint.h"
+
+#include "Shark/Utils/PlatformUtils.h"
+#include "Shark/Debug/Profiler.h"
 
 #include "EditorLayer.h"
-#include "Shark/Debug/Profiler.h"
+
+#include <choc/containers/choc_ArgumentList.h>
 
 namespace Shark {
 
-	class EditorApplication : public Application
+	std::filesystem::path GetStartupProject(choc::ArgumentList& args)
 	{
-	public:
-		EditorApplication(const ApplicationSpecification& specification, std::string_view startupProject)
-			: Application(specification), m_StartupProject(startupProject)
+		if (auto project = args.getExistingFileIfPresent("project", true))
+			return std::move(*project);
+
+		return std::filesystem::absolute(L"SandboxProject\\Sandbox.skproj");
+	}
+
+	void ValidateEnvironmentVariable()
+	{
+		const auto expected = std::filesystem::current_path().parent_path();
+		auto var = Platform::GetEnvironmentVariable("SHARK_DIR");
+
+		if (var == expected)
+			return;
+
+		if (var.empty())
 		{
-			if (m_StartupProject.empty())
-				m_StartupProject = std::filesystem::absolute(L"SandboxProject\\Sandbox.skproj");
+			SK_CORE_ERROR("Environment variable 'SHARK_DIR' not set! Run Scripts/Setup again to fix this.");
+		}
+		else
+		{
+			SK_CORE_ERROR("Environment variable 'SHARK_DIR' wrong! Run Scripts/Setup again to fix this.");
+			SK_CORE_ERROR("Got '{}' but expected '{}'", var, expected.generic_string());
 		}
 
-		virtual ~EditorApplication()
-		{
-		}
-
-		virtual void OnInit() override
-		{
-			std::filesystem::path workingDirectory = std::filesystem::current_path();
-			if (workingDirectory.stem() == L"Shark-Editor")
-				workingDirectory = workingDirectory.parent_path();
-
-			Platform::SetEnvironmentVariable("SHARK_DIR", workingDirectory.string());
-
-			PushLayer(sknew EditorLayer(m_StartupProject));
-		}
-
-	private:
-		std::filesystem::path m_StartupProject;
-	};
+		std::terminate();
+	}
 
 	Application* CreateApplication(int argc, char** argv)
 	{
 		SK_PROFILE_FUNCTION();
-		std::string_view startupProject;
-		if (argc > 1)
-			startupProject = argv[1];
+
+		ValidateEnvironmentVariable();
+
+		choc::ArgumentList args(argc, argv);
 
 		ApplicationSpecification specification;
 		specification.Name = "Shark-Editor";
@@ -51,13 +57,10 @@ namespace Shark {
 		specification.FullScreen = false;
 		specification.EnableImGui = true;
 		specification.VSync = true;
-#if 0
-		specification.ScriptConfig.CoreAssemblyPath = "Resources/Binaries/Shark-ScriptCore.dll";
-		specification.ScriptConfig.EnableDebugging = true;
-		specification.ScriptConfig.AutoReload = true;
-#endif
 
-		return sknew EditorApplication(specification, startupProject);
+		auto application = sknew Application(specification, std::move(args));
+		application->PushLayer(sknew EditorLayer(GetStartupProject(args)));
+		return application;
 	}
 
 }
