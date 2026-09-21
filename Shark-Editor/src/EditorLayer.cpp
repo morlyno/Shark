@@ -1983,7 +1983,22 @@ namespace Shark {
 
 		m_PanelManager->OnProjectChanged(config);
 
-		if (!LoadScene(config->StartupScene))
+		AssetHandle startupScene = Application::Get().GetArgumentList().getValueFor("scene", true)
+			.transform([](std::string str) { return choc::text::trim(str); })
+			.and_then([](std::string str) -> std::optional<AssetHandle>
+			{
+				if (auto handle = Project::GetEditorAssetManager()->GetAssetHandleFromFilepath(str))
+					return handle;
+
+				auto handle = AssetHandle::Make(std::stoull(str));
+				if (AssetManager::IsValidAssetHandle(handle))
+					return handle;
+
+				return std::nullopt;
+			})
+			.value_or(config->StartupScene);
+
+		if (!LoadScene(startupScene))
 			NewScene("Empty Fallback Scene");
 		//LoadScene(project->GetConfig().StartupScene);
 	}

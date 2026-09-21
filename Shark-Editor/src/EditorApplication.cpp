@@ -59,7 +59,7 @@ namespace Shark {
 		specification.VSync = true;
 
 		auto application = sknew Application(specification, std::move(args));
-		application->PushLayer(sknew EditorLayer(GetStartupProject(args)));
+		application->PushLayer(sknew EditorLayer(GetStartupProject(application->GetArgumentList())));
 		return application;
 	}
 
