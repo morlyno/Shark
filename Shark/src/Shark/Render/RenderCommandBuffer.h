@@ -75,6 +75,16 @@ namespace Shark {
 		std::filesystem::path m_MarkerStack;
 	};
 
+	class ScopedGpuTimer
+	{
+	public:
+		ScopedGpuTimer(RefArg<RenderCommandBuffer> commandBuffer, std::string_view timerName);
+		~ScopedGpuTimer();
+
+	private:
+		Ref<RenderCommandBuffer> m_CommandBuffer;
+	};
+
 	class EventQuery : public RefCount
 	{
 	public:

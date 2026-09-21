@@ -293,4 +293,16 @@ namespace Shark {
 	{
 	}
 
+	
+	ScopedGpuTimer::ScopedGpuTimer(RefArg<RenderCommandBuffer> commandBuffer, std::string_view timerName)
+		: m_CommandBuffer(commandBuffer)
+	{
+		m_CommandBuffer->BeginTimer(timerName);
+	}
+
+	ScopedGpuTimer::~ScopedGpuTimer()
+	{
+		m_CommandBuffer->EndTimer();
+	}
+
 }

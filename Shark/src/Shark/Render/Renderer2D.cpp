@@ -656,9 +656,9 @@ namespace Shark {
 		if (m_TextVertexBuffer->GetByteSize() < m_LineVertexData.Size)
 			m_TextVertexBuffer->Resize(m_LineVertexData.Size);
 
-		if (m_QuadIndexCount)
+		if (ScopedGpuTimer timer(m_CommandBuffer, "QuadPass");
+			m_QuadIndexCount)
 		{
-			m_CommandBuffer->BeginTimer("QuadPass");
 			Renderer::WriteBuffer(m_CommandBuffer, m_QuadVertexBuffer, m_QuadVertexData.Range(m_QuadVertexCount * sizeof(QuadVertex)));
 			Renderer::BeginRenderPass(m_CommandBuffer, m_QuadPass);
 
@@ -681,12 +681,11 @@ namespace Shark {
 				batchIndex++;
 			}
 			Renderer::EndRenderPass(m_CommandBuffer, m_QuadPass);
-			m_CommandBuffer->EndTimer();
 		}
 
-		if (m_CircleIndexCount)
+		if (ScopedGpuTimer timer(m_CommandBuffer, "CirclePass");
+			m_CircleIndexCount)
 		{
-			m_CommandBuffer->BeginTimer("CirclePass");
 			Renderer::WriteBuffer(m_CommandBuffer, m_CircleVertexBuffer, m_CircleVertexData.Range(m_CircleVertexCount * sizeof(CircleVertex)));
 
 			Renderer::BeginRenderPass(m_CommandBuffer, m_CirclePass);
@@ -694,12 +693,11 @@ namespace Shark {
 			Renderer::EndRenderPass(m_CommandBuffer, m_CirclePass);
 
 			m_Statistics.DrawCalls++;
-			m_CommandBuffer->EndTimer();
 		}
 
-		if (m_LineVertexCount)
+		if (ScopedGpuTimer timer(m_CommandBuffer, "LinePass");
+			m_LineVertexCount)
 		{
-			m_CommandBuffer->BeginTimer("LinePass");
 			Renderer::WriteBuffer(m_CommandBuffer, m_LineVertexBuffer, m_LineVertexData.Range(m_LineVertexCount * sizeof(LineVertex)));
 
 			Renderer::BeginRenderPass(m_CommandBuffer, m_LinePass);
@@ -707,22 +705,20 @@ namespace Shark {
 			Renderer::EndRenderPass(m_CommandBuffer, m_LinePass);
 
 			m_Statistics.DrawCalls++;
-			m_CommandBuffer->EndTimer();
 		}
 
-		if (m_TextIndexCount)
+		if (ScopedGpuTimer timer(m_CommandBuffer, "TextPass");
+			m_TextIndexCount)
 		{
 			m_TextMaterial->Update();
 
-			m_CommandBuffer->BeginTimer("TextPass");
-			Renderer::WriteBuffer(m_CommandBuffer, m_TextVertexBuffer, m_TextVertexData.Range(m_TextVertexCount * sizeof(LineVertex)));
+			Renderer::WriteBuffer(m_CommandBuffer, m_TextVertexBuffer, m_TextVertexData.Range(m_TextVertexCount * sizeof(TextVertex)));
 
 			Renderer::BeginRenderPass(m_CommandBuffer, m_TextPass);
 			Renderer::RenderGeometry(m_CommandBuffer, m_TextPipeline, m_TextMaterial, m_TextVertexBuffer, m_TextIndexBuffer, m_TextIndexCount);
 			Renderer::EndRenderPass(m_CommandBuffer, m_TextPass);
 
 			m_Statistics.DrawCalls++;
-			m_CommandBuffer->EndTimer();
 		}
 
 		m_CommandBuffer->EndTimer();
