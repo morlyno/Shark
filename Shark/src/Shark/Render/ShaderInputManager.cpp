@@ -814,7 +814,7 @@ namespace Shark {
 			case RenderInputType::Image2D:
 			{
 				auto item = input.Item.AsSafe<Image2D>();
-				return item && item->GetSpecification().Usage == ImageUsage::Storage && ImageUtils::SupportsUAV(item->GetSpecification().Format);
+				return item && item->GetSpecification().Storage && ImageUtils::SupportsUAV(item->GetSpecification().Format);
 			}
 			case RenderInputType::ImageView:
 			{

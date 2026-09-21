@@ -9,6 +9,8 @@ namespace Shark {
 	VulkanSwapChain::VulkanSwapChain(vk::SurfaceKHR surface, const SwapChainSpecification& specification)
 		: m_Specification(specification), m_WindowSurface(surface)
 	{
+		SK_PROFILE_FUNCTION();
+
 		CreateSwapchain();
 		CreateSemaphores();
 		CreateRenderTarget();
@@ -212,6 +214,8 @@ namespace Shark {
 
 	void VulkanSwapChain::CreateSwapchain()
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto* deviceManager = static_cast<VulkanDeviceManager*>(Renderer::GetDeviceManager());
 		const auto& deviceSpecification = deviceManager->GetSpecification();
 
@@ -312,6 +316,8 @@ namespace Shark {
 
 	void VulkanSwapChain::CreateRenderTarget()
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto* device = Renderer::GetGraphicsDevice();
 
 		m_Framebuffers.clear();
@@ -328,6 +334,8 @@ namespace Shark {
 
 	void VulkanSwapChain::CreateSemaphores()
 	{
+		SK_PROFILE_FUNCTION();
+
 		auto* deviceManager = static_cast<VulkanDeviceManager*>(Renderer::GetDeviceManager());
 		const auto& deviceSpecification = deviceManager->GetSpecification();
 

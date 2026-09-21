@@ -43,10 +43,10 @@ namespace Shark {
 		virtual nvrhi::GraphicsAPI GetGraphicsAPI() const = 0;
 		const DeviceSpecification& GetSpecification() const { return m_Specification; }
 
-		void ExecuteCommandList(nvrhi::ICommandList* commandList, nvrhi::CommandQueue queue);
+		uint64_t ExecuteCommandList(nvrhi::ICommandList* commandList, nvrhi::CommandQueue queue);
 
-		auto ExecuteCommand(auto&& cmd) { ExecuteCommand(nvrhi::CommandQueue::Graphics, cmd); }
-		auto ExecuteCommand(nvrhi::CommandQueue queue, auto&& cmd)
+		auto ExecuteCommand(std::invocable<nvrhi::CommandListHandle> auto&& cmd) { ExecuteCommand(nvrhi::CommandQueue::Graphics, std::forward<decltype(cmd)>(cmd)); }
+		auto ExecuteCommand(nvrhi::CommandQueue queue, std::invocable<nvrhi::CommandListHandle> auto&& cmd)
 		{
 			auto commandList = GetTemporaryCommandList(queue);
 			commandList->open();

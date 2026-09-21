@@ -25,6 +25,7 @@ namespace Shark {
 
 		bool HasMips = true;
 		bool Storage = false;
+		nvrhi::ResourceStates InitialState = nvrhi::ResourceStates::Unknown;
 
 		float MaxAnisotropy = 1.0f;
 		FilterMode Filter = FilterMode::Linear;

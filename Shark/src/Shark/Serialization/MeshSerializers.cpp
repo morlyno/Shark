@@ -2,8 +2,13 @@
 #include "MeshSerializers.h"
 
 #include "Shark/Asset/AssetManager.h"
+
+#include "Shark/Render/Renderer.h"
+#include "Shark/Render/RenderCommandBuffer.h"
+#include "Shark/Render/TextureCommon.h"
 #include "Shark/Render/Mesh.h"
 #include "Shark/Render/MeshSource.h"
+
 #include "Shark/Animation/Animation.h"
 #include "Shark/Animation/Graph/AnimationGraphAsset.h"
 
@@ -50,6 +55,22 @@ namespace Shark {
 			return false;
 		}
 
+		auto& jobs = importer.GetJobs();
+		if (!jobs.empty())
+		{
+			auto commandBuffer = RenderCommandBuffer::Create("MeshImporter jobs");
+			commandBuffer->RT_Begin();
+
+			for (auto& job : jobs)
+			{
+				Renderer::RT_WriteImage(commandBuffer, job.Image, ImageSlice::Zero(), job.Data);
+				Renderer::RT_GenerateMips(commandBuffer, job.Image);
+			}
+
+			commandBuffer->RT_End();
+			commandBuffer->RT_Execute();
+		}
+
 		asset = meshSource;
 		asset->Handle = metadata.Handle;
 		return true;
@@ -94,7 +115,6 @@ namespace Shark {
 
 		asset = mesh;
 		asset->Handle = metadata.Handle;
-		//context->SetStatus(AssetLoadStatus::Ready);
 		return true;
 	}
 
@@ -133,13 +153,14 @@ namespace Shark {
 		SK_DESERIALIZE_PROPERTY(meshNode, "MeshSource", mesh->m_MeshSource);
 		SK_DESERIALIZE_PROPERTY(meshNode, "Submeshes", mesh->m_Submeshes);
 
+		context->SetStatus(AssetLoadStatus::Loading);
 		context->AddTask([mesh = mesh](AssetLoadContext* context)
 		{
 			auto future = AssetManager::GetAssetFuture(mesh->GetMeshSource());
 			if (!future.Valid())
 			{
 				context->AddError(AssetLoadError::Unknown, fmt::format("MeshSource '{}' missing!", mesh->GetMeshSource()));
-				return;
+				return true;
 			}
 
 			future.OnReady([context, mesh](Ref<Asset> asset)
@@ -147,6 +168,8 @@ namespace Shark {
 				mesh->InitializeFromThis(asset.As<MeshSource>());
 				context->SetStatus(AssetLoadStatus::Ready);
 			});
+
+			return true;
 		});
 
 		return true;

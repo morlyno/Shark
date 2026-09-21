@@ -1,9 +1,13 @@
 #include "skpch.h"
 #include "EnvironmentSerializer.h"
 
+#include "Shark/Render/DeviceManager.h"
 #include "Shark/Render/Renderer.h"
+#include "Shark/Render/RenderCommandBuffer.h"
 #include "Shark/Render/Texture.h"
 #include "Shark/Render/Environment.h"
+
+#include "Shark/Serialization/Import/TextureImporter.h"
 
 #include "Shark/File/FileSystem.h"
 #include "Shark/Debug/Profiler.h"
@@ -26,14 +30,39 @@ namespace Shark {
 			return false;
 		}
 
-		Ref<Environment> environment;
+		ImageData imageData;
+		imageData.Data = TextureImporter::ToBufferFromFile(filesystemPath, imageData.Format, imageData.Width, imageData.Height);
 
-		auto [radianceMap, irradianceMap] = Renderer::MT::CreateEnvironmentMap(filesystemPath);
-		environment = Ref<Environment>::Create(radianceMap, irradianceMap);
+		auto commandBuffer = RenderCommandBuffer::Create(nvrhi::CommandQueue::Compute, fmt::format("CreateEnvironmentMap '{}'", metadata.FilePath));
+
+		commandBuffer->RT_Begin();
+		auto [radianceMap, irradianceMap] = Renderer::RT_CreateEnvironmentMap(commandBuffer, imageData, metadata.FilePath.generic_string());
+		auto environment = Ref<Environment>::Create(radianceMap, irradianceMap);
+		commandBuffer->RT_End();
+		commandBuffer->RT_Execute();
+
+		auto query = EventQuery::Create();
+		query->RT_Set(nvrhi::CommandQueue::Compute);
+
+		context->AddTask([query, environment](AssetLoadContext* context)
+		{
+			if (!query->RT_Poll())
+			{
+				SK_CORE_DEBUG("EnvironmentSerializer wait '{}'", environment->GetRadianceMap()->GetSpecification().DebugName);
+				return false;
+			}
+
+			Renderer::GetDeviceManager()->ExecuteCommand(nvrhi::CommandQueue::Graphics, [environment](nvrhi::ICommandList* cmd)
+			{
+				cmd->setPermanentTextureState(environment->GetRadianceMap()->GetHandle(), nvrhi::ResourceStates::ShaderResource);
+				cmd->setPermanentTextureState(environment->GetIrradianceMap()->GetHandle(), nvrhi::ResourceStates::ShaderResource);
+			});
+
+			return true;
+		});
 
 		asset = environment;
 		asset->Handle = metadata.Handle;
-		context->SetStatus(AssetLoadStatus::Ready);
 		return true;
 	}
 

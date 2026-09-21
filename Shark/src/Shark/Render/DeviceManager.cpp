@@ -84,11 +84,11 @@ namespace Shark {
 		RunGarbageCollectionInternal();
 	}
 
-	void DeviceManager::ExecuteCommandList(nvrhi::ICommandList* commandList, nvrhi::CommandQueue queue)
+	uint64_t DeviceManager::ExecuteCommandList(nvrhi::ICommandList* commandList, nvrhi::CommandQueue queue)
 	{
 		SK_PROFILE_FUNCTION();
 
-		m_NvrhiDevice->executeCommandList(commandList, queue);
+		return m_NvrhiDevice->executeCommandList(commandList, queue);
 	}
 
 	nvrhi::CommandListHandle DeviceManager::GetTemporaryCommandList(nvrhi::CommandQueue queue)

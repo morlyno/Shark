@@ -330,7 +330,7 @@ namespace Shark {
 		specification.Width = 512;
 		specification.Height = 512;
 		specification.Format = ImageFormat::RGBA;
-		specification.Usage = ImageUsage::Storage;
+		specification.Storage = true;
 		auto result = Image2D::Create(specification);
 
 		m_CommandBuffer->Begin();

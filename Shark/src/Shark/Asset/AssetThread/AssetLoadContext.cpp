@@ -18,21 +18,18 @@ namespace Shark {
 		if (m_Status == AssetLoadStatus::Error)
 			status = AssetLoadStatus::Error;
 
-		if (status == AssetLoadStatus::Ready && !m_Tasks.empty())
-			status = AssetLoadStatus::Loading;
-
 		m_Status = status;
-	}
-
-	void AssetLoadContext::QueueStatus(AssetLoadStatus status)
-	{
-		AddTask([status](AssetLoadContext* context) { context->SetStatus(status); });
 	}
 
 	void AssetLoadContext::AddError(AssetLoadError error, std::string message)
 	{
 		m_Errors.emplace_back(error, std::move(message));
 		SetStatus(AssetLoadStatus::Error);
+	}
+
+	void AssetLoadContext::AddTask(Task task)
+	{
+		m_Tasks.emplace_back(std::move(task));
 	}
 
 	AssetHandle AssetLoadContext::AddMemoryOnlyAsset(Ref<Asset> asset)
@@ -83,6 +80,11 @@ namespace Shark {
 		);
 	}
 
+	bool AssetLoadContext::Loading() const
+	{
+		return m_Status == AssetLoadStatus::Loading || m_Status == AssetLoadStatus::Auto && !m_Tasks.empty();
+	}
+
 	void AssetLoadContext::FixStatus(bool wasSuccessful)
 	{
 		if (!wasSuccessful || HasErrors())
@@ -90,8 +92,6 @@ namespace Shark {
 			SetStatus(AssetLoadStatus::Error);
 			return;
 		}
-
-		SetStatus(AssetLoadStatus::Ready);
 	}
 
 }

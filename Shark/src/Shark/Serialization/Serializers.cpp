@@ -22,7 +22,6 @@ namespace Shark {
 
 		asset = Ref<ScriptFile>::Create();
 		asset->Handle = metadata.Handle;
-		context->SetStatus(AssetLoadStatus::Ready);
 		return true;
 	}
 
@@ -45,7 +44,6 @@ namespace Shark {
 		Ref<Font> font = Ref<Font>::Create(filesystemPath);
 		asset = font;
 		asset->Handle = metadata.Handle;
-		context->SetStatus(AssetLoadStatus::Ready);
 		return true;
 	}
 

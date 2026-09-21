@@ -22,9 +22,14 @@ namespace Shark {
 		uint32_t MipLevels = 1; // 0 == MaxLeves
 
 		ImageUsage Usage = ImageUsage::Texture;
+		nvrhi::ResourceStates InitialState = nvrhi::ResourceStates::Unknown;
+		bool Storage = false;
 		bool IsCube = false;
 
 		std::string DebugName;
+
+		ImageSpecification& SetDebugName(std::string name) { DebugName = std::move(name); return *this; }
+		ImageSpecification WithDebugName(std::string name) const { return ImageSpecification{ *this }.SetDebugName(name); }
 	};
 
 	class Image2D : public ViewableResource

@@ -106,6 +106,7 @@ namespace Shark {
 
 					texture->RT_Invalidate();
 					texture->RT_Upload(imageData);
+					return true;
 				});
 			}
 		}
@@ -124,13 +125,10 @@ namespace Shark {
 		if (texture->GetSpecification().HasMips)
 		{
 			if (deferred)
-				context->AddTask(std::bind_front(&Renderer::MT::GenerateMips, texture->GetImage()));
+				context->AddTask([texture](auto) { Renderer::MT::GenerateMips(texture->GetImage()); return true; });
 			else
 				Renderer::MT::GenerateMips(texture->GetImage());
 		}
-
-		if (deferred)
-			context->QueueStatus(AssetLoadStatus::Ready);
 
 		asset = texture;
 		asset->Handle = metadata.Handle;

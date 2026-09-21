@@ -6,6 +6,7 @@
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/MeshSource.h"
 #include "Shark/Render/MaterialAsset.h"
+#include "Shark/Render/Image.h"
 #include "Shark/Render/Texture.h"
 
 #include "Shark/Animation/Animation.h"
@@ -88,6 +89,11 @@ namespace Shark {
 			auto logger = Assimp::DefaultLogger::create("AssimpImporter", Assimp::Logger::VERBOSE, 0);
 			logger->attachStream(new Shark::AssimpLogStream(), Assimp::Logger::Debugging | Assimp::Logger::Info | Assimp::Logger::Warn | Assimp::Logger::Err);
 		}
+	}
+
+	std::vector<AssimpMeshImporter::UploadJob>& AssimpMeshImporter::GetJobs()
+	{
+		return m_Jobs;
 	}
 
 	Ref<MeshSource> AssimpMeshImporter::ToMeshSourceFromFile(AssetLoadContext* context)
@@ -717,6 +723,53 @@ namespace Shark {
 		return Scope<Animation>::Create(&skeleton, std::move(channels), static_cast<float>(animation->mDuration / samplingRate));
 	}
 
+	AssetHandle AssimpMeshImporter::LoadTexture(const aiScene* scene, const aiString& path, bool sRGB, AssetLoadContext* context)
+	{
+		SK_PROFILE_FUNCTION();
+		TextureSpecification specification;
+		specification.DebugName = path.C_Str();
+		specification.Format = sRGB ? ImageFormat::sRGBA : ImageFormat::RGBA;
+		// TODO(moro): sampler
+
+		if (auto aiTexEmbedded = scene->GetEmbeddedTexture(path.C_Str()))
+		{
+			specification.DebugName = aiTexEmbedded->mFilename.C_Str();
+			specification.Width = aiTexEmbedded->mWidth;
+			specification.Height = aiTexEmbedded->mHeight;
+			UniqueBuffer imageData;
+			if (aiTexEmbedded->mHeight == 0)
+			{
+				imageData = TextureImporter::ToBufferFromMemory(Buffer(aiTexEmbedded->pcData, aiTexEmbedded->mWidth), specification.Format, specification.Width, specification.Height);
+			}
+			else
+			{
+				imageData = UniqueBuffer::Copy(aiTexEmbedded->pcData, aiTexEmbedded->mWidth * aiTexEmbedded->mHeight * sizeof(aiTexel));
+			}
+
+			auto texture = Texture2D::Create(specification);
+			m_Jobs.emplace_back(texture->GetImage(), std::move(imageData));
+
+			if (aiTexEmbedded->mHeight == 0)
+				imageData.Release();
+
+			return context->AddMemoryOnlyAsset(texture);
+		}
+
+		// #TODO #async find a way to do this through the asset system
+		const auto texturePath = m_Filepath.parent_path() / path.C_Str();
+		UniqueBuffer imageData = TextureImporter::ToBufferFromFile(texturePath, specification.Format, specification.Width, specification.Height);
+		if (!imageData)
+		{
+			// #TODO handle file not found
+			return AssetHandle::Invalid;
+		}
+
+		auto texture = Texture2D::Create(specification);
+		m_Jobs.emplace_back(texture->GetImage(), std::move(imageData));
+
+		return context->AddMemoryOnlyAsset(texture);
+	}
+
 	void AssimpMeshImporter::TraverseNodes(Ref<MeshSource> meshSource, aiNode* assimpNode, uint32_t nodeIndex, const glm::mat4& parentTransform, uint32_t level)
 	{
 		MeshNode& node = meshSource->m_Nodes[nodeIndex];
@@ -739,49 +792,6 @@ namespace Shark {
 
 			TraverseNodes(meshSource, assimpNode->mChildren[i], meshSource->m_Nodes.size() - 1, meshSource->m_Nodes[nodeIndex].Transform, level + 1);
 		}
-	}
-
-	AssetHandle AssimpMeshImporter::LoadTexture(const aiScene* scene, const aiString& path, bool sRGB, AssetLoadContext* context)
-	{
-		SK_PROFILE_FUNCTION();
-		TextureSpecification specification;
-		specification.DebugName = path.C_Str();
-		specification.Format = sRGB ? ImageFormat::sRGBA : ImageFormat::RGBA;
-		// TODO(moro): sampler
-
-		if (auto aiTexEmbedded = scene->GetEmbeddedTexture(path.C_Str()))
-		{
-			specification.DebugName = aiTexEmbedded->mFilename.C_Str();
-			specification.Width = aiTexEmbedded->mWidth;
-			specification.Height = aiTexEmbedded->mHeight;
-			MutableBuffer imageData = MutableBuffer{ aiTexEmbedded->pcData, aiTexEmbedded->mWidth * aiTexEmbedded->mHeight * sizeof(aiTexel) };
-			if (aiTexEmbedded->mHeight == 0)
-			{
-				imageData = TextureImporter::ToBufferFromMemory(Buffer(aiTexEmbedded->pcData, aiTexEmbedded->mWidth), specification.Format, specification.Width, specification.Height).ExtractBuffer();
-			}
-
-			Ref<Texture2D> texture = Texture2D::Create(specification, imageData);
-			Renderer::MT::GenerateMips(texture->GetImage());
-
-			if (aiTexEmbedded->mHeight == 0)
-				imageData.Release();
-
-			return context->AddMemoryOnlyAsset(texture);
-		}
-
-		// #TODO #async find a way to do this through the asset system
-		const auto texturePath = m_Filepath.parent_path() / path.C_Str();
-		UniqueBuffer imageData = TextureImporter::ToBufferFromFile(texturePath, specification.Format, specification.Width, specification.Height);
-		if (!imageData)
-		{
-			// #TODO handle file not found
-			return AssetHandle::Invalid;
-		}
-
-		Ref<Texture2D> texture = Texture2D::Create(specification, imageData);
-		Renderer::MT::GenerateMips(texture->GetImage());
-
-		return context->AddMemoryOnlyAsset(texture);
 	}
 
 	static bool NodeContainsBone(aiNode* node, std::set<std::string_view>& bones)
@@ -848,5 +858,15 @@ namespace Shark {
 		for (auto i = 0; i < node->mNumChildren; i++)
 			TraverseNodes(node->mChildren[i], skeleton, bones);
 	}
+
+	AssimpMeshImporter::UploadJob::UploadJob(RefArg<Image2D> Image, UniqueBuffer Data)
+		: Image(Image), Data(std::move(Data))
+	{
+	}
+
+	// here because Image2D is not defined in the header
+	AssimpMeshImporter::UploadJob::UploadJob(UploadJob&&) = default;
+	AssimpMeshImporter::UploadJob& AssimpMeshImporter::UploadJob::operator=(UploadJob&&) = default;
+	AssimpMeshImporter::UploadJob::~UploadJob() = default;
 
 }

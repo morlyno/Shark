@@ -10,7 +10,8 @@ namespace Shark {
 	class RenderCommandBuffer : public RefCount
 	{
 	public:
-		static Ref<RenderCommandBuffer> Create(const std::string& name, bool enableQueries = false) { return Ref<RenderCommandBuffer>::Create(name, enableQueries); }
+		static Ref<RenderCommandBuffer> Create(std::string name, bool enableQueries = false) { return Ref<RenderCommandBuffer>::Create(std::move(name), enableQueries); }
+		static Ref<RenderCommandBuffer> Create(nvrhi::CommandQueue queueType, std::string name, bool enableQueries = false) { return Ref<RenderCommandBuffer>::Create(queueType, std::move(name), enableQueries); }
 
 	public:
 		void Begin();
@@ -22,6 +23,7 @@ namespace Shark {
 		void RT_Execute();
 
 		nvrhi::CommandListHandle GetHandle() const { return m_CommandList; }
+		nvrhi::CommandQueue GetQueueType() const { return m_QueueType; }
 		nvrhi::GraphicsState& GetGraphicsState() { return m_GraphicsState; }
 		nvrhi::ComputeState& GetComputeState() { return m_ComputeState; }
 
@@ -39,11 +41,13 @@ namespace Shark {
 		// #Renderer #Investigate Pipeline Statistics are not supported by nvrhi
 
 	public:
-		RenderCommandBuffer(const std::string& name, bool enableQueries);
+		RenderCommandBuffer(std::string name, bool enableQueries);
+		RenderCommandBuffer(nvrhi::CommandQueue queueType, std::string name, bool enableQueries);
 		~RenderCommandBuffer();
 
 	private:
 		std::string m_Name;
+		nvrhi::CommandQueue m_QueueType;
 		bool m_EnableQueries;
 
 		bool m_DoQuery = false;
@@ -69,6 +73,28 @@ namespace Shark {
 
 		// Debug
 		std::filesystem::path m_MarkerStack;
+	};
+
+	class EventQuery : public RefCount
+	{
+	public:
+		static Ref<EventQuery> Create() { return Ref<EventQuery>::Create(); }
+
+	public:
+		void RT_Set(nvrhi::CommandQueue queueType);
+		void RT_Reset();
+
+		bool RT_Poll();
+		void RT_Wait();
+
+		nvrhi::EventQueryHandle GetHandle() const { return m_EventQuery; }
+
+	public:
+		EventQuery();
+		~EventQuery();
+
+	private:
+		nvrhi::EventQueryHandle m_EventQuery;
 	};
 
 }

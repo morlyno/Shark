@@ -59,14 +59,16 @@ namespace Shark {
 				m_WorkQueue.pop();
 			}
 
-			for (auto tasks = context->GetTasks();
-				 auto& task : tasks)
+			auto& tasks = context->GetTasks();
+			auto range = std::ranges::remove_if(tasks, [context](auto& task)
 			{
 				if (context->HasErrors())
-					break;
+					return false;
 
-				task(context);
-			}
+				return task(context);
+			});
+
+			tasks.erase(range.begin(), range.end());
 
 			std::scoped_lock lock(m_Mutex);
 			if (context->Loading())

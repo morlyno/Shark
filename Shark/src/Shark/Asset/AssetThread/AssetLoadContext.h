@@ -9,6 +9,7 @@ namespace Shark {
 
 	enum class AssetLoadStatus
 	{
+		Auto,
 		Ready,
 		Loading,
 		Error
@@ -28,19 +29,14 @@ namespace Shark {
 	class AssetLoadContext
 	{
 	public:
+		using Task = std::move_only_function<bool(AssetLoadContext*)>;
+
+	public:
 		AssetLoadContext(AssetHandle handle);
 
 		void SetStatus(AssetLoadStatus status);
-		void QueueStatus(AssetLoadStatus status);
 		void AddError(AssetLoadError error, std::string message);
-		void AddTask(std::invocable auto&& func)
-		{
-			AddTask([func = std::move(func)](AssetLoadContext*) { func(); });
-		}
-		void AddTask(std::invocable<AssetLoadContext*> auto&& func)
-		{
-			m_Tasks.emplace_back(std::move(func));
-		}
+		void AddTask(Task task);
 
 		AssetHandle AddMemoryOnlyAsset(Ref<Asset> asset);
 		std::filesystem::path GetFilesystemPath(const AssetMetaData& metadata);
@@ -50,14 +46,13 @@ namespace Shark {
 		void OnFileEmpty(const AssetMetaData& metadata);
 		void OnYamlError(const AssetMetaData& metadata);
 
-		auto GetStatus() const { return m_Status; }
 		bool HasErrors() const { return m_Status == AssetLoadStatus::Error; }
-		bool Loading() const { return m_Status == AssetLoadStatus::Loading; }
+		bool Loading() const;
 		const auto& GetErrors() const { return m_Errors; }
 
 		AssetHandle GetAssetHandle() const { return m_Asset; }
 		bool HasTasks() const { return !m_Tasks.empty(); }
-		auto  GetTasks() { return std::move(m_Tasks); }
+		auto& GetTasks() { return m_Tasks; }
 		auto& GetAssets() { return m_PendingAssets; }
 
 		void SetErrorFallback(Ref<Asset> fallback) { m_ErrorFallback = fallback; }
@@ -74,12 +69,12 @@ namespace Shark {
 
 	private:
 		AssetHandle m_Asset;
-		AssetLoadStatus m_Status = AssetLoadStatus::Loading;
+		AssetLoadStatus m_Status = AssetLoadStatus::Auto;
 
 		std::vector<Error> m_Errors;
 		Ref<Asset> m_ErrorFallback;
 
-		std::vector<std::function<void(AssetLoadContext*)>> m_Tasks;
+		std::vector<Task> m_Tasks;
 		std::unordered_map<AssetHandle, Ref<Asset>> m_PendingAssets;
 	};
 

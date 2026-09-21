@@ -8,8 +8,13 @@
 
 namespace Shark {
 
-	RenderCommandBuffer::RenderCommandBuffer(const std::string& name, bool enableQueries)
-		: m_Name(name), m_EnableQueries(enableQueries), m_DoQuery(enableQueries)
+	RenderCommandBuffer::RenderCommandBuffer(std::string name, bool enableQueries)
+		: RenderCommandBuffer(nvrhi::CommandQueue::Graphics, std::move(name), enableQueries)
+	{
+	}
+
+	RenderCommandBuffer::RenderCommandBuffer(nvrhi::CommandQueue queueType, std::string name, bool enableQueries)
+		: m_Name(std::move(name)), m_QueueType(queueType), m_EnableQueries(enableQueries), m_DoQuery(enableQueries)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -21,7 +26,7 @@ namespace Shark {
 
 		auto desc = nvrhi::CommandListParameters()
 			.setEnableImmediateExecution(!deferredSupported)
-			.setQueueType(nvrhi::CommandQueue::Graphics);
+			.setQueueType(queueType);
 
 		m_CommandList = device->createCommandList(desc);
 
@@ -155,7 +160,7 @@ namespace Shark {
 		auto deviceManager = Renderer::GetDeviceManager();
 		auto device = deviceManager->GetDevice();
 
-		deviceManager->ExecuteCommandList(m_CommandList, nvrhi::CommandQueue::Graphics);
+		deviceManager->ExecuteCommandList(m_CommandList, m_QueueType);
 
 		m_DoQuery = m_EnableQueries;
 	}
@@ -252,6 +257,40 @@ namespace Shark {
 		if (m_NamedResults[resultIndex].contains(timerName))
 			return m_NamedResults[resultIndex].at(timerName);
 		return 0.0f;
+	}
+
+	void EventQuery::RT_Set(nvrhi::CommandQueue queueType)
+	{
+		auto device = Renderer::GetGraphicsDevice();
+		device->setEventQuery(m_EventQuery, queueType);
+	}
+
+	void EventQuery::RT_Reset()
+	{
+		auto device = Renderer::GetGraphicsDevice();
+		device->resetEventQuery(m_EventQuery);
+	}
+
+	bool EventQuery::RT_Poll()
+	{
+		auto device = Renderer::GetGraphicsDevice();
+		return device->pollEventQuery(m_EventQuery);
+	}
+
+	void EventQuery::RT_Wait()
+	{
+		auto device = Renderer::GetGraphicsDevice();
+		device->waitEventQuery(m_EventQuery);
+	}
+
+	EventQuery::EventQuery()
+	{
+		auto device = Renderer::GetGraphicsDevice();
+		m_EventQuery = device->createEventQuery();
+	}
+
+	EventQuery::~EventQuery()
+	{
 	}
 
 }

@@ -220,7 +220,9 @@ namespace Shark {
 		nullUAVSpec.Width = 1;
 		nullUAVSpec.Height = 1;
 		nullUAVSpec.Format = ImageFormat::RGBA;
-		nullUAVSpec.Usage = ImageUsage::Storage;
+		nullUAVSpec.Usage = ImageUsage::Texture;
+		nullUAVSpec.Storage = true;
+		nullUAVSpec.InitialState = nvrhi::ResourceStates::UnorderedAccess;
 		nullUAVSpec.DebugName = "NULL-UAV";
 		for (uint32_t i = 0; i < 3; i++)
 		{
@@ -314,6 +316,7 @@ namespace Shark {
 	namespace Internal {
 		static void GenerateMips(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> targetImage);
 		static void RT_GenerateMips(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> targetImage);
+		static void RT_CreateEnvironmentMap(RefArg<RenderCommandBuffer> commandBuffer, RefArg<Image2D> equirectangular, RefArg<Image2D> radianceTarget, RefArg<Image2D> irradianceTarget, std::string_view debugInfo);
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -551,7 +554,7 @@ namespace Shark {
 		SK_PROFILE_SCOPED("Renderer - BlitImage");
 		SK_CORE_TRACE_TAG("Renderer", "BlitImage '{}' -> '{}'", sourceImage->GetSpecification().DebugName, destinationImage->GetSpecification().DebugName);
 
-		SK_CORE_VERIFY(destinationImage->GetSpecification().Usage == ImageUsage::Storage);
+		SK_CORE_VERIFY(destinationImage->GetSpecification().Storage);
 		auto shader = Renderer::GetShaderLibrary()->Get(params.LayerCount == 1 ? "CmdBlitImage" : "CmdBlitImageArray");
 
 		auto pipeline = ComputePipeline::Create(shader, "Cmd - Blit");
@@ -595,7 +598,7 @@ namespace Shark {
 	void Internal::GenerateMips(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> targetImage)
 	{
 		SK_CORE_VERIFY(!ImageUtils::IsIntegerBased(targetImage->GetSpecification().Format));
-		SK_CORE_VERIFY(targetImage->GetSpecification().Usage == ImageUsage::Storage);
+		SK_CORE_VERIFY(targetImage->GetSpecification().Storage);
 
 		SK_PROFILE_SCOPED("Renderer - GenerateMips");
 		SK_CORE_TRACE_TAG("Renderer", "GenerateMips '{}':({}, {}):{}", targetImage->GetSpecification().DebugName, targetImage->GetWidth(), targetImage->GetHeight(), targetImage->GetSpecification().MipLevels);
@@ -672,14 +675,15 @@ namespace Shark {
 		SK_CORE_VERIFY(!ImageUtils::IsIntegerBased(targetImage->GetSpecification().Format));
 		SK_CORE_TRACE_TAG("Renderer", "GenerateMips '{}':({}, {}):{}", targetImage->GetSpecification().DebugName, targetImage->GetWidth(), targetImage->GetHeight(), targetImage->GetSpecification().MipLevels);
 
-		if (targetImage->GetSpecification().Usage == ImageUsage::Storage)
+		if (targetImage->GetSpecification().Storage)
 		{
 			Internal::GenerateMips(commandBuffer, targetImage);
 			return;
 		}
 
 		ImageSpecification specification = targetImage->GetSpecification();
-		specification.Usage = ImageUsage::Storage;
+		specification.Storage = true;
+		specification.InitialState = nvrhi::ResourceStates::UnorderedAccess;
 		specification.Format = ImageUtils::ConvertToWritableFormat(specification.Format);
 		specification.DebugName = fmt::format("TEMP - GenerateMips - '{}'", targetImage->GetSpecification().DebugName);
 		Ref<Image2D> newTarget = Image2D::Create(specification);
@@ -874,7 +878,7 @@ namespace Shark {
 		RT::WriteBuffer(commandBuffer, buffer, bufferData);
 	}
 
-	void Renderer::RT_WriteImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> image, const ImageSlice& slice, const Buffer imageData)
+	void Renderer::RT_WriteImage(Ref<RenderCommandBuffer> commandBuffer, RefArg<Image2D> image, const ImageSlice& slice, const Buffer imageData)
 	{
 		RT::WriteImage(commandBuffer, image, slice, imageData);
 	}
@@ -927,13 +931,13 @@ namespace Shark {
 	void Internal::RT_GenerateMips(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> targetImage)
 	{
 		SK_CORE_VERIFY(!ImageUtils::IsIntegerBased(targetImage->GetSpecification().Format));
-		SK_CORE_VERIFY(targetImage->GetSpecification().Usage == ImageUsage::Storage);
+		SK_CORE_VERIFY(targetImage->GetSpecification().Storage);
 
 		SK_PROFILE_SCOPED("Renderer - GenerateMips");
 		SK_CORE_TRACE_TAG("Renderer", "[RT] GenerateMips '{}':({}, {}):{}", targetImage->GetSpecification().DebugName, targetImage->GetWidth(), targetImage->GetHeight(), targetImage->GetSpecification().MipLevels);
 
 		/////////////////////////////////////////////////
-		/// Setupt
+		/// Setup
 		/////////////////////////////////////////////////
 
 		const auto& targetDesc = targetImage->GetHandle()->getDesc();
@@ -1051,7 +1055,7 @@ namespace Shark {
 	};
 
 
-	void Renderer::RT_GenerateMips(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> targetImage)
+	void Renderer::RT_GenerateMips(Ref<RenderCommandBuffer> commandBuffer, RefArg<Image2D> targetImage)
 	{
 		SK_PROFILE_SCOPED("Renderer - GenerateMips");
 		SK_CORE_TRACE_TAG("Renderer", "[RT] GenerateMips '{}':({}, {}):{}", targetImage->GetSpecification().DebugName, targetImage->GetWidth(), targetImage->GetHeight(), targetImage->GetSpecification().MipLevels);
@@ -1069,7 +1073,8 @@ namespace Shark {
 		specification.Format = ImageUtils::ConvertImageFormat(targetDesc.format);
 		specification.MipLevels = targetDesc.mipLevels;
 		specification.Layers = targetDesc.arraySize;
-		specification.Usage = ImageUsage::Storage;
+		specification.Storage = true;
+		specification.InitialState = nvrhi::ResourceStates::UnorderedAccess;
 		specification.DebugName = fmt::format("TEMP - GenerateMips - '{}'", targetImage->GetSpecification().DebugName);
 		Ref<Image2D> newTarget = Image2D::Create(specification);
 
@@ -1091,15 +1096,16 @@ namespace Shark {
 		commandBuffer->RT_Execute();
 	}
 
-	void Renderer::RT_CreateEnvironmentMap(Ref<RenderCommandBuffer> commandBuffer, Ref<TextureCube> radianceTarget, Ref<TextureCube> irradianceTarget, const std::filesystem::path& filepath)
+	void Internal::RT_CreateEnvironmentMap(RefArg<RenderCommandBuffer> commandBuffer, RefArg<Image2D> equirectangular, RefArg<Image2D> radianceTarget, RefArg<Image2D> irradianceTarget, std::string_view debugInfo)
 	{
+		SK_CORE_VERIFY(equirectangular->GetSpecification().Format == ImageFormat::RGBA32F, "Environment Texture is not HDR!");
 		SK_CORE_VERIFY(radianceTarget->GetWidth() == radianceTarget->GetHeight());
 		SK_CORE_VERIFY(irradianceTarget->GetWidth() == irradianceTarget->GetHeight());
 		SK_CORE_VERIFY(radianceTarget->GetSpecification().Storage && irradianceTarget->GetSpecification().Storage);
 		SK_CORE_VERIFY(radianceTarget->GetSpecification().Format == ImageFormat::RGBA32F && irradianceTarget->GetSpecification().Format == ImageFormat::RGBA32F);
 
 		SK_PROFILE_SCOPED("Renderer - CreateEnvironmentMap");
-		SK_CORE_TRACE_TAG("Renderer", "[RT] CreateEnvironmentMap '{}'", filepath);
+		SK_CORE_TRACE_TAG("Renderer", "[RT] CreateEnvironmentMap '{}'", debugInfo);
 
 		/////////////////////////////////////////////////
 		/// Setup
@@ -1112,18 +1118,10 @@ namespace Shark {
 		const float delta = 1.0f / static_cast<float>(glm::max(mipCount - 1, 1u));
 		const uint32_t samples = Renderer::GetConfig().IrradianceMapComputeSamples;
 
-		TextureSpecification textureSpecification = { .HasMips = false };
-		UniqueBuffer imageData = TextureImporter::ToBufferFromFile(filepath, textureSpecification.Format, textureSpecification.Width, textureSpecification.Height);
-
-		Ref<Texture2D> equirectangular = Texture2D::Create(textureSpecification);
-		SK_CORE_VERIFY(equirectangular->GetSpecification().Format == ImageFormat::RGBA32F, "Environment Texture is not HDR!");
-
-		RT_WriteImage(commandBuffer, equirectangular->GetImage(), ImageSlice::Zero(), imageData);
-		imageData.Release();
-
-		TextureSpecification unfilteredSpecification = radianceTarget->GetSpecification();
-		unfilteredSpecification.DebugName = fmt::format("TEMP - Env Unfiltered '{}'", filepath);
-		Ref<TextureCube> unfiltered = TextureCube::Create(unfilteredSpecification);
+		auto unfiltered = Image2D::Create(
+			radianceTarget->GetSpecification()
+				.WithDebugName(fmt::format("TEMP - Env Unfiltered '{}'", debugInfo))
+		);
 
 		auto equirectToCubeShader = Renderer::GetShaderLibrary()->Get("EquirectangularToCubeMap");
 		auto mipFilterShader = Renderer::GetShaderLibrary()->Get("EnvMipFilter");
@@ -1158,7 +1156,7 @@ namespace Shark {
 		}
 		commandlist->endMarker();
 
-		RT_GenerateMips(commandBuffer, unfiltered->GetImage());
+		RT_GenerateMips(commandBuffer, unfiltered);
 
 		commandlist->beginMarker("MipFilter");
 		{
@@ -1218,23 +1216,14 @@ namespace Shark {
 		}
 		commandlist->endMarker();
 
-		RT_GenerateMips(commandBuffer, irradianceTarget->GetImage());
+		RT_GenerateMips(commandBuffer, irradianceTarget);
 	}
 
-	std::pair<Ref<TextureCube>, Ref<TextureCube>> Renderer::RT_CreateEnvironmentMap(Ref<RenderCommandBuffer> commandBuffer, const std::filesystem::path& filepath)
+	std::pair<Ref<TextureCube>, Ref<TextureCube>> Renderer::RT_CreateEnvironmentMap(Ref<RenderCommandBuffer> commandBuffer, RefArg<Image2D> equirectangular, std::string_view debugInfo)
 	{
-		SK_PROFILE_SCOPED("Renderer - CreateEnvironmentMap");
-		SK_CORE_TRACE_TAG("Renderer", "[RT] CreateEnvironmentMap '{}'", filepath);
-
-		auto device = Renderer::GetGraphicsDevice();
-
 		const uint32_t cubemapSize = Renderer::GetConfig().EnvironmentMapResolution;
-		const uint32_t irradianceMapSize = 32;
-
-		Ref<Texture2D> equirectangular = Texture2D::Create({ .HasMips = false }, filepath);
-		SK_CORE_VERIFY(equirectangular->GetSpecification().Format == ImageFormat::RGBA32F, "Environment Texture is not HDR!");
-
 		const uint32_t mipCount = ImageUtils::CalcMipLevels(cubemapSize, cubemapSize);
+		const uint32_t irradianceMapSize = 32;
 
 		TextureSpecification cubemapSpec;
 		cubemapSpec.Format = ImageFormat::RGBA32F;
@@ -1242,28 +1231,37 @@ namespace Shark {
 		cubemapSpec.Height = cubemapSize;
 		cubemapSpec.HasMips = true;
 		cubemapSpec.Storage = true;
+		if (commandBuffer->GetQueueType() == nvrhi::CommandQueue::Compute)
+			cubemapSpec.InitialState = nvrhi::ResourceStates::NonPixelShaderResource;
 
-		cubemapSpec.DebugName = fmt::format("EnvironmentMap Filtered {}", filepath);
+		cubemapSpec.DebugName = fmt::format("EnvironmentMap Filtered {}", debugInfo);
 		auto radiance = TextureCube::Create(cubemapSpec);
 
 		cubemapSpec.Width = irradianceMapSize;
 		cubemapSpec.Height = irradianceMapSize;
-		cubemapSpec.DebugName = fmt::format("IrradianceMap {}", filepath);
+		cubemapSpec.DebugName = fmt::format("IrradianceMap {}", debugInfo);
 		auto irradiance = TextureCube::Create(cubemapSpec);
 
-		RT_CreateEnvironmentMap(commandBuffer, radiance, irradiance, filepath);
+		Internal::RT_CreateEnvironmentMap(commandBuffer, equirectangular, radiance->GetImage(), irradiance->GetImage(), debugInfo);
 
 		return { radiance, irradiance };
 	}
 
-	std::pair<Ref<TextureCube>, Ref<TextureCube>> Renderer::RT_CreateEnvironmentMap(const std::filesystem::path& filepath)
+	std::pair<Ref<TextureCube>, Ref<TextureCube>> Renderer::RT_CreateEnvironmentMap(Ref<RenderCommandBuffer> commandBuffer, const ImageData& imageData, std::string_view debugInfo)
 	{
-		auto commandBuffer = RenderCommandBuffer::Create(fmt::format("CreateEnvironmentMap '{}'", filepath));
-		commandBuffer->RT_Begin();
-		auto result = RT_CreateEnvironmentMap(commandBuffer, filepath);
-		commandBuffer->RT_End();
-		commandBuffer->RT_Execute();
-		return result;
+		ImageSpecification equirectangularSpecification;
+		equirectangularSpecification.Width     = imageData.Width;
+		equirectangularSpecification.Height    = imageData.Height;
+		equirectangularSpecification.Format    = imageData.Format;
+		equirectangularSpecification.MipLevels = 0;
+		if (commandBuffer->GetQueueType() == nvrhi::CommandQueue::Compute)
+			equirectangularSpecification.InitialState = nvrhi::ResourceStates::NonPixelShaderResource;
+
+		auto equirectangular = Image2D::Create(equirectangularSpecification);
+
+		RT::WriteImage(commandBuffer, equirectangular, ImageSlice::Zero(), imageData.Data);
+
+		return RT_CreateEnvironmentMap(commandBuffer, equirectangular, debugInfo);
 	}
 
 	#pragma endregion
@@ -1284,38 +1282,6 @@ namespace Shark {
 			commandBuffer->RT_End();
 			commandBuffer->RT_Execute();
 		});
-	}
-
-	std::pair<Ref<TextureCube>, Ref<TextureCube>> Renderer::MT::CreateEnvironmentMap(const std::filesystem::path& filepath)
-	{
-		const uint32_t cubemapSize = Renderer::GetConfig().EnvironmentMapResolution;
-		const uint32_t irradianceMapSize = 32;
-
-		TextureSpecification cubemapSpec;
-		cubemapSpec.Format = ImageFormat::RGBA32F;
-		cubemapSpec.Width = cubemapSize;
-		cubemapSpec.Height = cubemapSize;
-		cubemapSpec.HasMips = true;
-		cubemapSpec.Storage = true;
-
-		cubemapSpec.DebugName = fmt::format("EnvironmentMap Filtered {}", filepath);
-		auto radiance = TextureCube::Create(cubemapSpec);
-
-		cubemapSpec.Width = irradianceMapSize;
-		cubemapSpec.Height = irradianceMapSize;
-		cubemapSpec.DebugName = fmt::format("IrradianceMap {}", filepath);
-		auto irradiance = TextureCube::Create(cubemapSpec);
-
-		MT::Submit([radiance, irradiance, filepath]()
-		{
-			auto commandBuffer = RenderCommandBuffer::Create(fmt::format("CreateEnvironmentMap '{}'", filepath));
-			commandBuffer->RT_Begin();
-			RT_CreateEnvironmentMap(commandBuffer, radiance, irradiance, filepath);
-			commandBuffer->RT_End();
-			commandBuffer->RT_Execute();
-		});
-
-		return { radiance, irradiance };
 	}
 
 	#pragma endregion
@@ -1477,7 +1443,7 @@ namespace Shark {
 		spec.Format = ImageFormat::RG16F;
 		spec.Width = imageSize;
 		spec.Height = imageSize;
-		spec.Usage = ImageUsage::Storage;
+		spec.Storage = true;
 		spec.DebugName = "BRDF_LUT";
 		auto image = Image2D::Create(spec);
 

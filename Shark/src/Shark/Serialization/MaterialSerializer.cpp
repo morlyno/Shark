@@ -66,7 +66,6 @@ namespace Shark {
 
 		asset = material;
 		asset->Handle = metadata.Handle;
-		context->SetStatus(AssetLoadStatus::Ready);
 		return true;
 	}
 
@@ -147,7 +146,7 @@ namespace Shark {
 			if (AssetManager::GetAssetType(roughness) != AssetType::Texture)
 				material->ClearRoughnessMap();
 
-			context->SetStatus(AssetLoadStatus::Ready);
+			return true;
 		});
 
 		return true;

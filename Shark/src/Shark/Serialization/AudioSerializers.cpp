@@ -33,7 +33,6 @@ namespace Shark {
 
 		asset = audioFile;
 		asset->Handle = metadata.Handle;
-		context->SetStatus(AssetLoadStatus::Ready);
 		return true;
 	}
 
@@ -81,7 +80,6 @@ namespace Shark {
 
 		asset = soundConfig;
 		asset->Handle = metadata.Handle;
-		context->SetStatus(AssetLoadStatus::Ready);
 		return true;
 	}
 
@@ -127,7 +125,7 @@ namespace Shark {
 			if (AssetManager::GetAssetType(soundConfig->AudioSourceHandle) != AssetType::AudioFile)
 				soundConfig->AudioSourceHandle = AssetHandle::Invalid;
 
-			context->SetStatus(AssetLoadStatus::Ready);
+			return true;
 		});
 
 		return true;

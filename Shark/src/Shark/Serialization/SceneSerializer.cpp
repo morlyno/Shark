@@ -888,7 +888,6 @@ namespace Shark {
 
 		asset = scene;
 		asset->Handle = metadata.Handle;
-		context->SetStatus(AssetLoadStatus::Ready);
 		return true;
 	}
 

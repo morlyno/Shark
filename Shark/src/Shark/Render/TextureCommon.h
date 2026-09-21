@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shark/Core/Base.h"
+#include "Shark/Core/Buffer.h"
 
 namespace Shark {
 
@@ -25,7 +26,6 @@ namespace Shark {
 	{
 		Texture,
 		Attachment,
-		Storage,
 	};
 
 	enum class FilterMode : uint16_t
@@ -47,6 +47,15 @@ namespace Shark {
 		uint32_t Layer;
 
 		static ImageSlice Zero() { return ImageSlice{ 0, 0 }; }
+	};
+
+	struct ImageData
+	{
+		uint32_t Width = 0;
+		uint32_t Height = 0;
+		ImageFormat Format = ImageFormat::None;
+
+		BufferHandle Data;
 	};
 
 }

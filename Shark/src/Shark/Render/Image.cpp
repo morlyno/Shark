@@ -12,12 +12,17 @@ namespace Shark {
 
 	namespace utils {
 
-		nvrhi::ResourceStates GetDefaultResourceState(nvrhi::Format format, ImageUsage usage)
+		nvrhi::ResourceStates GetDefaultResourceState(nvrhi::Format format, ImageUsage usage, bool storage, nvrhi::ResourceStates requestedState)
 		{
+			if (requestedState != nvrhi::ResourceStates::Unknown)
+				return requestedState;
+
+			//if (storage)
+			//	return nvrhi::ResourceStates::UnorderedAccess;
+
 			switch (usage)
 			{
 				case ImageUsage::Texture: return nvrhi::ResourceStates::ShaderResource;
-				case ImageUsage::Storage: return nvrhi::ResourceStates::UnorderedAccess;
 				case ImageUsage::Attachment: return nvrhi::getFormatInfo(format).hasDepth ? nvrhi::ResourceStates::DepthWrite : nvrhi::ResourceStates::RenderTarget;
 			}
 
@@ -131,9 +136,9 @@ namespace Shark {
 			.setFormat(ImageUtils::ConvertImageFormat(state.Format))
 			.setDebugName(state.DebugName);
 		
-		textureDesc.enableAutomaticStateTracking(utils::GetDefaultResourceState(textureDesc.format, state.Usage));
+		textureDesc.enableAutomaticStateTracking(utils::GetDefaultResourceState(textureDesc.format, state.Usage, state.Storage, state.InitialState));
 		textureDesc.isRenderTarget = state.Usage == ImageUsage::Attachment;
-		textureDesc.isUAV = state.Usage == ImageUsage::Storage;
+		textureDesc.isUAV = state.Storage;
 		textureDesc.isTypeless = true;//ImageUtils::IsDepthFormat(state.Format);
 
 		if (state.IsCube)
@@ -349,7 +354,7 @@ namespace Shark {
 		if (format == ImageFormat::None)
 			format = image->GetSpecification().Format;
 
-		m_StorageSupported = image->GetSpecification().Usage == ImageUsage::Storage && ImageUtils::SupportsUAV(specification.Format);
+		m_StorageSupported = image->GetSpecification().Storage && ImageUtils::SupportsUAV(specification.Format);
 
 		if (!initOnRT)
 		{

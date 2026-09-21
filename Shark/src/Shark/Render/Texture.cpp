@@ -82,7 +82,9 @@ namespace Shark {
 		specification.Height = m_Specification.Height;
 		specification.Format = m_Specification.Format;
 		specification.MipLevels = m_Specification.HasMips ? 0 : 1;
-		specification.Usage = m_Specification.Storage ? ImageUsage::Storage : ImageUsage::Texture;
+		specification.Usage = ImageUsage::Texture;
+		specification.InitialState = m_Specification.InitialState;
+		specification.Storage = m_Specification.Storage;
 		specification.DebugName = m_Specification.DebugName;
 
 		m_Image->Invalidate();
@@ -103,7 +105,9 @@ namespace Shark {
 		specification.Height = m_Specification.Height;
 		specification.Format = m_Specification.Format;
 		specification.MipLevels = m_Specification.HasMips ? 0 : 1;
-		specification.Usage = m_Specification.Storage ? ImageUsage::Storage : ImageUsage::Texture;
+		specification.Usage = ImageUsage::Texture;
+		specification.InitialState = m_Specification.InitialState;
+		specification.Storage = m_Specification.Storage;
 		specification.DebugName = m_Specification.DebugName;
 
 		m_Image->RT_Invalidate();
@@ -165,7 +169,9 @@ namespace Shark {
 		imageSpec.Layers = 6;
 		imageSpec.IsCube = true;
 		imageSpec.MipLevels = m_Specification.HasMips ? 0 : 1;
-		imageSpec.Usage = m_Specification.Storage ? ImageUsage::Storage : ImageUsage::Texture;
+		imageSpec.Usage = ImageUsage::Texture;
+		imageSpec.InitialState = specification.InitialState;
+		imageSpec.Storage = specification.Storage;
 		imageSpec.DebugName = m_Specification.DebugName;
 		m_Image->RT_Invalidate();
 

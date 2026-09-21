@@ -56,7 +56,6 @@ namespace Shark {
 
 		asset = prefab;
 		asset->Handle = metadata.Handle;
-		context->SetStatus(AssetLoadStatus::Ready);
 		return true;
 	}
 

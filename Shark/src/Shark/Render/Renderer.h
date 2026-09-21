@@ -179,7 +179,7 @@ namespace Shark {
 
 	public:
 		static void RT_WriteBuffer(Ref<RenderCommandBuffer> commandBuffer, Ref<GpuBuffer> buffer, const Buffer bufferData);
-		static void RT_WriteImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> image, const ImageSlice& slice, const Buffer imageData);
+		static void RT_WriteImage(Ref<RenderCommandBuffer> commandBuffer, RefArg<Image2D> image, const ImageSlice& slice, const Buffer imageData);
 		
 		static void RT_CopySlice(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D>        sourceImage, const ImageSlice& sourceSlice, Ref<Image2D>        destinationImage, const ImageSlice& destinationSlice);
 		static void RT_CopySlice(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D>        sourceImage, const ImageSlice& sourceSlice, Ref<StagingImage2D> destinationImage, const ImageSlice& destinationSlice);
@@ -193,12 +193,11 @@ namespace Shark {
 		static void RT_CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D>        sourceImage, Ref<StagingImage2D> destinationImage);
 		static void RT_CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<StagingImage2D> sourceImage, Ref<Image2D>        destinationImage);
 
-		static void RT_GenerateMips(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> image);
+		static void RT_GenerateMips(Ref<RenderCommandBuffer> commandBuffer, RefArg<Image2D> image);
 		static void RT_GenerateMips(Ref<Image2D> image);
 
-		static void RT_CreateEnvironmentMap(Ref<RenderCommandBuffer> commandBuffer, Ref<TextureCube> radianceTarget, Ref<TextureCube> irradianceTarget, const std::filesystem::path& filepath);
-		static std::pair<Ref<TextureCube>, Ref<TextureCube>> RT_CreateEnvironmentMap(Ref<RenderCommandBuffer> commandBuffer, const std::filesystem::path& filepath);
-		static std::pair<Ref<TextureCube>, Ref<TextureCube>> RT_CreateEnvironmentMap(const std::filesystem::path& filepath);
+		static std::pair<Ref<TextureCube>, Ref<TextureCube>> RT_CreateEnvironmentMap(Ref<RenderCommandBuffer> commandBuffer, RefArg<Image2D> equirectangular, std::string_view debugInfo = {});
+		static std::pair<Ref<TextureCube>, Ref<TextureCube>> RT_CreateEnvironmentMap(Ref<RenderCommandBuffer> commandBuffer, const ImageData& imageData, std::string_view debugInfo = {});
 
 	public:
 		class MT
@@ -221,7 +220,6 @@ namespace Shark {
 			}
 
 			static void GenerateMips(RefArg<Image2D> targetImage);
-			static std::pair<Ref<TextureCube>, Ref<TextureCube>> CreateEnvironmentMap(const std::filesystem::path& filepath);
 		};
 	public:
 
