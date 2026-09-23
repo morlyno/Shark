@@ -465,6 +465,7 @@ namespace Shark {
 	void SceneHierarchyPanel::OnImGuiRender(bool& shown)
 	{
 		SK_PROFILE_FUNCTION();
+		SK_PERF_SCOPED("[UI] Scene Hierarchy");
 		
 		if (m_IsWindow)
 		{
@@ -489,8 +490,6 @@ namespace Shark {
 		UI::ShiftCursorY(windowPadding);
 
 		{
-			SK_PERF_SCOPED("Draw Entitiy Nodes");
-
 			UI::ScopedStyle tableCellPadding(ImGuiStyleVar_CellPadding, ImVec2(ImGui::GetStyle().CellPadding.x, 0));
 			UI::ScopedColor tableBg(ImGuiCol_ChildBg, UI::Colors::Theme::BackgroundDark);
 
@@ -679,6 +678,7 @@ namespace Shark {
 	void SceneHierarchyPanel::DrawEntityNode(Entity entity, uint32_t& index, const UI::TextFilter& searchFilter)
 	{
 		SK_PROFILE_FUNCTION();
+		SK_PERF_SCOPED("[UI-SH] Entity Node");
 
 		UI::ScopedID scopedID(entity.GetUUID());
 
@@ -771,6 +771,7 @@ namespace Shark {
 
 		const auto AnyDescendantSelected = [this](Entity entity, auto anyDescendantSelected)
 		{
+			SK_PERF_SCOPED("[UI-SH] AnyDescendantSelected");
 			if (SelectionManager::IsSelected(m_Context->GetID(), entity.GetUUID()))
 				return true;
 
@@ -800,7 +801,7 @@ namespace Shark {
 		{
 			ColorRow(UI::Colors::Theme::Header);
 		}
-		else if (AnyDescendantSelected(entity, AnyDescendantSelected))
+		else if (SelectionManager::AnySelected(m_Context->GetID()) && AnyDescendantSelected(entity, AnyDescendantSelected))
 		{
 			ColorRow(UI::Colors::Theme::SelectionMuted);
 		}
@@ -959,6 +960,7 @@ namespace Shark {
 	void SceneHierarchyPanel::DrawEntityProperties(const std::vector<Entity>& entities)
 	{
 		SK_PROFILE_FUNCTION();
+		SK_PERF_SCOPED("[UI-SH] Properties");
 		
 		ImGuiStyle& style = ImGui::GetStyle();
 		const float addButtonWidth = ImGui::CalcTextSize("Add").x + style.FramePadding.x * 2.0f;
@@ -1758,7 +1760,6 @@ namespace Shark {
 	bool SceneHierarchyPanel::SearchTagRecursive(Entity entity, const UI::TextFilter& filter, uint32_t maxSearchDepth, uint32_t currentDepth)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_PERF_SCOPED("SceneHierarchyPanel::SearchTagRecursive");
 
 		if (!filter)
 			return false;

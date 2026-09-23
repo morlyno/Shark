@@ -45,15 +45,8 @@ namespace Shark {
 
 		uint64_t ExecuteCommandList(nvrhi::ICommandList* commandList, nvrhi::CommandQueue queue);
 
-		auto ExecuteCommand(std::invocable<nvrhi::CommandListHandle> auto&& cmd) { ExecuteCommand(nvrhi::CommandQueue::Graphics, std::forward<decltype(cmd)>(cmd)); }
-		auto ExecuteCommand(nvrhi::CommandQueue queue, std::invocable<nvrhi::CommandListHandle> auto&& cmd)
-		{
-			auto commandList = GetTemporaryCommandList(queue);
-			commandList->open();
-			cmd(commandList);
-			commandList->close();
-			ExecuteCommandList(commandList, queue);
-		}
+		void ExecuteCommand(std::move_only_function<void(nvrhi::ICommandList*)> cmd);
+		void ExecuteCommand(nvrhi::CommandQueue queue, std::move_only_function<void(nvrhi::ICommandList*)> cmd);
 
 		nvrhi::CommandListHandle GetTemporaryCommandList(nvrhi::CommandQueue queue);
 

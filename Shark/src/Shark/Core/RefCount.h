@@ -60,30 +60,30 @@ namespace Shark {
 
 	public:
 		Ref() = default;
-		Ref(std::nullptr_t) {};
-		Ref(const Ref& other)
+		Ref(std::nullptr_t) noexcept {};
+		Ref(const Ref& other) noexcept
 		{
 			ReleaseAndAssign(other);
 		}
 
-		Ref(Ref&& other)
+		Ref(Ref&& other) noexcept
 		{
 			ReleaseAndMove(std::move(other));
 		}
 
-		const Ref& operator=(const Ref& other)
+		const Ref& operator=(const Ref& other) noexcept
 		{
 			ReleaseAndAssign(other);
 			return *this;
 		}
 
-		const Ref& operator=(Ref&& other)
+		const Ref& operator=(Ref&& other) noexcept
 		{
 			ReleaseAndMove(std::move(other));
 			return *this;
 		}
 
-		const Ref& operator=(std::nullptr_t)
+		const Ref& operator=(std::nullptr_t) noexcept
 		{
 			Release();
 			return *this;
@@ -103,26 +103,26 @@ namespace Shark {
 		}
 
 		template<typename T2, std::enable_if_t<std::is_convertible_v<T2*, T*>, int> = 0>
-		Ref(const Ref<T2>& other)
+		Ref(const Ref<T2>& other) noexcept
 		{
 			ReleaseAndAssign(other);
 		}
 
 		template<typename T2, std::enable_if_t<std::is_convertible_v<T2*, T*>, int> = 0>
-		Ref(Ref<T2>&& other)
+		Ref(Ref<T2>&& other) noexcept
 		{
 			ReleaseAndMove(std::move(other));
 		}
 
 		template<typename T2, std::enable_if_t<std::is_convertible_v<T2*, T*>, int> = 0>
-		const Ref& operator=(const Ref<T2>& other)
+		const Ref& operator=(const Ref<T2>& other) noexcept
 		{
 			ReleaseAndAssign(other);
 			return *this;
 		}
 
 		template<typename T2, std::enable_if_t<std::is_convertible_v<T2*, T*>, int> = 0>
-		const Ref& operator=(Ref<T2>&& other)
+		const Ref& operator=(Ref<T2>&& other) noexcept
 		{
 			ReleaseAndMove(std::move(other));
 			return *this;

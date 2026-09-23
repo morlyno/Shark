@@ -114,6 +114,7 @@ namespace Shark {
 
 		while (m_FramesInFlight.size() >= deviceManager->GetSpecification().MaxFramesInFlight)
 		{
+			SK_PROFILE_SCOPED("VulkanSwapChain::Present [Sync]");
 			SK_PERF_SCOPED("Frames Wait");
 
 			auto query = m_FramesInFlight.front();

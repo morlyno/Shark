@@ -91,6 +91,22 @@ namespace Shark {
 		return m_NvrhiDevice->executeCommandList(commandList, queue);
 	}
 
+	void DeviceManager::ExecuteCommand(std::move_only_function<void(nvrhi::ICommandList*)> cmd)
+	{
+		ExecuteCommand(nvrhi::CommandQueue::Graphics, std::move(cmd));
+	}
+
+	void DeviceManager::ExecuteCommand(nvrhi::CommandQueue queue, std::move_only_function<void(nvrhi::ICommandList*)> cmd)
+	{
+		SK_PROFILE_FUNCTION();
+
+		auto commandList = GetTemporaryCommandList(queue);
+		commandList->open();
+		cmd(commandList);
+		commandList->close();
+		ExecuteCommandList(commandList, queue);
+	}
+
 	nvrhi::CommandListHandle DeviceManager::GetTemporaryCommandList(nvrhi::CommandQueue queue)
 	{
 		return GetOrCreateThreadLocalCommandList(queue);

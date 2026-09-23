@@ -458,7 +458,7 @@ namespace Shark {
 	void Scene::OnRender(Ref<SceneRenderer> renderer, const SceneRendererCamera& camera)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_PERF_SCOPED("Scene::OnRender");
+		SK_PERF_SCOPED("[Scene] OnRender");
 
 		m_LightEnvironment = LightEnvironment();
 
@@ -535,7 +535,6 @@ namespace Shark {
 			for (size_t i = 0; i < std::min(skeleton.GetBoneCount(), boneEntityIDs.size()); i++)
 			{
 				auto boneEntity = TryGetEntityByUUID(boneEntityIDs[i]);
-				Debug::EntityView debugView{ boneEntity };
 				glm::mat4 localTransform = boneEntity ? boneEntity.Transform().CalcTransform() : skeleton.GetRestposeTransformMatrix(i);
 				auto parentIndex = skeleton.GetParentBoneIndex(i);
 				cache[i] = parentIndex == Skeleton::NullIndex ? localTransform : cache[parentIndex] * localTransform;
@@ -551,7 +550,7 @@ namespace Shark {
 				if (!submeshComponent.Visible)
 					continue;
 
-				SK_PERF_SCOPED("Scene Submit Mesh");
+				SK_PERF_SCOPED("[Scene] Submit Mesh");
 
 				Ref<Mesh> mesh;
 				Ref<MeshSource> meshSource;
@@ -603,7 +602,7 @@ namespace Shark {
 				if (!meshComponent.Visible)
 					continue;
 
-				SK_PERF_SCOPED("Scene Submit Static Mesh");
+				SK_PERF_SCOPED("[Scene] Submit Static Mesh");
 
 				Entity entity{ ent, this };
 				const bool isSelected = SelectionManager::IsEntityOrAncestorSelected(GetID(), entity);

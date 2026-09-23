@@ -46,6 +46,8 @@ namespace Shark {
 		SK_PROFILE_FUNCTION();
 
 		{
+			SK_PROFILE_SCOPED("EditorAssetThread::RunTasks [Fetch]");
+
 			std::scoped_lock lock(m_Mutex);
 			SK_CORE_VERIFY(m_WorkQueue.empty());
 			std::swap(m_WorkQueue, m_PendingQueue);
@@ -55,6 +57,8 @@ namespace Shark {
 
 		while (true)
 		{
+			SK_PROFILE_SCOPED("EditorAssetThread::RunTasks [Execute]");
+
 			{
 				std::scoped_lock lock(m_Mutex);
 				if (m_WorkQueue.empty())
@@ -247,6 +251,8 @@ namespace Shark {
 
 	bool EditorAssetThread::FinishLoad(AssetLoadContext& context)
 	{
+		SK_PROFILE_FUNCTION();
+
 		SK_CORE_ASSERT(!context.Loading());
 		if (context.Loading())
 			return false;
