@@ -15,8 +15,12 @@ namespace Shark {
 	EditorAssetThread::EditorAssetThread(Ref<ProjectConfig> project, const AssetThreadSettings& settings)
 		: m_Project(project)
 	{
-		m_Thread = std::jthread(std::bind_front(&EditorAssetThread::AssetThreadFunc, this));
-		Platform::SetThreadName(m_Thread, "AssetThread");
+		m_Threads.reserve(settings.ThreadCount);
+		for (uint32_t i = 0; i < settings.ThreadCount; i++)
+		{
+			auto& thread = m_Threads.emplace_back(&EditorAssetThread::AssetThreadFunc, this, m_Stopper.get_token());
+			Platform::SetThreadName(thread, fmt::format("AssetThread {}", i));
+		}
 	}
 
 	EditorAssetThread::~EditorAssetThread()
@@ -28,11 +32,12 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		if (!m_Thread.joinable())
+		if (!m_Stopper.stop_possible())
 			return;
 
-		m_Thread.request_stop();
-		m_Thread.join();
+		m_Stopper.request_stop();
+		m_Threads.clear();
+
 		SK_CORE_WARN_TAG("AssetThread", "Thread Stopped");
 	}
 

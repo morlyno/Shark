@@ -3,21 +3,22 @@
 #include "Shark/Core/Threading.h"
 #include "Shark/Asset/AssetMetadata.h"
 
-#include "Shark/Asset/AssetManager/AssetManagerBase.h"
-#include "Shark/Asset/AssetManager/AssetRegistry.h"
 #include "Shark/Asset/AssetThread/AssetLoadContext.h"
 
 #include <future>
 #include <barrier>
 
 namespace Shark {
-
 	class ProjectConfig;
 	class EditorAssetManager;
+}
+
+namespace Shark {
 
 	struct AssetThreadSettings
 	{
 		bool MonitorAssets = true;
+		uint32_t ThreadCount = 4;
 	};
 
 	class EditorAssetThread : public RefCount
@@ -45,7 +46,9 @@ namespace Shark {
 
 	private:
 		Weak<ProjectConfig> m_Project;
-		std::jthread m_Thread;
+
+		std::stop_source m_Stopper;
+		std::vector<std::jthread> m_Threads;
 
 		std::condition_variable m_WorkAvailable;
 

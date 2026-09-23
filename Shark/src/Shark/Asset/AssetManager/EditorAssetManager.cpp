@@ -44,6 +44,7 @@ namespace Shark {
 
 		AssetThreadSettings settings;
 		settings.MonitorAssets = true;
+		settings.ThreadCount = 4;
 		m_AssetThread = Ref<EditorAssetThread>::Create(projectConfig, settings);
 	}
 
