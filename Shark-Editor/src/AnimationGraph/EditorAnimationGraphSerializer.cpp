@@ -173,7 +173,7 @@ namespace Shark {
 
 		if (!SerializeToYAML(asset.As<EditorAnimationGraphAsset>(), &stream))
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Failed to serialize YAML!");
+			SK_CORE_ERROR_TAG(Log::Tag::Serialization, "Failed to serialize YAML!");
 			return false;
 		}
 

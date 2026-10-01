@@ -44,7 +44,9 @@ workspace "Shark"
 		"FMT_UNICODE=0",
 
 		"IMGUI_DISABLE_OBSOLETE_FUNCTIONS",
-		"IMGUI_DEFINE_MATH_OPERATORS"
+		"IMGUI_DEFINE_MATH_OPERATORS",
+		
+		"MAGIC_ENUM_NO_ASSERT"
 	}
 
 	filter "options:with-d3d11"
@@ -101,10 +103,11 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}"
 
 group "Dependencies"
 	include "Shark/dependencies/Box2D"
+	include "Shark/dependencies/imgui-node-editor"
 	include "Shark/dependencies/ImGui"
 	include "Shark/dependencies/msdf-atlas-gen"
+	include "Shark/dependencies/spdlog"
 	include "Shark/dependencies/yaml-cpp"
-	include "Shark/dependencies/imgui-node-editor"
 group "Dependencies/Coral"
 	include "Shark/dependencies/Coral/Coral.Native"
 	include "Shark/dependencies/Coral/Coral.Managed"

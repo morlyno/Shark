@@ -3,6 +3,8 @@
 #include "Shark/Core/Base.h"
 #include "Shark/Core/TimeStep.h"
 
+#include <map>
+
 namespace Shark {
 
 	struct PerFrameData

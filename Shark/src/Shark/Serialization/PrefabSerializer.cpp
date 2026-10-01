@@ -21,7 +21,7 @@ namespace Shark {
 		std::string result = SerializeToYAML(asset.As<Prefab>());
 		if (result.empty())
 		{
-			SK_CORE_ERROR_TAG("Serialization", "YAML result was empty!");
+			SK_CORE_ERROR_TAG(Log::Tag::Serialization, "YAML result was empty!");
 			return false;
 		}
 
@@ -49,7 +49,7 @@ namespace Shark {
 		Ref<Prefab> prefab = Ref<Prefab>::Create();
 		if (!DeserializeFromYAML(prefab, filedata, context))
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Failed to deserialize Prefab from YAML");
+			SK_CORE_ERROR_TAG(Log::Tag::Serialization, "Failed to deserialize Prefab from YAML");
 			context->OnYamlError(metadata);
 			return false;
 		}

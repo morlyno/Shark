@@ -33,7 +33,7 @@ namespace Shark {
 		if (!buffer.Data)
 		{
 			const char* errorMsg = stbi_failure_reason();
-			SK_CORE_ERROR_TAG("stbi", "Failed to load image from file!\n\tError: {}\n\tFile: {}", errorMsg, filepath);
+			SK_CORE_ERROR_TAG(Log::Tag::stbi, "Failed to load image from file!\n\tError: {}\n\tFile: {}", errorMsg, filepath);
 			return {};
 		}
 
@@ -65,7 +65,7 @@ namespace Shark {
 		if (!buffer.Data)
 		{
 			const char* errorMsg = stbi_failure_reason();
-			SK_CORE_ERROR_TAG("stbi", "Failed to load image from buffer!\n\tError: {}", errorMsg);
+			SK_CORE_ERROR_TAG(Log::Tag::stbi, "Failed to load image from buffer!\n\tError: {}", errorMsg);
 			return {};
 		}
 

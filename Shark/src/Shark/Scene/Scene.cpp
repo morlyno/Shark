@@ -151,7 +151,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		SK_CORE_INFO_TAG("Scene", "Scene Play '{}' (ID={})", Handle, m_SceneID);
+		SK_CORE_INFO_TAG(Log::Tag::Scene, "Scene Play '{}' (ID={})", Handle, m_SceneID);
 
 		m_IsRunning = true;
 
@@ -194,13 +194,13 @@ namespace Shark {
 					auto& scriptComponent = entity.GetComponent<ScriptComponent>();
 					if (!scriptEngine.IsValidScriptID(scriptComponent.ScriptID))
 					{
-						SK_CORE_WARN_TAG("Scripting", "Entity {} has an invalid script '{}'", entityID, scriptComponent.ScriptID);
+						SK_CORE_WARNING_TAG(Log::Tag::Scene, "Entity {} has an invalid script '{}'", entityID, scriptComponent.ScriptID);
 						continue;
 					}
 
 					if (!m_ScriptStorage.EntityInstances.contains(entityID))
 					{
-						SK_CORE_ERROR_TAG("Scripting", "Entity {} isn't in script storage", entityID);
+						SK_CORE_ERROR_TAG(Log::Tag::Scene, "Entity {} isn't in script storage", entityID);
 						continue;
 					}
 
@@ -248,7 +248,7 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		SK_CORE_INFO_TAG("Scene", "Scene Stop '{}' (ID={})", Handle, m_SceneID);
+		SK_CORE_INFO_TAG(Log::Tag::Scene, "Scene Stop '{}' (ID={})", Handle, m_SceneID);
 
 		m_IsRunning = false;
 
@@ -715,7 +715,7 @@ namespace Shark {
 			if (!IsValidEntityID(childID))
 			{
 				DEBUG_ENTITY_N(entityDebug, entity);
-				SK_CORE_ERROR_TAG("Scene", "Entity {} has invalid child with id {}", entity.GetName(), childID);
+				SK_CORE_ERROR_TAG(Log::Tag::Scene, "Entity {} has invalid child with id {}", entity.GetName(), childID);
 				continue;
 			}
 

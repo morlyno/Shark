@@ -2,6 +2,7 @@
 
 #include "Shark/Core/Base.h"
 #include "Shark/Core/Buffer.h"
+#include "Shark/Core/TimeStep.h"
 
 #include <glm/glm.hpp>
 

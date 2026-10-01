@@ -2,6 +2,10 @@
 
 #define MINIAUDIO_IMPLEMENTATION
 #include "AudioEngine.h"
+
+#include "Shark/Core/Allocator.h"
+#include "Shark/Core/Timer.h"
+
 #include "Shark/Asset/AssetManager.h"
 
 #include "Shark/Audio/Sound.h"
@@ -67,10 +71,10 @@ namespace Shark {
 
 		switch (level)
 		{
-			case MA_LOG_LEVEL_DEBUG:   SK_CORE_DEBUG_TAG("Audio", message); break;
-			case MA_LOG_LEVEL_INFO:    SK_CORE_WARN_TAG("Audio", message);  break;
-			case MA_LOG_LEVEL_WARNING: SK_CORE_INFO_TAG("Audio", message);  break;
-			case MA_LOG_LEVEL_ERROR:   SK_CORE_ERROR_TAG("Audio", message); break;
+			case MA_LOG_LEVEL_DEBUG:   SK_CORE_DEBUG_TAG(Log::Tag::MiniAudio, message); break;
+			case MA_LOG_LEVEL_INFO:    SK_CORE_WARNING_TAG(Log::Tag::MiniAudio, message);  break;
+			case MA_LOG_LEVEL_WARNING: SK_CORE_INFO_TAG(Log::Tag::MiniAudio, message);  break;
+			case MA_LOG_LEVEL_ERROR:   SK_CORE_ERROR_TAG(Log::Tag::MiniAudio, message); break;
 		}
 	}
 
@@ -116,7 +120,7 @@ namespace Shark {
 			m_AvailableSounds.push(i);
 		}
 
-		SK_CORE_INFO_TAG("Audio",
+		SK_CORE_INFO_TAG(Log::Tag::Audio,
 						 "Audio engine initialized\n"
 						 "\t----------------------------\n"
 						 "\tDevice name:    {}\n"
@@ -223,7 +227,7 @@ namespace Shark {
 		{
 			// NOTE: this removes the sound from active sounds and uninitializes it in the callback
 			//       thats why the range is reversed
-			SK_CORE_TRACE_TAG("Audio", "Stop Playback of {} for {}", m_Sounds[id].Audio, utils::TryGetEntityName(m_ActiveScene.Raw(), audioEntityID));
+			SK_CORE_TRACE_TAG(Log::Tag::Audio, "Stop Playback of {} for {}", m_Sounds[id].Audio, utils::TryGetEntityName(m_ActiveScene.Raw(), audioEntityID));
 			m_Sounds[id].Sound->Stop();
 		}
 
@@ -240,7 +244,7 @@ namespace Shark {
 			if (sound.EntityID != audioEntityID)
 				continue;
 
-			SK_CORE_TRACE_TAG("Audio", "Pause Playback of {} for {}", m_Sounds[soundID].Audio, utils::TryGetEntityName(m_ActiveScene.Raw(), audioEntityID));
+			SK_CORE_TRACE_TAG(Log::Tag::Audio, "Pause Playback of {} for {}", m_Sounds[soundID].Audio, utils::TryGetEntityName(m_ActiveScene.Raw(), audioEntityID));
 			sound.Sound->Pause();
 		}
 
@@ -259,7 +263,7 @@ namespace Shark {
 
 			if (sound.Sound->GetPlayState() == Audio::PlayState::Paused)
 			{
-				SK_CORE_TRACE_TAG("Audio", "Resume Playback of {} for {}", m_Sounds[soundID].Audio, utils::TryGetEntityName(m_ActiveScene.Raw(), audioEntityID));
+				SK_CORE_TRACE_TAG(Log::Tag::Audio, "Resume Playback of {} for {}", m_Sounds[soundID].Audio, utils::TryGetEntityName(m_ActiveScene.Raw(), audioEntityID));
 				sound.Sound->Play();
 			}
 		}
@@ -347,7 +351,7 @@ namespace Shark {
 	void MiniAudioEngine::StopAll()
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_TRACE_TAG("Audio", "Stop all sounds");
+		SK_CORE_TRACE_TAG(Log::Tag::Audio, "Stop all sounds");
 		for (auto soundId : m_ActiveSounds)
 		{
 			m_Sounds[soundId].Sound->StopSound(false);
@@ -385,7 +389,7 @@ namespace Shark {
 
 		// #audio #Investigate system to reuse a sound if needed
 
-		SK_CORE_INFO_TAG("Audio", "Sound '{}' finished for {}", soundObject->Audio, utils::TryGetEntityName(m_ActiveScene.Raw(), soundObject->EntityID));
+		SK_CORE_INFO_TAG(Log::Tag::Audio, "Sound '{}' finished for {}", soundObject->Audio, utils::TryGetEntityName(m_ActiveScene.Raw(), soundObject->EntityID));
 		soundObject->Uninitialize();
 		m_AvailableSounds.push(index);
 		m_SoundsPlaying -= 1;
@@ -393,7 +397,7 @@ namespace Shark {
 		auto count = std::erase(m_ActiveSounds, index);
 		SK_CORE_ASSERT(count == 1);
 
-		SK_CORE_TRACE_TAG("Audio", "Sound available at index {}", index);
+		SK_CORE_TRACE_TAG(Log::Tag::Audio, "Sound available at index {}", index);
 	}
 
 	void MiniAudioEngine::FreeLowestPrioritySound()
@@ -415,7 +419,7 @@ namespace Shark {
 		m_AvailableSounds.push(id);
 		m_SoundsPlaying -= 1;
 
-		SK_CORE_WARN_TAG("Audio", "Freed sound at index {}", id);
+		SK_CORE_WARNING_TAG(Log::Tag::Audio, "Freed sound at index {}", id);
 	}
 
 	SoundID MiniAudioEngine::StartPlayback(AssetHandle audioSource, Ref<SoundConfig> soundConfig, UUID attachedEntityID, AudioComponent* component)
@@ -451,7 +455,7 @@ namespace Shark {
 		object.Sound->Play();
 		m_ActiveSounds.push_back(soundID);
 
-		SK_CORE_INFO_TAG("Audio", "Started Playback of {} for {}", audioSource, utils::TryGetEntityName(m_ActiveScene.Raw(), attachedEntityID));
+		SK_CORE_INFO_TAG(Log::Tag::Audio, "Started Playback of {} for {}", audioSource, utils::TryGetEntityName(m_ActiveScene.Raw(), attachedEntityID));
 		return soundID;
 	}
 
@@ -495,7 +499,7 @@ namespace Shark {
 			return nullptr;
 		}
 
-		SK_CORE_TRACE_TAG("Audio",
+		SK_CORE_TRACE_TAG(Log::Tag::Audio,
 						  "File info '{}'\n"
 						  "\t Format:      {}\n"
 						  "\t Channels:    {}\n"

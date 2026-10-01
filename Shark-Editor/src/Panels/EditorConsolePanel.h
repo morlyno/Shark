@@ -4,6 +4,8 @@
 
 #include <imgui.h>
 
+#include <spdlog/sinks/callback_sink.h>
+
 namespace Shark {
 
 	class EditorConsolePanel : public Panel
@@ -24,24 +26,26 @@ namespace Shark {
 		virtual void OnScenePlay() override;
 
 	private:
-		void PushMessage(ConsoleSinkMessage&& message);
+		void PushMessage(const spdlog::details::log_msg& msg);
 
 		void DrawMessages();
 		void DrawMenuBar();
 		void DrawMessageInspector();
 
-		ImU32 GetMessageLevelColor(LogLevel level) const;
+		ImU32 GetMessageLevelColor(Log::Level level) const;
 
 	private:
 		struct Message
 		{
 			static constexpr size_t MaxFiendlyMessageLength = 300;
 
-			LogLevel Level;
+			Log::Level Level;
 			std::string Time;
 			std::string Message;
 			std::string_view FriendlyMessage;
 		};
+
+		std::shared_ptr<spdlog::sinks::callback_sink_st> m_Sink;
 
 		std::vector<Message> m_Messages;
 		uint32_t m_MaxMessages = 10000;

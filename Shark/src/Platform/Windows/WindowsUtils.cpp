@@ -187,7 +187,7 @@ namespace Shark {
 		{
 			_com_error error(hr);
 			std::string msg = String::ToNarrow(std::wstring_view(error.ErrorMessage()));
-			SK_CORE_ERROR_TAG("Windows", "Failed to set Thead Name! {}", msg);
+			SK_CORE_ERROR_TAG(Log::Tag::Windows, "Failed to set Thead Name! {}", msg);
 		}
 	}
 
@@ -318,7 +318,7 @@ namespace Shark {
 		if (!succeded)
 		{
 			DWORD lastError = GetLastError();
-			SK_CORE_ERROR_TAG("Windows", "ShellExectueExW Failed! {}", std::system_category().message(lastError));
+			SK_CORE_ERROR_TAG(Log::Tag::Windows, "ShellExectueExW Failed! {}", std::system_category().message(lastError));
 			return false;
 		}
 
@@ -340,7 +340,7 @@ namespace Shark {
 		{
 			DWORD lasterror = GetLastError();
 			auto message = std::system_category().message(lasterror);
-			SK_CORE_ERROR_TAG("Windows", "Failed to create file! {0}", message);
+			SK_CORE_ERROR_TAG(Log::Tag::Windows, "Failed to create file! {0}", message);
 			errorMsg = message;
 			return false;
 		}
@@ -358,11 +358,11 @@ namespace Shark {
 			DWORD errorCode = GetLastError();
 			if (errorCode == ERROR_ENVVAR_NOT_FOUND)
 			{
-				SK_CORE_ERROR_TAG("Windows", "Environment Variable not found");
+				SK_CORE_ERROR_TAG(Log::Tag::Windows, "Environment Variable not found");
 				return std::string{};
 			}
 			auto msg = std::system_category().message(errorCode);
-			SK_CORE_ERROR_TAG("Windows", "Failed to get EnvironmentVariable! {0}", msg);
+			SK_CORE_ERROR_TAG(Log::Tag::Windows, "Failed to get EnvironmentVariable! {0}", msg);
 			return std::string{};
 		}
 
@@ -374,7 +374,7 @@ namespace Shark {
 		{
 			DWORD errorCode = GetLastError();
 			auto msg = std::system_category().message(errorCode);
-			SK_CORE_ERROR_TAG("Windows", "Failed to get EnvironmentVariable! {0}", msg);
+			SK_CORE_ERROR_TAG(Log::Tag::Windows, "Failed to get EnvironmentVariable! {0}", msg);
 			return std::string{};
 		}
 
@@ -389,7 +389,7 @@ namespace Shark {
 		{
 			DWORD errorCode = GetLastError();
 			auto msg = std::system_category().message(errorCode);
-			SK_CORE_ERROR_TAG("Windows", "Failed to set EnvironmentVariable! {0}", msg);
+			SK_CORE_ERROR_TAG(Log::Tag::Windows, "Failed to set EnvironmentVariable! {0}", msg);
 			return false;
 		}
 
@@ -581,8 +581,8 @@ namespace Shark {
 		std::filesystem::path windowsFilePath = std::filesystem::canonical(file, errorCode);
 		if (errorCode)
 		{
-			SK_CORE_ERROR_TAG("Windows", "getting the canonical path failed!");
-			SK_CORE_ERROR_TAG("Windows", "Reason: {0}", errorCode.message());
+			SK_CORE_ERROR_TAG(Log::Tag::Windows, "getting the canonical path failed!");
+			SK_CORE_ERROR_TAG(Log::Tag::Windows, "Reason: {0}", errorCode.message());
 			return false;
 		}
 
@@ -591,7 +591,7 @@ namespace Shark {
 		{
 			_com_error error(hr);
 			std::string msg = String::ToNarrow(std::wstring_view(error.ErrorMessage()));
-			SK_CORE_ERROR_TAG("Windows", msg);
+			SK_CORE_ERROR_TAG(Log::Tag::Windows, msg);
 		}
 
 		bool success = false;

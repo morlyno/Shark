@@ -205,34 +205,34 @@ namespace Shark {
 		auto entities = prefabScene->GetAllEntitysWith<PrefabComponent>();
 		if (entities.empty())
 		{
-			SK_CONSOLE_WARN("Serializing empty Prefab\n{}", Project::GetEditorAssetManager()->GetMetadata(m_Handle).FilePath);
+			SK_USER_WARNING("Serializing empty Prefab\n{}", Project::GetEditorAssetManager()->GetMetadata(m_Handle).FilePath);
 			return;
 		}
 
+		uint32_t rootCount = 0;
 		auto rootEntities = entities |
 			std::views::transform([prefabScene](entt::entity ent) { return Entity(ent, prefabScene); }) |
-			std::views::filter([](Entity entity) { return !entity.HasParent(); }) |
-			std::ranges::to<std::vector>();
+			std::views::filter([&rootCount](Entity entity) { if (entity.HasParent()) return false; rootCount++; return true; });
 
-		if (EditorSettings::Get().Prefab.AutoGroupRootEntities && rootEntities.size() > 1)
+		Entity firstRoot = rootEntities.front();
+
+		if (EditorSettings::Get().Prefab.AutoGroupRootEntities && rootCount > 1)
 		{
 			Entity root = prefabScene->CreateEntity("Root");
 			root.AddComponent<PrefabComponent>(m_Handle, root.GetUUID());
-			SK_CONSOLE_WARN("Prefab has more then one root entity. Grouping all root entities under one Entity '{}'", root.GetUUID());
+			SK_USER_WARNING("Prefab has more then one root entity. Grouping all root entities under one Entity '{}'", root.GetUUID());
 
 			for (Entity entity : rootEntities)
 				root.AddChild(entity);
 
-			rootEntities.clear();
-			rootEntities.push_back(root);
 			m_Prefab->SetRootEntity(root);
+			firstRoot = root;
 		}
 
 		if (!m_Prefab->HasValidRoot())
 		{
-			Entity rootEntity = rootEntities.front();
-			SK_CONSOLE_WARN("Prefab has an invalid root! Replacing current '{}' with '{}'", m_Prefab->GetRootEntityID(), rootEntity.GetUUID());
-			m_Prefab->SetRootEntity(rootEntity);
+			SK_USER_WARNING("Prefab has an invalid root! Replacing current '{}' with '{}'", m_Prefab->GetRootEntityID(), firstRoot.GetUUID());
+			m_Prefab->SetRootEntity(firstRoot);
 		}
 
 	}

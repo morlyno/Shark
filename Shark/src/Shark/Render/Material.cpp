@@ -40,7 +40,7 @@ namespace Shark {
 			m_InputManager.SetInput(buffer.Name, constantBuffer);
 		}
 
-		SK_CORE_TRACE_TAG("Renderer", "Material {}:'{}' created", shader->GetName(), name);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "Material {}:'{}' created", shader->GetName(), name);
 	}
 
 	Material::~Material()
@@ -124,7 +124,7 @@ namespace Shark {
 	{
 		if (!m_ConstantBuffers.contains(name))
 		{
-			SK_CORE_WARN_TAG("Renderer", "[Material '{}'] Input '{}' not found", m_Name, name);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[Material '{}'] Input '{}' not found", m_Name, name);
 			return;
 		}
 

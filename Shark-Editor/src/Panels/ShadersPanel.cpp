@@ -1,3 +1,4 @@
+#include "skpch.h"
 #include "ShadersPanel.h"
 
 #include "Shark/Render/Renderer.h"

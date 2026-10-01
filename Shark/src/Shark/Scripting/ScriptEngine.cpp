@@ -29,7 +29,7 @@ namespace Shark {
 		m_LoadContext = m_Host.CreateAssemblyLoadContext("Shark-Load-Context");
 
 		m_CoreAssembly = &m_LoadContext.LoadAssembly("Resources/Binaries/Shark-ScriptCore.dll");
-		SK_CORE_DEBUG_TAG("Scripting", "Core assembly loaded with status {}", m_CoreAssembly->GetLoadStatus());
+		SK_CORE_DEBUG_TAG(Log::Tag::Scripting, "Core assembly loaded with status {}", m_CoreAssembly->GetLoadStatus());
 
 		ScriptGlue::Initialize(*m_CoreAssembly);
 	}
@@ -61,10 +61,24 @@ namespace Shark {
 		auto assemblyPath = m_ProjectConfig->GetScriptModulePath();
 		
 		m_AppAssembly = &m_LoadContext.LoadAssembly(assemblyPath);
-		SK_CORE_DEBUG_TAG("Scripting", "App assembly loaded with status {}", m_AppAssembly->GetLoadStatus());
+		SK_CORE_DEBUG_TAG(Log::Tag::Scripting, "App assembly loaded with status {}", m_AppAssembly->GetLoadStatus());
 
 		BuildScriptCache();
-		SK_CONSOLE_INFO("App assembly loaded\nStatus: {}", m_AppAssembly->GetLoadStatus());
+		
+		switch (m_AppAssembly->GetLoadStatus())
+		{
+			case Coral::AssemblyLoadStatus::Success:
+				SK_USER_INFO("App assembly loaded");
+				break;
+
+			case Coral::AssemblyLoadStatus::FileNotFound:
+			case Coral::AssemblyLoadStatus::FileLoadFailure:
+			case Coral::AssemblyLoadStatus::InvalidFilePath:
+			case Coral::AssemblyLoadStatus::InvalidAssembly:
+			case Coral::AssemblyLoadStatus::UnknownError:
+				SK_USER_WARNING("Failed to load app assembly\nStatus: {}", m_AppAssembly->GetLoadStatus());
+				break;
+		}
 	}
 
 	bool ScriptEngine::IsValidScriptID(uint64_t scriptID)
@@ -246,7 +260,7 @@ namespace Shark {
 		{
 			if (!metadata.Fields.contains(fieldID))
 			{
-				SK_CORE_ERROR_TAG("Scripting", "entity storage for entity {} contains invalid field {}", entityID, fieldStorage.GetName());
+				SK_CORE_ERROR_TAG(Log::Tag::Scripting, "entity storage for entity {} contains invalid field {}", entityID, fieldStorage.GetName());
 				continue;
 			}
 

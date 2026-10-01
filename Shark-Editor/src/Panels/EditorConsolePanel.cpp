@@ -1,13 +1,10 @@
 #include "EditorConsolePanel.h"
 
-#include "Shark/Core/ConsoleSink.h"
 #include "Shark/UI/UICore.h"
-#include "Shark/UI/EditorResources.h"
 #include "Shark/Debug/Profiler.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
-#include <fmt/printf.h>
 
 namespace Shark {
 
@@ -53,11 +50,14 @@ namespace Shark {
 	EditorConsolePanel::EditorConsolePanel()
 	{
 		m_Messages.reserve(m_MaxMessages);
-		Log::SetConsoleSinkCallback([this](auto&& msg) { PushMessage(std::move(msg)); });
+		m_Sink = std::make_shared<spdlog::sinks::callback_sink_st>([this](const spdlog::details::log_msg& msg) { PushMessage(msg); });
+
+		Log::Get()->AddUserSink(m_Sink);
 	}
 
 	EditorConsolePanel::~EditorConsolePanel()
 	{
+		Log::Get()->RemoveUserSink(m_Sink);
 	}
 
 	void EditorConsolePanel::OnImGuiRender(bool& shown)
@@ -66,8 +66,6 @@ namespace Shark {
 
 		if (!shown)
 			return;
-
-		Log::GetConsoleSink()->flush();
 
 		if (m_BringToFront)
 		{
@@ -97,7 +95,7 @@ namespace Shark {
 			Clear();
 	}
 
-	void EditorConsolePanel::PushMessage(ConsoleSinkMessage&& message)
+	void EditorConsolePanel::PushMessage(const spdlog::details::log_msg& msg)
 	{
 		SK_PROFILE_FUNCTION();
 
@@ -108,16 +106,16 @@ namespace Shark {
 			m_Messages.erase(m_Messages.begin(), m_Messages.begin() + eraseCount);
 		}
 
-		Message& msg = m_Messages.emplace_back();
-		msg.Level = message.MessageLevel;
-		msg.Time = fmt::format("{:%H:%M:%S}", std::chrono::floor<std::chrono::seconds>(message.Time));
-		msg.Message = std::move(message.Message);
+		Message& message = m_Messages.emplace_back();
+		message.Level = static_cast<Log::Level>(msg.log_level);
+		message.Time = fmt::format("{:%H:%M:%S}", std::chrono::floor<std::chrono::seconds>(msg.time));
+		message.Message = msg.payload;
 
-		if (message.MessageLevel == LogLevel::Error || message.MessageLevel == LogLevel::Critical)
+		if (message.Level == Log::Level::Error || message.Level == Log::Level::Critical)
 			m_BringToFront = true;
 
-		const size_t messageLength = std::min({ msg.Message.length(), Message::MaxFiendlyMessageLength, msg.Message.find_first_of("\r\n") });
-		msg.FriendlyMessage = std::string_view(msg.Message).substr(0, messageLength);
+		const size_t messageLength = std::min({ message.Message.length(), Message::MaxFiendlyMessageLength, message.Message.find_first_of("\r\n") });
+		message.FriendlyMessage = std::string_view(message.Message).substr(0, messageLength);
 	}
 
 	void EditorConsolePanel::DrawMessages()
@@ -235,15 +233,15 @@ namespace Shark {
 		}
 	}
 
-	ImU32 EditorConsolePanel::GetMessageLevelColor(LogLevel level) const
+	ImU32 EditorConsolePanel::GetMessageLevelColor(Log::Level level) const
 	{
 		switch (level)
 		{
-			case LogLevel::Trace: return ImGui::GetColorU32(UI::Colors::Theme::LogTrace);
-			case LogLevel::Info: return ImGui::GetColorU32(UI::Colors::Theme::LogInfo);
-			case LogLevel::Warn: return ImGui::GetColorU32(UI::Colors::Theme::LogWarn);
-			case LogLevel::Error: return ImGui::GetColorU32(UI::Colors::Theme::LogError);
-			case LogLevel::Critical: return ImGui::GetColorU32(UI::Colors::Theme::LogCritical);
+			case Log::Level::Trace:    return ImGui::GetColorU32(UI::Colors::Theme::LogTrace);
+			case Log::Level::Info:     return ImGui::GetColorU32(UI::Colors::Theme::LogInfo);
+			case Log::Level::Warning:  return ImGui::GetColorU32(UI::Colors::Theme::LogWarn);
+			case Log::Level::Error:    return ImGui::GetColorU32(UI::Colors::Theme::LogError);
+			case Log::Level::Critical: return ImGui::GetColorU32(UI::Colors::Theme::LogCritical);
 		}
 		return 0;
 	}

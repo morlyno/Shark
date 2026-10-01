@@ -85,7 +85,7 @@ namespace Shark {
 	void EditorResources::Init()
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_INFO("Loading Icons...");
+		SK_CORE_INFO_TAG(Log::Tag::Editor, "Loading Icons...");
 		ScopedTimer timer("Loading Icons");
 
 		TextureSpecification specification;

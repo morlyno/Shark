@@ -134,8 +134,8 @@ namespace Shark {
 
 		if (!found && memory)
 		{
-			SK_CORE_WARN_TAG("Memory", "Memory block {} not found in Allocation Map", memory);
-			SK_CORE_VERIFY(false);
+			//SK_CORE_WARNING_TAG("Memory", "Memory block {} not found in Allocation Map", memory);
+			SK_DEBUG_BREAK_CONDITIONAL_INIT(s_BREAK_ON_MISSING_ALLOCATION_REALLOC, true);
 		}
 
 		PROFILE_FREE(memory, moduleName);
@@ -171,8 +171,8 @@ namespace Shark {
 
 		if (!found)
 		{
-			SK_CORE_WARN_TAG("Memory", "Memory block {} not found in Allocation Map", memory);
-			SK_CORE_VERIFY(false);
+			//SK_CORE_WARN_TAG("Memory", "Memory block {} not found in Allocation Map", memory);
+			SK_DEBUG_BREAK_CONDITIONAL_INIT(s_BREAK_ON_MISSING_ALLOCATION_FREE, true);
 		}
 
 		free(memory);

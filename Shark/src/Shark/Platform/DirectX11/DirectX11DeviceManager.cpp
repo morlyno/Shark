@@ -13,7 +13,7 @@ namespace Shark {
 		HRESULT hr = CreateDXGIFactory1(IID_PPV_ARGS(&m_Factory));
 		if (FAILED(hr))
 		{
-			SK_CORE_ERROR_TAG("Renderer", "Failed to create DXGI Factory!");
+			SK_CORE_ERROR_TAG(Log::Tag::Renderer, "Failed to create DXGI Factory!");
 			return false;
 		}
 
@@ -24,9 +24,9 @@ namespace Shark {
 		if (FAILED(m_Factory->EnumAdapters(adapterIndex, &m_Adapter)))
 		{
 			if (adapterIndex == 0)
-				SK_CORE_ERROR_TAG("Renderer", "Cannot find any DXGI adapters!");
+				SK_CORE_ERROR_TAG(Log::Tag::Renderer, "Cannot find any DXGI adapters!");
 			else
-				SK_CORE_ERROR_TAG("Renderer", "The specified DXGI adapter {} does not exist", adapterIndex);
+				SK_CORE_ERROR_TAG(Log::Tag::Renderer, "The specified DXGI adapter {} does not exist", adapterIndex);
 			return false;
 		}
 

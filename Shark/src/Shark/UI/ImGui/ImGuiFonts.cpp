@@ -12,11 +12,7 @@ namespace Shark::UI {
 
 	void Fonts::Add(const FontConfiguration& config)
 	{
-		if (s_Fonts.contains(config.Name))
-		{
-			SK_CORE_ERROR_TAG("UI", "Tried to add Font with name {} but name is allready used", config.Name);
-			return;
-		}
+		SK_CORE_VERIFY(!s_Fonts.contains(config.Name), "Font with name {} is already added", config.Name);
 
 		ImFontConfig imguiFontConfig;
 		imguiFontConfig.MergeMode = config.MergeWithLast;

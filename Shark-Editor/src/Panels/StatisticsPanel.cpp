@@ -1,5 +1,7 @@
+#include "skpch.h"
 #include "StatisticsPanel.h"
 
+#include "Shark/Core/Allocator.h"
 #include "Shark/Core/Application.h"
 
 #include "Shark/Scene/Scene.h"

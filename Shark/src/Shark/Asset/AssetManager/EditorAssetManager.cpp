@@ -56,7 +56,7 @@ namespace Shark {
 
 		WriteImportedAssetsToDisc();
 		AssetSerializer::ReleaseSerializers();
-		SK_CORE_WARN_TAG("AssetManager", "Editor AssetManager destroyed");
+		SK_CORE_WARNING_TAG(Log::Tag::AssetManager, "Editor AssetManager destroyed");
 	}
 
 	void EditorAssetManager::SerializeImportedAssets()
@@ -201,7 +201,7 @@ namespace Shark {
 	{
 		if (IsValidAssetHandle(asset->Handle))
 		{
-			SK_CORE_ERROR_TAG("AssetManager", "Tried adding an Asset with a valid AssetHandle!");
+			SK_CORE_ERROR_TAG(Log::Tag::AssetManager, "Tried adding an Asset with a valid AssetHandle!");
 			return asset->Handle;
 		}
 
@@ -223,7 +223,7 @@ namespace Shark {
 
 		//m_AssetThread->OnAssetLoaded(metadata);
 
-		SK_CORE_WARN_TAG("AssetManager", "Asset Created (Type: {0}, Handle: 0x{1:x}, FilePath: {2}", metadata.Type, metadata.Handle, metadata.FilePath);
+		SK_CORE_WARNING_TAG(Log::Tag::AssetManager, "Asset Created (Type: {0}, Handle: 0x{1:x}, FilePath: {2}", metadata.Type, metadata.Handle, metadata.FilePath);
 		return metadata.Handle;
 	}
 
@@ -231,7 +231,7 @@ namespace Shark {
 	{
 		if (IsValidAssetHandle(asset->Handle))
 		{
-			SK_CORE_ERROR_TAG("AssetManager", "Tried adding a Memory Asset with a valid AssetHandle!");
+			SK_CORE_ERROR_TAG(Log::Tag::AssetManager, "Tried adding a Memory Asset with a valid AssetHandle!");
 			return asset->Handle;
 		}
 
@@ -251,7 +251,7 @@ namespace Shark {
 
 		//m_AssetThread->OnAssetLoaded(metadata);
 
-		SK_CORE_INFO_TAG("AssetManager", "Memory Asset Added (Type: {}, Handle: 0x{:x})", metadata.Type, metadata.Handle);
+		SK_CORE_INFO_TAG(Log::Tag::AssetManager, "Memory Asset Added (Type: {}, Handle: 0x{:x})", metadata.Type, metadata.Handle);
 		return metadata.Handle;
 	}
 
@@ -693,7 +693,7 @@ namespace Shark {
 		m_Registry.Add(metadata);
 		WriteImportedAssetsToDisc();
 
-		SK_CORE_INFO_TAG("AssetManager", "Imported Asset => Handle: 0x{:x}, Type: {}, FilePath: {}", metadata.Handle, metadata.Type, metadata.FilePath);
+		SK_CORE_INFO_TAG(Log::Tag::AssetManager, "Imported Asset => Handle: 0x{:x}, Type: {}, FilePath: {}", metadata.Handle, metadata.Type, metadata.FilePath);
 		return metadata.Handle;
 	}
 
@@ -720,7 +720,7 @@ namespace Shark {
 		auto& metadata = m_Registry.Get(handle);
 		metadata.FilePath = MakeRelativePath(newpath);
 		WriteImportedAssetsToDisc();
-		SK_CORE_WARN_TAG("AssetManager", "Filepath Changed => Handle: {}, Filepath: {}", handle, newpath);
+		SK_CORE_WARNING_TAG(Log::Tag::AssetManager, "Filepath Changed => Handle: {}, Filepath: {}", handle, newpath);
 
 		return true;
 	}
@@ -733,7 +733,7 @@ namespace Shark {
 		AssetMetaData& metadata = m_Registry.Get(handle);
 		FileSystem::ReplaceStem(metadata.FilePath, newName);
 		WriteImportedAssetsToDisc();
-		SK_CORE_WARN_TAG("AssetManager", "Filename Changed => Handle: {}, new path: {}", handle, metadata.FilePath);
+		SK_CORE_WARNING_TAG(Log::Tag::AssetManager, "Filename Changed => Handle: {}, new path: {}", handle, metadata.FilePath);
 
 		return true;
 	}
@@ -743,7 +743,7 @@ namespace Shark {
 		if (!IsValidAssetHandle(handle))
 			return false;
 
-		SK_CORE_WARN_TAG("AssetManager", "Asset Deleted => Handle: {}", handle, GetMetadata(handle).FilePath);
+		SK_CORE_WARNING_TAG(Log::Tag::AssetManager, "Asset Deleted => Handle: {}", handle, GetMetadata(handle).FilePath);
 		m_Registry.Remove(handle);
 		WriteImportedAssetsToDisc();
 		return true;
@@ -889,7 +889,7 @@ namespace Shark {
 
 		if (!FileSystem::WriteString(filepath, out.c_str()))
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Failed to write imported assets to disc!");
+			SK_CORE_ERROR_TAG(Log::Tag::Serialization, "Failed to write imported assets to disc!");
 			return;
 		}
 	}
@@ -904,7 +904,7 @@ namespace Shark {
 
 		if (!FileSystem::Exists(filepath))
 		{
-			SK_CORE_ERROR_TAG("Serialization", "ImportedAssets.yaml not found");
+			SK_CORE_ERROR_TAG(Log::Tag::Serialization, "ImportedAssets.yaml not found");
 			return;
 		}
 
@@ -916,7 +916,7 @@ namespace Shark {
 		auto assetsNode = fileNode["ImportedAssets"];
 		if (!assetsNode)
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Failed to find ImportedAssets root node in ImportedAssets.yaml");
+			SK_CORE_ERROR_TAG(Log::Tag::Serialization, "Failed to find ImportedAssets root node in ImportedAssets.yaml");
 			return;
 		}
 
@@ -939,7 +939,7 @@ namespace Shark {
 		auto editorAssetsNode = fileNode["EditorAssets"];
 		if (!editorAssetsNode)
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Failed to find EditorAssets root node im ImportedAssets.yaml");
+			SK_CORE_ERROR_TAG(Log::Tag::Serialization, "Failed to find EditorAssets root node im ImportedAssets.yaml");
 			return;
 		}
 

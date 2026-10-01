@@ -39,7 +39,7 @@ namespace Shark {
 			Ref<Asset> asset = GetAsset(handle);
 			if (asset && asset->GetAssetType() != TAsset::GetStaticType())
 			{
-				SK_CORE_ERROR_TAG("AssetManager", "GetAsset<{}> Error asset {} is of type {}", TAsset::GetStaticType(), handle, asset->GetAssetType());
+				SK_CORE_ERROR_TAG(Log::Tag::AssetManager, "GetAsset<{}> Error asset {} is of type {}", TAsset::GetStaticType(), handle, asset->GetAssetType());
 				return nullptr;
 			}
 
@@ -54,7 +54,7 @@ namespace Shark {
 			auto asset = GetAssetAsync(handle);
 			if (asset && asset->GetAssetType() != TAsset::GetStaticType())
 			{
-				SK_CORE_ERROR_TAG("AssetManager", "GetAssetAsync<{}> Error asset {} is of type {}", TAsset::GetStaticType(), handle, asset->GetAssetType());
+				SK_CORE_ERROR_TAG(Log::Tag::AssetManager, "GetAssetAsync<{}> Error asset {} is of type {}", TAsset::GetStaticType(), handle, asset->GetAssetType());
 				return nullptr;
 			}
 

@@ -49,13 +49,13 @@ namespace Shark {
 
 	void ThumbnailCache::Clear()
 	{
-		SK_CORE_WARN_TAG("ThumbnailCache", "In memory cache cleared");
+		SK_CORE_WARNING_TAG(Log::Tag::ThumbnailCache, "In memory cache cleared");
 		m_Thumbnails.clear();
 	}
 
 	void ThumbnailCache::ClearDiscCache()
 	{
-		SK_CORE_WARN_TAG("ThumbnailCache", "Disc cache cleared");
+		SK_CORE_WARNING_TAG(Log::Tag::ThumbnailCache, "Disc cache cleared");
 		FileSystem::RemoveAll(utils::GetCacheDirectory());
 	}
 
@@ -68,7 +68,7 @@ namespace Shark {
 			clearedAssets += m_Thumbnails.erase(handle);
 		}
 
-		SK_CORE_WARN_TAG("ThumbnailCache", "In memory cache cleared ({} of {} requested)", clearedAssets, handles.size());
+		SK_CORE_WARNING_TAG(Log::Tag::ThumbnailCache, "In memory cache cleared ({} of {} requested)", clearedAssets, handles.size());
 	}
 
 	void ThumbnailCache::ClearDiscFor(std::span<const AssetHandle> handles)
@@ -85,7 +85,7 @@ namespace Shark {
 			}
 		}
 
-		SK_CORE_WARN_TAG("ThumbnailCache", "Disc cache cleared ({} of {} requested)", clearedAssets, handles.size());
+		SK_CORE_WARNING_TAG(Log::Tag::ThumbnailCache, "Disc cache cleared ({} of {} requested)", clearedAssets, handles.size());
 	}
 
 	bool ThumbnailCache::HasThumbnail(AssetHandle assetHandle)
@@ -124,7 +124,7 @@ namespace Shark {
 		const bool current = thumbnailTimestamp == lastWriteTime;
 		if (!current)
 		{
-			SK_CORE_TRACE_TAG("ThumbnailCache", "Out of dat thumbnail found [{}] {}", metadata.Handle, metadata.FilePath);
+			SK_CORE_TRACE_TAG(Log::Tag::ThumbnailCache, "Out of dat thumbnail found [{}] {}", metadata.Handle, metadata.FilePath);
 			return false;
 		}
 		return true;
@@ -149,7 +149,7 @@ namespace Shark {
 
 		uint64_t lastWriteTime = Project::GetEditorAssetManager()->GetMetadata(assetHandle).LastWriteTime;
 		m_Thumbnails[assetHandle] = { thumbnail, lastWriteTime };
-		SK_CORE_TRACE_TAG("ThumbnailCache", "Thumbnail set (Handle={}, Timestamp={})", assetHandle, lastWriteTime);
+		SK_CORE_TRACE_TAG(Log::Tag::ThumbnailCache, "Thumbnail set (Handle={}, Timestamp={})", assetHandle, lastWriteTime);
 
 		if (!m_ReadableImage || m_ReadableImage->GetWidth() != thumbnail->GetWidth() || m_ReadableImage->GetHeight() != thumbnail->GetHeight())
 			m_ReadableImage = StagingImage2D::Create(thumbnail, nvrhi::CpuAccessMode::Read);
@@ -169,7 +169,7 @@ namespace Shark {
 	void ThumbnailCache::WriteThumbnailToDisc(AssetHandle handle, Ref<StagingImage2D> thumbnail, uint64_t lastWriteTime)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_INFO_TAG("ThumbnailCache", "Writing Thumbnail to disc (Handle={}, Timestamp={})", handle, lastWriteTime);
+		SK_CORE_INFO_TAG(Log::Tag::ThumbnailCache, "Writing Thumbnail to disc (Handle={}, Timestamp={})", handle, lastWriteTime);
 
 		utils::CreateCacheDirectoryIfNeeded();
 		std::filesystem::path cacheFile = utils::GetThumbnailCacheFilepath(handle);
@@ -215,7 +215,7 @@ namespace Shark {
 		m_Thumbnails[handle] = { image, header.Timestamp };
 
 		m_LoadCount++;
-		SK_CORE_INFO_TAG("ThumbnailCache", "[FI={}] Loaded Thumbnail from disc (Handle={}, Timestamp={}", Application::Get().GetFrameCount(), handle, header.Timestamp);
+		SK_CORE_INFO_TAG(Log::Tag::ThumbnailCache, "[FI={}] Loaded Thumbnail from disc (Handle={}, Timestamp={}", Application::Get().GetFrameCount(), handle, header.Timestamp);
 		return true;
 	}
 

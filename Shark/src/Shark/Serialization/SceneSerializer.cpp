@@ -19,9 +19,9 @@
 #include "Shark/Debug/Profiler.h"
 
 #if SK_DEBUG
-#define SK_SERIALIZATION_ERROR(...) SK_CORE_ERROR_TAG("Serialization", __VA_ARGS__); SK_DEBUG_BREAK()
+#define SK_SERIALIZATION_ERROR(...) SK_CORE_ERROR_TAG(Log::Tag::Serialization, __VA_ARGS__); SK_DEBUG_BREAK()
 #else
-#define SK_SERIALIZATION_ERROR(...) SK_CORE_ERROR_TAG("Serialization", __VA_ARGS__)
+#define SK_SERIALIZATION_ERROR(...) SK_CORE_ERROR_TAG(Log::Tag::Serialization, __VA_ARGS__)
 #endif
 
 namespace YAML {
@@ -759,7 +759,7 @@ namespace Shark {
 
 						if (!entityStorage.Fields.contains(fieldID))
 						{
-							SK_CORE_ERROR_TAG("Scripting", "Cannot deserialize field storage for field {}! The script no longer contains this field.", fieldName);
+							SK_CORE_ERROR_TAG(Log::Tag::Serialization, "Cannot deserialize field storage for field {}! The script no longer contains this field.", fieldName);
 							continue;
 						}
 
@@ -803,7 +803,7 @@ namespace Shark {
 
 						if (!entityStorage.Fields.contains(fieldID))
 						{
-							SK_CORE_ERROR_TAG("Scripting", "Cannot deserialize field storage for field {}! The script no longer contains this field.", fieldName);
+							SK_CORE_ERROR_TAG(Log::Tag::Serialization, "Cannot deserialize field storage for field {}! The script no longer contains this field.", fieldName);
 							continue;
 						}
 

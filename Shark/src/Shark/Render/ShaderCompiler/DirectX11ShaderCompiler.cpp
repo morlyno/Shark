@@ -40,20 +40,20 @@ namespace Shark {
 				if (shaderCache.LoadBinary(info, stage, nvrhi::GraphicsAPI::D3D11, binary))
 				{
 					platformBinary[stage] = std::move(binary);
-					SK_CORE_TRACE_TAG("ShaderCompiler", "Loaded d3d11 {} shader '{}' from cache", stage, info.SourcePath);
+					SK_CORE_TRACE_TAG(Log::Tag::ShaderCompiler, "Loaded d3d11 {} shader '{}' from cache", stage, info.SourcePath);
 					continue;
 				}
 			}
 
 			if (!CompileStage(info, stage, result) && status == CacheStatus::OutOfDate)
 			{
-				SK_CORE_WARN_TAG("ShaderCompiler", "[d3d11] Loading older shader version from cache");
+				SK_CORE_WARNING_TAG(Log::Tag::ShaderCompiler, "[d3d11] Loading older shader version from cache");
 				shaderCache.LoadBinary(info, stage, nvrhi::GraphicsAPI::D3D11, platformBinary[stage]);
 			}
 
 			if (!platformBinary.contains(stage) || !platformBinary.at(stage))
 			{
-				SK_CORE_ERROR_TAG("ShaderCompiler", "Compiling shader '{}' failed!", info.SourcePath.filename());
+				SK_CORE_ERROR_TAG(Log::Tag::ShaderCompiler, "Compiling shader '{}' failed!", info.SourcePath.filename());
 				SK_DEBUG_BREAK_CONDITIONAL(BREAK_ON_FAILED_COMPILATION);
 
 				result.PlatformBinary.erase(nvrhi::GraphicsAPI::D3D11);
@@ -76,11 +76,11 @@ namespace Shark {
 
 		if (!errorMessage.empty())
 		{
-			SK_CORE_ERROR_TAG("ShaderCompiler", "[d3d11] Failed to compile {} shader '{}'!\n{}", stage, info.SourcePath, errorMessage);
+			SK_CORE_ERROR_TAG(Log::Tag::ShaderCompiler, "[d3d11] Failed to compile {} shader '{}'!\n{}", stage, info.SourcePath, errorMessage);
 			return false;
 		}
 
-		SK_CORE_WARN_TAG("ShaderCompiler", "[d3d11] Compiled {} shader '{}'", stage, info.SourcePath);
+		SK_CORE_WARNING_TAG(Log::Tag::ShaderCompiler, "[d3d11] Compiled {} shader '{}'", stage, info.SourcePath);
 		return true;
 	}
 
@@ -176,7 +176,7 @@ namespace Shark {
 		}
 
 		m_HLSLSource[stage] = compiler.compile();
-		SK_CORE_TRACE_TAG("ShaderCompiler", "[d3d11] Cross compiled {} shader '{}':\n{}", stage, info.SourcePath, m_HLSLSource.at(stage));
+		SK_CORE_TRACE_TAG(Log::Tag::ShaderCompiler, "[d3d11] Cross compiled {} shader '{}':\n{}", stage, info.SourcePath, m_HLSLSource.at(stage));
 	}
 
 }

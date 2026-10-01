@@ -36,7 +36,7 @@ namespace Shark {
 		auto& scriptEngine = ScriptEngine::Get();
 		if (!targetStorage.EntityInstances.contains(targetEntityID))
 		{
-			SK_CORE_ERROR_TAG("Scripting", "Cannot copy script storage to entity '{}' because its storage isn't setup jet.", sourceEntityID);
+			SK_CORE_ERROR_TAG(Log::Tag::Scripting, "Cannot copy script storage to entity '{}' because its storage isn't setup jet.", sourceEntityID);
 			return;
 		}
 
@@ -44,7 +44,7 @@ namespace Shark {
 
 		if (!scriptEngine.IsValidScriptID(sourceStorage.ScriptID))
 		{
-			SK_CORE_ERROR_TAG("Scripting", "Cannot copy script storage from entity '{}' because the script ID '{}' is no longer valid.", sourceEntityID, sourceStorage.ScriptID);
+			SK_CORE_ERROR_TAG(Log::Tag::Scripting, "Cannot copy script storage from entity '{}' because the script ID '{}' is no longer valid.", sourceEntityID, sourceStorage.ScriptID);
 			return;
 		}
 
@@ -52,7 +52,7 @@ namespace Shark {
 
 		if (destinationStorage.ScriptID != sourceStorage.ScriptID)
 		{
-			SK_CORE_ERROR_TAG("Scripting", "Cannot copy from entity '{}' to entity '{}' because they have different scripts.", sourceEntityID, targetEntityID);
+			SK_CORE_ERROR_TAG(Log::Tag::Scripting, "Cannot copy from entity '{}' to entity '{}' because they have different scripts.", sourceEntityID, targetEntityID);
 			return;
 		}
 
@@ -62,7 +62,7 @@ namespace Shark {
 		{
 			if (!scriptMetadata.Fields.contains(fieldID))
 			{
-				SK_CORE_ERROR_TAG("Scripting", "Cannot copy field storage for field {}! The script no longer contains this field.", sourceField.GetName());
+				SK_CORE_ERROR_TAG(Log::Tag::Scripting, "Cannot copy field storage for field {}! The script no longer contains this field.", sourceField.GetName());
 				return;
 			}
 

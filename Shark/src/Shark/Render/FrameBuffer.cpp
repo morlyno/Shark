@@ -133,17 +133,17 @@ namespace Shark {
 
 		m_Viewport = nvrhi::Viewport((float)state.Width, (float)state.Height);
 
-		SK_CORE_TRACE_TAG("Renderer", "Framebuffer Invalidated from state. '{}' {} ({}:{})", m_Specification.DebugName, fmt::ptr(m_FramebufferHandle.Get()), state.Width, state.Height);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "Framebuffer Invalidated from state. '{}' {} ({}:{})", m_Specification.DebugName, fmt::ptr(m_FramebufferHandle.Get()), state.Width, state.Height);
 
 		for (uint32_t i = 0; i < framebufferDesc.colorAttachments.size(); i++)
 		{
 			nvrhi::ITexture* texture = framebufferDesc.colorAttachments[i].texture;
-			SK_CORE_TRACE_TAG("Renderer", " - [Color {}] '{}' {} ({}:{})", i, texture->getDesc().debugName, fmt::ptr(texture), texture->getDesc().width, texture->getDesc().height);
+			SK_CORE_TRACE_TAG(Log::Tag::Renderer, " - [Color {}] '{}' {} ({}:{})", i, texture->getDesc().debugName, fmt::ptr(texture), texture->getDesc().width, texture->getDesc().height);
 		}
 
 		if (nvrhi::ITexture* texture = framebufferDesc.depthAttachment.texture)
 		{
-			SK_CORE_TRACE_TAG("Renderer", " - [Depth] '{}' {} ({}:{})", texture->getDesc().debugName, fmt::ptr(texture), texture->getDesc().width, texture->getDesc().height);
+			SK_CORE_TRACE_TAG(Log::Tag::Renderer, " - [Depth] '{}' {} ({}:{})", texture->getDesc().debugName, fmt::ptr(texture), texture->getDesc().width, texture->getDesc().height);
 		}
 	}
 

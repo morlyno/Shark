@@ -27,7 +27,7 @@ namespace Shark::Audio {
 			if (fileReader->IsStreamGood())
 			{
 				stream = fileReader.Detach();
-				SK_CORE_TRACE_TAG("Audio", "Created Reader for '{}' ({})", filepath, filesystemPath);
+				SK_CORE_TRACE_TAG(Log::Tag::Audio, "Created Reader for '{}' ({})", filepath, filesystemPath);
 			}
 		}
 
@@ -43,7 +43,7 @@ namespace Shark::Audio {
 		if (!stream || !stream->IsStreamGood())
 			return MA_ERROR;
 
-		SK_CORE_TRACE_TAG("Audio", "Opened file {}", static_cast<FileStreamReader*>(stream)->GetFilepath());
+		SK_CORE_TRACE_TAG(Log::Tag::Audio, "Opened file {}", static_cast<FileStreamReader*>(stream)->GetFilepath());
 		*pFile = stream;
 		return MA_SUCCESS;
 	}
@@ -53,7 +53,7 @@ namespace Shark::Audio {
 	ma_result VfsClose(ma_vfs* pVFS, ma_vfs_file file)
 	{
 		auto stream = static_cast<StreamReader*>(file);
-		SK_CORE_TRACE_TAG("Audio", "Closed file {}", static_cast<FileStreamReader*>(stream)->GetFilepath());
+		SK_CORE_TRACE_TAG(Log::Tag::Audio, "Closed file {}", static_cast<FileStreamReader*>(stream)->GetFilepath());
 		delete stream;
 		return MA_SUCCESS;
 	}
@@ -69,7 +69,7 @@ namespace Shark::Audio {
 		if (pBytesRead)
 			*pBytesRead = bytesRead;
 
-		//SK_CORE_TRACE_TAG("Audio", "Read {} bytes from {}", bytesRead, static_cast<FileStreamReader*>(stream)->GetFilepath());
+		//SK_CORE_TRACE_TAG(Log::Tag::Audio, "Read {} bytes from {}", bytesRead, static_cast<FileStreamReader*>(stream)->GetFilepath());
 		if (bytesRead < sizeInBytes)
 			return MA_AT_END;
 		return MA_SUCCESS;

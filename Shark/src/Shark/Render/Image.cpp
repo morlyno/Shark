@@ -153,7 +153,7 @@ namespace Shark {
 		m_ViewInfo.Dimension = textureDesc.dimension;
 		m_ViewInfo.Format = textureDesc.format;
 
-		SK_CORE_TRACE_TAG("Renderer", "Image Invalidated from state. '{}' {} ({}:{})", m_ImageHandle->getDesc().debugName, fmt::ptr(m_ImageHandle.Get()), state.Width, state.Height);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "Image Invalidated from state. '{}' {} ({}:{})", m_ImageHandle->getDesc().debugName, fmt::ptr(m_ImageHandle.Get()), state.Width, state.Height);
 	}
 
 #pragma endregion
@@ -334,7 +334,7 @@ namespace Shark {
 		auto device = Renderer::GetGraphicsDevice();
 		m_Handle = device->createStagingTexture(textureDesc, state.CpuAccess);
 
-		SK_CORE_TRACE_TAG("Renderer", "StagingImage Invalidated from state. '{}' {} ({}:{})", m_Handle->getDesc().debugName, fmt::ptr(m_Handle.Get()), state.Width, state.Height);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "StagingImage Invalidated from state. '{}' {} ({}:{})", m_Handle->getDesc().debugName, fmt::ptr(m_Handle.Get()), state.Width, state.Height);
 	}
 
 #pragma endregion
@@ -383,7 +383,7 @@ namespace Shark {
 		m_ViewInfo.SubresourceSet.baseArraySlice = viewState.BaseLayer;
 		m_ViewInfo.SubresourceSet.numArraySlices = viewState.LayerCount;
 
-		SK_CORE_TRACE_TAG("Renderer", "ImageView invalidated from state.");
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "ImageView invalidated from state.");
 	}
 
 #pragma endregion

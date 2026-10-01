@@ -28,27 +28,27 @@ namespace Shark {
 	{
 		if (flags & vk::DebugReportFlagBitsEXT::eInformation)
 		{
-			SK_CORE_INFO_TAG("Renderer", "[Vulkan: location=0x{0:x} code={1}, layerPrefix='{2}'] Frame={4}:\n{3}", location, code, layerPrefix, msg, Renderer::RT_GetCurrentFrameIndex());
+			SK_CORE_INFO_TAG(Log::Tag::Renderer, "[Vulkan: location=0x{0:x} code={1}, layerPrefix='{2}'] Frame={4}:\n{3}", location, code, layerPrefix, msg, Renderer::RT_GetCurrentFrameIndex());
 		}
 		else if (flags & vk::DebugReportFlagBitsEXT::eWarning)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[Vulkan: location=0x{0:x} code={1}, layerPrefix='{2}'] Frame={4}:\n{3}", location, code, layerPrefix, msg, Renderer::RT_GetCurrentFrameIndex());
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[Vulkan: location=0x{0:x} code={1}, layerPrefix='{2}'] Frame={4}:\n{3}", location, code, layerPrefix, msg, Renderer::RT_GetCurrentFrameIndex());
 		}
 		else if (flags & vk::DebugReportFlagBitsEXT::ePerformanceWarning)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[Vulkan: location=0x{0:x} code={1}, layerPrefix='{2}'] Frame={4}:\n{3}", location, code, layerPrefix, msg, Renderer::RT_GetCurrentFrameIndex());
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[Vulkan: location=0x{0:x} code={1}, layerPrefix='{2}'] Frame={4}:\n{3}", location, code, layerPrefix, msg, Renderer::RT_GetCurrentFrameIndex());
 		}
 		else if (flags & vk::DebugReportFlagBitsEXT::eError)
 		{
-			SK_CORE_ERROR_TAG("Renderer", "[Vulkan: location=0x{0:x} code={1}, layerPrefix='{2}'] Frame={4}:\n{3}", location, code, layerPrefix, msg, Renderer::RT_GetCurrentFrameIndex());
+			SK_CORE_ERROR_TAG(Log::Tag::Renderer, "[Vulkan: location=0x{0:x} code={1}, layerPrefix='{2}'] Frame={4}:\n{3}", location, code, layerPrefix, msg, Renderer::RT_GetCurrentFrameIndex());
 		}
 		else if (flags & vk::DebugReportFlagBitsEXT::eDebug)
 		{
-			SK_CORE_DEBUG_TAG("Renderer", "[Vulkan: location=0x{0:x} code={1}, layerPrefix='{2}'] Frame={4}:\n{3}", location, code, layerPrefix, msg, Renderer::RT_GetCurrentFrameIndex());
+			SK_CORE_DEBUG_TAG(Log::Tag::Renderer, "[Vulkan: location=0x{0:x} code={1}, layerPrefix='{2}'] Frame={4}:\n{3}", location, code, layerPrefix, msg, Renderer::RT_GetCurrentFrameIndex());
 		}
 		else // Warning and PerformanceWarning
 		{
-			SK_CORE_WARN_TAG("Renderer", "[Vulkan: location=0x{0:x} code={1}, layerPrefix='{2}'] Frame={4}:\n{3}", location, code, layerPrefix, msg, Renderer::RT_GetCurrentFrameIndex());
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[Vulkan: location=0x{0:x} code={1}, layerPrefix='{2}'] Frame={4}:\n{3}", location, code, layerPrefix, msg, Renderer::RT_GetCurrentFrameIndex());
 		}
 
 		return VK_FALSE;
@@ -72,7 +72,7 @@ namespace Shark {
 		stream.print("{}:", m_DeviceName);
 		if (!WriteSurfaceReport(surface, params, m_VulkanPhysicalDevice, stream))
 		{
-			SK_CORE_ERROR_TAG("{}", report.str());
+			SK_CORE_ERROR_TAG(Log::Tag::Renderer, "{}", report.str());
 			return nullptr;
 		}
 
@@ -157,7 +157,7 @@ namespace Shark {
 		result = vk::createInstance(&createInfo, nullptr, &m_VulkanInstance);
 		if (result != vk::Result::eSuccess)
 		{
-			SK_CORE_ERROR_TAG("Renderer", "Failed to create vulkan instance! {}", nvrhi::vulkan::resultToString(VkResult(result)));
+			SK_CORE_ERROR_TAG(Log::Tag::Renderer, "Failed to create vulkan instance! {}", nvrhi::vulkan::resultToString(VkResult(result)));
 		}
 
 		VULKAN_HPP_DEFAULT_DISPATCHER.init(m_VulkanInstance);
@@ -284,7 +284,7 @@ namespace Shark {
 		{
 			if (adapterIndex > lastDevice)
 			{
-				SK_CORE_ERROR("The specified Vulkan physical device {} does not exist.", adapterIndex);
+				SK_CORE_ERROR_TAG(Log::Tag::Renderer, "The specified Vulkan physical device {} does not exist.", adapterIndex);
 				return false;
 			}
 			firstDevice = adapterIndex;
@@ -410,7 +410,7 @@ namespace Shark {
 			return true;
 		}
 
-		SK_CORE_ERROR_TAG("Renderer", "{}", errorBuffer.str());
+		SK_CORE_ERROR_TAG(Log::Tag::Renderer, "{}", errorBuffer.str());
 
 		return false;
 	}
@@ -502,10 +502,10 @@ namespace Shark {
 		bool linearSweptSpheresSupported = false;
 		bool meshShaderSupported = false;
 
-		SK_CORE_TRACE_TAG("Renderer", "Enabled Vulkan device extensions:");
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "Enabled Vulkan device extensions:");
 		for (const auto& ext : m_EnabledExtensions.device)
 		{
-			SK_CORE_TRACE_TAG("Renderer", "    {}", ext);
+			SK_CORE_TRACE_TAG(Log::Tag::Renderer, "    {}", ext);
 
 			if (ext == VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME)
 				accelStructSupported = true;
@@ -691,7 +691,7 @@ namespace Shark {
 		const vk::Result res = m_VulkanPhysicalDevice.createDevice(&deviceDesc, nullptr, &m_VulkanDevice);
 		if (res != vk::Result::eSuccess)
 		{
-			SK_CORE_ERROR_TAG("Renderer", "Failed to create a Vulkan physical device, error code = {}", nvrhi::vulkan::resultToString(VkResult(res)));
+			SK_CORE_ERROR_TAG(Log::Tag::Renderer, "Failed to create a Vulkan physical device, error code = {}", nvrhi::vulkan::resultToString(VkResult(res)));
 			return false;
 		}
 
@@ -708,7 +708,7 @@ namespace Shark {
 		// remember the bufferDeviceAddress feature enablement
 		m_BufferDeviceAddressSupported = vulkan12features.bufferDeviceAddress;
 
-		SK_CORE_TRACE_TAG("Renderer", "Created Vulkan device: {}", m_DeviceName);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "Created Vulkan device: {}", m_DeviceName);
 
 		return true;
 	}
@@ -793,7 +793,7 @@ namespace Shark {
 
 		if (result != vk::Result::eSuccess)
 		{
-			SK_CORE_ERROR_TAG("Renderer", "Failed to create a win32 window wurface, error code: {}", nvrhi::vulkan::resultToString(VkResult(result)));
+			SK_CORE_ERROR_TAG(Log::Tag::Renderer, "Failed to create a win32 window wurface, error code: {}", nvrhi::vulkan::resultToString(VkResult(result)));
 			return nullptr;
 		}
 

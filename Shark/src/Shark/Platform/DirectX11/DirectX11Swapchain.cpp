@@ -33,7 +33,7 @@ namespace Shark {
 		bool forceResize = false;
 		if (hResult == DXGI_ERROR_INVALID_CALL)
 		{
-			SK_CORE_ERROR_TAG("Renderer", "Present Failed (DXGI_ERROR_INVALID_CALL). Resizing swap chain to fix.");
+			SK_CORE_ERROR_TAG(Log::Tag::Renderer, "Present Failed (DXGI_ERROR_INVALID_CALL). Resizing swap chain to fix.");
 			forceResize = true;
 		}
 
@@ -73,7 +73,7 @@ namespace Shark {
 		HRESULT hr = deviceManager->CreateSwapChain(&m_SwapchainDesc, m_Swapchain.ReleaseAndGetAddressOf());
 		if (FAILED(hr))
 		{
-			SK_CORE_ERROR_TAG("Renderer", "Failed to create swap chain! HRESULT = {}", hr);
+			SK_CORE_ERROR_TAG(Log::Tag::Renderer, "Failed to create swap chain! HRESULT = {}", hr);
 			return;
 		}
 
@@ -117,7 +117,7 @@ namespace Shark {
 
 		ReleaseRenderTarget();
 
-		SK_CORE_WARN_TAG("Renderer", "Resizing Swapchain ({}, {})", m_Specification.Width, m_Specification.Height);
+		SK_CORE_WARNING_TAG(Log::Tag::Renderer, "Resizing Swapchain ({}, {})", m_Specification.Width, m_Specification.Height);
 		const HRESULT hResult = m_Swapchain->ResizeBuffers(deviceSpec.SwapchainBufferCount,
 														   m_Specification.Width,
 														   m_Specification.Height,
@@ -128,7 +128,7 @@ namespace Shark {
 
 		if (FAILED(hResult))
 		{
-			SK_CORE_ERROR_TAG("Renderer", "Failed to resize swap chain buffers! HRESULT={}", hResult);
+			SK_CORE_ERROR_TAG(Log::Tag::Renderer, "Failed to resize swap chain buffers! HRESULT={}", hResult);
 		}
 
 		CreateRenderTarget();

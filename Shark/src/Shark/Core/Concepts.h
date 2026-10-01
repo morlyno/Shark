@@ -114,6 +114,12 @@ namespace Shark {
 	template<typename T, template<typename...> typename Template>
 	concept specialization = requires { TypeTraits::is_specialization_v<T, Template>; };
 
+	template<typename T>
+	concept string_like = requires(T && str)
+	{
+		{ std::forward<T>(str) } -> std::convertible_to<std::string_view>;
+	};
+
 }
 
 namespace Shark::Tuple {

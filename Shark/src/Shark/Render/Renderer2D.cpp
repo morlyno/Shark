@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "Renderer2D.h"
 
+#include "Shark/Core/Allocator.h"
+
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/RenderCommandBuffer.h"
 

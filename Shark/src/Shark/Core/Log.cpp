@@ -1,125 +1,191 @@
 #include "skpch.h"
 #include "Log.h"
 
-#include "Shark/Core/ConsoleSink.h"
-
-#include "spdlog/sinks/stdout_color_sinks.h"
-#include "spdlog/sinks/basic_file_sink.h"
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/rotating_file_sink.h>
+#include <spdlog/sinks/dist_sink.h>
+#include <stacktrace>
 
 namespace Shark {
 
-	static std::shared_ptr<ConsoleSink> s_ConsoleSink = nullptr;
+	static_assert(std::to_underlying(Log::Level::Trace)    == std::to_underlying(spdlog::level::trace));
+	static_assert(std::to_underlying(Log::Level::Debug)    == std::to_underlying(spdlog::level::debug));
+	static_assert(std::to_underlying(Log::Level::Info)     == std::to_underlying(spdlog::level::info));
+	static_assert(std::to_underlying(Log::Level::Warning)  == std::to_underlying(spdlog::level::warn));
+	static_assert(std::to_underlying(Log::Level::Error)    == std::to_underlying(spdlog::level::err));
+	static_assert(std::to_underlying(Log::Level::Critical) == std::to_underlying(spdlog::level::critical));
+	static_assert(std::to_underlying(Log::Level::Off)      == std::to_underlying(spdlog::level::off));
 
-	std::shared_ptr<spdlog::logger> Log::GetLogger(LoggerType loggerType)
+	static std::unique_ptr<Logging> s_Logging = nullptr;
+
+	static constexpr Log::TagArray<Log::Level> s_DefaultTagLevels = []()
 	{
-		if (loggerType == LoggerType::Core)
-			return s_CoreLogger;
+		Log::TagArray<Log::Level> levels;
 
-		else if (loggerType == LoggerType::Client)
-			return s_ClientLogger;
+		static constexpr auto start = std::source_location::current().line() + 1;
+		levels[Log::Tag::Default]        = Log::Level::Trace;
+		levels[Log::Tag::AssetManager]   = Log::Level::Warning;
+		levels[Log::Tag::AssetThread]    = Log::Level::Warning;
+		levels[Log::Tag::Assimp]         = Log::Level::Error;
+		levels[Log::Tag::Audio]          = Log::Level::Info;
+		levels[Log::Tag::Core]           = Log::Level::Trace;
+		levels[Log::Tag::Editor]         = Log::Level::Trace;
+		levels[Log::Tag::Filesystem]     = Log::Level::Warning;
+		levels[Log::Tag::Font]           = Log::Level::Info;
+		levels[Log::Tag::ImGui]          = Log::Level::Trace;
+		levels[Log::Tag::MiniAudio]      = Log::Level::Error;
+		levels[Log::Tag::NVRHI]          = Log::Level::Warning;
+		levels[Log::Tag::Renderer]       = Log::Level::Warning;
+		levels[Log::Tag::Scene]          = Log::Level::Info;
+		levels[Log::Tag::Scripting]      = Log::Level::Info;
+		levels[Log::Tag::Serialization]  = Log::Level::Warning;
+		levels[Log::Tag::ShaderCompiler] = Log::Level::Warning;
+		levels[Log::Tag::stbi]           = Log::Level::Trace;
+		levels[Log::Tag::ThumbnailCache] = Log::Level::Info;
+		levels[Log::Tag::Timer]          = Log::Level::Off;
+		levels[Log::Tag::Utilities]      = Log::Level::Warning;
+		levels[Log::Tag::Window]         = Log::Level::Trace;
+		levels[Log::Tag::Windows]        = Log::Level::Trace;
+		static constexpr auto end = std::source_location::current().line();
+		static_assert(end - start == magic_enum::enum_count<Log::Tag>());
 
-		else if (loggerType == LoggerType::Console)
-			return s_ConsoleLogger;
+		return levels;
+	}();
 
-		SK_CORE_ASSERT(false, "Unkown LoggerType");
-		return nullptr;
+	Logging::Logging()
+	{
+		auto stdoutSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+		auto coreFileSink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>("Logs/Core.log", std::numeric_limits<size_t>::max(), 4, true);
+		auto userFileSink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>("Logs/App.log", std::numeric_limits<size_t>::max(), 2, true);
+
+		stdoutSink->set_pattern("%^[%T] %n: %v%$");
+		coreFileSink->set_pattern("[%c] [%l] %n: %v");
+		userFileSink->set_pattern("[%c] [%l] %n: %v");
+
+		spdlog::sinks_init_list core = { stdoutSink, coreFileSink };
+
+		auto user = std::make_shared<spdlog::sinks::dist_sink_mt>();
+		user->add_sink(stdoutSink);
+		user->add_sink(userFileSink);
+
+		m_Core = std::make_shared<spdlog::logger>("SHARK", core);
+		m_User = std::make_shared<spdlog::logger>("APP", user);
+
+		// spdlog::set_global_logger(...);
+		SetDefaultTagLevels();
 	}
 
-	void Log::PrintMessage(LoggerType loggerType, LogLevel level, std::string_view message)
+	Logging::~Logging()
 	{
-		auto& settings = s_EnabledTags[""];
-		if (settings.Enabled && level >= settings.Level)
+		spdlog::shutdown();
+	}
+
+	bool Logging::ShouldLog(Log::Level level, Log::Tag tag)
+	{
+		return level >= m_Levels[tag];
+	}
+
+	void Logging::CoreLog(Log::Level level, Log::Tag tag, std::string_view msg)
+	{
+		if (!ShouldLog(level, tag))
+			return;
+
+		if (tag == Log::Tag::Default)
 		{
-			auto logger = GetLogger(loggerType);
-			switch (level)
-			{
-				case LogLevel::Trace: logger->trace(message); break;
-				case LogLevel::Debug: logger->debug(message); break;
-				case LogLevel::Info: logger->info(message); break;
-				case LogLevel::Warn: logger->warn(message); break;
-				case LogLevel::Error: logger->error(message); break;
-				case LogLevel::Critical: logger->critical(message); break;
-			}
+			m_Core->log(static_cast<spdlog::level>(level), msg);
+		}
+		else
+		{
+			m_Core->log(static_cast<spdlog::level>(level), "[{}] {}", tag, msg);
 		}
 	}
 
-	void Log::PrintMessageTag(LoggerType loggerType, LogLevel level, std::string_view tag, std::string_view message)
+	void Logging::UserLog(Log::Level level, std::string_view msg)
 	{
-		auto& settings = s_EnabledTags[std::string(tag)];
-		if (settings.Enabled && level >= settings.Level)
+		m_User->log(static_cast<spdlog::level>(level), msg);
+	}
+
+	void Logging::AssertMessage(const Log::AssertInfo& info)
+	{
+		if (info.Message.empty())
 		{
-			auto logger = GetLogger(loggerType);
-			switch (level)
-			{
-				case LogLevel::Trace: logger->trace("[{}] {}", tag, message); break;
-				case LogLevel::Debug: logger->debug("[{}] {}", tag, message); break;
-				case LogLevel::Info: logger->info("[{}] {}", tag, message); break;
-				case LogLevel::Warn: logger->warn("[{}] {}", tag, message); break;
-				case LogLevel::Error: logger->error("[{}] {}", tag, message); break;
-				case LogLevel::Critical: logger->critical("[{}] {}", tag, message); break;
-			}
+			m_Core->log(static_cast<spdlog::level>(info.Level),
+						"{} on '{}' {}\n{}",
+						info.Prefix,
+						info.Condition,
+						info.Location,
+						std::to_string(info.Stacktrace));
 		}
+		else
+		{
+			m_Core->log(static_cast<spdlog::level>(info.Level),
+						"{} on '{}' {}: {}\n{}",
+						info.Prefix,
+						info.Condition,
+						info.Location,
+						info.Message,
+						std::to_string(info.Stacktrace));
+		}
+	}
+
+	std::shared_ptr<spdlog::logger> Logging::CoreLogger() const
+	{
+		return m_Core;
+	}
+
+	std::shared_ptr<spdlog::logger> Logging::UserLogger() const
+	{
+		return m_User;
+	}
+
+	void Logging::AddUserSink(spdlog::sink_ptr sink)
+	{
+		static_cast<spdlog::sinks::dist_sink_mt*>(m_User->sinks().front().get())->add_sink(sink);
+	}
+
+	void Logging::RemoveUserSink(spdlog::sink_ptr sink)
+	{
+		static_cast<spdlog::sinks::dist_sink_mt*>(m_User->sinks().front().get())->remove_sink(sink);
+	}
+
+	void Logging::SetDefaultTagLevels()
+	{
+		m_Levels = s_DefaultTagLevels;
+	}
+
+	Log::Level Logging::GetDefaultLevel(Log::Tag tag) const
+	{
+		return s_DefaultTagLevels[tag];
+	}
+
+	void Logging::SetDefaultLevel(Log::Tag tag)
+	{
+		m_Levels[tag] = s_DefaultTagLevels[tag];
+	}
+
+	Log::Level Logging::GetLevel(Log::Tag tag) const
+	{
+		return m_Levels[tag];
+	}
+
+	void Logging::SetLevel(Log::Tag tag, Log::Level level)
+	{
+		m_Levels[tag] = level;
 	}
 
 	void Log::Initialize()
 	{
-		s_ConsoleSink = std::make_shared<ConsoleSink>();
-		auto stdoutSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-		auto coreFileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("Logs/Core.log", true);
-		auto clientFileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("Logs/App.log", true);
-
-		stdoutSink->set_pattern("%^[%T] %n: %v%$");
-		coreFileSink->set_pattern("[%c] [%l] %n: %v");
-		clientFileSink->set_pattern("%^[%T] %n: %v%$");
-
-		spdlog::sinks_init_list sharkSinks =
-		{
-			stdoutSink,
-			coreFileSink
-		};
-
-		spdlog::sinks_init_list clientSinks =
-		{
-			stdoutSink,
-			clientFileSink,
-			s_ConsoleSink
-		};
-
-		spdlog::sinks_init_list consoleSinks =
-		{
-			clientFileSink,
-			s_ConsoleSink
-		};
-
-		s_CoreLogger = std::make_shared<spdlog::logger>("SHARK", sharkSinks);
-		s_CoreLogger->set_level(spdlog::level::trace);
-
-		s_ClientLogger = std::make_shared<spdlog::logger>("APP", clientSinks);
-		s_ClientLogger->set_level(spdlog::level::trace);
-
-		s_ConsoleLogger = std::make_shared<spdlog::logger>("APP", consoleSinks);
-		s_ConsoleLogger->set_level(spdlog::level::trace);
+		s_Logging = std::make_unique<Logging>();
 	}
 
 	void Log::Shutdown()
 	{
-		s_ConsoleSink.reset();
-
-		s_CoreLogger.reset();
-		s_ClientLogger.reset();
-		s_ConsoleLogger.reset();
-
-		s_EnabledTags.clear();
+		s_Logging = nullptr;
 	}
 
-	void Log::SetConsoleSinkCallback(std::function<void(ConsoleSinkMessage&&)> callback)
+	Logging* Log::Get()
 	{
-		s_ConsoleSink->SetPushMessageCallback(callback);
-	}
-
-	spdlog::sink_ptr Log::GetConsoleSink()
-	{
-		return s_ConsoleSink;
+		return s_Logging.get();
 	}
 
 }

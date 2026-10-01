@@ -137,7 +137,7 @@ namespace Shark::RT {
 	void BeginRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass, Ref<FrameBuffer> framebuffer, Ref<Shader> shader, bool expliciteClear)
 	{
 		SK_PROFILE_SCOPED("Renderer - BeginRenderPass");
-		SK_CORE_TRACE_TAG("Renderer", "[RT] BeginRenderPass '{}'", renderPass->GetSpecification().DebugName);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "[RT] BeginRenderPass '{}'", renderPass->GetSpecification().DebugName);
 
 		auto commandList = commandBuffer->GetHandle();
 		commandList->beginMarker(renderPass->GetSpecification().DebugName.c_str());
@@ -158,7 +158,7 @@ namespace Shark::RT {
 	void EndRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass)
 	{
 		SK_PROFILE_SCOPED("Renderer - EndRenderPass");
-		SK_CORE_TRACE_TAG("Renderer", "[RT] EndRenderPass '{}'", renderPass->GetSpecification().DebugName);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "[RT] EndRenderPass '{}'", renderPass->GetSpecification().DebugName);
 
 		auto commandList = commandBuffer->GetHandle();
 		commandList->endMarker();
@@ -167,7 +167,7 @@ namespace Shark::RT {
 	void BeginComputePass(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePass> computePass, Ref<Shader> shader)
 	{
 		SK_PROFILE_SCOPED("Renderer - BeginComputePass");
-		SK_CORE_TRACE_TAG("Renderer", "[RT] BeginComputePass '{}'", computePass->GetSpecification().DebugName);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "[RT] BeginComputePass '{}'", computePass->GetSpecification().DebugName);
 
 		auto commandList = commandBuffer->GetHandle();
 		commandList->beginMarker(computePass->GetSpecification().DebugName.c_str());
@@ -182,7 +182,7 @@ namespace Shark::RT {
 	void EndComputePass(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePass> computePass)
 	{
 		SK_PROFILE_SCOPED("Renderer - EndComputePass");
-		SK_CORE_TRACE_TAG("Renderer", "[RT] EndComputePass '{}'", computePass->GetSpecification().DebugName);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "[RT] EndComputePass '{}'", computePass->GetSpecification().DebugName);
 
 		auto commandList = commandBuffer->GetHandle();
 		commandList->endMarker();
@@ -191,7 +191,7 @@ namespace Shark::RT {
 	void Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, Ref<Material> material, const glm::uvec3& workGroups, const Buffer pushConstantData)
 	{
 		SK_PROFILE_SCOPED("Renderer - Dispatch");
-		SK_CORE_TRACE_TAG("Renderer", "[RT] Dispatch '{}' '{}' {}", pipeline->GetDebugName(), material ? material->GetName() : "<null>", workGroups);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "[RT] Dispatch '{}' '{}' {}", pipeline->GetDebugName(), material ? material->GetName() : "<null>", workGroups);
 
 		nvrhi::ComputeState& computeState = commandBuffer->GetComputeState();
 		computeState.pipeline = pipeline->GetHandle();
@@ -213,7 +213,7 @@ namespace Shark::RT {
 	void RenderGeometry(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, const nvrhi::DrawArguments& drawArguments, Buffer pushConstant)
 	{
 		SK_PROFILE_SCOPED("Renderer - RenderGeometry");
-		SK_CORE_TRACE_TAG("Renderer", "[RT] RenderGeometry '{}' '{}'", material ? material->GetName() : "<null>", pipeline->GetSpecification().DebugName);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "[RT] RenderGeometry '{}' '{}'", material ? material->GetName() : "<null>", pipeline->GetSpecification().DebugName);
 
 		nvrhi::GraphicsState graphicsState = commandBuffer->GetGraphicsState();
 
@@ -251,7 +251,7 @@ namespace Shark::RT {
 		const auto& submesh = submeshes[submeshIndex];
 
 		SK_PROFILE_SCOPED("Renderer - RenderSubmesh");
-		SK_CORE_TRACE_TAG("Renderer", "[RT] RenderSubmesh '{}':{}[{}] '{}'", meshSource->GetName(), submesh.MeshName, submeshIndex, material ? material->GetName() : "<null>");
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "[RT] RenderSubmesh '{}':{}[{}] '{}'", meshSource->GetName(), submesh.MeshName, submeshIndex, material ? material->GetName() : "<null>");
 
 		auto vertexBuffer = meshSource->GetVertexBuffer();
 		auto indexBuffer = meshSource->GetIndexBuffer();
@@ -305,7 +305,7 @@ namespace Shark::RT {
 	void WriteBuffer(Ref<RenderCommandBuffer> commandBuffer, Ref<GpuBuffer> buffer, const Buffer bufferData)
 	{
 		SK_PROFILE_FUNCTION();
-		//SK_CORE_TRACE_TAG("Renderer", "[RT] WriteBuffer '{}'", buffer->GetSpecification().DebugName);
+		//SK_CORE_TRACE_TAG(Log::Tag::Renderer, "[RT] WriteBuffer '{}'", buffer->GetSpecification().DebugName);
 
 		auto commandList = commandBuffer->GetHandle();
 		commandList->writeBuffer(buffer->GetHandle(), bufferData.As<const void>(), bufferData.Size);
@@ -314,7 +314,7 @@ namespace Shark::RT {
 	void WriteImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> image, const ImageSlice& slice, const Buffer imageData)
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_TRACE_TAG("Renderer", "[RT] WriteImage '{}':(Mip:{}, Level: {})", image->GetSpecification().DebugName, slice.Mip, slice.Layer);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "[RT] WriteImage '{}':(Mip:{}, Level: {})", image->GetSpecification().DebugName, slice.Mip, slice.Layer);
 
 		auto commandList = commandBuffer->GetHandle();
 		auto imageHandle = image->GetHandle();
@@ -327,7 +327,7 @@ namespace Shark::RT {
 		void CopySlice(Ref<RenderCommandBuffer> commandBuffer, Ref<T0> sourceImage, const ImageSlice& sourceSlice, Ref<T1> destinationImage, const ImageSlice& destinationSlice)
 		{
 			SK_PROFILE_SCOPED("Renderer - CopySlice");
-			SK_CORE_TRACE_TAG("Renderer", "[RT] CopySlice '{}':(Mip:{}, Level: {}) -> '{}':(Mip:{}, Level: {})", sourceImage->GetSpecification().DebugName, sourceSlice.Mip, sourceSlice.Layer, destinationImage->GetSpecification().DebugName, destinationSlice.Mip, destinationSlice.Layer);
+			SK_CORE_TRACE_TAG(Log::Tag::Renderer, "[RT] CopySlice '{}':(Mip:{}, Level: {}) -> '{}':(Mip:{}, Level: {})", sourceImage->GetSpecification().DebugName, sourceSlice.Mip, sourceSlice.Layer, destinationImage->GetSpecification().DebugName, destinationSlice.Mip, destinationSlice.Layer);
 
 			auto commandList = commandBuffer->GetHandle();
 			auto srcSlice = nvrhi::TextureSlice().setMipLevel(sourceSlice.Mip).setArraySlice(sourceSlice.Layer);
@@ -343,7 +343,7 @@ namespace Shark::RT {
 		void CopyMip(Ref<RenderCommandBuffer> commandBuffer, Ref<T0> sourceImage, uint32_t sourceMip, Ref<T1> destinationImage, uint32_t destinationMip)
 		{
 			SK_PROFILE_SCOPED("Renderer - CopyMip");
-			SK_CORE_TRACE_TAG("Renderer", "[RT] CopyMip '{}':{} -> '{}':{}", sourceImage->GetSpecification().DebugName, sourceMip, destinationImage->GetSpecification().DebugName, destinationMip);
+			SK_CORE_TRACE_TAG(Log::Tag::Renderer, "[RT] CopyMip '{}':{} -> '{}':{}", sourceImage->GetSpecification().DebugName, sourceMip, destinationImage->GetSpecification().DebugName, destinationMip);
 
 			auto commandList = commandBuffer->GetHandle();
 			auto srcSlice = nvrhi::TextureSlice().setMipLevel(sourceMip);
@@ -366,7 +366,7 @@ namespace Shark::RT {
 		void CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<T0> sourceImage, Ref<T1> destinationImage)
 		{
 			SK_PROFILE_SCOPED("Renderer - CopyImage");
-			SK_CORE_TRACE_TAG("Renderer", "[RT] CopyImage '{}' -> '{}'", sourceImage->GetSpecification().DebugName, destinationImage->GetSpecification().DebugName);
+			SK_CORE_TRACE_TAG(Log::Tag::Renderer, "[RT] CopyImage '{}' -> '{}'", sourceImage->GetSpecification().DebugName, destinationImage->GetSpecification().DebugName);
 
 			auto commandList = commandBuffer->GetHandle();
 			auto slice = nvrhi::TextureSlice();

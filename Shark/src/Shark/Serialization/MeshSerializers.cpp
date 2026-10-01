@@ -50,7 +50,7 @@ namespace Shark {
 
 		if (!meshSource)
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Failed to Load MeshSource!");
+			SK_CORE_ERROR_TAG(Log::Tag::Serialization, "Failed to Load MeshSource!");
 			context->AddError(AssetLoadError::Unknown, "Assimp mesh importer failed to load file");
 			return false;
 		}
@@ -88,7 +88,7 @@ namespace Shark {
 		std::string result = SerializeToYAML(asset.As<Mesh>());
 		if (result.empty())
 		{
-			SK_CORE_ERROR_TAG("Serialization", "YAML result was empty!");
+			SK_CORE_ERROR_TAG(Log::Tag::Serialization, "YAML result was empty!");
 			return false;
 		}
 
@@ -187,7 +187,7 @@ namespace Shark {
 
 		if (!SerializeToYAML(asset.As<AnimationAsset>(), &stream))
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Failed to serialize YAML!");
+			SK_CORE_ERROR_TAG(Log::Tag::Serialization, "Failed to serialize YAML!");
 			return false;
 		}
 
@@ -257,7 +257,7 @@ namespace Shark {
 
 		if (!SerializeToYAML(asset.As<AnimationGraphAsset>(), &stream))
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Failed to serialize YAML!");
+			SK_CORE_ERROR_TAG(Log::Tag::Serialization, "Failed to serialize YAML!");
 			return false;
 		}
 

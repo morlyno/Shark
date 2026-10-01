@@ -209,14 +209,15 @@ namespace Shark {
 			UI::Widgets::Search(m_LogFilter);
 		}
 
-		if (ImGui::BeginTable("##logSettings", 3, 0, ImGui::GetContentRegionAvail()))
+		if (ImGui::BeginTable("##logSettings", 2, 0, ImGui::GetContentRegionAvail()))
 		{
 			ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch);
-			ImGui::TableSetupColumn("Enabled", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFrameHeight());
 			ImGui::TableSetupColumn("Level", ImGuiTableColumnFlags_WidthStretch);
 
-			for (auto& [name, setting] : Log::EnabledTags())
+			for (auto* log = Log::Get();
+				 const auto tag : magic_enum::enum_values<Log::Tag>())
 			{
+				const auto name = magic_enum::enum_name(tag);
 				if (!m_LogFilter.PassesFilter(name))
 					continue;
 
@@ -226,11 +227,11 @@ namespace Shark {
 				ImGui::Text(name);
 
 				ImGui::TableNextColumn();
-				UI::Checkbox("##enabled", &setting.Enabled);
-
-				ImGui::TableNextColumn();
 				ImGui::SetNextItemWidth(-1.0f);
-				UI::EnumCombo("##level", setting.Level);
+
+				auto level = log->GetLevel(tag);
+				if (UI::EnumCombo("##level", level))
+					log->SetLevel(tag, level);
 			}
 			
 			ImGui::EndTable();
@@ -241,34 +242,35 @@ namespace Shark {
 	void ProjectSettingsPanel::LogChanges()
 	{
 		fmt::memory_buffer message;
+		fmt::writer stream(message);
 
-		fmt::format_to(std::back_inserter(message), "Project settings changed\n");
+		stream.print("Project settings changed\n");
 
 		if (m_TempConfig->Name != m_ProjectConfig->Name)
-			fmt::format_to(std::back_inserter(message), "Name: {} -> {}\n", m_ProjectConfig->Name, m_TempConfig->Name);
+			stream.print("Name: {} -> {}\n", m_ProjectConfig->Name, m_TempConfig->Name);
 
 		if (m_TempConfig->AssetsDirectory != m_ProjectConfig->AssetsDirectory)
-			fmt::format_to(std::back_inserter(message), "Assets Directory: {} -> {}\n", m_ProjectConfig->AssetsDirectory, m_TempConfig->AssetsDirectory);
+			stream.print("Assets Directory: {} -> {}\n", m_ProjectConfig->AssetsDirectory, m_TempConfig->AssetsDirectory);
 		
 		if (m_TempConfig->StartupScene!= m_ProjectConfig->StartupScene)
-			fmt::format_to(std::back_inserter(message), "Start Scene: {} -> {}\n", m_ProjectConfig->StartupScene, m_TempConfig->StartupScene);
+			stream.print("Start Scene: {} -> {}\n", m_ProjectConfig->StartupScene, m_TempConfig->StartupScene);
 		
 		if (m_TempConfig->Physics.Gravity != m_ProjectConfig->Physics.Gravity)
-			fmt::format_to(std::back_inserter(message), "Gravity: {} -> {}\n", m_ProjectConfig->Physics.Gravity, m_TempConfig->Physics.Gravity);
+			stream.print("Gravity: {} -> {}\n", m_ProjectConfig->Physics.Gravity, m_TempConfig->Physics.Gravity);
 		
 		if (m_TempConfig->Physics.VelocityIterations != m_ProjectConfig->Physics.VelocityIterations)
-			fmt::format_to(std::back_inserter(message), "Velocity Iterations: {} -> {}\n", m_ProjectConfig->Physics.VelocityIterations, m_TempConfig->Physics.VelocityIterations);
+			stream.print("Velocity Iterations: {} -> {}\n", m_ProjectConfig->Physics.VelocityIterations, m_TempConfig->Physics.VelocityIterations);
 
 		if (m_TempConfig->Physics.PositionIterations != m_ProjectConfig->Physics.PositionIterations)
-			fmt::format_to(std::back_inserter(message), "Position Iterations: {} -> {}\n", m_ProjectConfig->Physics.PositionIterations, m_TempConfig->Physics.PositionIterations);
+			stream.print("Position Iterations: {} -> {}\n", m_ProjectConfig->Physics.PositionIterations, m_TempConfig->Physics.PositionIterations);
 
 		if (m_TempConfig->Physics.FixedTimeStep != m_ProjectConfig->Physics.FixedTimeStep)
-			fmt::format_to(std::back_inserter(message), "Fixed Timestep: {} -> {}\n", m_ProjectConfig->Physics.FixedTimeStep, m_TempConfig->Physics.FixedTimeStep);
+			stream.print("Fixed Timestep: {} -> {}\n", m_ProjectConfig->Physics.FixedTimeStep, m_TempConfig->Physics.FixedTimeStep);
 
 		if (m_TempConfig->Physics.MaxTimestep != m_ProjectConfig->Physics.MaxTimestep)
-			fmt::format_to(std::back_inserter(message), "Max Timestep: {} -> {}\n", m_ProjectConfig->Physics.MaxTimestep, m_TempConfig->Physics.MaxTimestep);
+			stream.print("Max Timestep: {} -> {}\n", m_ProjectConfig->Physics.MaxTimestep, m_TempConfig->Physics.MaxTimestep);
 
-		SK_CONSOLE_INFO(fmt::to_string(message));
+		SK_USER_INFO(std::string_view(message.data(), message.size()));
 	}
 
 	void ProjectSettingsPanel::RenameAndSaveProject()

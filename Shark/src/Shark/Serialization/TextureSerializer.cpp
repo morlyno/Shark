@@ -15,7 +15,7 @@
 #include "Shark/Utils/Utilities.h"
 #include "Shark/Debug/Profiler.h"
 
-#define SK_SERIALIZATION_ERROR(...) SK_CORE_ERROR_TAG("Serialization", __VA_ARGS__); SK_DEBUG_BREAK();
+#define SK_SERIALIZATION_ERROR(...) SK_CORE_ERROR_TAG(Log::Tag::Serialization, __VA_ARGS__); SK_DEBUG_BREAK();
 
 namespace Shark {
 
@@ -49,7 +49,7 @@ namespace Shark {
 
 		if (std::ranges::contains(AssetExtensions::Shark::Texture, metadata.FilePath.extension()))
 		{
-			SK_CORE_ERROR_TAG("Serialization", "[Texture] Serializing a non shark texture is not allowed! Please convert the texture into one.");
+			SK_CORE_ERROR_TAG(Log::Tag::Serialization, "[Texture] Serializing a non shark texture is not allowed! Please convert the texture into one.");
 			return false;
 		}
 
@@ -178,7 +178,7 @@ namespace Shark {
 
 		if (textureNode["SourcePath"])
 		{
-			SK_CORE_ERROR_TAG("Serialization", "[Texture] The 'SourcePath' node (filepath) is no longer supported");
+			SK_CORE_ERROR_TAG(Log::Tag::Serialization, "[Texture] The 'SourcePath' node (filepath) is no longer supported");
 			context->AddError(AssetLoadError::Deprecated, "The 'SourcePath' node (filepath) is no longer supported");
 			return false;
 		}
@@ -189,10 +189,10 @@ namespace Shark {
 		DeserializeProperty(textureNode, "Address", outSpecification.Address, AddressMode::Repeat);
 		DeserializeProperty(textureNode, "MaxAnisotropy", outSpecification.MaxAnisotropy, 0.0f);
 
-		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Generate Mips {}", outSpecification.HasMips);
-		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Filter {}", outSpecification.Filter);
-		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Address {}", outSpecification.Address);
-		SK_CORE_TRACE_TAG("Serialization", "[Texture] - Max Anisotropy {}", outSpecification.MaxAnisotropy);
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "[Texture] - Generate Mips {}", outSpecification.HasMips);
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "[Texture] - Filter {}", outSpecification.Filter);
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "[Texture] - Address {}", outSpecification.Address);
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "[Texture] - Max Anisotropy {}", outSpecification.MaxAnisotropy);
 		return true;
 	}
 

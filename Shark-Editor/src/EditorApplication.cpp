@@ -29,12 +29,12 @@ namespace Shark {
 
 		if (var.empty())
 		{
-			SK_CORE_ERROR("Environment variable 'SHARK_DIR' not set! Run Scripts/Setup again to fix this.");
+			SK_CORE_ERROR_TAG(Log::Tag::Core, "Environment variable 'SHARK_DIR' not set! Run Scripts/Setup again to fix this.");
 		}
 		else
 		{
-			SK_CORE_ERROR("Environment variable 'SHARK_DIR' wrong! Run Scripts/Setup again to fix this.");
-			SK_CORE_ERROR("Got '{}' but expected '{}'", var, expected.generic_string());
+			SK_CORE_ERROR_TAG(Log::Tag::Core, "Environment variable 'SHARK_DIR' wrong! Run Scripts/Setup again to fix this.");
+			SK_CORE_ERROR_TAG(Log::Tag::Core, "Got '{}' but expected '{}'", var, expected.generic_string());
 		}
 
 		std::terminate();

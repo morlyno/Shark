@@ -10,7 +10,7 @@ try\
 }\
 catch (const YAML::BadConversion& e)\
 {\
-	SK_CORE_ERROR_TAG("Serialization", "Failed to deserialize property!\n\tName: {}\n\tError: {}", _name, e.what());\
+	SK_CORE_ERROR_TAG(::Shark::Log::Tag::Serialization, "Failed to deserialize property!\n\tName: {}\n\tError: {}", _name, e.what());\
 	__VA_OPT__(_value = __VA_ARGS__);\
 }
 

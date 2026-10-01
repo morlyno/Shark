@@ -199,7 +199,7 @@ namespace Shark {
 		const auto& settingsFile = "Config/Panels.yaml";
 		if (!FileSystem::Exists(settingsFile))
 		{
-			SK_CORE_WARN_TAG("UI", "Panels file not found! Continuing with default settings");
+			SK_CORE_WARNING_TAG(Log::Tag::Editor, "Panels file not found! Continuing with default settings");
 			return;
 		}
 

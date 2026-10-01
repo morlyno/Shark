@@ -51,7 +51,7 @@ namespace Shark {
 
 		#pragma region Log
 
-		void Log_LogMessage(LogLevel level, Coral::String message);
+		void Log_LogMessage(Log::Level level, Coral::String message);
 
 		#pragma endregion
 

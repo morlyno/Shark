@@ -1855,7 +1855,7 @@ namespace Shark {
 					}
 					else
 					{
-						SK_CONSOLE_WARN("Default mesh source {} not found!\nPlease import the default mesh source files to the following directory: {}", sourceMeshName, Project::GetActiveAssetsDirectory() / defaultSourcePath);
+						SK_USER_WARNING("Default mesh source {} not found!\nPlease import the default mesh source files to the following directory: {}", sourceMeshName, Project::GetActiveAssetsDirectory() / defaultSourcePath);
 					}
 				}
 				return entity;

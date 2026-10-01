@@ -2,6 +2,8 @@
 #include "Sound.h"
 
 #include "Shark/Core/Application.h"
+#include "Shark/Core/Timer.h"
+
 #include "Shark/Audio/AudioEngine.h"
 #include "Shark/Audio/SoundConfig.h"
 

@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "DescriptorSetManager.h"
 
+#include "Shark/Core/Timer.h"
+
 #include "Shark/Render/DeviceManager.h"
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/Shader.h"
@@ -218,7 +220,7 @@ namespace Shark {
 
 		nvrhi::IBindingLayout* layout = m_Shader->GetBindingLayout(m_Set);
 		m_Handle = device->createBindingSet(m_Descriptors, layout);
-		SK_CORE_TRACE_TAG("Renderer", "[DescriptorSetManager '{}'{}] Binding set created", m_DebugName, m_Set);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "[DescriptorSetManager '{}'{}] Binding set created", m_DebugName, m_Set);
 
 		m_Pending = false;
 	}
@@ -291,7 +293,7 @@ namespace Shark {
 		{
 			std::string msg = fmt::to_string(error);
 			String::StripBack(msg, "\n");
-			SK_CORE_ERROR_TAG("Renderer", "[DescriptorSetManager '{}'] Invalid descriptors for shader '{}' in set {}\n{}", m_DebugName, m_Shader->GetName(), m_Set, msg);
+			SK_CORE_ERROR_TAG(Log::Tag::Renderer, "[DescriptorSetManager '{}'] Invalid descriptors for shader '{}' in set {}\n{}", m_DebugName, m_Shader->GetName(), m_Set, msg);
 			return false;
 		}
 
@@ -312,7 +314,7 @@ namespace Shark {
 		auto info = GetInputInfo(name);
 		if (!info)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[DescriptorSetManager '{}'] Input '{}' not found", m_DebugName, name);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[DescriptorSetManager '{}'] Input '{}' not found", m_DebugName, name);
 			return {
 				~0u,
 				GraphicsResourceType::None,
@@ -412,7 +414,7 @@ namespace Shark {
 		auto info = GetInputInfo(key.Slot, key.Type);
 		if (!info)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[DescriptorSetManager '{}'] Input '{}{}' not found", m_DebugName, utils::GetBindingPrefix(key.Type), key.Slot);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[DescriptorSetManager '{}'] Input '{}{}' not found", m_DebugName, utils::GetBindingPrefix(key.Type), key.Slot);
 			return;
 		}
 
@@ -443,7 +445,7 @@ namespace Shark {
 		auto info = GetInputInfo(key.Slot, key.Type);
 		if (!info)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[DescriptorSetManager '{}'] Input '{}{}' not found", m_DebugName, utils::GetBindingPrefix(key.Type), key.Slot);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[DescriptorSetManager '{}'] Input '{}{}' not found", m_DebugName, utils::GetBindingPrefix(key.Type), key.Slot);
 			return;
 		}
 
@@ -463,7 +465,7 @@ namespace Shark {
 		const auto* info = GetInputInfo(name);
 		if (!info)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[DescriptorSetManager '{}'] Input '{}' not found", m_DebugName, name);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[DescriptorSetManager '{}'] Input '{}' not found", m_DebugName, name);
 			return;
 		}
 
@@ -477,7 +479,7 @@ namespace Shark {
 		const auto* info = GetInputInfo(name);
 		if (!info)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[DescriptorSetManager '{}'] Input '{}' not found", m_DebugName, name);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[DescriptorSetManager '{}'] Input '{}' not found", m_DebugName, name);
 			return;
 		}
 
@@ -491,7 +493,7 @@ namespace Shark {
 		const auto* info = GetInputInfo(name);
 		if (!info)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[DescriptorSetManager '{}'] Input '{}' not found", m_DebugName, name);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[DescriptorSetManager '{}'] Input '{}' not found", m_DebugName, name);
 			return;
 		}
 
@@ -506,7 +508,7 @@ namespace Shark {
 		const auto* info = GetInputInfo(name);
 		if (!info)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[DescriptorSetManager '{}'] Input '{}' not found", m_DebugName, name);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[DescriptorSetManager '{}'] Input '{}' not found", m_DebugName, name);
 			return;
 		}
 
@@ -521,7 +523,7 @@ namespace Shark {
 		const auto* info = GetInputInfo(key.Slot, key.Type);
 		if (!info)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[DescriptorSetManager '{}'] Input '{}{}' not found", m_DebugName, utils::GetBindingPrefix(key.Type), key.Slot);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[DescriptorSetManager '{}'] Input '{}{}' not found", m_DebugName, utils::GetBindingPrefix(key.Type), key.Slot);
 			return;
 		}
 

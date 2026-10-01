@@ -4,7 +4,7 @@
 #include "Shark/Core/Allocator.h"
 
 #define ENABLE_VERIFY 1
-#include "Shark/Core/Assert.h"
+#include "Shark/Core/Log.h"
 
 #define SK_BUFFER_ASSERT SK_CORE_ASSERT
 #define SK_BUFFER_VERIFY SK_CORE_VERIFY

@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "Font.h"
 
+#include "Shark/Core/Timer.h"
+
 #include "Shark/Render/Renderer.h"
 #include "Shark/Render/Texture.h"
 #include "Shark/Render/MSDFData.h"
@@ -73,11 +75,11 @@ namespace Shark {
 		msdfgen::FontHandle* font = msdfgen::loadFont(freetype, fontPathString.c_str());
 		if (!font)
 		{
-			SK_CORE_ERROR_TAG("Font", "Failed to load Font: {}", fontPathString);
+			SK_CORE_ERROR_TAG(Log::Tag::Font, "Failed to load Font: {}", fontPathString);
 			return;
 		}
 
-		SK_CORE_TRACE_TAG("Font", "Font Loaded: {}", fontPathString);
+		SK_CORE_TRACE_TAG(Log::Tag::Font, "Font Loaded: {}", fontPathString);
 
 		static const uint32_t charsetRange[] =
 		{
@@ -96,7 +98,7 @@ namespace Shark {
 
 		m_MSDFData->FontGeometry = msdf_atlas::FontGeometry(&m_MSDFData->Glyphs);
 		int glyphsLoaded = m_MSDFData->FontGeometry.loadCharset(font, 1.0, charset);
-		SK_CORE_TRACE_TAG("Font", "Loaded {} glyphs out of {}", glyphsLoaded, charset.size());
+		SK_CORE_TRACE_TAG(Log::Tag::Font, "Loaded {} glyphs out of {}", glyphsLoaded, charset.size());
 
 		msdf_atlas::TightAtlasPacker atlasPacker;
 		atlasPacker.setPixelRange(2);
@@ -110,7 +112,7 @@ namespace Shark {
 		int width, height;
 		atlasPacker.getDimensions(width, height);
 		double glyphScale = atlasPacker.getScale();
-		SK_CORE_TRACE_TAG("Font", "Scale: {}", glyphScale);
+		SK_CORE_TRACE_TAG(Log::Tag::Font, "Scale: {}", glyphScale);
 
 		Timer timer;
 
@@ -119,7 +121,7 @@ namespace Shark {
 
 			for (msdf_atlas::GlyphGeometry& glyph : m_MSDFData->Glyphs)
 				glyph.edgeColoring(msdfgen::edgeColoringInkTrap, 3.0, 0);
-			SK_CORE_TRACE_TAG("Font", "Edge Coloring took {}", timer.Elapsed());
+			SK_CORE_TRACE_TAG(Log::Tag::Font, "Edge Coloring took {}", timer.Elapsed());
 		}
 
 		{
@@ -127,7 +129,7 @@ namespace Shark {
 
 			timer.Reset();
 			m_FontAtlas = CreateTextureAltas<uint8_t, float, 4, ImageFormat::RGBA, msdf_atlas::mtsdfGenerator>(m_MSDFData->Glyphs, width, height);
-			SK_CORE_TRACE_TAG("Font", "Generated Atlas in {}", timer.Elapsed());
+			SK_CORE_TRACE_TAG(Log::Tag::Font, "Generated Atlas in {}", timer.Elapsed());
 		}
 
 		msdfgen::destroyFont(font);

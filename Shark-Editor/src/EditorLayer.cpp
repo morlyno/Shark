@@ -882,7 +882,7 @@ namespace Shark {
 				auto future = AssetManager::GetAssetFuture(lastHandle);
 				future.OnReady([](...)
 				{
-					SK_CONSOLE_INFO("Finished loading all Assets");
+					SK_USER_INFO("Finished loading all Assets");
 				});
 			}
 
@@ -910,7 +910,7 @@ namespace Shark {
 						invalidMetadata.Type = AssetType::Scene;
 						invalidMetadata.FilePath = s_InvalidSceneMetadataFilepath;
 						registry.Add(invalidMetadata);
-						SK_CONSOLE_DEBUG("Created invalid metadata.\nType: Scene\nHandle: {}\nFilepath: {}", handle, s_InvalidSceneMetadataFilepath);
+						SK_USER_DEBUG("Created invalid metadata.\nType: Scene\nHandle: {}\nFilepath: {}", handle, s_InvalidSceneMetadataFilepath);
 					}
 				}
 
@@ -923,7 +923,7 @@ namespace Shark {
 					if (handle)
 					{
 						registry.Remove(handle);
-						SK_CONSOLE_DEBUG("Removed invalid metadata.\nType: Scene\nHandle: {}\nFilepath: {}", handle, s_InvalidSceneMetadataFilepath);
+						SK_USER_DEBUG("Removed invalid metadata.\nType: Scene\nHandle: {}\nFilepath: {}", handle, s_InvalidSceneMetadataFilepath);
 					}
 				}
 
@@ -1440,15 +1440,8 @@ namespace Shark {
 			const ImGuiStyle& style = ImGui::GetStyle();
 
 			ImGui::Text(fmt::format("Importing Asset from {}", m_ImportAssetData.SourcePath));
-
-			char buffer[MAX_PATH];
-			strcpy_s(buffer, m_ImportAssetData.DestinationPath.c_str());
-
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("...").x + style.FramePadding.x * 2.0f - style.ItemSpacing.x);
-
-			bool invalidInput;
-			if (UI::InputText("##destPath", buffer, MAX_PATH, ImGuiInputTextFlags_CallbackCharFilter, UI_INPUT_TEXT_FILTER(":*?\"<>|")))
-				m_ImportAssetData.DestinationPath = buffer;
+			UI::InputText("##destPath", &m_ImportAssetData.DestinationPath, ImGuiInputTextFlags_CallbackCharFilter, UI_INPUT_TEXT_FILTER(":*?\"<>|"));
 
 #if TODO
 			if (invalidInput)
@@ -1753,7 +1746,11 @@ namespace Shark {
 
 		m_RuntimeEditorCameraActive = enabled;
 		Input::SetRuntimeInput(!m_RuntimeEditorCameraActive);
-		SK_CORE_INFO_TAG("Editor", "Set RuntimeEditMode to {} (RuntimeInput {}, backup CursorMode {})", m_RuntimeEditorCameraActive, Input::RuntimeInputEnabled(), m_RuntimeCursorMode);
+		
+		if (m_RuntimeEditorCameraActive)
+			SK_USER_INFO("Enabled runtime editor mode");
+		else
+			SK_USER_INFO("Disabled runtime editor mode");
 	}
 
 	glm::mat4 EditorLayer::GetActiveViewProjection() const
@@ -1949,14 +1946,14 @@ namespace Shark {
 	{
 		SK_PROFILE_FUNCTION();
 
-		SK_CORE_INFO("Opening Project [{}]", filePath);
+		SK_CORE_INFO_TAG(Log::Tag::Core, "Opening Project [{}]", filePath);
 
 		Ref<ProjectConfig> config = Ref<ProjectConfig>::Create();
 		ProjectSerializer serializer(config);
 		if (!serializer.Deserialize(filePath))
 		{
-			SK_CORE_ERROR_TAG("Core", "Failed to open project [{}]", filePath);
-			SK_CONSOLE_ERROR("Failed to load project file.\n{}", filePath);
+			SK_CORE_ERROR_TAG(Log::Tag::Core, "Failed to open project [{}]", filePath);
+			SK_USER_ERROR("Failed to load project file.\n{}", filePath);
 			return;
 		}
 
@@ -2017,7 +2014,7 @@ namespace Shark {
 			serializer.Serialize(Project::GetProjectFilePath());
 		}
 
-		SK_CORE_INFO_TAG("Core", "Closing Project");
+		SK_CORE_INFO_TAG(Log::Tag::Core, "Closing Project");
 
 		SelectionManager::DeselectAll();
 

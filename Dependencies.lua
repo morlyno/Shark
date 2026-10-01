@@ -12,6 +12,7 @@ Dependencies = {
     },
 
     spdlog = {
+        LibName = "spdlog",
         IncludeDir = "%{wks.location}/Shark/dependencies/spdlog/include"
     },
     ImGui = {

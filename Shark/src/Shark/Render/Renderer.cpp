@@ -2,6 +2,7 @@
 #include "Renderer.h"
 
 #include "Shark/Core/Application.h"
+#include "Shark/Core/Timer.h"
 
 #include "Shark/Render/DeviceManager.h"
 #include "Shark/Render/RendererRT.h"
@@ -26,8 +27,6 @@
 #include "Shark/Render/Shader.h"
 #include "Shark/Render/Texture.h"
 #include "Shark/Render/TextureCommon.h"
-
-#include "Shark/Serialization/Import/TextureImporter.h"
 
 #include "Shark/Debug/Profiler.h"
 
@@ -103,7 +102,7 @@ namespace Shark {
 		s_Data->m_Samplers.LinearMirrorRepeat  = Sampler::Create({ .Filter = FilterMode::Linear,  .Address = AddressMode::MirrorRepeat });
 
 		Timer loadShadersTimer;
-		SK_CORE_INFO_TAG("Renderer", "Loading Shaders...");
+		SK_CORE_INFO_TAG(Log::Tag::Renderer, "Loading Shaders...");
 
 		auto shaderLibrary = GetShaderLibrary();
 		shaderLibrary->SetCompilerOptions({
@@ -146,7 +145,7 @@ namespace Shark {
 		shaderLibrary->Load("Resources/Shaders/ImGui.hlsl");
 		s_Data->m_ShaderCache.SaveRegistry();
 
-		SK_CORE_INFO_TAG("Renderer", "Finished loading shaders in {}", loadShadersTimer.Elapsed());
+		SK_CORE_INFO_TAG(Log::Tag::Renderer, "Finished loading shaders in {}", loadShadersTimer.Elapsed());
 
 		RT::SetupCache(GetGraphicsDevice(), &s_Data->m_ResourceCache);
 
@@ -273,12 +272,12 @@ namespace Shark {
 	void Renderer::BeginFrame()
 	{
 		s_Data->m_FrameIndex++;
-		SK_CORE_TRACE_TAG("Renderer", " ===== Begin frame {} ===== ", s_Data->m_FrameIndex);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, " ===== Begin frame {} ===== ", s_Data->m_FrameIndex);
 
 		Renderer::Submit([]()
 		{
 			s_Data->m_RTFrameIndex++;
-			SK_CORE_TRACE_TAG("Renderer", " ===== [RT] Begin frame {} ===== ", s_Data->m_RTFrameIndex);
+			SK_CORE_TRACE_TAG(Log::Tag::Renderer, " ===== [RT] Begin frame {} ===== ", s_Data->m_RTFrameIndex);
 
 			auto deviceManager = GetDeviceManager();
 			deviceManager->RunGarbageCollection();
@@ -287,11 +286,11 @@ namespace Shark {
 
 	void Renderer::EndFrame()
 	{
-		SK_CORE_TRACE_TAG("Renderer", " ===== End frame {} ===== ", s_Data->m_FrameIndex);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, " ===== End frame {} ===== ", s_Data->m_FrameIndex);
 
 		Renderer::Submit([]()
 		{
-			SK_CORE_TRACE_TAG("Renderer", " ===== [RT] End frame {} ===== ", s_Data->m_RTFrameIndex);
+			SK_CORE_TRACE_TAG(Log::Tag::Renderer, " ===== [RT] End frame {} ===== ", s_Data->m_RTFrameIndex);
 		});
 	}
 
@@ -327,7 +326,7 @@ namespace Shark {
 
 	void Renderer::BeginRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass, bool expliciteClear)
 	{
-		SK_CORE_TRACE_TAG("Renderer", "BeginRenderPass '{}'", renderPass->GetSpecification().DebugName);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "BeginRenderPass '{}'", renderPass->GetSpecification().DebugName);
 
 		auto shader = renderPass->GetShader();
 		auto framebuffer = renderPass->GetTargetFramebuffer();
@@ -339,7 +338,7 @@ namespace Shark {
 
 	void Renderer::EndRenderPass(Ref<RenderCommandBuffer> commandBuffer, Ref<RenderPass> renderPass)
 	{
-		SK_CORE_TRACE_TAG("Renderer", "EndRenderPass '{}'", renderPass->GetSpecification().DebugName);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "EndRenderPass '{}'", renderPass->GetSpecification().DebugName);
 
 		Submit([commandBuffer, renderPass]()
 		{
@@ -349,7 +348,7 @@ namespace Shark {
 
 	void Renderer::BeginComputePass(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePass> computePass)
 	{
-		SK_CORE_TRACE_TAG("Renderer", "BeginComputePass '{}'", computePass->GetSpecification().DebugName);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "BeginComputePass '{}'", computePass->GetSpecification().DebugName);
 
 		Submit([commandBuffer, computePass, shader = computePass->GetShader()]()
 		{
@@ -359,7 +358,7 @@ namespace Shark {
 
 	void Renderer::EndComputePass(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePass> computePass)
 	{
-		SK_CORE_TRACE_TAG("Renderer", "EndComputePass '{}'", computePass->GetSpecification().DebugName);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "EndComputePass '{}'", computePass->GetSpecification().DebugName);
 
 		Submit([commandBuffer, computePass]()
 		{
@@ -369,7 +368,7 @@ namespace Shark {
 
 	void Renderer::Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, const glm::uvec3& workGroups, BufferHandle pushConstantData)
 	{
-		SK_CORE_TRACE_TAG("Renderer", "Dispatch '{}' {}", pipeline->GetDebugName(), workGroups);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "Dispatch '{}' {}", pipeline->GetDebugName(), workGroups);
 
 		Submit([commandBuffer, pipeline, workGroups, temp = pushConstantData.Store()]()
 		{
@@ -379,7 +378,7 @@ namespace Shark {
 
 	void Renderer::Dispatch(Ref<RenderCommandBuffer> commandBuffer, Ref<ComputePipeline> pipeline, Ref<Material> material, const glm::uvec3& workGroups, BufferHandle pushConstantData)
 	{
-		SK_CORE_TRACE_TAG("Renderer", "Dispatch '{}' '{}' {}", pipeline->GetDebugName(), material->GetName(), workGroups);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "Dispatch '{}' '{}' {}", pipeline->GetDebugName(), material->GetName(), workGroups);
 		SK_CORE_VERIFY(material);
 
 		Submit([commandBuffer, pipeline, material, workGroups, temp = pushConstantData.Store()]() mutable
@@ -390,7 +389,7 @@ namespace Shark {
 
 	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, uint32_t indexCount, BufferHandle pushConstant)
 	{
-		SK_CORE_TRACE_TAG("Renderer", "RenderGeometry '{}' '{}'", material ? material->GetName() : "<null>", pipeline->GetSpecification().DebugName);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "RenderGeometry '{}' '{}'", material ? material->GetName() : "<null>", pipeline->GetSpecification().DebugName);
 
 		Submit([commandBuffer, pipeline, material, vertexBuffer, indexBuffer, indexCount, temp = pushConstant.Store()]() mutable
 		{
@@ -400,7 +399,7 @@ namespace Shark {
 
 	void Renderer::RenderGeometry(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Material> material, Ref<VertexBuffer> vertexBuffer, Ref<IndexBuffer> indexBuffer, const nvrhi::DrawArguments& drawArguments, BufferHandle pushConstant)
 	{
-		SK_CORE_TRACE_TAG("Renderer", "RenderGeometry '{}' '{}'", material ? material->GetName() : "<null>", pipeline->GetSpecification().DebugName);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "RenderGeometry '{}' '{}'", material ? material->GetName() : "<null>", pipeline->GetSpecification().DebugName);
 
 		Submit([commandBuffer, pipeline, material, vertexBuffer, indexBuffer, drawArguments, temp = pushConstant.Store()]() mutable
 		{
@@ -410,7 +409,7 @@ namespace Shark {
 
 	void Renderer::RenderSubmesh(Ref<RenderCommandBuffer> commandBuffer, Ref<Pipeline> pipeline, Ref<Mesh> mesh, Ref<MeshSource> meshSource, uint32_t submeshIndex, Ref<Material> material, bool isRigged, BufferHandle pushConstantsData)
 	{
-		SK_CORE_TRACE_TAG("Renderer", "RenderSubmesh '{}':{} '{}'", meshSource->GetName(), submeshIndex, material ? material->GetName() : "<null>");
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "RenderSubmesh '{}':{} '{}'", meshSource->GetName(), submeshIndex, material ? material->GetName() : "<null>");
 
 		Submit([commandBuffer, pipeline, mesh, meshSource, submeshIndex, material, isRigged, temp = pushConstantsData.Store()]() mutable
 		{
@@ -446,7 +445,7 @@ namespace Shark {
 
 	void Renderer::CopySlice(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, const ImageSlice& sourceSlice, Ref<Image2D> destinationImage, const ImageSlice& destinationSlice)
 	{
-		SK_CORE_TRACE_TAG("Renderer", "CopySlice '{}':(Mip:{}, Level: {}) -> '{}':(Mip:{}, Level: {})", sourceImage->GetSpecification().DebugName, sourceSlice.Mip, sourceSlice.Layer, destinationImage->GetSpecification().DebugName, destinationSlice.Mip, destinationSlice.Layer);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "CopySlice '{}':(Mip:{}, Level: {}) -> '{}':(Mip:{}, Level: {})", sourceImage->GetSpecification().DebugName, sourceSlice.Mip, sourceSlice.Layer, destinationImage->GetSpecification().DebugName, destinationSlice.Mip, destinationSlice.Layer);
 
 		Submit([commandBuffer, sourceImage, sourceSlice, destinationImage, destinationSlice]()
 		{
@@ -456,7 +455,7 @@ namespace Shark {
 
 	void Renderer::CopySlice(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, const ImageSlice& sourceSlice, Ref<StagingImage2D> destinationImage, const ImageSlice& destinationSlice)
 	{
-		SK_CORE_TRACE_TAG("Renderer", "CopySlice '{}':(Mip:{}, Level: {}) -> '{}':(Mip:{}, Level: {})", sourceImage->GetSpecification().DebugName, sourceSlice.Mip, sourceSlice.Layer, destinationImage->GetSpecification().DebugName, destinationSlice.Mip, destinationSlice.Layer);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "CopySlice '{}':(Mip:{}, Level: {}) -> '{}':(Mip:{}, Level: {})", sourceImage->GetSpecification().DebugName, sourceSlice.Mip, sourceSlice.Layer, destinationImage->GetSpecification().DebugName, destinationSlice.Mip, destinationSlice.Layer);
 
 		Submit([commandBuffer, sourceImage, sourceSlice, destinationImage, destinationSlice]()
 		{
@@ -466,7 +465,7 @@ namespace Shark {
 
 	void Renderer::CopySlice(Ref<RenderCommandBuffer> commandBuffer, Ref<StagingImage2D> sourceImage, const ImageSlice& sourceSlice, Ref<Image2D> destinationImage, const ImageSlice& destinationSlice)
 	{
-		SK_CORE_TRACE_TAG("Renderer", "CopySlice '{}':(Mip:{}, Level: {}) -> '{}':(Mip:{}, Level: {})", sourceImage->GetSpecification().DebugName, sourceSlice.Mip, sourceSlice.Layer, destinationImage->GetSpecification().DebugName, destinationSlice.Mip, destinationSlice.Layer);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "CopySlice '{}':(Mip:{}, Level: {}) -> '{}':(Mip:{}, Level: {})", sourceImage->GetSpecification().DebugName, sourceSlice.Mip, sourceSlice.Layer, destinationImage->GetSpecification().DebugName, destinationSlice.Mip, destinationSlice.Layer);
 
 		Submit([commandBuffer, sourceImage, sourceSlice, destinationImage, destinationSlice]()
 		{
@@ -476,7 +475,7 @@ namespace Shark {
 
 	void Renderer::CopyMip(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, uint32_t sourceMip, Ref<Image2D> destinationImage, uint32_t destinationMip)
 	{
-		SK_CORE_TRACE_TAG("Renderer", "CopyMip '{}':{} -> '{}':{}", sourceImage->GetSpecification().DebugName, sourceMip, destinationImage->GetSpecification().DebugName, destinationMip);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "CopyMip '{}':{} -> '{}':{}", sourceImage->GetSpecification().DebugName, sourceMip, destinationImage->GetSpecification().DebugName, destinationMip);
 
 		Submit([commandBuffer, sourceImage, sourceMip, destinationImage, destinationMip]()
 		{
@@ -486,7 +485,7 @@ namespace Shark {
 
 	void Renderer::CopyMip(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, uint32_t sourceMip, Ref<StagingImage2D> destinationImage, uint32_t destinationMip)
 	{
-		SK_CORE_TRACE_TAG("Renderer", "CopyMip '{}':{} -> '{}':{}", sourceImage->GetSpecification().DebugName, sourceMip, destinationImage->GetSpecification().DebugName, destinationMip);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "CopyMip '{}':{} -> '{}':{}", sourceImage->GetSpecification().DebugName, sourceMip, destinationImage->GetSpecification().DebugName, destinationMip);
 
 		Submit([commandBuffer, sourceImage, sourceMip, destinationImage, destinationMip]()
 		{
@@ -496,7 +495,7 @@ namespace Shark {
 
 	void Renderer::CopyMip(Ref<RenderCommandBuffer> commandBuffer, Ref<StagingImage2D> sourceImage, uint32_t sourceMip, Ref<Image2D> destinationImage, uint32_t destinationMip)
 	{
-		SK_CORE_TRACE_TAG("Renderer", "CopyMip '{}':{} -> '{}':{}", sourceImage->GetSpecification().DebugName, sourceMip, destinationImage->GetSpecification().DebugName, destinationMip);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "CopyMip '{}':{} -> '{}':{}", sourceImage->GetSpecification().DebugName, sourceMip, destinationImage->GetSpecification().DebugName, destinationMip);
 
 		Submit([commandBuffer, sourceImage, sourceMip, destinationImage, destinationMip]()
 		{
@@ -506,7 +505,7 @@ namespace Shark {
 
 	void Renderer::CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage)
 	{
-		SK_CORE_TRACE_TAG("Renderer", "CopyImage '{}' -> '{}'", sourceImage->GetSpecification().DebugName, destinationImage->GetSpecification().DebugName);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "CopyImage '{}' -> '{}'", sourceImage->GetSpecification().DebugName, destinationImage->GetSpecification().DebugName);
 
 		Submit([commandBuffer, sourceImage, destinationImage]()
 		{
@@ -516,7 +515,7 @@ namespace Shark {
 
 	void Renderer::CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<StagingImage2D> destinationImage)
 	{
-		SK_CORE_TRACE_TAG("Renderer", "CopyImage '{}' -> '{}'", sourceImage->GetSpecification().DebugName, destinationImage->GetSpecification().DebugName);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "CopyImage '{}' -> '{}'", sourceImage->GetSpecification().DebugName, destinationImage->GetSpecification().DebugName);
 
 		Submit([commandBuffer, sourceImage, destinationImage]()
 		{
@@ -526,7 +525,7 @@ namespace Shark {
 
 	void Renderer::CopyImage(Ref<RenderCommandBuffer> commandBuffer, Ref<StagingImage2D> sourceImage, Ref<Image2D> destinationImage)
 	{
-		SK_CORE_TRACE_TAG("Renderer", "CopyImage '{}' -> '{}'", sourceImage->GetSpecification().DebugName, destinationImage->GetSpecification().DebugName);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "CopyImage '{}' -> '{}'", sourceImage->GetSpecification().DebugName, destinationImage->GetSpecification().DebugName);
 
 		Submit([commandBuffer, sourceImage, destinationImage]()
 		{
@@ -552,7 +551,7 @@ namespace Shark {
 	void Renderer::BlitImage(Ref<RenderCommandBuffer> commandBuffer, Ref<Image2D> sourceImage, Ref<Image2D> destinationImage, const BlitImageParams& params, FilterMode filterMode)
 	{
 		SK_PROFILE_SCOPED("Renderer - BlitImage");
-		SK_CORE_TRACE_TAG("Renderer", "BlitImage '{}' -> '{}'", sourceImage->GetSpecification().DebugName, destinationImage->GetSpecification().DebugName);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "BlitImage '{}' -> '{}'", sourceImage->GetSpecification().DebugName, destinationImage->GetSpecification().DebugName);
 
 		SK_CORE_VERIFY(destinationImage->GetSpecification().Storage);
 		auto shader = Renderer::GetShaderLibrary()->Get(params.LayerCount == 1 ? "CmdBlitImage" : "CmdBlitImageArray");
@@ -601,7 +600,7 @@ namespace Shark {
 		SK_CORE_VERIFY(targetImage->GetSpecification().Storage);
 
 		SK_PROFILE_SCOPED("Renderer - GenerateMips");
-		SK_CORE_TRACE_TAG("Renderer", "GenerateMips '{}':({}, {}):{}", targetImage->GetSpecification().DebugName, targetImage->GetWidth(), targetImage->GetHeight(), targetImage->GetSpecification().MipLevels);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "GenerateMips '{}':({}, {}):{}", targetImage->GetSpecification().DebugName, targetImage->GetWidth(), targetImage->GetHeight(), targetImage->GetSpecification().MipLevels);
 
 		auto shader = Renderer::GetShaderLibrary()->Get("LinearSample");
 
@@ -673,7 +672,7 @@ namespace Shark {
 	{
 		SK_PROFILE_SCOPED("Renderer - GenerateMips");
 		SK_CORE_VERIFY(!ImageUtils::IsIntegerBased(targetImage->GetSpecification().Format));
-		SK_CORE_TRACE_TAG("Renderer", "GenerateMips '{}':({}, {}):{}", targetImage->GetSpecification().DebugName, targetImage->GetWidth(), targetImage->GetHeight(), targetImage->GetSpecification().MipLevels);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "GenerateMips '{}':({}, {}):{}", targetImage->GetSpecification().DebugName, targetImage->GetWidth(), targetImage->GetHeight(), targetImage->GetSpecification().MipLevels);
 
 		if (targetImage->GetSpecification().Storage)
 		{
@@ -934,7 +933,7 @@ namespace Shark {
 		SK_CORE_VERIFY(targetImage->GetSpecification().Storage);
 
 		SK_PROFILE_SCOPED("Renderer - GenerateMips");
-		SK_CORE_TRACE_TAG("Renderer", "[RT] GenerateMips '{}':({}, {}):{}", targetImage->GetSpecification().DebugName, targetImage->GetWidth(), targetImage->GetHeight(), targetImage->GetSpecification().MipLevels);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "[RT] GenerateMips '{}':({}, {}):{}", targetImage->GetSpecification().DebugName, targetImage->GetWidth(), targetImage->GetHeight(), targetImage->GetSpecification().MipLevels);
 
 		/////////////////////////////////////////////////
 		/// Setup
@@ -1058,7 +1057,7 @@ namespace Shark {
 	void Renderer::RT_GenerateMips(Ref<RenderCommandBuffer> commandBuffer, RefArg<Image2D> targetImage)
 	{
 		SK_PROFILE_SCOPED("Renderer - GenerateMips");
-		SK_CORE_TRACE_TAG("Renderer", "[RT] GenerateMips '{}':({}, {}):{}", targetImage->GetSpecification().DebugName, targetImage->GetWidth(), targetImage->GetHeight(), targetImage->GetSpecification().MipLevels);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "[RT] GenerateMips '{}':({}, {}):{}", targetImage->GetSpecification().DebugName, targetImage->GetWidth(), targetImage->GetHeight(), targetImage->GetSpecification().MipLevels);
 
 		const auto& targetDesc = targetImage->GetHandle()->getDesc();
 		if (targetDesc.isUAV)
@@ -1105,7 +1104,7 @@ namespace Shark {
 		SK_CORE_VERIFY(radianceTarget->GetSpecification().Format == ImageFormat::RGBA32F && irradianceTarget->GetSpecification().Format == ImageFormat::RGBA32F);
 
 		SK_PROFILE_SCOPED("Renderer - CreateEnvironmentMap");
-		SK_CORE_TRACE_TAG("Renderer", "[RT] CreateEnvironmentMap '{}'", debugInfo);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "[RT] CreateEnvironmentMap '{}'", debugInfo);
 
 		/////////////////////////////////////////////////
 		/// Setup

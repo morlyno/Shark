@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Shark/Core/Base.h"
+#include "Shark/Core/UUID.h"
+
 #include "Shark/Scripting/ScriptTypes.h"
 
 namespace Shark {

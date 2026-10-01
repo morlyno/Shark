@@ -20,7 +20,7 @@ namespace Shark {
 		std::string result = SerializeToYAML(asset.As<PBRMaterial>());
 		if (result.empty())
 		{
-			SK_CORE_ERROR_TAG("Serialization", "YAML result was empty!");
+			SK_CORE_ERROR_TAG(Log::Tag::Serialization, "YAML result was empty!");
 			return false;
 		}
 

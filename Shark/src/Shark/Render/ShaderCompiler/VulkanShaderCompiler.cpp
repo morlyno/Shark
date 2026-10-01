@@ -31,20 +31,20 @@ namespace Shark {
 				if (shaderCache.LoadBinary(info, stage, nvrhi::GraphicsAPI::VULKAN, binary))
 				{
 					platformBinary[stage] = std::move(binary);
-					SK_CORE_TRACE_TAG("ShaderCompiler", "Loaded vulkan {} shader '{}' from cache", stage, info.SourcePath);
+					SK_CORE_TRACE_TAG(Log::Tag::ShaderCompiler, "Loaded vulkan {} shader '{}' from cache", stage, info.SourcePath);
 					continue;
 				}
 			}
 
 			if (!CompileStage(info, stage, result) && status == CacheStatus::OutOfDate)
 			{
-				SK_CORE_WARN_TAG("ShaderCompiler", "[vulkan] Loading older shader version from cache");
+				SK_CORE_WARNING_TAG(Log::Tag::ShaderCompiler, "[vulkan] Loading older shader version from cache");
 				shaderCache.LoadBinary(info, stage, nvrhi::GraphicsAPI::VULKAN, platformBinary[stage]);
 			}
 
 			if (!platformBinary.contains(stage) || !platformBinary.at(stage))
 			{
-				SK_CORE_ERROR_TAG("ShaderCompiler", "Compiling shader '{}' failed!", info.SourcePath.filename());
+				SK_CORE_ERROR_TAG(Log::Tag::ShaderCompiler, "Compiling shader '{}' failed!", info.SourcePath.filename());
 				SK_DEBUG_BREAK_CONDITIONAL(BREAK_ON_FAILED_COMPILATION);
 
 				result.PlatformBinary.erase(nvrhi::GraphicsAPI::VULKAN);

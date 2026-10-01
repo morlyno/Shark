@@ -10,169 +10,7 @@
 
 namespace Shark {
 
-	struct Uninitialized {};
-	static constexpr Uninitialized UninitializedTag;
-
 	namespace Threading {
-
-		namespace Internal {
-
-#if SK_PLATFORM_WINDOWS
-			using NativeMutex = CRITICAL_SECTION;
-			using NativeConditionVariable = CONDITION_VARIABLE;
-#endif
-
-		}
-
-		class Thread
-		{
-		public:
-			Thread() = default;
-			Thread(std::string_view name);
-			Thread(const Thread&) = delete;
-			Thread& operator=(const Thread&) = delete;
-			Thread(Thread&&) = default;
-			Thread& operator=(Thread&&) = default;
-			~Thread();
-
-			template<typename TFunc, typename... TArgs>
-				requires(!std::is_convertible_v<TFunc, std::string_view>)
-			Thread(TFunc&& func, TArgs&&... args);
-
-			template<typename TFunc, typename... TArgs>
-			Thread(std::string_view name, TFunc&& func, TArgs&&... args);
-
-			void SetName(std::string_view name);
-			bool Running() const;
-
-			template<typename TFunc, typename... TArgs>
-			void Dispacht(TFunc&& func, TArgs&&... args);
-
-			void RequestStop();
-			void Join();
-			void StopAndJoin();
-
-		private:
-			std::string m_Name;
-			std::jthread m_Thread;
-		};
-
-		class Mutex
-		{
-		public:
-			Mutex();
-			~Mutex();
-
-			Mutex(const Mutex&) = delete;
-			Mutex& operator= (const Mutex&) = delete;
-
-			void Lock();
-			bool TryLock();
-			void Unlock();
-
-			Internal::NativeMutex* GetNativeMutex() { return &m_NativeMutex; }
-		private:
-			Internal::NativeMutex m_NativeMutex;
-
-		private: // interface for std
-			void lock() { Lock(); }
-			void unlock() { Unlock(); }
-			template<typename TMutex>
-			friend class std::unique_lock;
-			template<typename... TMutexes>
-			friend class std::scoped_lock;
-		};
-
-#if 0
-		namespace Internal {
-			class TrackedMutex
-			{
-			public:
-				TrackedMutex(
-#if SK_ENABLE_PROFILER
-					const tracy::SourceLocationData* srcloc
-#endif
-				);
-				~TrackedMutex();
-
-				TrackedMutex(const TrackedMutex&) = delete;
-				TrackedMutex& operator= (const TrackedMutex&) = delete;
-
-				void Lock();
-				bool TryLock();
-				void Unlock();
-
-				Internal::NativeMutex* GetNativeMutex() { return m_Mutex.GetNativeMutex(); }
-			public:
-				void lock() { Lock(); }
-				void unlock() { Unlock(); }
-				bool try_lock() { TryLock(); }
-			private:
-#if SK_ENABLE_PROFILER
-				tracy::LockableCtx m_Context;
-#endif
-				Mutex m_Mutex;
-			};
-		}
-
-#if SK_ENABLE_PROFILER
-		using TrackedMutex = Internal::TrackedMutex;
-		#define SKLockableInit( varname ) ::Shark::Threading::TrackedMutex { [] () -> const tracy::SourceLocationData* { static constexpr tracy::SourceLocationData srcloc { nullptr, "Threading::TrackedMutex " #varname, TracyFile, TracyLine, 0 }; return &srcloc; }() }
-#else
-		using TrackedMutex = Mutex;
-		#define SKLockableInit( varname ) ::Shark::Threading::Mutex()
-#endif
-#endif
-
-		class ConditionVariable
-		{
-		public:
-			ConditionVariable();
-			~ConditionVariable();
-
-			ConditionVariable(const ConditionVariable&) = delete;
-			ConditionVariable& operator= (const ConditionVariable&) = delete;
-
-			void NotifyOne();
-			void NotifyAll();
-
-			void Wait(std::unique_lock<Mutex>& lock);
-			void Wait(std::unique_lock<Mutex>& lock, std::chrono::milliseconds time);
-			
-			template<typename TPredicate, typename... TArgs>
-			void Wait(std::unique_lock<Mutex>& lock, TPredicate predicate, TArgs&&... valueOrInstance);
-
-			template<typename TPredicate, typename... TArgs>
-			void Wait(std::unique_lock<Mutex>& lock, std::chrono::milliseconds time, TPredicate predicate, TArgs&&... valueOrInstance);
-
-		private:
-			Internal::NativeConditionVariable m_ConditionVariable;
-		};
-
-		class ProcessSignal
-		{
-		public:
-			ProcessSignal(Uninitialized);
-			ProcessSignal(bool manualReset, bool initialState);
-			~ProcessSignal();
-
-			ProcessSignal(ProcessSignal&& other);
-			ProcessSignal& operator=(ProcessSignal&& other);
-
-			ProcessSignal(const ProcessSignal&) = delete;
-			ProcessSignal& operator=(const ProcessSignal&) = delete;
-
-			void Set();
-			void Reset();
-
-			void Wait();
-			void Wait(std::chrono::milliseconds time);
-
-			operator bool() const;
-
-		private:
-			NativeHandle m_Handle = 0;
-		};
 
 		class ThreadSignal
 		{
@@ -193,8 +31,8 @@ namespace Shark {
 			bool m_Signaled = false;
 			bool m_ManualReset = false;
 
-			Mutex m_Mutex;
-			ConditionVariable m_ConditionVariable;
+			std::mutex m_Mutex;
+			std::condition_variable m_ConditionVariable;
 		};
 
 		template<typename T>
@@ -254,4 +92,112 @@ namespace Shark {
 
 }
 
-#include "Shark/Core/Threading.inl"
+namespace Shark::Threading {
+
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	//// Future ///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////
+
+	template<typename T>
+	Future<T>::FutureState::FutureState(bool signaled)
+		: m_FinishedEvent(true, signaled)
+	{
+	}
+
+	template<typename T>
+	Future<T>::Future(bool createState)
+	{
+		if (createState)
+		{
+			m_State = std::make_shared<FutureState>(false);
+		}
+	}
+
+	template<typename T>
+	Future<T>::Future(T result)
+	{
+		m_State = std::make_shared<FutureState>(true);
+		m_State->m_Value = result;
+		m_State->m_Finished = true;
+	}
+
+	template<typename T>
+	void Future<T>::MergeCallbacks(const Future& other)
+	{
+		if (m_State == other.m_State)
+			return;
+
+		std::scoped_lock lock(m_State->m_Mutex, other.m_State->m_Mutex);
+		m_State->m_OnReadyCallbacks.insert(m_State->m_OnReadyCallbacks.end(), other.m_State->m_OnReadyCallbacks.begin(), other.m_State->m_OnReadyCallbacks.end());
+	}
+
+	template<typename T>
+	void Future<T>::Set(const T& value)
+	{
+		SK_CORE_VERIFY(m_State->m_Finished == false);
+		m_State->m_Value = value;
+		m_State->m_Finished = true;
+	}
+
+	template<typename T>
+	void Future<T>::Signal(bool wake, bool callback)
+	{
+		if (wake)
+		{
+			m_State->m_FinishedEvent.Notify();
+		}
+
+		if (callback)
+		{
+			std::scoped_lock lock(m_State->m_Mutex);
+			for (const auto& callback : m_State->m_OnReadyCallbacks)
+			{
+				callback(m_State->m_Value);
+			}
+		}
+	}
+
+	template<typename T>
+	void Future<T>::SetAndSignal(const T& value)
+	{
+		Set(value);
+		Signal();
+	}
+
+	template<typename T>
+	void Future<T>::Wait()
+	{
+		m_State->m_FinishedEvent.Wait();
+	}
+
+	template<typename T>
+	void Future<T>::Wait(std::chrono::milliseconds milliseconds)
+	{
+		m_State->m_FinishedEvent.Wait(milliseconds);
+	}
+
+	template<typename T>
+	const T& Future<T>::WaitAndGet()
+	{
+		Wait();
+		return m_State->m_Value;
+	}
+
+	template<typename T>
+	const T& Future<T>::Get()
+	{
+		SK_CORE_VERIFY(m_State->m_Finished);
+		return m_State->m_Value;
+	}
+
+	template<typename T>
+	void Future<T>::OnReady(auto func)
+	{
+		if (m_State->m_Finished)
+			func(m_State->m_Value);
+
+		std::scoped_lock lock(m_State->m_Mutex);
+		m_State->m_OnReadyCallbacks.push_back(func);
+	}
+
+}

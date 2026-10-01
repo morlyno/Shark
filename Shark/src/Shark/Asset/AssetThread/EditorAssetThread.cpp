@@ -38,7 +38,7 @@ namespace Shark {
 		m_Stopper.request_stop();
 		m_Threads.clear();
 
-		SK_CORE_WARN_TAG("AssetThread", "Thread Stopped");
+		SK_CORE_WARNING_TAG(Log::Tag::AssetThread, "Thread Stopped");
 	}
 
 	void EditorAssetThread::RunTasks()
@@ -125,7 +125,7 @@ namespace Shark {
 
 	void EditorAssetThread::QueueAssetLoad(AssetLoadRequest& alr)
 	{
-		SK_CORE_TRACE_TAG("AssetThread", "QueueAssetLoad - {} {}", alr.Metadata.Handle, alr.Metadata.FilePath);
+		SK_CORE_TRACE_TAG(Log::Tag::AssetThread, "QueueAssetLoad - {} {}", alr.Metadata.Handle, alr.Metadata.FilePath);
 
 		{
 			std::scoped_lock lock(m_Mutex);
@@ -163,7 +163,7 @@ namespace Shark {
 			{
 				auto& request = m_RequestStorage.at(handle);
 				std::chrono::duration totalTime = now - time.first;
-				SK_CORE_WARN_TAG("AssetThread", "Asset {} '{}' is loading for {:%T}", request.Metadata.Handle, request.Metadata.FilePath, totalTime);
+				SK_CORE_WARNING_TAG(Log::Tag::AssetThread, "Asset {} '{}' is loading for {:%T}", request.Metadata.Handle, request.Metadata.FilePath, totalTime);
 				time.second = now;
 			}
 		}
@@ -175,7 +175,7 @@ namespace Shark {
 		SK_PROFILE_FRAME("AssetThread");
 		std::stop_callback guard{ stopToken, [this]
 		{
-			SK_CORE_WARN_TAG("AssetThread", "Stopping Thread");
+			SK_CORE_WARNING_TAG(Log::Tag::AssetThread, "Stopping Thread");
 			m_WorkAvailable.notify_all();
 		}};
 
@@ -219,7 +219,7 @@ namespace Shark {
 
 		if (!m_LoadingQueue.empty())
 		{
-			SK_CORE_WARN_TAG("AssetThread", "Skipping {} load requests after stop was requested", m_LoadingQueue.size());
+			SK_CORE_WARNING_TAG(Log::Tag::AssetThread, "Skipping {} load requests after stop was requested", m_LoadingQueue.size());
 		}
 
 	}
@@ -230,7 +230,7 @@ namespace Shark {
 		SK_CORE_VERIFY((request.Metadata.Status == AssetStatus::Ready && !request.Reload) == false);
 
 		SK_PROFILE_FUNCTION();
-		SK_CORE_INFO_TAG("AssetThread", "Loading {} {} {}", request.Metadata.Type, request.Metadata.Handle, request.Metadata.FilePath);
+		SK_CORE_INFO_TAG(Log::Tag::AssetThread, "Loading {} {} {}", request.Metadata.Type, request.Metadata.Handle, request.Metadata.FilePath);
 
 		AssetLoadContext context(request.Metadata.Handle);
 		const bool sucess = AssetSerializer::TryLoadAsset(request.Asset, request.Metadata, &context);
@@ -263,9 +263,9 @@ namespace Shark {
 		if (context.HasErrors())
 		{
 			if (request.Asset)
-				SK_CORE_WARN_TAG("AssetThread", "Asset loaded with errors {} '{}'{}{}", request.Metadata.Handle, request.Metadata.FilePath, context.HasErrors() ? "\n - " : "", fmt::join(context.GetErrors(), "\n - {}"));
+				SK_CORE_WARNING_TAG(Log::Tag::AssetThread, "Asset loaded with errors {} '{}'{}{}", request.Metadata.Handle, request.Metadata.FilePath, context.HasErrors() ? "\n - " : "", fmt::join(context.GetErrors(), "\n - {}"));
 			else
-				SK_CORE_ERROR_TAG("AssetThread", "Failed to load asset {} '{}'{}{}", request.Metadata.Handle, request.Metadata.FilePath, context.HasErrors() ? "\n - " : "", fmt::join(context.GetErrors(), "\n - {}"));
+				SK_CORE_ERROR_TAG(Log::Tag::AssetThread, "Failed to load asset {} '{}'{}{}", request.Metadata.Handle, request.Metadata.FilePath, context.HasErrors() ? "\n - " : "", fmt::join(context.GetErrors(), "\n - {}"));
 
 			request.Metadata.Status = AssetStatus::Unloaded;
 
@@ -285,7 +285,7 @@ namespace Shark {
 
 		if (!context.HasErrors())
 		{
-			SK_CORE_INFO_TAG("AssetThread", "Finished loading {} {} {}", request.Metadata.Type, request.Metadata.Handle, request.Metadata.FilePath);
+			SK_CORE_INFO_TAG(Log::Tag::AssetThread, "Finished loading {} {} {}", request.Metadata.Type, request.Metadata.Handle, request.Metadata.FilePath);
 		}
 
 		// NOTE(moro): After this accessing the current alr is no longer save

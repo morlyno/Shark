@@ -58,13 +58,13 @@ namespace Shark {
 
 		if (!CreateInstanceInternal())
 		{
-			SK_CORE_ERROR_TAG("Renderer", "Failed to create instance");
+			SK_CORE_ERROR_TAG(Log::Tag::Renderer, "Failed to create instance");
 			return false;
 		}
 
 		if (!CreateDeviceInternal())
 		{
-			SK_CORE_ERROR_TAG("Renderer", "Failed to create device");
+			SK_CORE_ERROR_TAG(Log::Tag::Renderer, "Failed to create device");
 			return false;
 		}
 

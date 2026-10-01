@@ -28,6 +28,9 @@
 
 #include <chrono>
 
+#include <source_location>
+#include <stacktrace>
+
 #include <fmt/format.h>
 #include <fmt/chrono.h>
 #include <fmt/std.h>
@@ -51,5 +54,3 @@
 #endif
 
 #include "Shark/Core/Base.h"
-#include "Shark/Core/UUID.h"
-#include "Shark/Core/Timer.h"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Shark/Core/UUID.h"
+#include "Shark/Core/Base.h"
 #include "Shark/Core/Enum.h"
 #include "Shark/Core/TimeStep.h"
 #include "Shark/Core/Concepts.h"
@@ -295,12 +295,12 @@ struct convert<_Type>                                                \
 		}
 		catch (const YAML::BadConversion& exception)
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Conversion failed '{}'\n\t{}", key, exception.what());
+			SK_CORE_ERROR_TAG(::Shark::Log::Tag::Serialization, "Conversion failed '{}'\n\t{}", key, exception.what());
 			throw;
 		}
 		catch (const YAML::InvalidNode& exception)
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Invalid node '{}'\n\t{}", key, exception.what());
+			SK_CORE_ERROR_TAG(::Shark::Log::Tag::Serialization, "Invalid node '{}'\n\t{}", key, exception.what());
 			throw;
 		}
 	}
@@ -317,12 +317,12 @@ struct convert<_Type>                                                \
 		}
 		catch (const YAML::BadConversion& exception)
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Conversion failed '{}'\n\t{}", key, exception.what());
+			SK_CORE_ERROR_TAG(::Shark::Log::Tag::Serialization, "Conversion failed '{}'\n\t{}", key, exception.what());
 			throw;
 		}
 		catch (const YAML::InvalidNode& exception)
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Invalid node '{}'\n\t{}", key, exception.what());
+			SK_CORE_ERROR_TAG(::Shark::Log::Tag::Serialization, "Invalid node '{}'\n\t{}", key, exception.what());
 			throw;
 		}
 	}
@@ -336,12 +336,12 @@ struct convert<_Type>                                                \
 		}
 		catch (const YAML::BadConversion& exception)
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Conversion failed\n\t{}", exception.what());
+			SK_CORE_ERROR_TAG(::Shark::Log::Tag::Serialization, "Conversion failed\n\t{}", exception.what());
 			throw;
 		}
 		catch (const YAML::InvalidNode& exception)
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Invalid node\n\t{}", exception.what());
+			SK_CORE_ERROR_TAG(::Shark::Log::Tag::Serialization, "Invalid node\n\t{}", exception.what());
 			throw;
 		}
 	}

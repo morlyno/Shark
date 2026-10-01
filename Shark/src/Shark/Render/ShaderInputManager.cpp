@@ -143,7 +143,7 @@ namespace Shark {
 	}
 	
 #if 1
-	#define SK_LOG_INPUT(_item, _name, _arrayIndex) SK_CORE_TRACE_TAG("Renderer", "[ShaderInputManager '{}'] Input set '{}':{} => {}:'{}'", m_Specification.DebugName, _name, _arrayIndex, fmt::ptr(_item.Raw()), utils::GetInputName(_item));
+	#define SK_LOG_INPUT(_item, _name, _arrayIndex) SK_CORE_TRACE_TAG(Log::Tag::Renderer, "[ShaderInputManager '{}'] Input set '{}':{} => {}:'{}'", m_Specification.DebugName, _name, _arrayIndex, fmt::ptr(_item.Raw()), utils::GetInputName(_item));
 #else
 	#define SK_LOG_INPUT(_item, _name, _arrayIndex) (void)0
 #endif
@@ -309,7 +309,7 @@ namespace Shark {
 			}
 		}
 
-		SK_CORE_INFO_TAG("Renderer", "[ShaderInputManager '{}'] {} out of {} sets {} ({:08b})", m_Specification.DebugName, std::popcount(setsUpdated), m_SetCount, force ? "created" : "updated", setsUpdated);
+		SK_CORE_INFO_TAG(Log::Tag::Renderer, "[ShaderInputManager '{}'] {} out of {} sets {} ({:08b})", m_Specification.DebugName, std::popcount(setsUpdated), m_SetCount, force ? "created" : "updated", setsUpdated);
 	}
 
 	namespace utils {
@@ -432,7 +432,7 @@ namespace Shark {
 		{
 			std::string_view finalMsg = errorMessage;
 			String::StripBack(finalMsg, "\n");
-			SK_CORE_ERROR_TAG("Renderer", "[ShaderInputManager '{}'] Invalid inputs for shader '{}'\n{}", m_Specification.DebugName, m_Specification.Shader->GetName(), finalMsg);
+			SK_CORE_ERROR_TAG(Log::Tag::Renderer, "[ShaderInputManager '{}'] Invalid inputs for shader '{}'\n{}", m_Specification.DebugName, m_Specification.Shader->GetName(), finalMsg);
 		}
 
 		return errorMessage.empty();
@@ -443,7 +443,7 @@ namespace Shark {
 		const ShaderInputInfo* inputInfo = GetInputInfo(name);
 		if (!inputInfo)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
 			return;
 		}
 
@@ -470,7 +470,7 @@ namespace Shark {
 		const ShaderInputInfo* inputInfo = GetInputInfo(name);
 		if (!inputInfo)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
 			return;
 		}
 
@@ -497,7 +497,7 @@ namespace Shark {
 		const ShaderInputInfo* inputInfo = GetInputInfo(name);
 		if (!inputInfo)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
 			return;
 		}
 
@@ -524,7 +524,7 @@ namespace Shark {
 		const ShaderInputInfo* inputInfo = GetInputInfo(name);
 		if (!inputInfo)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
 			return;
 		}
 
@@ -551,7 +551,7 @@ namespace Shark {
 		const ShaderInputInfo* inputInfo = GetInputInfo(name);
 		if (!inputInfo)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
 			return;
 		}
 
@@ -578,7 +578,7 @@ namespace Shark {
 		const ShaderInputInfo* inputInfo = GetInputInfo(name);
 		if (!inputInfo)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
 			return;
 		}
 
@@ -605,7 +605,7 @@ namespace Shark {
 		const ShaderInputInfo* inputInfo = GetInputInfo(name);
 		if (!inputInfo)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
 			return;
 		}
 
@@ -632,7 +632,7 @@ namespace Shark {
 		const ShaderInputInfo* inputInfo = GetInputInfo(name);
 		if (!inputInfo)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
 			return;
 		}
 
@@ -659,7 +659,7 @@ namespace Shark {
 		const auto* info = GetInputInfo(name);
 		if (!info)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
 			return;
 		}
 
@@ -687,7 +687,7 @@ namespace Shark {
 		const auto* info = GetInputInfo(name);
 		if (!info)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
 			return;
 		}
 
@@ -715,7 +715,7 @@ namespace Shark {
 		const auto* info = GetInputInfo(name);
 		if (!info)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
 			return;
 		}
 
@@ -743,7 +743,7 @@ namespace Shark {
 		const auto* info = GetInputInfo(name);
 		if (!info)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
 			return;
 		}
 
@@ -771,7 +771,7 @@ namespace Shark {
 		const auto* info = GetInputInfo(name);
 		if (!info)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[ShaderInputManager '{}'] Input '{}' not found", m_Specification.DebugName, name);
 			return;
 		}
 

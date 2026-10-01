@@ -1,10 +1,12 @@
 #include "skpch.h"
 #include "ProjectSerializer.h"
 
+#include "Shark/Core/Timer.h"
 #include "Shark/Core/Project.h"
 
 #include "Shark/Serialization/YAML.h"
 #include "Shark/Serialization/SerializationMacros.h"
+
 #include "Shark/File/FileSystem.h"
 #include "Shark/Debug/Profiler.h"
 
@@ -53,12 +55,13 @@ namespace Shark {
 
 		out << YAML::Key << "Log" << YAML::Value;
 		out << YAML::BeginSeq;
-		for (const auto& [name, setting] : Log::EnabledTags())
+
+		for (auto* log = Log::Get();
+			 const auto tag : magic_enum::enum_values<Log::Tag>())
 		{
 			out << YAML::BeginMap;
-			out << YAML::Key << "Name" << YAML::Value << name;
-			out << YAML::Key << "Enabled" << YAML::Value << setting.Enabled;
-			out << YAML::Key << "Level" << YAML::Value << setting.Level;
+			out << YAML::Key << "Tag" << YAML::Value << tag;
+			out << YAML::Key << "Level" << YAML::Value << log->GetLevel(tag);
 			out << YAML::EndMap;
 		}
 		out << YAML::EndSeq;
@@ -68,7 +71,7 @@ namespace Shark {
 
 		if (!out.good())
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Failed to serialize project! {0}", out.GetLastError());
+			SK_CORE_ERROR_TAG(Log::Tag::Serialization, "Failed to serialize project! {0}", out.GetLastError());
 			SK_CORE_ASSERT(false);
 			return false;
 		}
@@ -76,24 +79,24 @@ namespace Shark {
 		std::ofstream fout(filePath);
 		if (!fout)
 		{
-			SK_CORE_ERROR_TAG("Serialization", "Failed to create file stream! (Filepath: {0})", filePath);
+			SK_CORE_ERROR_TAG(Log::Tag::Serialization, "Failed to create file stream! (Filepath: {0})", filePath);
 			return false;
 		}
 
 		//fout << out.c_str();
 		fout.write(out.c_str(), out.size());
 
-		SK_CORE_INFO("Serializing Project To: {}", filePath);
-		SK_CORE_TRACE("  Name: {}", config.Name);
-		SK_CORE_TRACE("  Assets Path: {}", assetsPath);
-		SK_CORE_TRACE("  Startup Scene: {}", config.StartupScene);
-		SK_CORE_TRACE("  Script Module Path: {}", scriptModulePath);
-		SK_CORE_TRACE("  Physics:");
-		SK_CORE_TRACE("    Gravity: {}", config.Physics.Gravity);
-		SK_CORE_TRACE("    ValocityIterations: {}", config.Physics.VelocityIterations);
-		SK_CORE_TRACE("    PositionIterations: {}", config.Physics.PositionIterations);
-		SK_CORE_TRACE("    FixedTimeStep: {}", config.Physics.FixedTimeStep);
-		SK_CORE_TRACE("    MaxTimestep: {}", config.Physics.MaxTimestep);
+		SK_CORE_INFO_TAG(Log::Tag::Serialization, "Serializing Project To: {}", filePath);
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "  Name: {}", config.Name);
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "  Assets Path: {}", assetsPath);
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "  Startup Scene: {}", config.StartupScene);
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "  Script Module Path: {}", scriptModulePath);
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "  Physics:");
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "    Gravity: {}", config.Physics.Gravity);
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "    ValocityIterations: {}", config.Physics.VelocityIterations);
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "    PositionIterations: {}", config.Physics.PositionIterations);
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "    FixedTimeStep: {}", config.Physics.FixedTimeStep);
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "    MaxTimestep: {}", config.Physics.MaxTimestep);
 
 		return true;
 	}
@@ -137,34 +140,33 @@ namespace Shark {
 		SK_DESERIALIZE_PROPERTY(physicsNode, "FixedTimeStep", config.Physics.FixedTimeStep, 1ms);
 		SK_DESERIALIZE_PROPERTY(physicsNode, "MaxTimestep", config.Physics.MaxTimestep, 16ms);
 
-		auto logNode = projectNode["Log"];
-		if (logNode)
+		if (auto logNode = projectNode["Log"])
 		{
-			std::map<std::string, TagSettings> logTags;
+			auto log = Log::Get();
 			for (auto entryNode : logNode)
 			{
-				std::string name;
-				TagSettings setting;
-				SK_DESERIALIZE_PROPERTY(entryNode, "Name", name, "");
-				SK_DESERIALIZE_PROPERTY(entryNode, "Enabled", setting.Enabled, true);
-				SK_DESERIALIZE_PROPERTY(entryNode, "Level", setting.Level, LogLevel::Trace);
-				logTags[name] = setting;
-			}
+				Log::Tag tag;
+				Log::Level level;
 
-			Log::EnabledTags() = logTags;
+				if (DeserializeProperty(entryNode, "Tag", tag) &&
+					DeserializeProperty(entryNode, "Level", level))
+				{
+					log->SetLevel(tag, level);
+				}
+			}
 		}
 
-		SK_CORE_INFO_TAG("Core", "Deserializing Project from: {}", filePath);
-		SK_CORE_TRACE_TAG("Core", "  Name: {}", config.Name);
-		SK_CORE_TRACE_TAG("Core", "  Assets Path: {}", config.AssetsDirectory);
-		SK_CORE_TRACE_TAG("Core", "  Startup Scene: {}", config.StartupScene);
-		SK_CORE_TRACE_TAG("Core", "  Script Module Path: {}", config.ScriptModulePath);
-		SK_CORE_TRACE_TAG("Core", "  Physics:");
-		SK_CORE_TRACE_TAG("Core", "    Gravity: {}", config.Physics.Gravity);
-		SK_CORE_TRACE_TAG("Core", "    ValocityIterations: {}", config.Physics.VelocityIterations);
-		SK_CORE_TRACE_TAG("Core", "    PositionIterations: {}", config.Physics.PositionIterations);
-		SK_CORE_TRACE_TAG("Core", "    FixedTimeStep: {}", config.Physics.FixedTimeStep);
-		SK_CORE_TRACE_TAG("Core", "    MaxTimestep: {}", config.Physics.MaxTimestep);
+		SK_CORE_INFO_TAG(Log::Tag::Serialization, "Deserializing Project from: {}", filePath);
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "  Name: {}", config.Name);
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "  Assets Path: {}", config.AssetsDirectory);
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "  Startup Scene: {}", config.StartupScene);
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "  Script Module Path: {}", config.ScriptModulePath);
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "  Physics:");
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "    Gravity: {}", config.Physics.Gravity);
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "    ValocityIterations: {}", config.Physics.VelocityIterations);
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "    PositionIterations: {}", config.Physics.PositionIterations);
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "    FixedTimeStep: {}", config.Physics.FixedTimeStep);
+		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "    MaxTimestep: {}", config.Physics.MaxTimestep);
 		return true;
 	}
 

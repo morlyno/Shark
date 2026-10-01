@@ -1,6 +1,7 @@
 #include "skpch.h"
 #include "Application.h"
 
+#include "Shark/Core/Allocator.h"
 #include "Shark/Core/TimeStep.h"
 #include "Shark/Core/Timer.h"
 #include "Shark/Core/Window.h"
@@ -167,8 +168,11 @@ namespace Shark {
 			}
 
 			const uint64_t ticks = Platform::GetTicks();
-			m_TimeStep = (float)(ticks - m_LastTickCount) / Platform::GetTicksPerSecond();
-			SK_LOG_IF(m_TimeStep > 1.0f, LoggerType::Core, LogLevel::Warn, "Core", "Large Timestep! {}", m_TimeStep);
+			m_TimeStep = static_cast<float>(ticks - m_LastTickCount) / Platform::GetTicksPerSecond();
+
+			if (m_TimeStep > 1.0f)
+				Log::CoreWarning(Log::Tag::Core, "Large Timestep! {}", m_TimeStep);
+
 			m_TimeStep = std::min<float>(m_TimeStep, 0.33f);
 			m_LastTickCount = ticks;
 			m_Time += m_TimeStep;
@@ -272,7 +276,7 @@ namespace Shark {
 
 	bool Application::OnWindowClose(WindowCloseEvent& event)
 	{
-		SK_CORE_WARN("Window Closed");
+		SK_CORE_WARNING_TAG(Log::Tag::Core, "Window Closed");
 		CloseApplication();
 
 		// Note(moro): hack so that ImGui doesn't crash because the window is gone
@@ -413,13 +417,13 @@ namespace Shark {
 			Input::Initialize();
 			FileSystem::Initialize();
 
-			SK_CORE_INFO("Core Initialized");
+			SK_CORE_INFO_TAG(Log::Tag::Core, "Core Initialized");
 		}
 
 		void Shutdown()
 		{
 			SK_PROFILE_FUNCTION();
-			SK_CORE_INFO("Core Shutting down");
+			SK_CORE_INFO_TAG(Log::Tag::Core, "Core Shutting down");
 
 			FileSystem::Shutdown();
 			Input::Shutdown();

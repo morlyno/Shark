@@ -41,13 +41,13 @@ namespace Shark {
 				msg.remove_suffix(1);
 
 			if (msg.starts_with("Debug"))
-				SK_CORE_TRACE_TAG("Assimp", msg);
+				SK_CORE_TRACE_TAG(Log::Tag::Assimp, msg);
 			else if (msg.starts_with("Info"))
-				SK_CORE_INFO_TAG("Assimp", msg);
+				SK_CORE_INFO_TAG(Log::Tag::Assimp, msg);
 			else if (msg.starts_with("Warn"))
-				SK_CORE_WARN_TAG("Assimp", msg);
+				SK_CORE_WARNING_TAG(Log::Tag::Assimp, msg);
 			else
-				SK_CORE_ERROR_TAG("Assimp", msg);
+				SK_CORE_ERROR_TAG(Log::Tag::Assimp, msg);
 		}
 
 	};
@@ -107,7 +107,7 @@ namespace Shark {
 		if (!scene)
 		{
 			std::string errorMsg = importer.GetErrorString();
-			SK_CORE_ERROR_TAG("Assimp", "Failed to load mesh file: {}\n\tError: {}", m_Filepath, errorMsg);
+			SK_CORE_ERROR_TAG(Log::Tag::Assimp, "Failed to load mesh file: {}\n\tError: {}", m_Filepath, errorMsg);
 			return nullptr;
 		}
 
@@ -612,7 +612,7 @@ namespace Shark {
 				if (glm::epsilonNotEqual(key.mValue.x, key.mValue.y, 0.00001f) || glm::epsilonNotEqual(key.mValue.y, key.mValue.z, 0.00001f))
 				{
 					scale = static_cast<float>((key.mValue.x + key.mValue.y + key.mValue.y) / 3.0);
-					SK_CORE_ERROR_TAG("Animation", "Non uniform scale! [{}, {}, {}] => {}", key.mValue.x, key.mValue.y, key.mValue.z, scale);
+					SK_CORE_ERROR_TAG(Log::Tag::Assimp, "Non uniform scale! [{}, {}, {}] => {}", key.mValue.x, key.mValue.y, key.mValue.z, scale);
 				}
 
 				if (keyIndex == 0 && frameTime > 0.0f)
@@ -824,7 +824,7 @@ namespace Shark {
 
 		if (glm::epsilonNotEqual(scale.x, scale.y, 0.00001f) || glm::epsilonNotEqual(scale.y, scale.z, 0.00001f))
 		{
-			SK_CORE_ERROR_TAG("Animation", "Non uniform scale! {} => {}", scale, (scale.x + scale.y + scale.y) / 3.0f);
+			SK_CORE_ERROR_TAG(Log::Tag::Assimp, "Non uniform scale! {} => {}", scale, (scale.x + scale.y + scale.y) / 3.0f);
 			scale.x = (scale.x + scale.y + scale.y) / 3.0f;
 		}
 

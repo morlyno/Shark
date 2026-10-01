@@ -20,11 +20,11 @@ namespace Shark {
 
 		if (status != Coral::CoralInitStatus::Success)
 		{
-			SK_CORE_ERROR_TAG("Scripting", "{}", status);
+			SK_CORE_ERROR_TAG(Log::Tag::Scripting, "{}", status);
 			return;
 		}
 
-		SK_CORE_INFO_TAG("Scripting", "Coral host initialized");
+		SK_CORE_INFO_TAG(Log::Tag::Scripting, "Coral host initialized");
 	}
 
 	ScriptHost::~ScriptHost()
@@ -49,16 +49,16 @@ namespace Shark {
 	{
 		switch (level)
 		{
-			case Coral::MessageLevel::Trace: SK_CORE_TRACE_TAG("Scripting", "{}", message); break;
-			case Coral::MessageLevel::Info: SK_CORE_INFO_TAG("Scripting", "{}", message); break;
-			case Coral::MessageLevel::Warning: SK_CORE_WARN_TAG("Scripting", "{}", message); break;
-			case Coral::MessageLevel::Error: SK_CORE_ERROR_TAG("Scripting", "{}", message); break;
+			case Coral::MessageLevel::Trace: SK_CORE_TRACE_TAG(Log::Tag::Scripting, "{}", message); break;
+			case Coral::MessageLevel::Info: SK_CORE_INFO_TAG(Log::Tag::Scripting, "{}", message); break;
+			case Coral::MessageLevel::Warning: SK_CORE_WARNING_TAG(Log::Tag::Scripting, "{}", message); break;
+			case Coral::MessageLevel::Error: SK_CORE_ERROR_TAG(Log::Tag::Scripting, "{}", message); break;
 		}
 	}
 
 	void ScriptHost::OnCSException(std::string_view message)
 	{
-		SK_CONSOLE_ERROR("C# Exception: {}", message);
+		SK_USER_ERROR("C# Exception: {}", message);
 	}
 
 }

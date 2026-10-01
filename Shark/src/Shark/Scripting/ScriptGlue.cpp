@@ -86,10 +86,10 @@ namespace Shark {
 	static std::map<Coral::TypeId, void(*)(Entity)> s_AddComponentFunctions;
 	static std::map<Coral::TypeId, void(*)(Entity)> s_RemoveComponentFunctions;
 
-#define SK_ICALL_VERIFY_PARAMETER(_param) if (!(_param)) { SK_CONSOLE_ERROR("{} called with with invalid value for parameter '{}'", SK_FUNCTION_NAME, #_param); }
-#define SK_ICALL_VERIFY_PARAMETER_V(_param, _value) if (!(_value)) { SK_CONSOLE_ERROR("{} called with with invalid value for parameter '{}'", SK_FUNCTION_NAME, #_param); }
+#define SK_ICALL_VERIFY_PARAMETER(_param) if (!(_param)) { SK_USER_ERROR("{} called with with invalid value for parameter '{}'", SK_FUNCTION_NAME, #_param); }
+#define SK_ICALL_VERIFY_PARAMETER_V(_param, _value) if (!(_value)) { SK_USER_ERROR("{} called with with invalid value for parameter '{}'", SK_FUNCTION_NAME, #_param); }
 #define SK_ICALL_VERIFY_ENTITY_AND_COMPONENT(_entity, _component_t) SK_ICALL_VERIFY_PARAMETER(_entity); SK_ICALL_VERIFY_PARAMETER(_entity.HasComponent<_component_t>())
-#define SK_ICALL_ASSERT(_condition, ...) if (!(_condition)) { SK_CONSOLE_ERROR(__VA_ARGS__); }
+#define SK_ICALL_ASSERT(_condition, ...) if (!(_condition)) { SK_USER_ERROR(__VA_ARGS__); }
 
 	static Entity GetEntity(uint64_t entityID)
 	{
@@ -363,28 +363,28 @@ namespace Shark {
 
 		#pragma region Log
 
-		void Log_LogMessage(LogLevel level, Coral::String message)
+		void Log_LogMessage(Log::Level level, Coral::String message)
 		{
 			std::string msg = message;
 			switch (level)
 			{
-				case LogLevel::Trace:
-					SK_CONSOLE_TRACE(msg);
+				case Log::Level::Trace:
+					SK_USER_TRACE(msg);
 					break;
-				case LogLevel::Info:
-					SK_CONSOLE_INFO(msg);
+				case Log::Level::Info:
+					SK_USER_INFO(msg);
 					break;
-				case LogLevel::Warn:
-					SK_CONSOLE_WARN(msg);
+				case Log::Level::Warning:
+					SK_USER_WARNING(msg);
 					break;
-				case LogLevel::Error:
-					SK_CONSOLE_ERROR(msg);
+				case Log::Level::Error:
+					SK_USER_ERROR(msg);
 					break;
-				case LogLevel::Critical:
-					SK_CONSOLE_CRITICAL(msg);
+				case Log::Level::Critical:
+					SK_USER_CRITICAL(msg);
 					break;
-				case LogLevel::Debug:
-					SK_CONSOLE_DEBUG(msg);
+				case Log::Level::Debug:
+					SK_USER_DEBUG(msg);
 					break;
 			}
 		}

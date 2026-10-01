@@ -43,7 +43,7 @@ namespace Shark {
 
 	void RenderCommandBuffer::Begin()
 	{
-		SK_CORE_TRACE_TAG("Renderer", "CommandBuffer open '{}'", m_Name);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "CommandBuffer open '{}'", m_Name);
 
 		Ref instance = this;
 		Renderer::Submit([instance]()
@@ -54,7 +54,7 @@ namespace Shark {
 
 	void RenderCommandBuffer::End()
 	{
-		SK_CORE_TRACE_TAG("Renderer", "CommandBuffer close '{}'", m_Name);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "CommandBuffer close '{}'", m_Name);
 
 		Ref instance = this;
 		Renderer::Submit([instance]()
@@ -65,7 +65,7 @@ namespace Shark {
 
 	void RenderCommandBuffer::Execute()
 	{
-		SK_CORE_TRACE_TAG("Renderer", "CommandBuffer Execute '{}'", m_Name);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "CommandBuffer Execute '{}'", m_Name);
 
 		Ref instance = this;
 		Renderer::Submit([instance]()
@@ -81,13 +81,13 @@ namespace Shark {
 		const uint32_t index = Renderer::RT_GetCurrentFrameIndex();
 		if (index == m_LastOpenFrame)
 		{
-			SK_CORE_WARN_TAG("Renderer", "[CommandBuffer '{}'] Opening more than once a frame can produce undefined behavior. Queries disabled for this frame", m_Name);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[CommandBuffer '{}'] Opening more than once a frame can produce undefined behavior. Queries disabled for this frame", m_Name);
 			m_DoQuery = false;
 		}
 
 		m_LastOpenFrame = index;
 
-		SK_CORE_TRACE_TAG("Renderer", "[RT] CommandBuffer open '{}'", m_Name);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "[RT] CommandBuffer open '{}'", m_Name);
 		m_CommandList->open();
 		m_CommandList->beginMarker(m_Name.c_str());
 
@@ -128,7 +128,7 @@ namespace Shark {
 			}
 			else
 			{
-				SK_CORE_WARN_TAG("Renderer", "[CommandBuffer '{}'] [{}] Timer {} not ready", m_Name, Renderer::RT_GetCurrentFrameIndex(), name);
+				SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[CommandBuffer '{}'] [{}] Timer {} not ready", m_Name, Renderer::RT_GetCurrentFrameIndex(), name);
 			}
 		}
 
@@ -148,14 +148,14 @@ namespace Shark {
 
 		m_CommandList->endMarker();
 		m_CommandList->close();
-		SK_CORE_TRACE_TAG("Renderer", "[RT] CommandBuffer close '{}'", m_Name);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "[RT] CommandBuffer close '{}'", m_Name);
 	}
 
 	void RenderCommandBuffer::RT_Execute()
 	{
 		SK_PROFILE_FUNCTION();
 		SK_PERF_SCOPED("CommandBuffer Execute");
-		SK_CORE_TRACE_TAG("Renderer", "[RT] CommandBuffer Execute '{}'", m_Name);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "[RT] CommandBuffer Execute '{}'", m_Name);
 
 		auto deviceManager = Renderer::GetDeviceManager();
 		auto device = deviceManager->GetDevice();

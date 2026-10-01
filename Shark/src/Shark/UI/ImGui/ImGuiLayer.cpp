@@ -1,6 +1,7 @@
 #include "skpch.h"
 #include "ImGuiLayer.h"
 
+#include "Shark/Core/Allocator.h"
 #include "Shark/Core/Application.h"
 #include "Shark/Core/Window.h"
 
@@ -121,7 +122,7 @@ namespace Shark {
 		ImGuiContext& ctx = *ImGui::GetCurrentContext();
 		if (!ctx.SettingsLoaded && !FileSystem::Exists(ctx.IO.IniFilename))
 		{
-			SK_CORE_INFO("\"{}\" file not found, continue with defualt settings", ctx.IO.IniFilename);
+			SK_CORE_INFO_TAG(Log::Tag::ImGui, "\"{}\" file not found, continue with defualt settings", ctx.IO.IniFilename);
 			ImGui::LoadIniSettingsFromDisk("Resources/DefaultImGui.ini");
 		}
 	}

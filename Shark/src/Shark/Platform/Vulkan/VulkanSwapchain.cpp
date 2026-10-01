@@ -52,7 +52,7 @@ namespace Shark {
 				m_Specification.Width = surfaceCaps.currentExtent.width;
 				m_Specification.Height = surfaceCaps.currentExtent.height;
 
-				SK_CORE_WARN_TAG("Renderer", "[{}] AcquireNextImage returned {}, Recreating swap chain", Renderer::RT_GetCurrentFrameIndex(), nvrhi::vulkan::resultToString(VkResult(result)));
+				SK_CORE_WARNING_TAG(Log::Tag::Renderer, "[{}] AcquireNextImage returned {}, Recreating swap chain", Renderer::RT_GetCurrentFrameIndex(), nvrhi::vulkan::resultToString(VkResult(result)));
 				DestroySwapchain();
 				CreateSwapchain();
 				CreateRenderTarget();
@@ -67,7 +67,7 @@ namespace Shark {
 
 		if (!(result == vk::Result::eSuccess || result == vk::Result::eSuboptimalKHR))
 		{
-			SK_CORE_ERROR_TAG("Renderer", "[{}] Failed to acquire image! {}", Renderer::RT_GetCurrentFrameIndex(), nvrhi::vulkan::resultToString(VkResult(result)));
+			SK_CORE_ERROR_TAG(Log::Tag::Renderer, "[{}] Failed to acquire image! {}", Renderer::RT_GetCurrentFrameIndex(), nvrhi::vulkan::resultToString(VkResult(result)));
 			return;
 		}
 	}
@@ -103,7 +103,7 @@ namespace Shark {
 
 		if (result != vk::Result::eSuccess && result != vk::Result::eErrorOutOfDateKHR && result != vk::Result::eSuboptimalKHR)
 		{
-			SK_CORE_ERROR_TAG("Renderer", "[{}] Failed to present! {}", Renderer::RT_GetCurrentFrameIndex(), nvrhi::vulkan::resultToString(VkResult(result)));
+			SK_CORE_ERROR_TAG(Log::Tag::Renderer, "[{}] Failed to present! {}", Renderer::RT_GetCurrentFrameIndex(), nvrhi::vulkan::resultToString(VkResult(result)));
 			return;
 		}
 
@@ -288,7 +288,7 @@ namespace Shark {
 		vk::Result result = vulkanDevice.createSwapchainKHR(&desc, nullptr, &m_SwapChain);
 		if (result != vk::Result::eSuccess)
 		{
-			SK_CORE_ERROR_TAG("Renderer", "Failed to create Vulkan swap chain! {}", nvrhi::vulkan::resultToString(VkResult(result)));
+			SK_CORE_ERROR_TAG(Log::Tag::Renderer, "Failed to create Vulkan swap chain! {}", nvrhi::vulkan::resultToString(VkResult(result)));
 			return;
 		}
 
@@ -312,7 +312,7 @@ namespace Shark {
 		m_ImageCount = m_VulkanImages.size();
 		m_ImageIndex = 0;
 
-		SK_CORE_INFO_TAG("Renderer", "Create swap chain with {} images", m_ImageCount);
+		SK_CORE_INFO_TAG(Log::Tag::Renderer, "Create swap chain with {} images", m_ImageCount);
 	}
 
 	void VulkanSwapChain::CreateRenderTarget()

@@ -24,7 +24,7 @@ namespace Shark {
 	void RenderCommandQueue::Execute()
 	{
 		//SK_LOG_IF(m_CommandCount > 0, Log::Logger::Core, LogLevel::Trace, Tag::Renderer, "CommandQueue::Excecute | {0} Commands | {1} bytes", m_CommandCount, (uint64_t)(m_BufferPtr - m_Buffer.Data));
-		SK_CORE_TRACE_TAG("Renderer", "Executing {} Commands ({} bytes)", m_CommandCount, m_BufferPtr - m_Buffer);
+		SK_CORE_TRACE_TAG(Log::Tag::Renderer, "Executing {} Commands ({} bytes)", m_CommandCount, m_BufferPtr - m_Buffer);
 
 		m_Executing = true;
 		byte* buffer = m_Buffer;
@@ -56,7 +56,7 @@ namespace Shark {
 			uint64_t bufferPtrOffset = m_BufferPtr - m_Buffer;
 
 			uint64_t newSize = m_BufferSize + m_BufferSize / 2;
-			SK_CORE_WARN_TAG("Renderer", "Resizing RenderCommandQueue {} -> {}", m_BufferSize, newSize);
+			SK_CORE_WARNING_TAG(Log::Tag::Renderer, "Resizing RenderCommandQueue {} -> {}", m_BufferSize, newSize);
 			byte* newBuffer = sknew byte[newSize];
 			memcpy(newBuffer, m_Buffer, m_BufferSize);
 

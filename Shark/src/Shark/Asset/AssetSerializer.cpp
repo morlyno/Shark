@@ -1,6 +1,7 @@
 #include "skpch.h"
 #include "AssetSerializer.h"
 
+#include "Shark/Core/Timer.h"
 #include "Shark/Core/Application.h"
 
 #include "Shark/Serialization/AudioSerializers.h"
@@ -48,8 +49,8 @@ namespace Shark {
 	{
 		if (s_Serializers.contains(metadata.Type))
 		{
-			SK_CORE_INFO_TAG("Serialization", "Loading {} from {}", metadata.Type, metadata.FilePath);
-			ScopedTimer timer(LogLevel::Info, "Serialization", fmt::format("Loading {} '{}'", metadata.Type, metadata.FilePath));
+			SK_CORE_INFO_TAG(Log::Tag::Serialization, "Loading {} from {}", metadata.Type, metadata.FilePath);
+			ScopedTimer timer(Log::Level::Info, Log::Tag::Serialization, fmt::format("Loading {} '{}'", metadata.Type, metadata.FilePath));
 
 			const auto& serializer = s_Serializers.at(metadata.Type);
 			return serializer->TryLoadAsset(asset, metadata, context);
@@ -64,8 +65,8 @@ namespace Shark {
 		SK_CORE_VERIFY(Application::IsMainThread(), "AssetSerializer::Serialize can only be called from the main thread");
 		if (s_Serializers.contains(metadata.Type))
 		{
-			SK_CORE_INFO_TAG("Serialization", "Serializing {} to {}", metadata.Type, metadata.FilePath);
-			ScopedTimer timer(LogLevel::Info, "Serialization", fmt::format("Serializing {} '{}'", metadata.Type, metadata.FilePath));
+			SK_CORE_INFO_TAG(Log::Tag::Serialization, "Serializing {} to {}", metadata.Type, metadata.FilePath);
+			ScopedTimer timer(Log::Level::Info, Log::Tag::Serialization, fmt::format("Serializing {} '{}'", metadata.Type, metadata.FilePath));
 
 			const auto& serializer = s_Serializers.at(metadata.Type);
 			return serializer->Serialize(asset, metadata);

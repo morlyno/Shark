@@ -87,7 +87,7 @@ namespace Shark {
 				if (shaderCache.LoadSpirv(m_Info, info.Stage, binary))
 				{
 					m_Result->SpirvBinary[info.Stage] = std::move(binary);
-					SK_CORE_INFO_TAG("ShaderCompiler", "Loaded {} shader '{}' from cache", info.Stage, m_Info.SourcePath);
+					SK_CORE_INFO_TAG(Log::Tag::ShaderCompiler, "Loaded {} shader '{}' from cache", info.Stage, m_Info.SourcePath);
 				}
 			}
 		}
@@ -113,21 +113,21 @@ namespace Shark {
 				if (shaderCache.LoadSpirv(m_Info, stage, binary))
 				{
 					m_Result->SpirvBinary[stage] = std::move(binary);
-					SK_CORE_INFO_TAG("ShaderCompiler", "Loaded {} shader '{}' from cache after preprocess", stage, m_Info.SourcePath);
+					SK_CORE_INFO_TAG(Log::Tag::ShaderCompiler, "Loaded {} shader '{}' from cache after preprocess", stage, m_Info.SourcePath);
 					continue;
 				}
 			}
 
 			if (!CompileStage(stage) && status == CacheStatus::OutOfDate)
 			{
-				SK_CORE_WARN_TAG("ShaderCompiler", "Loading older shader version from cache");
+				SK_CORE_WARNING_TAG(Log::Tag::ShaderCompiler, "Loading older shader version from cache");
 				shaderCache.LoadSpirv(m_Info, stage, m_Result->SpirvBinary[stage]);
 			}
 
 			if (!m_Result->SpirvBinary.contains(stage) || m_Result->SpirvBinary.at(stage).empty())
 			{
 				// At this point the compilation of this stage failed and the cache is missing.
-				SK_CORE_ERROR_TAG("ShaderCompiler", "Compiling shader '{}' failed!", m_Info.SourcePath.filename());
+				SK_CORE_ERROR_TAG(Log::Tag::ShaderCompiler, "Compiling shader '{}' failed!", m_Info.SourcePath.filename());
 				SK_DEBUG_BREAK_CONDITIONAL(BREAK_ON_FAILED_COMPILATION);
 				m_Result->SpirvBinary.erase(stage);
 				return false;
@@ -176,7 +176,7 @@ namespace Shark {
 			if (!m_Result->PlatformBinary.contains(deviceManager->GetGraphicsAPI()))
 				return false;
 
-			SK_CORE_WARN_TAG("ShaderCompiler", "A platform compiler failed but the binary for the current graphics api is present, execution can continue");
+			SK_CORE_WARNING_TAG(Log::Tag::ShaderCompiler, "A platform compiler failed but the binary for the current graphics api is present, execution can continue");
 		}
 
 		return true;
@@ -194,7 +194,7 @@ namespace Shark {
 		m_Preprocessor.PreprocessFile(m_Info.SourcePath);
 		if (!m_Preprocessor.Errors.empty())
 		{
-			SK_CORE_ERROR_TAG("ShaderCompiler", "Failed to preprocess file '{}'\n{}", m_Info.SourcePath, fmt::join(m_Preprocessor.Errors, "\n"));
+			SK_CORE_ERROR_TAG(Log::Tag::ShaderCompiler, "Failed to preprocess file '{}'\n{}", m_Info.SourcePath, fmt::join(m_Preprocessor.Errors, "\n"));
 			return false;
 		}
 
@@ -249,7 +249,7 @@ namespace Shark {
 			nvrhi::RefCountPtr<IDxcBlobEncoding> errorBlob;
 			hResult = result->GetErrorBuffer(&errorBlob);
 			std::string errorMessage = (const char*)errorBlob->GetBufferPointer();
-			SK_CORE_ERROR_TAG("ShaderCompiler", "Failed to preprocessor source by DXC!\n{}", errorMessage);
+			SK_CORE_ERROR_TAG(Log::Tag::ShaderCompiler, "Failed to preprocessor source by DXC!\n{}", errorMessage);
 			return false;
 		}
 
@@ -273,11 +273,11 @@ namespace Shark {
 
 		if (!errorMessage.empty())
 		{
-			SK_CORE_ERROR_TAG("ShaderCompiler", "Failed to compile {} shader '{}'.\n{}", stage, m_Info.SourcePath, errorMessage);
+			SK_CORE_ERROR_TAG(Log::Tag::ShaderCompiler, "Failed to compile {} shader '{}'.\n{}", stage, m_Info.SourcePath, errorMessage);
 			return false;
 		}
 
-		SK_CORE_WARN_TAG("ShaderCompiler", "Compiled {} shader '{}'", stage, m_Info.SourcePath);
+		SK_CORE_WARNING_TAG(Log::Tag::ShaderCompiler, "Compiled {} shader '{}'", stage, m_Info.SourcePath);
 		m_CompiledStages |= stage;
 		return true;
 	}
@@ -426,16 +426,16 @@ namespace Shark {
 					{
 						if (m_Result->Reflection.BindingLayouts.size() < 4)
 						{
-							SK_CORE_ERROR_TAG("ShaderCompiler", "Samplers where requested with bind but the layout at set 3 doesn't exists!");
+							SK_CORE_ERROR_TAG(Log::Tag::ShaderCompiler, "Samplers where requested with bind but the layout at set 3 doesn't exists!");
 							continue;
 						}
 
 						size_t inputs = m_Result->Reflection.BindingLayouts[3].InputInfos.size();
 						if (inputs < 6)
 						{
-							SK_CORE_ERROR_TAG("ShaderCompiler", "Samplers where requested but the layout has only {} inputs.", inputs);
-							SK_CORE_ERROR_TAG("ShaderCompiler", "I don't know the exact reason but removing 'Image queries' could help.", inputs);
-							SK_CORE_ERROR_TAG("ShaderCompiler", "Image queries => u_Texture.GetDimensions()", inputs);
+							SK_CORE_ERROR_TAG(Log::Tag::ShaderCompiler, "Samplers where requested but the layout has only {} inputs.", inputs);
+							SK_CORE_ERROR_TAG(Log::Tag::ShaderCompiler, "I don't know the exact reason but removing 'Image queries' could help.", inputs);
+							SK_CORE_ERROR_TAG(Log::Tag::ShaderCompiler, "Image queries => u_Texture.GetDimensions()", inputs);
 						}
 
 						SK_CORE_ASSERT(m_Result->Reflection.BindingLayouts[3].InputInfos.size() == 6);
@@ -458,7 +458,7 @@ namespace Shark {
 						m_Result->LayoutMode = LayoutShareMode::Default;
 					else
 					{
-						SK_CORE_WARN_TAG("ShaderCompiler", "Failed to parse Layout mode '{}'. Arguments are 'renderpass', 'material', 'share', 'default'.", arg);
+						SK_CORE_WARNING_TAG(Log::Tag::ShaderCompiler, "Failed to parse Layout mode '{}'. Arguments are 'renderpass', 'material', 'share', 'default'.", arg);
 						m_Result->LayoutMode = LayoutShareMode::Default;
 					}
 				}
@@ -479,16 +479,16 @@ namespace Shark {
 	if (m_ShaderResources.contains(_binding))\
 	{\
 		auto* item = m_ShaderResources.at(_binding);\
-		SK_CORE_ERROR_TAG("ShaderCompiler", "Duplicate Binding {}[{}] in set {}: {}, {}", _typeStr, _binding.Slot, _binding.Set, item->Name, name);\
+		SK_CORE_ERROR_TAG(Log::Tag::ShaderCompiler, "Duplicate Binding {}[{}] in set {}: {}, {}", _typeStr, _binding.Slot, _binding.Set, item->Name, name);\
 		SK_CORE_VERIFY(false, "Duplicate Binding {}[{}] in set {}: {}, {}", _typeStr, _binding.Slot, _binding.Set, item->Name, name);\
 	}
 #else
 #define CHECK_BINDING(...)
 #endif
 
-#define LOG_REFLECTION(_set, _slot, _register, _name, _type) SK_CORE_INFO_TAG("ShaderCompiler", " - {} [{} {}{}] {}", _name, _set, _register, _slot, _type)
+#define LOG_REFLECTION(_set, _slot, _register, _name, _type) SK_CORE_INFO_TAG(Log::Tag::ShaderCompiler, " - {} [{} {}{}] {}", _name, _set, _register, _slot, _type)
 
-		SK_CORE_INFO_TAG("ShaderCompiler", "=== Reflection {} ===", stage);
+		SK_CORE_INFO_TAG(Log::Tag::ShaderCompiler, "=== Reflection {} ===", stage);
 
 		SK_CORE_VERIFY(shaderResources.push_constant_buffers.size() <= 1);
 		for (const auto& pushConstant : shaderResources.push_constant_buffers)
@@ -511,7 +511,7 @@ namespace Shark {
 				SK_CORE_VERIFY(m_Result->Reflection.PushConstant->StructSize == (uint32_t)compiler.get_declared_struct_size(type));
 			}
 
-			SK_CORE_INFO_TAG("ShaderCompiler", " - {} PushConstant", name);
+			SK_CORE_INFO_TAG(Log::Tag::ShaderCompiler, " - {} PushConstant", name);
 		}
 
 		for (const auto& constantBuffer : shaderResources.uniform_buffers)
@@ -788,13 +788,13 @@ namespace Shark {
 			if (!imageInfo)   errorMessage += fmt::format("\n - Image input '{}' not found", imageName);
 			if (!samplerInfo) errorMessage += fmt::format("\n - Sampler input '{}' not found", samplerName);
 
-			SK_CORE_WARN_TAG("ShaderCompiler", "Failed to build combined image sampler!{}", errorMessage);
+			SK_CORE_WARNING_TAG(Log::Tag::ShaderCompiler, "Failed to build combined image sampler!{}", errorMessage);
 			return;
 		}
 
 		if (imageInfo->Set != samplerInfo->Set)
 		{
-			SK_CORE_WARN_TAG("ShaderCompiler", "Failed to build combined image sampler because Image and Sampler are in different sets!\n"
+			SK_CORE_WARNING_TAG(Log::Tag::ShaderCompiler, "Failed to build combined image sampler because Image and Sampler are in different sets!\n"
 							 " - Image '{}' {}\n - Sampler '{}' {}",
 							 imageInfo->Name, imageInfo->Set,
 							 samplerInfo->Name, samplerInfo->Set);

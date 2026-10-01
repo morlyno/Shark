@@ -353,7 +353,7 @@ namespace Shark {
 	void WindowsWindow::Initialize()
 	{
 		SK_PROFILE_FUNCTION();
-		SK_CORE_WARN_TAG("Window", "Init Windows Window {0} {1} {2}", m_Specification.Width, m_Specification.Height, m_Specification.Title);
+		SK_CORE_WARNING_TAG(Log::Tag::Window, "Init Windows Window {0} {1} {2}", m_Specification.Width, m_Specification.Height, m_Specification.Title);
 
 		m_WindowClass = s_WindowClass.TryGetRef();
 		if (!m_WindowClass)
@@ -433,8 +433,8 @@ namespace Shark {
 		if (!m_WindowHandle)
 		{
 			DWORD lastErrorCode = GetLastError();
-			SK_CORE_ERROR_TAG("Window", "Faled to create Window");
-			SK_CORE_ERROR_TAG("Window", "Error Msg: {}", std::system_category().message(lastErrorCode));
+			SK_CORE_ERROR_TAG(Log::Tag::Window, "Faled to create Window");
+			SK_CORE_ERROR_TAG(Log::Tag::Window, "Error Msg: {}", std::system_category().message(lastErrorCode));
 			SK_CORE_ASSERT(false);
 			return false;
 		}

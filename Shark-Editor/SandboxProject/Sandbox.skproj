@@ -10,63 +10,49 @@ Project:
     FixedTimeStep: 0.004
     MaxTimestep: 0.008
   Log:
-    - Name: ""
-      Enabled: true
+    - Tag: Default
       Level: Trace
-    - Name: AssetManager
-      Enabled: true
-      Level: Warn
-    - Name: AssetThread
-      Enabled: true
-      Level: Warn
-    - Name: Assimp
-      Enabled: true
-      Level: Warn
-    - Name: Core
-      Enabled: true
-      Level: Trace
-    - Name: Filesystem
-      Enabled: true
-      Level: Trace
-    - Name: Font
-      Enabled: true
+    - Tag: AssetManager
+      Level: Warning
+    - Tag: AssetThread
+      Level: Warning
+    - Tag: Assimp
+      Level: Error
+    - Tag: Audio
       Level: Info
-    - Name: Memory
-      Enabled: true
+    - Tag: Core
       Level: Trace
-    - Name: Mesh
-      Enabled: true
+    - Tag: Editor
       Level: Trace
-    - Name: Mono
-      Enabled: true
-      Level: Trace
-    - Name: Renderer
-      Enabled: true
-      Level: Warn
-    - Name: Scene
-      Enabled: true
-      Level: Trace
-    - Name: Scripting
-      Enabled: true
+    - Tag: Filesystem
+      Level: Warning
+    - Tag: Font
       Level: Info
-    - Name: Serialization
-      Enabled: true
+    - Tag: ImGui
       Level: Trace
-    - Name: ThumbnailCache
-      Enabled: true
+    - Tag: MiniAudio
+      Level: Error
+    - Tag: NVRHI
+      Level: Warning
+    - Tag: Renderer
+      Level: Warning
+    - Tag: Scene
+      Level: Info
+    - Tag: Scripting
+      Level: Info
+    - Tag: Serialization
+      Level: Warning
+    - Tag: ShaderCompiler
+      Level: Warning
+    - Tag: stbi
       Level: Trace
-    - Name: Timer
-      Enabled: true
+    - Tag: ThumbnailCache
+      Level: Info
+    - Tag: Timer
+      Level: Off
+    - Tag: Utilities
+      Level: Warning
+    - Tag: Window
       Level: Trace
-    - Name: UI
-      Enabled: true
-      Level: Trace
-    - Name: nvrhi
-      Enabled: true
-      Level: Trace
-    - Name: renderer
-      Enabled: true
-      Level: Trace
-    - Name: stbi
-      Enabled: true
+    - Tag: Windows
       Level: Trace

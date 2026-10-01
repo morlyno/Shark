@@ -32,7 +32,7 @@ namespace Shark {
 		uint64_t streamSize = (uint64_t)stream.tellg();
 		if (!streamSize)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Failed to ReadBinary from file: {}\n\t Error: {}", filePath, strerror(errno));
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Failed to ReadBinary from file: {}\n\t Error: {}", filePath, strerror(errno));
 			return {};
 		}
 
@@ -51,7 +51,7 @@ namespace Shark {
 		std::ifstream stream(GetFilesystemPath(filePath));
 		if (!stream)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Failed to ReadString from file: {}\n\t Error: {}", filePath, strerror(errno));
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Failed to ReadString from file: {}\n\t Error: {}", filePath, strerror(errno));
 			return std::string{};
 		}
 
@@ -73,7 +73,7 @@ namespace Shark {
 		std::ofstream stream(filesystemPath, std::ios::binary);
 		if (!stream)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Failed to WriteBinary to file: {}\n\t Error: {}", filePath, strerror(errno));
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Failed to WriteBinary to file: {}\n\t Error: {}", filePath, strerror(errno));
 			return false;
 		}
 
@@ -95,7 +95,7 @@ namespace Shark {
 		std::ofstream stream(filesystemPath);
 		if (!stream)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Failed to WriteString to file: {}\n\t Error: {}", filePath, strerror(errno));
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Failed to WriteString to file: {}\n\t Error: {}", filePath, strerror(errno));
 			return false;
 		}
 
@@ -155,7 +155,7 @@ namespace Shark {
 		bool exists = std::filesystem::exists(filesystemPath, error);
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Failed to check if path Exists! {}\n\t{}", filesystemPath, error.message());
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Failed to check if path Exists! {}\n\t{}", filesystemPath, error.message());
 			SK_HANDLE_FS_ERROR("exists", filesystemPath, error);
 			return exists;
 		}
@@ -171,7 +171,7 @@ namespace Shark {
 		bool exists = std::filesystem::exists(filesystemPath, error);
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Failed to check if path Exists! {}\n\t{}", filesystemPath, error.message());
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Failed to check if path Exists! {}\n\t{}", filesystemPath, error.message());
 			errorMsg = error.message();
 			return exists;
 		}
@@ -191,7 +191,7 @@ namespace Shark {
 		auto result = std::filesystem::absolute(filepath, error);
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Failed to get absolute path! {}\n\t{}", filepath, error.message());
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Failed to get absolute path! {}\n\t{}", filepath, error.message());
 			SK_HANDLE_FS_ERROR("absolute", filepath, error);
 		}
 		return result;
@@ -203,7 +203,7 @@ namespace Shark {
 		auto result = std::filesystem::relative(filepath, base, error);
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Failed to get relative path!\n\tPath: {}\n\tBase:\n\t{}", filepath, base, error.message());
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Failed to get relative path!\n\tPath: {}\n\tBase:\n\t{}", filepath, base, error.message());
 			SK_HANDLE_FS_ERROR("relative", filepath, base, error);
 		}
 		return result;
@@ -233,11 +233,11 @@ namespace Shark {
 		bool copied = std::filesystem::copy_file(fsSource, fsDestination, options, error);
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Failed to copy file! {} => {}\n\t{}", fsSource, fsDestination, error.message());
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Failed to copy file! {} => {}\n\t{}", fsSource, fsDestination, error.message());
 			SK_HANDLE_FS_ERROR("copy_file", fsDestination, fsDestination, error);
 		}
 
-		SK_CORE_TRACE_TAG("Filesystem", "CopyFile {} => {}", source, destination);
+		SK_CORE_TRACE_TAG(Log::Tag::Filesystem, "CopyFile {} => {}", source, destination);
 		return copied;
 	}
 
@@ -258,12 +258,12 @@ namespace Shark {
 		bool copied = std::filesystem::copy_file(fsSource, fsDestination, options, error);
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Failed to copy file! {} => {}\n\t{}", fsSource, fsDestination, error.message());
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Failed to copy file! {} => {}\n\t{}", fsSource, fsDestination, error.message());
 			errorMsg = error.message();
 			return copied;
 		}
 
-		SK_CORE_TRACE_TAG("Filesystem", "CopyFile {} => {}", source, destination);
+		SK_CORE_TRACE_TAG(Log::Tag::Filesystem, "CopyFile {} => {}", source, destination);
 		errorMsg.clear();
 		return copied;
 	}
@@ -276,7 +276,7 @@ namespace Shark {
 		bool created = std::filesystem::create_directory(fsPath, error);
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Failed to create directory! {}\n\t{}", fsPath, error.message());
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Failed to create directory! {}\n\t{}", fsPath, error.message());
 			SK_HANDLE_FS_ERROR("create_directory", fsPath, error);
 		}
 		return created;
@@ -290,7 +290,7 @@ namespace Shark {
 		bool created = std::filesystem::create_directory(fsPath, error);
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Failed to create directory! {}\n\t{}", fsPath, error.message());
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Failed to create directory! {}\n\t{}", fsPath, error.message());
 			errorMsg = error.message();
 			return created;
 		}
@@ -307,7 +307,7 @@ namespace Shark {
 		bool created = std::filesystem::create_directories(fsPath, error);
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Failed to create directories! {}\n\t{}", fsPath, error.message());
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Failed to create directories! {}\n\t{}", fsPath, error.message());
 			SK_HANDLE_FS_ERROR("create_directories", fsPath, error);
 		}
 		return created;
@@ -321,7 +321,7 @@ namespace Shark {
 		bool created = std::filesystem::create_directories(fsPath, error);
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Failed to create directories! {}\n\t{}", fsPath, error.message());
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Failed to create directories! {}\n\t{}", fsPath, error.message());
 			errorMsg = error.message();
 			return created;
 		}
@@ -334,7 +334,7 @@ namespace Shark {
 	{
 		if (!FileSystem::IsValidFilename(newName))
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Rename Failed! {} => {}\n\tInvalid Filename", filepath, newName);
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Rename Failed! {} => {}\n\tInvalid Filename", filepath, newName);
 			return false;
 		}
 
@@ -344,12 +344,12 @@ namespace Shark {
 		std::filesystem::rename(filepath, newPath, error);
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Failed to rename! {} => {}\n\t{}", filepath, newName, error.message());
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Failed to rename! {} => {}\n\t{}", filepath, newName, error.message());
 			SK_HANDLE_FS_ERROR("rename", filepath, newName, error);
 			return false;
 		}
 
-		SK_CORE_TRACE_TAG("Filesystem", "Rename {} => {} ({})", filepath, newName, newPath);
+		SK_CORE_TRACE_TAG(Log::Tag::Filesystem, "Rename {} => {} ({})", filepath, newName, newPath);
 		return true;
 	}
 
@@ -357,7 +357,7 @@ namespace Shark {
 	{
 		if (!FileSystem::IsValidFilename(newName))
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Rename Failed! {} => {}\n\tInvalid Filename", filepath, newName);
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Rename Failed! {} => {}\n\tInvalid Filename", filepath, newName);
 			errorMsg = "Invalid Filename";
 			return false;
 		}
@@ -368,12 +368,12 @@ namespace Shark {
 		std::filesystem::rename(filepath, newPath, error);
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Rename Failed! {} => {}\n\t{}", filepath, newName, error.message());
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Rename Failed! {} => {}\n\t{}", filepath, newName, error.message());
 			errorMsg = error.message();
 			return false;
 		}
 
-		SK_CORE_TRACE_TAG("Filesystem", "Rename {} => {} ({})", filepath, newName, newPath);
+		SK_CORE_TRACE_TAG(Log::Tag::Filesystem, "Rename {} => {} ({})", filepath, newName, newPath);
 		errorMsg.clear();
 		return true;
 	}
@@ -384,12 +384,12 @@ namespace Shark {
 		std::filesystem::rename(oldPath, newPath, error);
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Move Failed! {} => {}\n\t{}", oldPath, newPath, error.message());
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Move Failed! {} => {}\n\t{}", oldPath, newPath, error.message());
 			SK_HANDLE_FS_ERROR("rename", oldName, newName, error);
 			return false;
 		}
 
-		SK_CORE_TRACE_TAG("Filesystem", "Move {} => {}", oldPath, newPath);
+		SK_CORE_TRACE_TAG(Log::Tag::Filesystem, "Move {} => {}", oldPath, newPath);
 		return true;
 	}
 
@@ -399,12 +399,12 @@ namespace Shark {
 		std::filesystem::rename(oldPath, newPath, error);
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Move Failed! {} => {}\n\t{}", oldPath, newPath, error.message());
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Move Failed! {} => {}\n\t{}", oldPath, newPath, error.message());
 			errorMsg = error.message();
 			return false;
 		}
 
-		SK_CORE_TRACE_TAG("Filesystem", "Move {} => {}", oldPath, newPath);
+		SK_CORE_TRACE_TAG(Log::Tag::Filesystem, "Move {} => {}", oldPath, newPath);
 		errorMsg.clear();
 		return true;
 	}
@@ -415,11 +415,11 @@ namespace Shark {
 		const bool deleted = std::filesystem::remove(path, error);
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Remove failed! {}\n\t{}", path, error.message());
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Remove failed! {}\n\t{}", path, error.message());
 			SK_HANDLE_FS_ERROR("remove", path, error);
 		}
 
-		SK_CORE_TRACE_TAG("Filesystem", "Remove {}", path);
+		SK_CORE_TRACE_TAG(Log::Tag::Filesystem, "Remove {}", path);
 		return deleted;
 	}
 
@@ -429,12 +429,12 @@ namespace Shark {
 		const bool deleted = std::filesystem::remove(path, error);
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Remove failed! {}\n\t{}", path, error.message());
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Remove failed! {}\n\t{}", path, error.message());
 			errorMsg = error.message();
 			return deleted;
 		}
 
-		SK_CORE_TRACE_TAG("Filesystem", "Remove {}", path);
+		SK_CORE_TRACE_TAG(Log::Tag::Filesystem, "Remove {}", path);
 		errorMsg.clear();
 		return deleted;
 	}
@@ -445,11 +445,11 @@ namespace Shark {
 		const uintmax_t deleted = std::filesystem::remove_all(path, error);
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Remove all failed! {}\n\t{}", path, error.message());
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Remove all failed! {}\n\t{}", path, error.message());
 			SK_HANDLE_FS_ERROR("remove_all", path, error);
 		}
 
-		SK_CORE_TRACE_TAG("Filesystem", "RemoveAll {}", path);
+		SK_CORE_TRACE_TAG(Log::Tag::Filesystem, "RemoveAll {}", path);
 		return (uint64_t)deleted;
 	}
 
@@ -459,12 +459,12 @@ namespace Shark {
 		const uintmax_t deleted = std::filesystem::remove_all(path, error);
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "Remove all failed! {}\n\t{}", path, error.message());
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "Remove all failed! {}\n\t{}", path, error.message());
 			errorMsg = error.message();
 			return (uint64_t)deleted;
 		}
 
-		SK_CORE_TRACE_TAG("Filesystem", "RemoveAll {}", path);
+		SK_CORE_TRACE_TAG(Log::Tag::Filesystem, "RemoveAll {}", path);
 		errorMsg.clear();
 		return (uint64_t)deleted;
 	}
@@ -492,7 +492,7 @@ namespace Shark {
 		uint64_t lastWriteTime = std::filesystem::last_write_time(path, error).time_since_epoch().count();
 		if (error)
 		{
-			SK_CORE_ERROR_TAG("Filesystem", "GetLastWriteTime failed! {}\n\t{}", path, error.message());
+			SK_CORE_ERROR_TAG(Log::Tag::Filesystem, "GetLastWriteTime failed! {}\n\t{}", path, error.message());
 			SK_HANDLE_FS_ERROR("last_write_time", path, error);
 		}
 		return lastWriteTime;
