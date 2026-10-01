@@ -78,28 +78,26 @@ namespace Shark {
 
 		auto& settings = EditorSettings::Get();
 		YAML::Node rootNode = fileData["EditorSettings"];
-		YAML::Node group = rootNode;
 
-		group = rootNode["RecentProjects"];
-		for (auto recentProjectNode : group)
+		for (auto projectNode : rootNode["RecentProjects"])
 		{
 			RecentProject recentProject;
-			SK_DESERIALIZE_PROPERTY(group, "Name", recentProject.Name);
-			SK_DESERIALIZE_PROPERTY(group, "Filepath", recentProject.Filepath);
-			SK_DESERIALIZE_PROPERTY(group, "LastOpened", recentProject.LastOpened);
-
-			if (!FileSystem::Exists(recentProject.Filepath))
+			if (!DeserializeProperty(projectNode, recentProject))
 				continue;
 
 			settings.RecentProjects[recentProject.LastOpened] = std::move(recentProject);
 		}
 
-		group = rootNode["ContentBrowser"];
-		SK_DESERIALIZE_PROPERTY(group, "ThumbnailSize", settings.ContentBrowser.ThumbnailSize);
-		SK_DESERIALIZE_PROPERTY(group, "GenerateThubmnails", settings.ContentBrowser.GenerateThumbnails);
+		if (auto contentBrowserNode = rootNode["ContentBrowser"])
+		{
+			DeserializeProperty(contentBrowserNode, "GenerateThumbnails", settings.ContentBrowser.GenerateThumbnails, true);
+			DeserializeProperty(contentBrowserNode, "ThumbnailSize", settings.ContentBrowser.ThumbnailSize, 120);
+		}
 
-		group = rootNode["Prefab"];
-		SK_DESERIALIZE_PROPERTY(group, "AutoGroupRootEntities", settings.Prefab.AutoGroupRootEntities);
+		if (auto prefabNode = rootNode["Prefab"])
+		{
+			DeserializeProperty(prefabNode, "AutoGroupRootEntities", settings.Prefab.AutoGroupRootEntities, true);
+		}
 	}
 
 	void EditorSettingsSerializer::SaveSettings()
@@ -109,33 +107,27 @@ namespace Shark {
 		const auto& settings = EditorSettings::Get();
 
 		YAML::Emitter out;
+
 		out << YAML::BeginMap;
-		SK_BEGIN_GROUP(out, "EditorSettings");
+		out << YAML::Key << "EditorSettings";
+
+		out << YAML::BeginMap;
+		out << YAML::Key << "RecentProjects" << YAML::Value << std::views::values(settings.RecentProjects);
+		out << YAML::Key << "ContentBrowser";
 		{
-			SK_BEGIN_GROUP(out, "RecentProjects");
-			for (const auto& [lastOpened, recentProject] : settings.RecentProjects)
-			{
-				if (!FileSystem::Exists(recentProject.Filepath))
-					continue;
-
-				SK_SERIALIZE_PROPERTY(out, "Name", recentProject.Name);
-				SK_SERIALIZE_PROPERTY(out, "Filepath", recentProject.Filepath);
-				SK_SERIALIZE_PROPERTY(out, "LastOpened", recentProject.LastOpened);
-			}
-			SK_END_GROUP(out);
-
-			SK_SERIALIZE_PROPERTY(out, "RecentProjects", settings.RecentProjects);
-
-			SK_BEGIN_GROUP(out, "ContentBrowser");
-			SK_SERIALIZE_PROPERTY(out, "ThumbnailSize", settings.ContentBrowser.ThumbnailSize);
-			SK_SERIALIZE_PROPERTY(out, "GenerateThubmnails", settings.ContentBrowser.GenerateThumbnails);
-			SK_END_GROUP(out);
-
-			SK_BEGIN_GROUP(out, "Prefab");
-			SK_SERIALIZE_PROPERTY(out, "AutoGroupRootEntities", settings.Prefab.AutoGroupRootEntities);
-			SK_END_GROUP(out);
+			out << YAML::BeginMap;
+			out << YAML::Key << "GenerateThumbnails" << YAML::Value << settings.ContentBrowser.GenerateThumbnails;
+			out << YAML::Key << "ThumbnailSize" << YAML::Value << settings.ContentBrowser.ThumbnailSize;
+			out << YAML::EndMap;
 		}
-		SK_END_GROUP(out);
+		out << YAML::Key << "Prefab";
+		{
+			out << YAML::BeginMap;
+			out << YAML::Key << "AutoGroupRootEntities" << settings.Prefab.AutoGroupRootEntities;
+			out << YAML::EndMap;
+		}
+		out << YAML::EndMap;
+
 		out << YAML::EndMap;
 
 		FileSystem::WriteString(s_SettingsPath, out.c_str());

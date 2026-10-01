@@ -258,6 +258,19 @@ namespace YAML {
 		}
 	};
 
+	template<std::ranges::range Range>
+		requires requires(const std::ranges::range_value_t<Range>& value) { { YAML::convert<std::ranges::range_value_t<Range>>::encode(value) } -> std::same_as<YAML::Node>; }
+	struct YAML::convert<Range>
+	{
+		static Node encode(const Range& range)
+		{
+			Node node(NodeType::Sequence);
+			for (const auto& element : range)
+				node.push_back(element);
+			return node;
+		}
+	};
+
 #define DECALRE_YAML_CONVERT_AS(_Type, _BaseType)\
 template<>                                                           \
 struct convert<_Type>                                                \

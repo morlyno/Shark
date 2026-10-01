@@ -2,6 +2,8 @@
 
 #include "Shark/Core/Base.h"
 
+#include <map>
+
 namespace Shark {
 
 	struct RecentProject
