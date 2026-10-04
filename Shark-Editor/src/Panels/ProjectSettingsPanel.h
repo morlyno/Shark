@@ -47,6 +47,7 @@ namespace Shark {
 		ImGuiID m_UnsavedSettingsID = UI::GenerateUniqueID();
 
 		UI::TextFilter m_LogFilter;
+		UI::TextFilter m_AddCustomLevelFilter;
 	};
 
 }

@@ -1,3 +1,4 @@
+#include "skpch.h"
 #include "PanelManager.h"
 
 #include "Shark/File/FileSystem.h"

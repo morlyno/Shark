@@ -9,7 +9,6 @@
 
 #include <fmt/format.h>
 #include <fmt/chrono.h>
-#include <fmt/os.h>
 #include <fmt/ranges.h>
 #include <fmt/std.h>
 
@@ -17,6 +16,10 @@
 
 #include <source_location>
 #include <stacktrace>
+
+namespace Shark {
+	class ProjectConfig;
+}
 
 namespace Shark {
 
@@ -132,6 +135,8 @@ namespace Shark {
 
 		Log::Level GetLevel(Log::Tag tag) const;
 		void SetLevel(Log::Tag tag, Log::Level level);
+
+		void ApplyProjectConfig(const ProjectConfig* config);
 
 	private:
 		std::shared_ptr<spdlog::logger> m_Core;

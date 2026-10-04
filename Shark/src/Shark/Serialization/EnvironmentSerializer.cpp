@@ -47,10 +47,7 @@ namespace Shark {
 		context->AddTask([query, environment](AssetLoadContext* context)
 		{
 			if (!query->RT_Poll())
-			{
-				SK_CORE_DEBUG("EnvironmentSerializer wait '{}'", environment->GetRadianceMap()->GetSpecification().DebugName);
 				return false;
-			}
 
 			Renderer::GetDeviceManager()->ExecuteCommand(nvrhi::CommandQueue::Graphics, [environment](nvrhi::ICommandList* cmd)
 			{

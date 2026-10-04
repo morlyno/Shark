@@ -271,6 +271,36 @@ namespace YAML {
 		}
 	};
 
+	template<
+		class Key,
+		class T,
+		class Compare,
+		class KeyContainer,
+		class MappedContainer
+	>
+	struct YAML::convert<std::flat_map<Key, T, Compare, KeyContainer, MappedContainer>>
+	{
+		using FlatMap = std::flat_map<Key, T, Compare, KeyContainer, MappedContainer>;
+
+		static Node encode(const FlatMap& rhs)
+		{
+			Node node(NodeType::Map);
+			for (const auto& element : rhs)
+				node.force_insert(element.first, element.second);
+			return node;
+		}
+
+		static bool decode(const Node& node, FlatMap& rhs) {
+			if (!node.IsMap())
+				return false;
+
+			rhs.clear();
+			for (const auto& element : node)
+				rhs.emplace(element.first.as<Key>(), element.second.as<T>());
+			return true;
+		}
+	};
+
 #define DECALRE_YAML_CONVERT_AS(_Type, _BaseType)\
 template<>                                                           \
 struct convert<_Type>                                                \

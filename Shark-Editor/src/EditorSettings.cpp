@@ -1,3 +1,4 @@
+#include "skpch.h"
 #include "EditorSettings.h"
 #include "Shark/File/FileSystem.h"
 

@@ -55,7 +55,7 @@ namespace Shark::UI {
 		bool InputDirectory(DialogType dialogType, std::filesystem::path& path, const std::filesystem::path& defaultPath = {});
 
 		template<typename TFunction>
-		bool ItemSearchPopup(UI::TextFilter& search, const TFunction& itemFunction, ImGuiID customPopupID = 0);
+		bool ItemSearchPopup(UI::TextFilter& search, const TFunction& itemFunction, ImGuiID customPopupID = 0, bool clearButton = true);
 
 		bool SearchStringPopup(size_t& selected, std::span<const std::string> strings, const size_t unselectedIndex = ~0);
 		bool SearchStringPopup(std::string& selected, std::span<const std::string> strings);
@@ -192,7 +192,7 @@ bool Shark::UI::Widgets::Search(TString& searchString, const char* hint, bool* g
 }
 
 template<typename TFunction>
-bool Shark::UI::Widgets::ItemSearchPopup(UI::TextFilter& search, const TFunction& itemFunction, ImGuiID customPopupID)
+bool Shark::UI::Widgets::ItemSearchPopup(UI::TextFilter& search, const TFunction& itemFunction, ImGuiID customPopupID, bool clearButton)
 {
 	const auto CalcMaxPopupHeightFromItemCount = [](int items_count)
 	{
@@ -231,6 +231,7 @@ bool Shark::UI::Widgets::ItemSearchPopup(UI::TextFilter& search, const TFunction
 			ImGui::SetKeyboardFocusHere();
 		UI::Widgets::Search(search);
 
+		if (clearButton)
 		{
 			UI::ScopedStyle frameBorder(ImGuiStyleVar_FrameBorderSize, 0.0f);
 			UI::ScopedStyle frameRounding(ImGuiStyleVar_FrameRounding, 0.0f);

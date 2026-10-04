@@ -1,6 +1,8 @@
 #include "skpch.h"
 #include "Log.h"
 
+#include "Shark/Core/Project.h"
+
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/dist_sink.h>
@@ -70,6 +72,9 @@ namespace Shark {
 
 		m_Core = std::make_shared<spdlog::logger>("SHARK", core);
 		m_User = std::make_shared<spdlog::logger>("APP", user);
+
+		m_Core->set_level(spdlog::level::trace);
+		m_User->set_level(spdlog::level::trace);
 
 		// spdlog::set_global_logger(...);
 		SetDefaultTagLevels();
@@ -171,6 +176,20 @@ namespace Shark {
 	void Logging::SetLevel(Log::Tag tag, Log::Level level)
 	{
 		m_Levels[tag] = level;
+	}
+
+	void Logging::ApplyProjectConfig(const ProjectConfig* config)
+	{
+		SetDefaultTagLevels();
+
+		// config is null when project is closed
+		if (!config)
+			return;
+
+		for (const auto& [tag, level] : config->CustomLogLevels)
+		{
+			m_Levels[tag] = level;
+		}
 	}
 
 	void Log::Initialize()

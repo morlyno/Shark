@@ -1724,6 +1724,9 @@ namespace Shark {
 
 	void EditorLayer::EnableRuntimeEditorCamera(bool enabled)
 	{
+		if (m_RuntimeEditorCameraActive == enabled)
+			return;
+
 		if (enabled && !m_RuntimeEditorCameraActive)
 		{
 			m_RuntimeCursorMode = Input::GetCursorMode();

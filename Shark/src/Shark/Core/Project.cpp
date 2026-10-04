@@ -1,6 +1,7 @@
 #include "skpch.h"
 #include "Project.h"
 
+#include "Shark/Core/Log.h"
 #include "Shark/Core/Application.h"
 
 #include "Shark/Asset/AssetManager/EditorAssetManager.h"
@@ -78,6 +79,7 @@ namespace Shark {
 		}
 
 		s_ActiveConfig = config;
+		Log::Get()->ApplyProjectConfig(config.Raw());
 
 		if (config)
 		{
@@ -98,6 +100,7 @@ namespace Shark {
 		}
 
 		s_ActiveConfig = config;
+		Log::Get()->ApplyProjectConfig(config.Raw());
 
 		if (config)
 		{

@@ -53,18 +53,7 @@ namespace Shark {
 		out << YAML::Key << "MaxTimestep" << YAML::Value << config.Physics.MaxTimestep;
 		out << YAML::EndMap;
 
-		out << YAML::Key << "Log" << YAML::Value;
-		out << YAML::BeginSeq;
-
-		for (auto* log = Log::Get();
-			 const auto tag : magic_enum::enum_values<Log::Tag>())
-		{
-			out << YAML::BeginMap;
-			out << YAML::Key << "Tag" << YAML::Value << tag;
-			out << YAML::Key << "Level" << YAML::Value << log->GetLevel(tag);
-			out << YAML::EndMap;
-		}
-		out << YAML::EndSeq;
+		out << YAML::Key << "Log" << YAML::Value << config.CustomLogLevels;
 
 		out << YAML::EndMap;
 		out << YAML::EndMap;
@@ -140,21 +129,7 @@ namespace Shark {
 		SK_DESERIALIZE_PROPERTY(physicsNode, "FixedTimeStep", config.Physics.FixedTimeStep, 1ms);
 		SK_DESERIALIZE_PROPERTY(physicsNode, "MaxTimestep", config.Physics.MaxTimestep, 16ms);
 
-		if (auto logNode = projectNode["Log"])
-		{
-			auto log = Log::Get();
-			for (auto entryNode : logNode)
-			{
-				Log::Tag tag;
-				Log::Level level;
-
-				if (DeserializeProperty(entryNode, "Tag", tag) &&
-					DeserializeProperty(entryNode, "Level", level))
-				{
-					log->SetLevel(tag, level);
-				}
-			}
-		}
+		DeserializeProperty(projectNode, "Log", config.CustomLogLevels);
 
 		SK_CORE_INFO_TAG(Log::Tag::Serialization, "Deserializing Project from: {}", filePath);
 		SK_CORE_TRACE_TAG(Log::Tag::Serialization, "  Name: {}", config.Name);

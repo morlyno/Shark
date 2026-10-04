@@ -45,6 +45,8 @@ namespace Shark {
 		std::string ScriptModulePath;
 
 		PhysicsConfig Physics;
+
+		std::flat_map<Log::Tag, Log::Level> CustomLogLevels;
 	};
 
 	class Project

@@ -209,32 +209,76 @@ namespace Shark {
 			UI::Widgets::Search(m_LogFilter);
 		}
 
-		if (ImGui::BeginTable("##logSettings", 2, 0, ImGui::GetContentRegionAvail()))
+		const auto frameHeight = ImGui::GetFrameHeight();
+		Log::Tag tagToClear = Log::Tag::Default;
+
+		auto* log = Log::Get();
+		for (auto&& [tag, level] : m_ProjectConfig->CustomLogLevels)
 		{
-			ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch);
-			ImGui::TableSetupColumn("Level", ImGuiTableColumnFlags_WidthStretch);
+			if (tag == Log::Tag::Default)
+				continue;
 
-			for (auto* log = Log::Get();
-				 const auto tag : magic_enum::enum_values<Log::Tag>())
+			const auto name = magic_enum::enum_name(tag);
+			if (!m_LogFilter.PassesFilter(name))
+				continue;
+
+			ImGui::BeginHorizontal(UI::GenerateID(), { ImGui::GetContentRegionAvail().x, frameHeight });
+			ImGui::Text(name);
+
+			ImGui::Spring();
+			if (UI::EnumCombo("##level", level))
+				log->SetLevel(tag, level);
+
+			ImGui::Spring(0, 0);
+			if (ImGui::InvisibleButton("##clear", { frameHeight, frameHeight }))
+				tagToClear = tag;
+
+			UI::DrawTextAligned("X", { 0.5f, 0.5f }, UI::GetItemRect());
+
+			ImGui::Spring(0, 0);
+			ImGui::EndHorizontal();
+		}
+
+		if (tagToClear != Log::Tag::Default)
+		{
+			m_ProjectConfig->CustomLogLevels.erase(tagToClear);
+			log->SetDefaultLevel(tagToClear);
+		}
+
+		// add button
+		{
+			const auto& style = ImGui::GetStyle();
+			const auto maxWidth = ImGui::GetContentRegionAvail().x;
+			const auto minButtonWidth = ImGui::CalcTextSize("Add").x + 2.0f * style.FramePadding.x;
+			const auto buttonSize = std::max(maxWidth / 3, minButtonWidth);
+
+			ImGui::BeginHorizontal("##add-button", { maxWidth, frameHeight });
+			ImGui::Spring();
+
+			ImGui::InvisibleButton("##add", { buttonSize, frameHeight });
+			UI::DrawButton("Add", { 0.5f, 0.0f }, UI::GetItemRect());
+
+			UI::Widgets::ItemSearchPopup(m_AddCustomLevelFilter, [this](UI::TextFilter& filter, bool clear, bool& changed)
 			{
-				const auto name = magic_enum::enum_name(tag);
-				if (!m_LogFilter.PassesFilter(name))
-					continue;
+				for (auto tag : magic_enum::enum_values<Log::Tag>())
+				{
+					if (tag == Log::Tag::Default || m_ProjectConfig->CustomLogLevels.contains(tag))
+						continue;
 
-				UI::ScopedID scopedID(name);
-				ImGui::TableNextRow();
-				ImGui::TableNextColumn();
-				ImGui::Text(name);
+					const auto name = magic_enum::enum_name(tag);
+					if (!filter.PassesFilter(name))
+						continue;
 
-				ImGui::TableNextColumn();
-				ImGui::SetNextItemWidth(-1.0f);
+					if (ImGui::Selectable(name.data()))
+					{
+						m_ProjectConfig->CustomLogLevels.emplace(tag, Log::Get()->GetLevel(tag));
+						changed = true;
+					}
+				}
+			}, 0, false);
 
-				auto level = log->GetLevel(tag);
-				if (UI::EnumCombo("##level", level))
-					log->SetLevel(tag, level);
-			}
-			
-			ImGui::EndTable();
+			ImGui::Spring();
+			ImGui::EndHorizontal();
 		}
 
 	}
